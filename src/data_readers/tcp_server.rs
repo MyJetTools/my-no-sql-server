@@ -52,9 +52,9 @@ async fn socket_loop(
     let mut buffer = SocketReadBuffer::new(1024 * 1024 * 5);
 
     loop {
-        let read_slice = buffer.borrow_to_write();
+        let write_slice = buffer.borrow_to_write();
 
-        if read_slice.is_none() {
+        if write_slice.is_none() {
             let reason = format!(
                 "Socket has no left buffer to read incoming data. Disconnected {}",
                 data_reader.to_string().await
@@ -62,7 +62,7 @@ async fn socket_loop(
             return Err(reason);
         }
 
-        let read_result = read_socket.read(&mut read_slice.unwrap()).await;
+        let read_result = read_socket.read(&mut write_slice.unwrap()).await;
 
         match read_result {
             Ok(read_size) => {
@@ -123,6 +123,10 @@ async fn handle_incoming_package(
         }
 
         DataReaderContract::Greeting { name } => {
+            println!(
+                "Chaning the name for the connection the {}",
+                data_reader.to_string()
+            );
             data_reader.set_socket_name(name).await;
         }
 
