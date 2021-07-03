@@ -1,14 +1,14 @@
 use std::collections::HashMap;
 
-use crate::db::FailOperationResult;
+use crate::{db::FailOperationResult, utils::date_time::MyDateTime};
 
 use super::{consts, JsonFirstLine};
 
 pub struct DbEntity<'s> {
     pub partition_key: String,
     pub row_key: String,
-    pub expires: Option<i64>,
-    pub time_stamp: Option<i64>,
+    pub expires: Option<MyDateTime>,
+    pub time_stamp: Option<MyDateTime>,
     pub raw: &'s [u8],
 }
 
@@ -56,6 +56,6 @@ fn get_json_field_as_string<'s>(
 fn get_json_field_as_timestamp<'s>(
     first_lines: &'s HashMap<&'s str, JsonFirstLine>,
     field_name: &'s str,
-) -> Option<i64> {
+) -> Option<MyDateTime> {
     return first_lines.get(field_name)?.try_get_date();
 }

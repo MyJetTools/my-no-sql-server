@@ -1,18 +1,18 @@
-use crate::{json::db_entity::DbEntity, utils::date_time};
+use crate::{json::db_entity::DbEntity, utils::date_time::MyDateTime};
 
 pub struct DbRow {
     pub row_key: String,
     pub data: Vec<u8>,
-    pub expires: Option<i64>,
-    pub time_stamp: i64,
-    pub last_access: i64,
+    pub expires: Option<MyDateTime>,
+    pub time_stamp: MyDateTime,
+    pub last_access: MyDateTime,
 }
 
 impl DbRow {
     pub fn form_db_entity<'s>(src: &DbEntity<'s>) -> Self {
         let time_stamp = match src.time_stamp {
             Some(value) => value,
-            None => date_time::get_utc_now(),
+            None => MyDateTime::utc_now(),
         };
 
         return Self {
@@ -20,15 +20,15 @@ impl DbRow {
             data: src.raw.to_vec(),
             expires: src.expires,
             time_stamp,
-            last_access: date_time::get_utc_now(),
+            last_access: MyDateTime::utc_now(),
         };
     }
 
-    pub fn update_last_access(&self, now: i64) {
+    pub fn update_last_access(&self, now: MyDateTime) {
         unsafe {
-            let const_ptr = self.last_access as *const i64;
+            let const_ptr = self.last_access.miliseconds as *const i64;
             let mut_ptr = const_ptr as *mut i64;
-            *mut_ptr = now;
+            *mut_ptr = now.miliseconds;
         }
     }
 }

@@ -4,7 +4,7 @@ use crate::{
     app::AppServices,
     db::{DbTable, DbTableAttributes, DbTableData, FailOperationResult},
     db_transactions::{TransactionAttributes, TransactionEvent},
-    utils::date_time,
+    utils::date_time::MyDateTime,
 };
 
 fn create_table_with_write_access(
@@ -26,7 +26,7 @@ fn create_table_with_write_access(
 
     let db_table_data = DbTableData::new(table_attributes);
 
-    let new_table = DbTable::new(name.to_string(), db_table_data, date_time::get_utc_now());
+    let new_table = DbTable::new(name.to_string(), db_table_data, MyDateTime::utc_now());
 
     let new_table = Arc::new(new_table);
     tables_write_access.insert(name.to_string(), new_table.clone());

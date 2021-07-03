@@ -6,6 +6,8 @@ use tokio::{
     sync::RwLock,
 };
 
+use crate::utils::date_time::MyDateTime;
+
 pub struct DataReadData {
     pub name: Option<String>,
     pub tcp_stream: Option<WriteHalf<TcpStream>>,
@@ -24,8 +26,9 @@ impl DataReadData {
 
 pub struct DataReader {
     pub data: RwLock<DataReadData>,
-
     pub id: u64,
+    pub connected: MyDateTime,
+    pub last_incoming_package: MyDateTime,
 }
 
 impl DataReader {
@@ -37,9 +40,13 @@ impl DataReader {
             tables: HashMap::new(),
         };
 
+        let now = MyDateTime::utc_now();
+
         Self {
             id,
             data: RwLock::new(data),
+            connected: now,
+            last_incoming_package: now,
         }
     }
 

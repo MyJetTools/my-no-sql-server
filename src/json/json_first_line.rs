@@ -1,6 +1,6 @@
 use chrono::NaiveDate;
 
-use crate::db::FailOperationResult;
+use crate::{db::FailOperationResult, utils::date_time::MyDateTime};
 
 pub struct JsonFirstLine<'t> {
     pub name: &'t [u8],
@@ -49,12 +49,12 @@ impl<'t> JsonFirstLine<'t> {
         }
     }
 
-    pub fn try_get_date(&self) -> Option<i64> {
+    pub fn try_get_date(&self) -> Option<MyDateTime> {
         parse_date_time(self.value)
     }
 }
 
-fn parse_date_time(time_as_string: &[u8]) -> Option<i64> {
+fn parse_date_time(time_as_string: &[u8]) -> Option<MyDateTime> {
     if time_as_string.len() == 19 {
         return parse_date_time_19(time_as_string);
     }
@@ -64,7 +64,7 @@ fn parse_date_time(time_as_string: &[u8]) -> Option<i64> {
 
 const START_ZERO: u8 = '0' as u8;
 //YYYY-MM-DDThh:mm:ss
-fn parse_date_time_19(time_as_string: &[u8]) -> Option<i64> {
+fn parse_date_time_19(time_as_string: &[u8]) -> Option<MyDateTime> {
     let year = (time_as_string[0] - START_ZERO) as i32 * 1000
         + (time_as_string[1] - START_ZERO) as i32 * 100
         + (time_as_string[2] - START_ZERO) as i32 * 10
@@ -87,7 +87,7 @@ fn parse_date_time_19(time_as_string: &[u8]) -> Option<i64> {
 
     let date_time = NaiveDate::from_ymd(year, month, day).and_hms(hour, min, sec);
 
-    Some(date_time.timestamp())
+    Some(MyDateTime::new(date_time.timestamp()))
 }
 
 #[cfg(test)]
@@ -100,6 +100,6 @@ mod tests {
 
         let i = parse_date_time(&src_data.into_bytes()).unwrap();
 
-        println!("{}", i);
+        println!("{}", i.to_iso_string());
     }
 }

@@ -1,17 +1,17 @@
 use tokio::sync::RwLock;
 
-use crate::db_operations::read_as_json::DbEntityAsJsonArray;
+use crate::{db_operations::read_as_json::DbEntityAsJsonArray, utils::date_time::MyDateTime};
 
 use super::{DbTableAttributes, DbTableData};
 
 pub struct DbTable {
     pub name: String,
-    pub created: i64,
+    pub created: MyDateTime,
     pub data: RwLock<DbTableData>,
 }
 
 impl DbTable {
-    pub fn new(name: String, data: DbTableData, created: i64) -> Self {
+    pub fn new(name: String, data: DbTableData, created: MyDateTime) -> Self {
         DbTable {
             created,
             name: name,

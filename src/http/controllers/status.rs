@@ -3,6 +3,7 @@ use std::sync::Arc;
 use crate::{
     app::AppServices,
     db::{FailOperationResult, OperationResult},
+    utils::date_time::MyDateTime,
 };
 use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Debug)]
@@ -25,6 +26,10 @@ struct ReaderModel {
     pub name: String,
     pub ip: String,
     pub tables: Vec<String>,
+    #[serde(rename = "lastIncomingTime")]
+    pub last_incoming_time: String,
+    #[serde(rename = "connectedTime")]
+    pub connected_time: String,
 }
 #[derive(Serialize, Deserialize, Debug)]
 struct StatusModel {
@@ -38,10 +43,16 @@ struct StatusModel {
 
 async fn get_readers(app: &AppServices) -> Vec<ReaderModel> {
     let mut result = Vec::new();
+    let now = MyDateTime::utc_now();
 
     for data_reader in app.data_readers.get_all().await {
         let read_data = data_reader.data.read().await;
         result.push(ReaderModel {
+            connected_time: data_reader.connected.to_iso_string(),
+            last_incoming_time: format!(
+                "{:?}",
+                now.duration_from(data_reader.last_incoming_package)
+            ),
             id: data_reader.id,
             ip: read_data.ip.clone(),
             name: read_data.to_string(),

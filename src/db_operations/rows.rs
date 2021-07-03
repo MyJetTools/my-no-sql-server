@@ -6,7 +6,7 @@ use crate::{
     db::{DbRow, DbTable, FailOperationResult, OperationResult},
     db_transactions::{TransactionAttributes, TransactionEvent},
     json::{array_parser, db_entity::DbEntity},
-    utils::date_time,
+    utils::date_time::MyDateTime,
 };
 
 pub async fn insert(
@@ -16,7 +16,7 @@ pub async fn insert(
     attr: Option<TransactionAttributes>,
 ) -> Result<OperationResult, FailOperationResult> {
     let db_entity = DbEntity::parse(payload)?;
-    let now = date_time::get_utc_now();
+    let now = MyDateTime::utc_now();
     let mut table_write_access = db_table.data.write().await;
 
     let db_partition = table_write_access
@@ -48,7 +48,7 @@ pub async fn insert_or_replace(
     attr: Option<TransactionAttributes>,
 ) -> Result<OperationResult, FailOperationResult> {
     let db_entity = DbEntity::parse(payload)?;
-    let now = date_time::get_utc_now();
+    let now = MyDateTime::utc_now();
 
     let mut table_write_access = db_table.data.write().await;
 
@@ -88,7 +88,7 @@ pub async fn replace(
 
     let mut write_access = db_table.data.write().await;
 
-    let now = date_time::get_utc_now();
+    let now = MyDateTime::utc_now();
 
     let db_partition =
         write_access.get_partition_and_update_last_access_mut(entity.partition_key.as_str(), now);
@@ -107,7 +107,7 @@ pub async fn replace(
 
     let db_row = db_row.unwrap();
 
-    if db_row.time_stamp != entity_time_stamp {
+    if !db_row.time_stamp.equals_to(entity_time_stamp) {
         return Err(FailOperationResult::OptimisticConcurencyUpdateFails);
     }
 
@@ -155,7 +155,7 @@ pub async fn bulk_insert_or_update(
     attr: Option<TransactionAttributes>,
 ) -> Result<(), FailOperationResult> {
     let entities = array_parser::split_to_objects(payload)?;
-    let now = date_time::get_utc_now();
+    let now = MyDateTime::utc_now();
 
     let mut table_write_access = db_table.data.write().await;
 
@@ -198,7 +198,7 @@ pub async fn clean_table_and_bulk_insert(
     attr: Option<TransactionAttributes>,
 ) -> Result<(), FailOperationResult> {
     let entities = array_parser::split_to_objects(payload)?;
-    let now = date_time::get_utc_now();
+    let now = MyDateTime::utc_now();
     let entities = to_hash_map(entities);
 
     let mut write_access = db_table.data.write().await;
@@ -249,7 +249,7 @@ pub async fn clean_partition_and_bulk_insert(
 ) -> Result<(), FailOperationResult> {
     let entities = array_parser::split_to_objects(payload)?;
 
-    let now = date_time::get_utc_now();
+    let now = MyDateTime::utc_now();
 
     let entities = to_hash_map(entities);
 

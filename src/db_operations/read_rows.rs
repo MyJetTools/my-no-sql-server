@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     db::{DbRow, DbTable, FailOperationResult, OperationResult},
-    utils::date_time,
+    utils::date_time::MyDateTime,
 };
 
 impl DbTable {
@@ -38,7 +38,7 @@ impl DbTable {
         row_keys: Vec<String>,
     ) -> Result<OperationResult, FailOperationResult> {
         let read_access = self.data.read().await;
-        let now = date_time::get_utc_now();
+        let now = MyDateTime::utc_now();
 
         let db_partition = read_access.get_partition_and_update_last_access(partition_key, now);
 
@@ -75,7 +75,7 @@ impl DbTable {
         max_amount: usize,
     ) -> Result<OperationResult, FailOperationResult> {
         let read_access = self.data.read().await;
-        let now = date_time::get_utc_now();
+        let now = MyDateTime::utc_now();
 
         let db_partition = read_access.get_partition_and_update_last_access(partition_key, now);
 

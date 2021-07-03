@@ -1,6 +1,6 @@
 use tokio::sync::RwLock;
 
-use crate::utils::date_time;
+use crate::utils::date_time::MyDateTime;
 
 #[derive(Debug, Clone)]
 pub enum LogLevel {
@@ -9,7 +9,7 @@ pub enum LogLevel {
 }
 #[derive(Debug, Clone)]
 pub struct LogItem {
-    pub date: i64,
+    pub date: MyDateTime,
 
     pub table: Option<String>,
 
@@ -35,7 +35,7 @@ impl Logs {
 
     pub async fn add_info(&self, table: Option<String>, process: String, message: String) {
         let item = LogItem {
-            date: date_time::get_utc_now(),
+            date: MyDateTime::utc_now(),
             level: LogLevel::Info,
             table,
             process: process,
@@ -60,7 +60,7 @@ impl Logs {
         err_ctx: Option<String>,
     ) {
         let item = LogItem {
-            date: date_time::get_utc_now(),
+            date: MyDateTime::utc_now(),
             level: LogLevel::Error,
             table,
             process: process,

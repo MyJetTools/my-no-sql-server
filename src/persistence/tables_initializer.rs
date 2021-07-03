@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use my_azure_storage_sdk::AzureConnection;
 
-use crate::{app::AppServices, db::DbTable};
+use crate::{app::AppServices, db::DbTable, utils::date_time::MyDateTime};
 
 pub async fn init_tables(app: &AppServices) {
     let connection = AzureConnection::from_conn_string(app.settings.persistence_dest.as_str());
@@ -15,7 +15,7 @@ pub async fn init_tables(app: &AppServices) {
             .await
             .unwrap();
 
-        let now = crate::utils::date_time::get_utc_now();
+        let now = MyDateTime::utc_now();
 
         let db_table = DbTable::new(table_name.to_string(), table_data, now);
 

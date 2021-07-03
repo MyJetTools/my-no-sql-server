@@ -3,7 +3,7 @@ use std::{
     sync::Arc,
 };
 
-use crate::utils::SortedHashMap;
+use crate::utils::{date_time::MyDateTime, SortedHashMap};
 
 use super::{DbPartition, DbRow, FailOperationResult, OperationResult};
 
@@ -33,7 +33,7 @@ impl DbTableData {
     pub fn get_partition_and_update_last_access_mut(
         &mut self,
         partition_key: &str,
-        now: i64,
+        now: MyDateTime,
     ) -> Option<&mut DbPartition> {
         let result = self.partitions.get_mut(partition_key)?;
 
@@ -53,7 +53,7 @@ impl DbTableData {
     pub fn get_partition_and_update_last_access(
         &self,
         partition_key: &str,
-        now: i64,
+        now: MyDateTime,
     ) -> Option<&DbPartition> {
         let result = self.partitions.get(partition_key)?;
 
@@ -191,7 +191,7 @@ impl DbTableData {
     pub fn get_or_create_partition_and_update_last_access(
         &mut self,
         partition_key: &str,
-        now: i64,
+        now: MyDateTime,
     ) -> &mut DbPartition {
         if self.partitions.contains_key(partition_key) {
             let result = self.partitions.get_mut(partition_key).unwrap();
@@ -214,11 +214,11 @@ impl DbTableData {
         for (partition_key, db_partition) in &self.partitions {
             let mut last_access = db_partition.last_access;
 
-            while partitions_by_date_time.contains_key(&last_access) {
-                last_access += 1;
+            while partitions_by_date_time.contains_key(&last_access.miliseconds) {
+                last_access.miliseconds += 1;
             }
 
-            partitions_by_date_time.insert(last_access, partition_key.to_string());
+            partitions_by_date_time.insert(last_access.miliseconds, partition_key.to_string());
         }
 
         while self.partitions.len() > max_partitions_amount {

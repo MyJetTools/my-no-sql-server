@@ -46,11 +46,7 @@ pub async fn get_logs(app: Arc<AppServices>) -> Result<OperationResult, FailOper
     let mut sb = StringBuilder::new();
 
     for log_item in logs {
-        let line = format!(
-            "{} {:?}",
-            crate::utils::date_time::to_iso_string(log_item.date),
-            log_item.level
-        );
+        let line = format!("{} {:?}", log_item.date.to_iso_string(), log_item.level);
         sb.append_line(&line);
 
         let line = format!("Process: {}", log_item.process);

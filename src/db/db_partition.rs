@@ -1,27 +1,27 @@
 use std::{collections::BTreeMap, sync::Arc};
 
-use crate::utils::{date_time, SortedHashMap};
+use crate::utils::{date_time::MyDateTime, SortedHashMap};
 
 use super::DbRow;
 
 pub struct DbPartition {
     pub rows: BTreeMap<String, Arc<DbRow>>,
-    pub last_access: i64,
+    pub last_access: MyDateTime,
 }
 
 impl DbPartition {
     pub fn new() -> DbPartition {
         DbPartition {
             rows: BTreeMap::new(),
-            last_access: date_time::get_utc_now(),
+            last_access: MyDateTime::utc_now(),
         }
     }
 
-    pub fn update_last_access(&self, now: i64) {
+    pub fn update_last_access(&self, now: MyDateTime) {
         unsafe {
-            let const_ptr = self.last_access as *const i64;
+            let const_ptr = self.last_access.miliseconds as *const MyDateTime;
             let mut_ptr = const_ptr as *mut i64;
-            *mut_ptr = now;
+            *mut_ptr = now.miliseconds;
         }
     }
 
@@ -71,11 +71,11 @@ impl DbPartition {
         for (row_key, db_partition) in &self.rows {
             let mut last_access = db_partition.last_access;
 
-            while partitions_by_date_time.contains_key(&last_access) {
-                last_access += 1;
+            while partitions_by_date_time.contains_key(&last_access.miliseconds) {
+                last_access.miliseconds += 1;
             }
 
-            partitions_by_date_time.insert(last_access, row_key.to_string());
+            partitions_by_date_time.insert(last_access.miliseconds, row_key.to_string());
         }
 
         while self.rows.len() > max_rows_amount {
@@ -93,13 +93,17 @@ impl DbPartition {
         gced
     }
 
-    pub fn get_row_and_update_last_time(&self, row_key: &str, now: i64) -> Option<Arc<DbRow>> {
+    pub fn get_row_and_update_last_time(
+        &self,
+        row_key: &str,
+        now: MyDateTime,
+    ) -> Option<Arc<DbRow>> {
         let result = self.rows.get(row_key)?;
         result.update_last_access(now);
         return Some(result.clone());
     }
 
-    pub fn get_highest_row_and_below(&self, row_key: String, now: i64) -> Vec<Arc<DbRow>> {
+    pub fn get_highest_row_and_below(&self, row_key: String, now: MyDateTime) -> Vec<Arc<DbRow>> {
         let mut result = Vec::new();
 
         for (_, db_row) in self.rows.range(..row_key) {
