@@ -95,19 +95,20 @@ async fn process_incoming_data(
     data_reader: &DataReader,
     socket_buffer_reader: &mut SocketReadBuffer,
 ) -> Result<(), String> {
-    let parse_result = DataReaderContract::deserialize(socket_buffer_reader)?;
+    loop {
+        let parse_result = DataReaderContract::deserialize(socket_buffer_reader)?;
 
-    match parse_result {
-        Some(contract) => {
-            socket_buffer_reader.confirm_read_package();
-            handle_incoming_package(app, data_reader, contract).await;
-        }
-        None => {
-            socket_buffer_reader.reset_read_pos();
+        match parse_result {
+            Some(contract) => {
+                socket_buffer_reader.confirm_read_package();
+                handle_incoming_package(app, data_reader, contract).await;
+            }
+            None => {
+                socket_buffer_reader.reset_read_pos();
+                return Ok(());
+            }
         }
     }
-
-    Ok(())
 }
 
 async fn handle_incoming_package(

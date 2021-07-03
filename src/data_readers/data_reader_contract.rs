@@ -72,7 +72,7 @@ impl DataReaderContract {
         let packet = payload.read_byte();
 
         if packet.is_none() {
-            return Err(format!("buffer is empty. Debug it..."));
+            return Ok(None);
         }
 
         let packet = packet.unwrap();
