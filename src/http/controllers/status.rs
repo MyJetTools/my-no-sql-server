@@ -21,6 +21,7 @@ struct QueuesModel {
 
 #[derive(Serialize, Deserialize, Debug)]
 struct ReaderModel {
+    id: u64,
     pub name: String,
     pub ip: String,
     pub tables: Vec<String>,
@@ -41,6 +42,7 @@ async fn get_readers(app: &AppServices) -> Vec<ReaderModel> {
     for data_reader in app.data_readers.get_all().await {
         let read_data = data_reader.data.read().await;
         result.push(ReaderModel {
+            id: data_reader.id,
             ip: read_data.ip.clone(),
             name: read_data.to_string(),
             tables: read_data
