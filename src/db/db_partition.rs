@@ -1,24 +1,24 @@
+use crate::date_time::{AtomicDateTime, MyDateTime};
+use crate::utils::SortedHashMap;
 use std::{collections::BTreeMap, sync::Arc};
-
-use crate::utils::{date_time::MyDateTime, SortedHashMap};
 
 use super::DbRow;
 
 pub struct DbPartition {
     pub rows: BTreeMap<String, Arc<DbRow>>,
-    pub last_access: MyDateTime,
+    pub last_access: AtomicDateTime,
 }
 
 impl DbPartition {
     pub fn new() -> DbPartition {
         DbPartition {
             rows: BTreeMap::new(),
-            last_access: MyDateTime::utc_now(),
+            last_access: AtomicDateTime::utc_now(),
         }
     }
 
     pub fn update_last_access(&self, now: MyDateTime) {
-        self.last_access.update_unsafe(now);
+        self.last_access.update(now);
     }
 
     /*
@@ -65,13 +65,18 @@ impl DbPartition {
         let mut gced = Vec::new();
 
         for (row_key, db_partition) in &self.rows {
-            let mut last_access = db_partition.last_access;
+            let mut last_access = db_partition.last_access.get();
+            let last_access_before_insert = last_access;
 
-            while partitions_by_date_time.contains_key(&last_access.miliseconds) {
-                last_access.miliseconds += 1;
+            while partitions_by_date_time.contains_key(&last_access) {
+                last_access += 1;
             }
 
-            partitions_by_date_time.insert(last_access.miliseconds, row_key.to_string());
+            partitions_by_date_time.insert(last_access, row_key.to_string());
+
+            if last_access_before_insert != last_access {
+                db_partition.last_access.update_value(last_access);
+            }
         }
 
         while self.rows.len() > max_rows_amount {

@@ -3,7 +3,7 @@ use std::{
     sync::Arc,
 };
 
-use crate::utils::{date_time::MyDateTime, SortedHashMap};
+use crate::{date_time::MyDateTime, utils::SortedHashMap};
 
 use super::{DbPartition, DbRow, FailOperationResult, OperationResult};
 
@@ -212,13 +212,18 @@ impl DbTableData {
         let mut gced = Vec::new();
 
         for (partition_key, db_partition) in &self.partitions {
-            let mut last_access = db_partition.last_access;
+            let mut last_access = db_partition.last_access.get();
+            let last_access_before_insert = last_access;
 
-            while partitions_by_date_time.contains_key(&last_access.miliseconds) {
-                last_access.miliseconds += 1;
+            while partitions_by_date_time.contains_key(&last_access) {
+                last_access += 1;
             }
 
-            partitions_by_date_time.insert(last_access.miliseconds, partition_key.to_string());
+            partitions_by_date_time.insert(last_access, partition_key.to_string());
+
+            if last_access_before_insert != last_access {
+                db_partition.last_access.update_value(last_access)
+            }
         }
 
         while self.partitions.len() > max_partitions_amount {

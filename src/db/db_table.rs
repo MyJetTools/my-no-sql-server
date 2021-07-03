@@ -1,6 +1,6 @@
 use tokio::sync::RwLock;
 
-use crate::{db_operations::read_as_json::DbEntityAsJsonArray, utils::date_time::MyDateTime};
+use crate::{date_time::MyDateTime, db_operations::read_as_json::DbEntityAsJsonArray};
 
 use super::{DbTableAttributes, DbTableData};
 

@@ -1,4 +1,4 @@
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, UNIX_EPOCH};
 
 use chrono::{DateTime, Utc};
 
@@ -12,10 +12,7 @@ impl MyDateTime {
         Self { miliseconds }
     }
     pub fn utc_now() -> Self {
-        let miliseconds = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as i64;
+        let miliseconds = super::utils::get_utc_now();
 
         Self { miliseconds }
     }
@@ -39,14 +36,6 @@ impl MyDateTime {
 
     pub fn equals_to(&self, other_one: MyDateTime) -> bool {
         return self.miliseconds == other_one.miliseconds;
-    }
-
-    pub fn update_unsafe(&self, value: MyDateTime) {
-        unsafe {
-            let const_ptr = self.miliseconds as *const i64;
-            let mut_ptr = const_ptr as *mut i64;
-            *mut_ptr = value.miliseconds;
-        }
     }
 
     pub fn update(&mut self, value: MyDateTime) {

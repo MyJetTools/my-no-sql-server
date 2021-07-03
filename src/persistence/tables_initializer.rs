@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use my_azure_storage_sdk::AzureConnection;
 
-use crate::{app::AppServices, db::DbTable, utils::date_time::MyDateTime};
+use crate::{app::AppServices, date_time::MyDateTime, db::DbTable};
 
 pub async fn init_tables(app: &AppServices) {
     let connection = AzureConnection::from_conn_string(app.settings.persistence_dest.as_str());
