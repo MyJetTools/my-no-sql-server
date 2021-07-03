@@ -30,6 +30,7 @@ sha2 = "*"
 base64 = "*"
 serde_yaml = "*"
 rand = "*"
+prometheus = "*"
 
 [build-dependencies]
 tonic-build = { version="0.4.2", features=["prost"] }

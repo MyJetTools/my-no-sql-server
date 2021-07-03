@@ -7,3 +7,4 @@ mod row;
 mod rows;
 mod status;
 mod tables;
+mod metrics;

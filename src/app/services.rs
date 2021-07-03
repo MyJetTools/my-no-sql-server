@@ -11,7 +11,7 @@ use crate::{
     settings_reader::SettingsModel,
 };
 
-use super::logs::Logs;
+use super::{logs::Logs, metrics::PrometheusMetrics};
 pub struct AppServices {
     pub db: DbInstance,
     pub queue_to_persist: QueueToPersist,
@@ -20,6 +20,8 @@ pub struct AppServices {
     pub data_readers: DataReaders,
 
     pub data_readers_sender: UnboundedSender<DataReadersCommand>,
+
+    pub metrics: PrometheusMetrics,
 }
 
 impl AppServices {
@@ -34,6 +36,7 @@ impl AppServices {
             logs: Logs::new(),
             data_readers: DataReaders::new(),
             data_readers_sender,
+            metrics: PrometheusMetrics::new(),
         }
     }
 

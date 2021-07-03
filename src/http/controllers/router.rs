@@ -8,7 +8,7 @@ use crate::http::http_ctx::HttpContext;
 use crate::http::http_helpers;
 use std::sync::Arc;
 
-use super::{api, bulk, gc, row, rows, status, tables};
+use super::{api, bulk, gc, metrics, row, rows, status, tables};
 
 pub async fn route_requests(req: Request<Body>, app: Arc<AppServices>) -> Result<Response<Body>> {
     let path = req.uri().path().to_lowercase();
@@ -16,7 +16,7 @@ pub async fn route_requests(req: Request<Body>, app: Arc<AppServices>) -> Result
     let api_response_result = match (req.method(), path.as_str()) {
         (&Method::GET, "/api/isalive") => Some(api::is_alive()),
         (&Method::GET, "/api/status") => Some(status::get(app).await),
-
+        (&Method::GET, "/metrics") => Some(metrics::get(app)),
         (&Method::GET, "/logs") => Some(api::get_logs(app).await),
 
         (&Method::GET, "/tables/list") => Some(tables::list_of_tables(app).await),

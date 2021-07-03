@@ -203,6 +203,7 @@ impl DbTableData {
         let result = DbPartition::new();
 
         self.partitions.insert(partition_key.to_string(), result);
+
         return self.partitions.get_mut(partition_key).unwrap();
     }
 

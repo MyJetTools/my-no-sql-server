@@ -47,11 +47,15 @@ async fn main() {
         timer_blob_persistence_handler = Some(handler);
     }
 
+    let metrics_timer = tokio::task::spawn(crate::timers::metrics_updater::start(app.clone()));
+
     http::http_server::start(app).await;
 
     tcp_server_handle.await.unwrap();
 
     data_readers_broadcast_handle.await.unwrap();
+
+    metrics_timer.await.unwrap();
 
     if let Some(handler) = timer_blob_persistence_handler {
         handler.await.unwrap();
