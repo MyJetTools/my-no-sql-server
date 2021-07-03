@@ -51,7 +51,7 @@ async fn get_readers(app: &AppServices) -> Vec<ReaderModel> {
             connected_time: data_reader.connected.to_iso_string(),
             last_incoming_time: format!(
                 "{:?}",
-                now.duration_from(data_reader.last_incoming_package)
+                data_reader.last_incoming_package.duration_from(now)
             ),
             id: data_reader.id,
             ip: read_data.ip.clone(),
