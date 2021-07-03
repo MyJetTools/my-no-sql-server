@@ -64,28 +64,26 @@ async fn socket_loop(
 
         let read_result = read_socket.read(&mut write_slice.unwrap()).await;
 
-        match read_result {
-            Ok(read_size) => {
-                if read_size == 0 {
-                    let reason = format!(
-                        "Socket has 0 incoming data. Disconnected {}",
-                        data_reader.to_string().await
-                    );
-                    return Err(reason);
-                }
+        if let Err(err) = read_result {
+            let reason = format!(
+                "Error reading from the socket {}. Err: {:?}",
+                data_reader.to_string().await,
+                err
+            );
 
-                process_incoming_data(app, data_reader, &mut buffer).await?;
-                buffer.commit_written_size(read_size);
-            }
-            Err(err) => {
+            return Err(reason);
+        }
+
+        if let Ok(read_size) = read_result {
+            if read_size == 0 {
                 let reason = format!(
-                    "Error reading from the socket {}. Err: {:?}",
-                    data_reader.to_string().await,
-                    err
+                    "Socket has 0 incoming data. Disconnected {}",
+                    data_reader.to_string().await
                 );
-
                 return Err(reason);
             }
+            buffer.commit_written_size(read_size);
+            process_incoming_data(app, data_reader, &mut buffer).await?;
         }
     }
 }

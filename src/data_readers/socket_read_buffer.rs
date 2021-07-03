@@ -6,7 +6,7 @@ pub struct SocketReadBuffer {
 
 impl SocketReadBuffer {
     pub fn to_string(&self) -> String {
-        return format!("read:{}; write;{}", self.read_pos, self.write_pos);
+        return format!("read:{}; write:{}", self.read_pos, self.write_pos);
     }
 
     pub fn new(capacity: usize) -> Self {
