@@ -10,7 +10,7 @@ use crate::{app::AppServices, data_readers::data_reader::DataReader};
 use super::{data_reader_contract::DataReaderContract, socket_read_buffer::SocketReadBuffer};
 
 pub async fn start(app: Arc<AppServices>) {
-    let listener = TcpListener::bind("0.0.0.0:5124").await.unwrap();
+    let listener = TcpListener::bind("0.0.0.0:5125").await.unwrap();
     let mut id: u64 = 0;
 
     loop {
