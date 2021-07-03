@@ -41,7 +41,7 @@ async fn process_socket(
         println!("Socket Disconnected: {}", err);
     }
 
-    data_reader.disconnect().await;
+    app.data_readers.disconnect(data_reader.id).await;
 }
 
 async fn socket_loop(

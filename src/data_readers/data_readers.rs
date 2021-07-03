@@ -20,6 +20,15 @@ impl DataReaders {
         write_access.insert(data_reader.id, data_reader);
     }
 
+    pub async fn disconnect(&self, id: u64) {
+        let mut write_access = self.data_readers.write().await;
+        let removed_item = write_access.remove(&id);
+
+        if let Some(data_reader) = removed_item {
+            data_reader.disconnect().await;
+        }
+    }
+
     pub async fn get(&self, id: &u64) -> Option<Arc<DataReader>> {
         let read_access = self.data_readers.read().await;
 
