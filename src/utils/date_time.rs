@@ -40,4 +40,12 @@ impl MyDateTime {
     pub fn equals_to(&self, other_one: MyDateTime) -> bool {
         return self.miliseconds == other_one.miliseconds;
     }
+
+    pub fn update_unsafe(&self, value: MyDateTime) {
+        unsafe {
+            let const_ptr = self.miliseconds as *const i64;
+            let mut_ptr = const_ptr as *mut i64;
+            *mut_ptr = value.miliseconds;
+        }
+    }
 }

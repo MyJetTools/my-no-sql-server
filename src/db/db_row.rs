@@ -25,11 +25,7 @@ impl DbRow {
     }
 
     pub fn update_last_access(&self, now: MyDateTime) {
-        unsafe {
-            let const_ptr = self.last_access.miliseconds as *const i64;
-            let mut_ptr = const_ptr as *mut i64;
-            *mut_ptr = now.miliseconds;
-        }
+        self.last_access.update_unsafe(now);
     }
 }
 

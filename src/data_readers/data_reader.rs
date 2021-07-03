@@ -109,4 +109,9 @@ impl DataReader {
         let mut data = self.data.write().await;
         data.tables.insert(table_name, 0);
     }
+
+    pub fn update_last_incoming_moment(&self) {
+        let now = MyDateTime::utc_now();
+        self.last_incoming_package.update_unsafe(now);
+    }
 }

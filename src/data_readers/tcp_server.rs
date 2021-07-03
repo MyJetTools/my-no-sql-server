@@ -114,9 +114,10 @@ async fn handle_incoming_package(
     data_reader: &DataReader,
     contract: DataReaderContract,
 ) {
+    data_reader.update_last_incoming_moment();
+
     match contract {
         DataReaderContract::Ping => {
-            println!("PING for the connection: {}", data_reader.to_string().await);
             data_reader
                 .send_package(None, DataReaderContract::Pong.serialize().as_slice())
                 .await;
