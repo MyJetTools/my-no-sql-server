@@ -34,8 +34,9 @@ impl PrometheusMetrics {
     }
 
     pub async fn update_table_partitions_amount(&self, table_name: &str, value: usize) {
+        let table_name = table_name.replace('-', "_");
         if self
-            .update_table_partitions_if_exists_amount(table_name, value)
+            .update_table_partitions_if_exists_amount(table_name.as_str(), value)
             .await
         {
             return;
@@ -43,7 +44,7 @@ impl PrometheusMetrics {
 
         let mut write_access = self.table_partitions.write().await;
 
-        if !write_access.contains_key(table_name) {
+        if !write_access.contains_key(table_name.as_str()) {
             let gauge_opts = Opts::new(
                 format!("{}_table_partitions_amount", table_name),
                 format!("{} partitions amount", table_name),
@@ -53,7 +54,7 @@ impl PrometheusMetrics {
             write_access.insert(table_name.to_string(), gauge);
         }
 
-        let gauge = write_access.get(table_name).unwrap();
+        let gauge = write_access.get(table_name.as_str()).unwrap();
         gauge.set(value as f64);
     }
 
