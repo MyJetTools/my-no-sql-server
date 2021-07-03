@@ -118,6 +118,7 @@ async fn handle_incoming_package(
 ) {
     match contract {
         DataReaderContract::Ping => {
+            println!("PING for the connection: {}", data_reader.to_string().await);
             data_reader
                 .send_package(None, DataReaderContract::Pong.serialize().as_slice())
                 .await;
