@@ -125,7 +125,7 @@ async fn handle_incoming_package(
         DataReaderContract::Greeting { name } => {
             println!(
                 "Chaning the name for the connection the {}",
-                data_reader.to_string()
+                data_reader.to_string().await
             );
             data_reader.set_socket_name(name).await;
         }
