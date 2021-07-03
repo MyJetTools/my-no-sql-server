@@ -1,0 +1,370 @@
+<?xml version="1.0" encoding="utf-8"?>
+<EnumerationResults ServiceEndpoint="https://monfexmynosqldev.blob.core.windows.net/">
+    <MaxResults>100</MaxResults>
+    <Containers>
+        <Container>
+            <Name>auth-cache</Name>
+            <Properties>
+                <Last-Modified>Thu, 28 Jan 2021 15:03:02 GMT</Last-Modified>
+                <Etag>"0x8D8C39DCEE99391"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+            </Properties>
+        </Container>
+        <Container>
+            <Name>auth-restriction</Name>
+            <Properties>
+                <Last-Modified>Wed, 10 Feb 2021 09:50:26 GMT</Last-Modified>
+                <Etag>"0x8D8CDA94B159457"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+            </Properties>
+        </Container>
+        <Container>
+            <Name>authcache</Name>
+            <Properties>
+                <Last-Modified>Mon, 11 May 2020 09:44:02 GMT</Last-Modified>
+                <Etag>"0x8D7F58FD684E154"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+            </Properties>
+        </Container>
+        <Container>
+            <Name>brand</Name>
+            <Properties>
+                <Last-Modified>Thu, 25 Feb 2021 12:29:31 GMT</Last-Modified>
+                <Etag>"0x8D8D98900613BCB"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+            </Properties>
+        </Container>
+        <Container>
+            <Name>brands</Name>
+            <Properties>
+                <Last-Modified>Mon, 23 Nov 2020 08:53:03 GMT</Last-Modified>
+                <Etag>"0x8D88F8D301F4464"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+            </Properties>
+        </Container>
+        <Container>
+            <Name>countries</Name>
+            <Properties>
+                <Last-Modified>Fri, 26 Jun 2020 08:29:56 GMT</Last-Modified>
+                <Etag>"0x8D819AB1B9BF518"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+            </Properties>
+        </Container>
+        <Container>
+            <Name>defaultvalues</Name>
+            <Properties>
+                <Last-Modified>Thu, 22 Oct 2020 06:37:47 GMT</Last-Modified>
+                <Etag>"0x8D87654FD89D7E9"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+            </Properties>
+        </Container>
+        <Container>
+            <Name>demo-favoriteinstruments</Name>
+            <Properties>
+                <Last-Modified>Mon, 30 Mar 2020 07:22:45 GMT</Last-Modified>
+                <Etag>"0x8D7D47B248A6189"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+            </Properties>
+        </Container>
+        <Container>
+            <Name>demo-reportactivepositions</Name>
+            <Properties>
+                <Last-Modified>Fri, 12 Mar 2021 10:26:41 GMT</Last-Modified>
+                <Etag>"0x8D8E54153BA19BC"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+            </Properties>
+        </Container>
+        <Container>
+            <Name>demo-tradinggroups</Name>
+            <Properties>
+                <Last-Modified>Tue, 12 May 2020 10:52:46 GMT</Last-Modified>
+                <Etag>"0x8D7F6629B115738"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+            </Properties>
+        </Container>
+        <Container>
+            <Name>demo-tradingprofiles</Name>
+            <Properties>
+                <Last-Modified>Tue, 19 May 2020 14:51:53 GMT</Last-Modified>
+                <Etag>"0x8D7FC042B6AD4E0"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+            </Properties>
+        </Container>
+        <Container>
+            <Name>emailtemplates</Name>
+            <Properties>
+                <Last-Modified>Fri, 26 Feb 2021 15:19:26 GMT</Last-Modified>
+                <Etag>"0x8D8DA69E7DEB625"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+            </Properties>
+        </Container>
+        <Container>
+            <Name>engine-accounts-cache-std</Name>
+            <Properties>
+                <Last-Modified>Mon, 22 Mar 2021 15:40:06 GMT</Last-Modified>
+                <Etag>"0x8D8ED48C4BB7F22"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+            </Properties>
+        </Container>
+        <Container>
+            <Name>engine-accounts-cache-stl</Name>
+            <Properties>
+                <Last-Modified>Sat, 01 May 2021 09:56:34 GMT</Last-Modified>
+                <Etag>"0x8D90C87674BF917"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+            </Properties>
+        </Container>
+        <Container>
+            <Name>exposure-report</Name>
+            <Properties>
+                <Last-Modified>Thu, 06 May 2021 06:05:36 GMT</Last-Modified>
+                <Etag>"0x8D91054F7A1791E"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+            </Properties>
+        </Container>
+        <Container>
+            <Name>instrument-sources</Name>
+            <Properties>
+                <Last-Modified>Thu, 22 Oct 2020 06:38:55 GMT</Last-Modified>
+                <Etag>"0x8D8765526140765"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+            </Properties>
+        </Container>
+        <Container>
+            <Name>instruments</Name>
+            <Properties>
+                <Last-Modified>Sun, 02 May 2021 19:35:17 GMT</Last-Modified>
+                <Etag>"0x8D90DA16A6B9827"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+            </Properties>
+        </Container>
+        <Container>
+            <Name>instrumentsavatar</Name>
+            <Properties>
+                <Last-Modified>Thu, 28 May 2020 09:22:45 GMT</Last-Modified>
+                <Etag>"0x8D802E8AE4FDCFC"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+            </Properties>
+        </Container>
+        <Container>
+            <Name>instrumentsgroups</Name>
+            <Properties>
+                <Last-Modified>Tue, 03 Nov 2020 18:03:24 GMT</Last-Modified>
+                <Etag>"0x8D88022C205A419"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+            </Properties>
+        </Container>
+        <Container>
+            <Name>instrumentsubgroups</Name>
+            <Properties>
+                <Last-Modified>Sun, 02 May 2021 19:34:54 GMT</Last-Modified>
+                <Etag>"0x8D90DA15C9F7234"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+            </Properties>
+        </Container>
+        <Container>
+            <Name>internal-key-value</Name>
+            <Properties>
+                <Last-Modified>Tue, 26 May 2020 19:22:55 GMT</Last-Modified>
+                <Etag>"0x8D801AA316B7376"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+            </Properties>
+        </Container>
+        <Container>
+            <Name>investamount</Name>
+            <Properties>
+                <Last-Modified>Thu, 13 Aug 2020 12:06:35 GMT</Last-Modified>
+                <Etag>"0x8D83F815395470A"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+            </Properties>
+        </Container>
+        <Container>
+            <Name>key-value</Name>
+            <Properties>
+                <Last-Modified>Mon, 22 Mar 2021 15:55:31 GMT</Last-Modified>
+                <Etag>"0x8D8ED4AEBFBAE5C"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+            </Properties>
+        </Container>
+        <Container>
+            <Name>key-value-favorite-instruments</Name>
+            <Properties>
+                <Last-Modified>Mon, 22 Mar 2021 15:55:31 GMT</Last-Modified>
+                <Etag>"0x8D8ED4AEBFEBC2A"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+            </Properties>
+        </Container>
+        <Container>
+            <Name>languages</Name>
+            <Properties>
+                <Last-Modified>Tue, 23 Feb 2021 15:33:08 GMT</Last-Modified>
+                <Etag>"0x8D8D8105245AC7A"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+            </Properties>
+        </Container>
+        <Container>
+            <Name>live-favoriteinstruments</Name>
+            <Properties>
+                <Last-Modified>Mon, 30 Mar 2020 07:22:41 GMT</Last-Modified>
+                <Etag>"0x8D7D47B2222DC75"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+            </Properties>
+        </Container>
+        <Container>
+            <Name>live-reportactivepositions</Name>
+            <Properties>
+                <Last-Modified>Tue, 30 Mar 2021 11:50:11 GMT</Last-Modified>
+                <Etag>"0x8D8F371F9A232F2"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+            </Properties>
+        </Container>
+        <Container>
+            <Name>live-tradinggroups</Name>
+            <Properties>
+                <Last-Modified>Fri, 24 Apr 2020 15:00:45 GMT</Last-Modified>
+                <Etag>"0x8D7E86044023F16"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+            </Properties>
+        </Container>
+        <Container>
+            <Name>live-tradingprofiles</Name>
+            <Properties>
+                <Last-Modified>Mon, 25 Jan 2021 14:40:51 GMT</Last-Modified>
+                <Etag>"0x8D8C13F36CF45F5"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+            </Properties>
+        </Container>
+        <Container>
+            <Name>markup-profiles</Name>
+            <Properties>
+                <Last-Modified>Thu, 25 Jun 2020 16:24:02 GMT</Last-Modified>
+                <Etag>"0x8D819242C794939"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+            </Properties>
+        </Container>
+        <Container>
+            <Name>platforms</Name>
+            <Properties>
+                <Last-Modified>Mon, 21 Dec 2020 16:14:06 GMT</Last-Modified>
+                <Etag>"0x8D8A5CB7108E821"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+            </Properties>
+        </Container>
+        <Container>
+            <Name>pricechanges</Name>
+            <Properties>
+                <Last-Modified>Thu, 02 Jul 2020 14:24:21 GMT</Last-Modified>
+                <Etag>"0x8D81E939CD406C2"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+            </Properties>
+        </Container>
+        <Container>
+            <Name>quoteprofile</Name>
+            <Properties>
+                <Last-Modified>Tue, 09 Mar 2021 21:36:18 GMT</Last-Modified>
+                <Etag>"0x8D8E343602BEF45"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+            </Properties>
+        </Container>
+        <Container>
+            <Name>quotesfeedrouterbackuptimeouttable</Name>
+            <Properties>
+                <Last-Modified>Tue, 23 Feb 2021 15:33:08 GMT</Last-Modified>
+                <Etag>"0x8D8D810523F1B93"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+            </Properties>
+        </Container>
+        <Container>
+            <Name>swap-profile</Name>
+            <Properties>
+                <Last-Modified>Mon, 27 Apr 2020 11:27:59 GMT</Last-Modified>
+                <Etag>"0x8D7EA9E0A2044C6"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+            </Properties>
+        </Container>
+        <Container>
+            <Name>swap-schedule</Name>
+            <Properties>
+                <Last-Modified>Tue, 05 May 2020 05:32:43 GMT</Last-Modified>
+                <Etag>"0x8D7F0B5BC83BFC8"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+            </Properties>
+        </Container>
+        <Container>
+            <Name>testtbl</Name>
+            <Properties>
+                <Last-Modified>Tue, 27 Apr 2021 19:52:59 GMT</Last-Modified>
+                <Etag>"0x8D909B60F35EF5B"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+            </Properties>
+        </Container>
+        <Container>
+            <Name>trading-groups</Name>
+            <Properties>
+                <Last-Modified>Mon, 18 Nov 2019 15:05:17 GMT</Last-Modified>
+                <Etag>"0x8D76C38B9110FB3"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+                <PublicAccess>container</PublicAccess>
+            </Properties>
+        </Container>
+        <Container>
+            <Name>tradinggroups</Name>
+            <Properties>
+                <Last-Modified>Sun, 22 Dec 2019 17:57:32 GMT</Last-Modified>
+                <Etag>"0x8D787086B0A92F5"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+                <PublicAccess>container</PublicAccess>
+            </Properties>
+        </Container>
+        <Container>
+            <Name>tradingprofiles</Name>
+            <Properties>
+                <Last-Modified>Sat, 28 Dec 2019 09:45:28 GMT</Last-Modified>
+                <Etag>"0x8D78B7AAC3B41E7"</Etag>
+                <LeaseStatus>unlocked</LeaseStatus>
+                <LeaseState>available</LeaseState>
+                <PublicAccess>container</PublicAccess>
+            </Properties>
+        </Container>
+    </Containers>
+    <NextMarker />
+</EnumerationResults>
