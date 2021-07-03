@@ -48,4 +48,8 @@ impl MyDateTime {
             *mut_ptr = value.miliseconds;
         }
     }
+
+    pub fn update(&mut self, value: MyDateTime) {
+        self.miliseconds = value.miliseconds;
+    }
 }

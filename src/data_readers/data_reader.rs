@@ -13,6 +13,7 @@ pub struct DataReadData {
     pub tcp_stream: Option<WriteHalf<TcpStream>>,
     pub ip: String,
     pub tables: HashMap<String, u8>,
+    pub last_incoming_package: MyDateTime,
 }
 
 impl DataReadData {
@@ -28,25 +29,23 @@ pub struct DataReader {
     pub data: RwLock<DataReadData>,
     pub id: u64,
     pub connected: MyDateTime,
-    pub last_incoming_package: MyDateTime,
 }
 
 impl DataReader {
     pub fn new(id: u64, ip: String, tcp_stream: WriteHalf<TcpStream>) -> Self {
+        let now = MyDateTime::utc_now();
         let data = DataReadData {
             name: None,
             tcp_stream: Some(tcp_stream),
             ip,
             tables: HashMap::new(),
+            last_incoming_package: now,
         };
-
-        let now = MyDateTime::utc_now();
 
         Self {
             id,
             data: RwLock::new(data),
             connected: now,
-            last_incoming_package: now,
         }
     }
 
@@ -110,8 +109,9 @@ impl DataReader {
         data.tables.insert(table_name, 0);
     }
 
-    pub fn update_last_incoming_moment(&self) {
+    pub async fn update_last_incoming_moment(&self) {
         let now = MyDateTime::utc_now();
-        self.last_incoming_package.update_unsafe(now);
+        let mut write_access = self.data.write().await;
+        write_access.last_incoming_package.update(now);
     }
 }

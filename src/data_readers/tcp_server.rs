@@ -114,7 +114,7 @@ async fn handle_incoming_package(
     data_reader: &DataReader,
     contract: DataReaderContract,
 ) {
-    data_reader.update_last_incoming_moment();
+    data_reader.update_last_incoming_moment().await;
 
     match contract {
         DataReaderContract::Ping => {
