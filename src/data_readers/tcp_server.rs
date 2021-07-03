@@ -94,7 +94,6 @@ async fn process_incoming_data(
     socket_buffer_reader: &mut SocketReadBuffer,
 ) -> Result<(), String> {
     loop {
-        println!("Parsing. Buffer is: {}", socket_buffer_reader.to_string());
         let parse_result = DataReaderContract::deserialize(socket_buffer_reader)?;
 
         match parse_result {
