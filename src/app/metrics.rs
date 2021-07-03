@@ -6,15 +6,15 @@ use tokio::sync::RwLock;
 pub struct PrometheusMetrics {
     registry: Registry,
 
-    table_partitions: RwLock<HashMap<String, Gauge>>,
+    gauges: RwLock<HashMap<String, Gauge>>,
 }
 
 impl PrometheusMetrics {
     pub fn new() -> Self {
-        Self {
+        return Self {
             registry: Registry::new(),
-            table_partitions: RwLock::new(HashMap::new()),
-        }
+            gauges: RwLock::new(HashMap::new()),
+        };
     }
 
     async fn update_table_partitions_if_exists_amount(
@@ -22,7 +22,7 @@ impl PrometheusMetrics {
         table_name: &str,
         value: usize,
     ) -> bool {
-        let read_access = self.table_partitions.read().await;
+        let read_access = self.gauges.read().await;
 
         if read_access.contains_key(table_name) {
             let gauge = read_access.get(table_name).unwrap();
@@ -42,7 +42,7 @@ impl PrometheusMetrics {
             return;
         }
 
-        let mut write_access = self.table_partitions.write().await;
+        let mut write_access = self.gauges.write().await;
 
         if !write_access.contains_key(table_name.as_str()) {
             let gauge_opts = Opts::new(
