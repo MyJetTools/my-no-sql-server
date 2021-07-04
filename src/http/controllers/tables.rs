@@ -5,7 +5,6 @@ use crate::{
     http::http_helpers,
 };
 use std::result::Result;
-use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
@@ -17,7 +16,7 @@ pub struct TableJsonResult {
     pub name: String,
 }
 
-pub async fn list_of_tables(app: Arc<AppServices>) -> Result<OperationResult, FailOperationResult> {
+pub async fn list_of_tables(app: &AppServices) -> Result<OperationResult, FailOperationResult> {
     let tables = app.db.get_table_names().await;
 
     let mut response: Vec<TableJsonResult> = vec![];
@@ -33,7 +32,7 @@ pub async fn list_of_tables(app: Arc<AppServices>) -> Result<OperationResult, Fa
 
 pub async fn create_table(
     ctx: HttpContext,
-    app: Arc<AppServices>,
+    app: &AppServices,
 ) -> Result<OperationResult, FailOperationResult> {
     let query = ctx.get_query_string();
 
@@ -46,10 +45,10 @@ pub async fn create_table(
 
     let sync_period = query.get_sync_period();
 
-    let attr = http_helpers::create_transaction_attributes(app.as_ref(), sync_period);
+    let attr = http_helpers::create_transaction_attributes(app, sync_period);
 
     tables::create_table(
-        app.as_ref(),
+        app,
         table_name,
         persist_table,
         max_partitions_amount,
@@ -62,7 +61,7 @@ pub async fn create_table(
 
 pub async fn create_table_if_not_exists(
     ctx: HttpContext,
-    app: Arc<AppServices>,
+    app: &AppServices,
 ) -> Result<OperationResult, FailOperationResult> {
     let query = ctx.get_query_string();
 
@@ -74,10 +73,10 @@ pub async fn create_table_if_not_exists(
 
     let sync_period = query.get_sync_period();
 
-    let attr = http_helpers::create_transaction_attributes(app.as_ref(), sync_period);
+    let attr = http_helpers::create_transaction_attributes(app, sync_period);
 
     tables::create_table_if_not_exist(
-        app.as_ref(),
+        app,
         table_name,
         persist_table,
         max_partitions_amount,
@@ -90,7 +89,7 @@ pub async fn create_table_if_not_exists(
 
 pub async fn clean(
     ctx: HttpContext,
-    app: Arc<AppServices>,
+    app: &AppServices,
 ) -> Result<OperationResult, FailOperationResult> {
     let query = ctx.get_query_string();
 
@@ -99,16 +98,16 @@ pub async fn clean(
 
     let db_table = app.db.get_table(table_name).await?;
 
-    let attr = http_helpers::create_transaction_attributes(app.as_ref(), sync_period);
+    let attr = http_helpers::create_transaction_attributes(app, sync_period);
 
-    rows::clean_table(app.as_ref(), db_table.as_ref(), Some(attr)).await;
+    rows::clean_table(app, db_table.as_ref(), Some(attr)).await;
 
     return Ok(OperationResult::Ok);
 }
 
 pub async fn update_persist(
     ctx: HttpContext,
-    app: Arc<AppServices>,
+    app: &AppServices,
 ) -> Result<OperationResult, FailOperationResult> {
     let query = ctx.get_query_string();
 
@@ -121,10 +120,10 @@ pub async fn update_persist(
 
     let db_table = app.db.get_table(table_name).await?;
 
-    let attr = http_helpers::create_transaction_attributes(app.as_ref(), sync_period);
+    let attr = http_helpers::create_transaction_attributes(app, sync_period);
 
     tables::set_table_attrubutes(
-        app.as_ref(),
+        app,
         db_table.as_ref(),
         persist,
         max_partitions_amount,
@@ -137,7 +136,7 @@ pub async fn update_persist(
 
 pub async fn get_partitions_count(
     ctx: HttpContext,
-    app: Arc<AppServices>,
+    app: &AppServices,
 ) -> Result<OperationResult, FailOperationResult> {
     let query = ctx.get_query_string();
 

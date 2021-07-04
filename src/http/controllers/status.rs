@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::{
     app::AppServices,
     date_time::MyDateTime,
@@ -65,7 +63,7 @@ async fn get_readers(app: &AppServices) -> Vec<ReaderModel> {
     result
 }
 
-pub async fn get(app: Arc<AppServices>) -> Result<OperationResult, FailOperationResult> {
+pub async fn get(app: &AppServices) -> Result<OperationResult, FailOperationResult> {
     let model = StatusModel {
         location: LocationModel {
             id: app.settings.location.to_string(),
@@ -74,7 +72,7 @@ pub async fn get(app: Arc<AppServices>) -> Result<OperationResult, FailOperation
         master_node: None,
         nodes: vec![],
         queues: QueuesModel { persistence: 0 },
-        readers: get_readers(app.as_ref()).await,
+        readers: get_readers(app).await,
     };
 
     let json = serde_json::to_string(&model).unwrap();

@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::db_operations::rows;
 use crate::http::http_ctx::HttpContext;
 
@@ -13,7 +11,7 @@ use super::consts;
 
 pub async fn get_rows(
     ctx: HttpContext,
-    app: Arc<AppServices>,
+    app: &AppServices,
 ) -> Result<OperationResult, FailOperationResult> {
     let query = ctx.get_query_string();
     let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;
@@ -28,7 +26,7 @@ pub async fn get_rows(
 
 pub async fn insert(
     ctx: HttpContext,
-    app: Arc<AppServices>,
+    app: &AppServices,
 ) -> Result<OperationResult, FailOperationResult> {
     let query = ctx.get_query_string();
     let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;
@@ -39,14 +37,14 @@ pub async fn insert(
 
     let db_table = app.db.get_table(table_name).await?;
 
-    let attr = http_helpers::create_transaction_attributes(app.as_ref(), sync_period);
+    let attr = http_helpers::create_transaction_attributes(app, sync_period);
 
-    return rows::insert(app.as_ref(), db_table.as_ref(), &body, Some(attr)).await;
+    return rows::insert(app, db_table.as_ref(), &body, Some(attr)).await;
 }
 
 pub async fn insert_or_replace(
     ctx: HttpContext,
-    app: Arc<AppServices>,
+    app: &AppServices,
 ) -> Result<OperationResult, FailOperationResult> {
     let query = ctx.get_query_string();
     let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;
@@ -57,14 +55,14 @@ pub async fn insert_or_replace(
 
     let db_table = app.db.get_table(table_name).await?;
 
-    let attr = http_helpers::create_transaction_attributes(app.as_ref(), sync_period);
+    let attr = http_helpers::create_transaction_attributes(app, sync_period);
 
-    return rows::insert_or_replace(app.as_ref(), db_table.as_ref(), &body, Some(attr)).await;
+    return rows::insert_or_replace(app, db_table.as_ref(), &body, Some(attr)).await;
 }
 
 pub async fn replace(
     ctx: HttpContext,
-    app: Arc<AppServices>,
+    app: &AppServices,
 ) -> Result<OperationResult, FailOperationResult> {
     let query = ctx.get_query_string();
     let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;
@@ -74,7 +72,7 @@ pub async fn replace(
     let body = ctx.get_body().await;
 
     let db_table = app.db.get_table(table_name).await?;
-    let attr = http_helpers::create_transaction_attributes(app.as_ref(), sync_period);
+    let attr = http_helpers::create_transaction_attributes(app, sync_period);
 
-    return rows::replace(app.as_ref(), db_table.as_ref(), body.as_slice(), Some(attr)).await;
+    return rows::replace(app, db_table.as_ref(), body.as_slice(), Some(attr)).await;
 }

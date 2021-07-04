@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::{
     app::AppServices,
     db::{FailOperationResult, OperationResult},
@@ -10,7 +8,7 @@ use super::consts;
 
 pub async fn get_single_partition_multiple_rows(
     ctx: HttpContext,
-    app: Arc<AppServices>,
+    app: &AppServices,
 ) -> Result<OperationResult, FailOperationResult> {
     let query = ctx.get_query_string();
     let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;
@@ -30,7 +28,7 @@ pub async fn get_single_partition_multiple_rows(
 
 pub async fn get_highest_row_and_below(
     ctx: HttpContext,
-    app: Arc<AppServices>,
+    app: &AppServices,
 ) -> Result<OperationResult, FailOperationResult> {
     let query = ctx.get_query_string();
     let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;

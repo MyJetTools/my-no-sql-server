@@ -8,69 +8,79 @@ use crate::http::http_ctx::HttpContext;
 use crate::http::http_helpers;
 use std::sync::Arc;
 
-use super::{api, bulk, gc, metrics, row, rows, status, tables};
+use super::{api, bulk, gc, logs, metrics, row, rows, status, tables};
 
 pub async fn route_requests(req: Request<Body>, app: Arc<AppServices>) -> Result<Response<Body>> {
     let path = req.uri().path().to_lowercase();
 
+    if path.starts_with("/logs/table") {
+        return http_helpers::get_http_response(logs::get_by_table(app.as_ref(), &path).await);
+    }
+
     let api_response_result = match (req.method(), path.as_str()) {
         (&Method::GET, "/api/isalive") => Some(api::is_alive()),
-        (&Method::GET, "/api/status") => Some(status::get(app).await),
-        (&Method::GET, "/metrics") => Some(metrics::get(app)),
-        (&Method::GET, "/logs") => Some(api::get_logs(app).await),
+        (&Method::GET, "/api/status") => Some(status::get(app.as_ref()).await),
+        (&Method::GET, "/metrics") => Some(metrics::get(app.as_ref())),
+        (&Method::GET, "/logs") => Some(logs::get(app.as_ref()).await),
 
-        (&Method::GET, "/tables/list") => Some(tables::list_of_tables(app).await),
+        (&Method::GET, "/tables/list") => Some(tables::list_of_tables(app.as_ref()).await),
         (&Method::POST, "/tables/create") => {
-            Some(tables::create_table(HttpContext::new(req), app).await)
+            Some(tables::create_table(HttpContext::new(req), app.as_ref()).await)
         }
         (&Method::POST, "/tables/createifnotexists") => {
-            Some(tables::create_table_if_not_exists(HttpContext::new(req), app).await)
+            Some(tables::create_table_if_not_exists(HttpContext::new(req), app.as_ref()).await)
         }
-        (&Method::DELETE, "/tables/clean") => Some(tables::clean(HttpContext::new(req), app).await),
+        (&Method::DELETE, "/tables/clean") => {
+            Some(tables::clean(HttpContext::new(req), app.as_ref()).await)
+        }
 
         (&Method::DELETE, "/tables/updatepersist") => {
-            Some(tables::update_persist(HttpContext::new(req), app).await)
+            Some(tables::update_persist(HttpContext::new(req), app.as_ref()).await)
         }
 
         (&Method::DELETE, "/tables/partitionscount") => {
-            Some(tables::get_partitions_count(HttpContext::new(req), app).await)
+            Some(tables::get_partitions_count(HttpContext::new(req), app.as_ref()).await)
         }
 
-        (&Method::GET, "/row") => Some(row::get_rows(HttpContext::new(req), app).await),
+        (&Method::GET, "/row") => Some(row::get_rows(HttpContext::new(req), app.as_ref()).await),
 
-        (&Method::PUT, "/row/replace") => Some(row::replace(HttpContext::new(req), app).await),
+        (&Method::PUT, "/row/replace") => {
+            Some(row::replace(HttpContext::new(req), app.as_ref()).await)
+        }
 
-        (&Method::POST, "/row/insert") => Some(row::insert(HttpContext::new(req), app).await),
+        (&Method::POST, "/row/insert") => {
+            Some(row::insert(HttpContext::new(req), app.as_ref()).await)
+        }
         (&Method::POST, "/row/insertorreplace") => {
-            Some(row::insert_or_replace(HttpContext::new(req), app).await)
+            Some(row::insert_or_replace(HttpContext::new(req), app.as_ref()).await)
         }
 
-        (&Method::POST, "/rows/singlepartitionmultiplerows") => {
-            Some(rows::get_single_partition_multiple_rows(HttpContext::new(req), app).await)
-        }
+        (&Method::POST, "/rows/singlepartitionmultiplerows") => Some(
+            rows::get_single_partition_multiple_rows(HttpContext::new(req), app.as_ref()).await,
+        ),
 
         (&Method::GET, "/rows/highestrowandbelow") => {
-            Some(rows::get_highest_row_and_below(HttpContext::new(req), app).await)
+            Some(rows::get_highest_row_and_below(HttpContext::new(req), app.as_ref()).await)
         }
 
         (&Method::POST, "/bulk/insertorreplace") => {
-            Some(bulk::insert_or_replace(HttpContext::new(req), app).await)
+            Some(bulk::insert_or_replace(HttpContext::new(req), app.as_ref()).await)
         }
 
         (&Method::POST, "/bulk/cleanandbulkinsert") => {
-            Some(bulk::clean_and_bulk_insert(HttpContext::new(req), app).await)
+            Some(bulk::clean_and_bulk_insert(HttpContext::new(req), app.as_ref()).await)
         }
 
         (&Method::POST, "/bulk/delete") => {
-            Some(bulk::bulk_delete(HttpContext::new(req), app).await)
+            Some(bulk::bulk_delete(HttpContext::new(req), app.as_ref()).await)
         }
 
-        (&Method::POST, "/garbagecollector/cleanandkeepmaxpartitions") => {
-            Some(gc::clean_and_keep_max_partitions_amount(HttpContext::new(req), app).await)
-        }
+        (&Method::POST, "/garbagecollector/cleanandkeepmaxpartitions") => Some(
+            gc::clean_and_keep_max_partitions_amount(HttpContext::new(req), app.as_ref()).await,
+        ),
 
         (&Method::POST, "/garbagecollector/cleanandkeepmaxrecords") => {
-            Some(gc::clean_and_keep_max_records(HttpContext::new(req), app).await)
+            Some(gc::clean_and_keep_max_records(HttpContext::new(req), app.as_ref()).await)
         }
 
         _ => None,

@@ -102,6 +102,12 @@ impl Logs {
         let read_access = self.data.read().await;
         read_access.items.to_vec()
     }
+
+    pub async fn get_by_table_name(&self, table_name: &str) -> Option<Vec<LogItem>> {
+        let read_access = self.data.read().await;
+        let result = read_access.items_by_table.get(table_name)?;
+        return Some(result.to_vec());
+    }
 }
 
 fn gc_logs(items: &mut Vec<LogItem>) {

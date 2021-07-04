@@ -1,12 +1,8 @@
-use std::{sync::Arc, time::SystemTime};
+use std::time::SystemTime;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    app::AppServices,
-    db::{FailOperationResult, OperationResult},
-    utils::{StopWatch, StringBuilder},
-};
+use crate::db::{FailOperationResult, OperationResult};
 
 pub fn is_alive() -> Result<OperationResult, FailOperationResult> {
     let version = env!("CARGO_PKG_VERSION");
@@ -36,38 +32,4 @@ struct ApiModel {
     time: u64,
     version: String,
     env_info: String,
-}
-
-pub async fn get_logs(app: Arc<AppServices>) -> Result<OperationResult, FailOperationResult> {
-    let mut sw = StopWatch::new();
-    sw.start();
-    let logs = app.logs.get().await;
-
-    let mut sb = StringBuilder::new();
-
-    for log_item in logs {
-        let line = format!("{} {:?}", log_item.date.to_iso_string(), log_item.level);
-        sb.append_line(&line);
-
-        let line = format!("Process: {}", log_item.process);
-        sb.append_line(line.as_str());
-
-        sb.append_line(log_item.message.as_str());
-
-        if let Some(err_ctx) = log_item.err_ctx {
-            let line = format!("ErrCTX: {}", err_ctx);
-            sb.append_line(line.as_str());
-        }
-
-        sb.append_line("-----------------------------");
-    }
-
-    sw.pause();
-
-    let line = format!("Rendered in {:?}", sw.duration());
-    sb.append_line(line.as_str());
-
-    Ok(OperationResult::Text {
-        text: sb.to_string_utf8().unwrap(),
-    })
 }
