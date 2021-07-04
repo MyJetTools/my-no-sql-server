@@ -12,6 +12,8 @@ use crate::{
 };
 
 use super::{logs::Logs, metrics::PrometheusMetrics};
+
+pub const APP_VERSION: &'static str = env!("CARGO_PKG_VERSION");
 pub struct AppServices {
     pub db: DbInstance,
     pub queue_to_persist: QueueToPersist,

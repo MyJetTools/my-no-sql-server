@@ -176,11 +176,12 @@ fn get_index_page_content() -> Result<Response<Body>> {
     let rnd: u64 = rng.gen();
 
     let content = format!(
-        r###"<html><head><title>RUST MyNoSQLServer</title>
+        r###"<html><head><title>{} MyNoSQLServer</title>
         <link href="/css/bootstrap.css" rel="stylesheet" type="text/css" />
         <link href="/css/site.css" rel="stylesheet" type="text/css" />
         <script src="/js/jquery.js"></script><script src="/js/app.js?ver={rnd}"></script>
         </head><body></body></html>"###,
+        ver = crate::app::APP_VERSION,
         rnd = rnd
     );
 
