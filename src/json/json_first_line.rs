@@ -14,7 +14,7 @@ pub struct JsonFirstLine<'t> {
 
 impl<'t> JsonFirstLine<'t> {
     pub fn get_name(&self) -> Result<&'t str, JsonParseError> {
-        let name = &self.data[self.name_start + 1..self.name_end - 2];
+        let name = &self.data[self.name_start + 1..self.name_end - 1];
 
         if name.len() == 0 {
             return Err(JsonParseError::new(

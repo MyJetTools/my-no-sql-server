@@ -349,4 +349,25 @@ mod tests {
             println!("{} / {}", itm.0, itm.1.get_value().ok().unwrap());
         }
     }
+
+    #[test]
+    pub fn test_second_case() {
+        let src_data = r###"{"Value":"Test2","PartitionKey":"Pk1","RowKey":"Rk1","TimeStamp":"2021-06-22T20:34:05.4741090Z","Expires":null}"###;
+
+        let src_data = src_data.as_bytes();
+
+        let mut res = parse_first_line(src_data.as_ref()).ok().unwrap();
+
+        println!("Console: {}", res.len());
+
+        for itm in res.drain() {
+            println!(
+                "{} = {}",
+                std::str::from_utf8(&itm.1.data[itm.1.name_start..itm.1.name_end]).unwrap(),
+                std::str::from_utf8(&itm.1.data[itm.1.value_start..itm.1.value_end]).unwrap()
+            );
+
+            println!("{} = {}", itm.0, itm.1.get_value().ok().unwrap());
+        }
+    }
 }
