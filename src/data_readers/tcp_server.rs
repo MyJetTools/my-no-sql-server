@@ -38,7 +38,7 @@ pub async fn start(app: Arc<AppServices>) {
                 None,
                 crate::app::logs::SystemProcess::TcpSocket,
                 "Accept sockets loop".to_string(),
-                format!("Connected socket: {}", addr),
+                format!("Connected socket {}. IP: {}", id, addr),
             )
             .await;
 
