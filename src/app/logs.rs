@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use tokio::sync::RwLock;
 
-use crate::date_time::MyDateTime;
+use crate::{date_time::MyDateTime, utils::ItemsOrNone};
 
 #[derive(Debug, Clone, Copy)]
 pub enum SystemProcess {
@@ -10,6 +10,7 @@ pub enum SystemProcess {
     ServerSocket = 1,
     BlobOperation = 2,
     TableOperation = 3,
+    Init = 4,
 }
 
 impl SystemProcess {
@@ -28,6 +29,10 @@ impl SystemProcess {
 
         if value == "table" {
             return Some(SystemProcess::TableOperation);
+        }
+
+        if value == "init" {
+            return Some(SystemProcess::Init);
         }
 
         return None;
@@ -143,6 +148,32 @@ impl Logs {
         };
 
         self.add(item).await;
+    }
+
+    pub async fn handle_result(&self, log_item: Result<(), LogItem>) {
+        if let Err(log_item) = log_item {
+            self.add(log_item).await;
+        }
+    }
+
+    pub async fn handle_aggregated_result(&self, items: Result<(), ItemsOrNone<LogItem>>) {
+        if items.is_ok() {
+            return;
+        }
+
+        let items = items.err().unwrap();
+
+        let items = items.consume();
+
+        if items.is_none() {
+            return;
+        }
+
+        let mut items = items.unwrap();
+
+        for item in items.drain(..) {
+            self.add(item).await;
+        }
     }
 
     pub async fn get(&self) -> Vec<Arc<LogItem>> {

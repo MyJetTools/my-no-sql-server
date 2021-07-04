@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use tokio::sync::RwLock;
 
-use crate::{date_time::MyDateTime, utils::ItemsOrNone};
+use crate::{app::logs::LogItem, date_time::MyDateTime, utils::ItemsOrNone};
 
 use super::{data_reader::DataReader, data_reader_contract::DataReaderContract};
 
@@ -22,13 +22,15 @@ impl DataReaders {
         write_access.insert(data_reader.id, data_reader);
     }
 
-    pub async fn disconnect(&self, id: u64) {
+    pub async fn disconnect(&self, id: u64) -> Result<(), LogItem> {
         let mut write_access = self.data_readers.write().await;
         let removed_item = write_access.remove(&id);
 
         if let Some(data_reader) = removed_item {
-            data_reader.disconnect().await;
+            data_reader.disconnect().await?;
         }
+
+        Ok(())
     }
 
     pub async fn get(&self, id: &u64) -> Option<Arc<DataReader>> {
@@ -51,15 +53,25 @@ impl DataReaders {
         result
     }
 
-    pub async fn broadcast(&self, contract: DataReaderContract) {
+    pub async fn broadcast(
+        &self,
+        contract: DataReaderContract,
+    ) -> Result<(), ItemsOrNone<LogItem>> {
         let payload = contract.serialize();
         let read_access = self.data_readers.read().await;
 
+        let mut errors = ItemsOrNone::new();
         for data_reader in read_access.values() {
-            data_reader
+            let send_package_result = data_reader
                 .send_package(contract.get_table_name(), payload.as_slice())
                 .await;
+
+            if let Err(log_item) = send_package_result {
+                errors.push(log_item);
+            }
         }
+
+        errors.as_result()
     }
 
     async fn get_items_to_gc(
@@ -90,13 +102,19 @@ impl DataReaders {
         return items_to_gc;
     }
 
-    pub async fn gc(&self, now: MyDateTime, max_inactive_duration: Duration) {
+    pub async fn gc(
+        &self,
+        now: MyDateTime,
+        max_inactive_duration: Duration,
+    ) -> ItemsOrNone<LogItem> {
         let connections_to_gc = self.get_items_to_gc(now, max_inactive_duration).await;
 
         let connections_to_gc = connections_to_gc.get();
 
+        let mut result = ItemsOrNone::new();
+
         if connections_to_gc.is_none() {
-            return;
+            return result;
         }
 
         let connections_to_gc = connections_to_gc.unwrap();
@@ -106,8 +124,14 @@ impl DataReaders {
             let remove_connection_result = write_access.remove(id);
 
             if let Some(connection) = remove_connection_result {
-                connection.disconnect().await;
+                let err = connection.disconnect().await;
+
+                if let Err(err) = err {
+                    result.push(err)
+                }
             }
         }
+
+        result
     }
 }

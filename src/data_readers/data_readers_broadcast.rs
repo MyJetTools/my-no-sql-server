@@ -3,9 +3,10 @@ use std::sync::Arc;
 use tokio::sync::mpsc::UnboundedReceiver;
 
 use crate::{
-    app::AppServices,
+    app::{logs::LogItem, AppServices},
     db_operations::read_as_json::{hash_map_to_vec, DbEntityAsJsonArray},
     db_transactions::TransactionEvent,
+    utils::ItemsOrNone,
 };
 
 use super::data_reader_contract::DataReaderContract;
@@ -47,13 +48,17 @@ pub async fn start(app: Arc<AppServices>, mut receiver: UnboundedReceiver<DataRe
                 }
             }
             DataReadersCommand::TransactionEvent(event) => {
-                handle_transaction_event(app.as_ref(), event).await
+                let result = handle_transaction_event(app.as_ref(), event).await;
+                app.logs.handle_aggregated_result(result).await;
             }
         }
     }
 }
 
-async fn handle_transaction_event(app: &AppServices, event: Arc<TransactionEvent>) {
+async fn handle_transaction_event(
+    app: &AppServices,
+    event: Arc<TransactionEvent>,
+) -> Result<(), ItemsOrNone<LogItem>> {
     match event.as_ref() {
         TransactionEvent::InitTable {
             table_name,
@@ -65,7 +70,7 @@ async fn handle_transaction_event(app: &AppServices, event: Arc<TransactionEvent
                     table_name: table_name.to_string(),
                     data: hash_map_to_vec(partitions),
                 })
-                .await;
+                .await?;
         }
 
         TransactionEvent::UpdateRow {
@@ -79,7 +84,7 @@ async fn handle_transaction_event(app: &AppServices, event: Arc<TransactionEvent
                     table_name: table_name.to_string(),
                     data: row.as_ref().as_json_array(),
                 })
-                .await;
+                .await?;
         }
 
         TransactionEvent::UpdateRows {
@@ -92,7 +97,7 @@ async fn handle_transaction_event(app: &AppServices, event: Arc<TransactionEvent
                     table_name: table_name.to_string(),
                     data: hash_map_to_vec(rows_by_partition),
                 })
-                .await;
+                .await?;
         }
 
         TransactionEvent::CleanTable {
@@ -104,7 +109,7 @@ async fn handle_transaction_event(app: &AppServices, event: Arc<TransactionEvent
                     table_name: table_name.to_string(),
                     data: crate::json::consts::EMPTY_ARRAY.to_vec(),
                 })
-                .await;
+                .await?;
         }
 
         TransactionEvent::DeletePartitions {
@@ -119,7 +124,7 @@ async fn handle_transaction_event(app: &AppServices, event: Arc<TransactionEvent
                         partition_key: partition_key.to_string(),
                         data: crate::json::consts::EMPTY_ARRAY.to_vec(),
                     })
-                    .await;
+                    .await?;
             }
         }
 
@@ -144,7 +149,7 @@ async fn handle_transaction_event(app: &AppServices, event: Arc<TransactionEvent
                     table_name: table_name.to_string(),
                     rows: rows_to_delete,
                 })
-                .await;
+                .await?;
         }
         TransactionEvent::UpdateTableAttributes {
             table_name: _,
@@ -153,4 +158,6 @@ async fn handle_transaction_event(app: &AppServices, event: Arc<TransactionEvent
             max_partitions_amount: _,
         } => {}
     }
+
+    Ok(())
 }

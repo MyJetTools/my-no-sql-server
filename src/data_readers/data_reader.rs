@@ -6,7 +6,10 @@ use tokio::{
     sync::RwLock,
 };
 
-use crate::date_time::{AtomicDateTime, MyDateTime};
+use crate::{
+    app::logs::LogItem,
+    date_time::{AtomicDateTime, MyDateTime},
+};
 
 pub struct DataReadData {
     pub name: Option<String>,
@@ -54,12 +57,25 @@ impl DataReader {
         return data.to_string();
     }
 
-    pub async fn disconnect(&self) {
+    fn get_process_name(&self, sub_process: &str) -> String {
+        format!("DataReader[{}]::{}", self.id, sub_process)
+    }
+
+    pub async fn disconnect(&self) -> Result<(), LogItem> {
         let mut data = self.data.write().await;
 
         if data.tcp_stream.is_none() {
-            println!("Socket {} is disconnected already", data.to_string());
-            return;
+            let err = LogItem {
+                date: MyDateTime::utc_now(),
+                table: None,
+                level: crate::app::logs::LogLevel::Info,
+                process: crate::app::logs::SystemProcess::ServerSocket,
+                err_ctx: None,
+                message: format!("Socket {} is disconnected already", data.to_string()),
+                process_name: self.get_process_name("disconnect"),
+            };
+
+            return Err(err);
         }
 
         let tcp_stream = data.tcp_stream.as_mut().unwrap();
@@ -67,22 +83,38 @@ impl DataReader {
         let result = tcp_stream.shutdown().await;
 
         if let Err(err) = result {
-            println!("Can not shut down the socket: {:?}", err);
+            let err = LogItem {
+                date: MyDateTime::utc_now(),
+                table: None,
+                level: crate::app::logs::LogLevel::Info,
+                process: crate::app::logs::SystemProcess::ServerSocket,
+                err_ctx: None,
+                message: format!("Can not shut down the socket: {:?}", err),
+                process_name: self.get_process_name("disconnect"),
+            };
+
+            return Err(err);
         }
 
         data.tcp_stream = None;
+
+        Ok(())
     }
 
-    pub async fn send_package(&self, filter_by_table: Option<&str>, payload: &[u8]) {
+    pub async fn send_package(
+        &self,
+        filter_by_table: Option<&str>,
+        payload: &[u8],
+    ) -> Result<(), LogItem> {
         let mut data = self.data.write().await;
 
         if data.tcp_stream.is_none() {
-            return;
+            return Ok(());
         }
 
         if let Some(table_name) = filter_by_table {
             if !data.tables.contains_key(table_name) {
-                return;
+                return Ok(());
             }
         }
 
@@ -90,12 +122,24 @@ impl DataReader {
         let result = tcp_stream.write_all(payload).await;
 
         if let Err(err) = result {
-            println!(
-                "Can not send data to the socket {}. Err: {:?}",
-                data.to_string(),
-                err
-            );
+            let err = LogItem {
+                table: crate::utils::options_utils::clone_string_value(filter_by_table),
+                date: MyDateTime::utc_now(),
+                level: crate::app::logs::LogLevel::Info,
+                process: crate::app::logs::SystemProcess::ServerSocket,
+                message: format!(
+                    "Can not send data to the socket {}. Err: {:?}",
+                    data.to_string(),
+                    err
+                ),
+                err_ctx: None,
+                process_name: "send_package".to_string(),
+            };
+
+            return Err(err);
         }
+
+        Ok(())
     }
 
     pub async fn set_socket_name(&self, set_socket_name: String) {

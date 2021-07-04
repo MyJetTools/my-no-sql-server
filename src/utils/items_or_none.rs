@@ -27,4 +27,15 @@ impl<T> ItemsOrNone<T> {
             None => None,
         }
     }
+
+    pub fn consume(self) -> Option<Vec<T>> {
+        return self.items;
+    }
+
+    pub fn as_result(self) -> Result<(), ItemsOrNone<T>> {
+        match &self.items {
+            Some(_) => Err(self),
+            None => Ok(()),
+        }
+    }
 }

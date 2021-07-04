@@ -55,7 +55,8 @@ async fn process_socket(
             .await;
     }
 
-    app.data_readers.disconnect(data_reader.id).await;
+    let disconnect_result = app.data_readers.disconnect(data_reader.id).await;
+    app.logs.handle_result(disconnect_result).await;
 }
 
 async fn socket_loop(
@@ -122,9 +123,11 @@ async fn handle_incoming_package(
 
     match contract {
         DataReaderContract::Ping => {
-            data_reader
+            let send_pong_result = data_reader
                 .send_package(None, DataReaderContract::Pong.serialize().as_slice())
                 .await;
+
+            app.logs.handle_result(send_pong_result).await;
         }
 
         DataReaderContract::Greeting { name } => {

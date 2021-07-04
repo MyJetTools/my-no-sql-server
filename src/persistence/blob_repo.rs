@@ -38,6 +38,7 @@ pub async fn get_tables(
 }
 
 pub async fn load_table(
+    app: &AppServices,
     azure_connection: &AzureConnection,
     table_name: &str,
 ) -> Result<DbTableData, AzureStorageError> {
@@ -63,7 +64,15 @@ pub async fn load_table(
         } else {
             let partition_name = base64::decode(blob_name.as_str()).unwrap();
             let partition_key = String::from_utf8(partition_name).unwrap();
-            println!("Initializing partition: {}. ", partition_key,);
+
+            app.logs
+                .add_info(
+                    Some(table_name.to_string()),
+                    SystemProcess::BlobOperation,
+                    "load_table".to_string(),
+                    format!("Initializing partition: {}. ", partition_key),
+                )
+                .await;
 
             let entities = crate::json::array_parser::split_to_objects(raw.as_slice()).unwrap();
 

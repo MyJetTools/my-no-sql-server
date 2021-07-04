@@ -51,7 +51,6 @@ fn get_err_message(in_data: &[u8], position: usize) -> FailOperationResult {
 
     let result = String::from_utf8(in_data[i as usize..position].to_vec()).unwrap();
 
-    println!("{}", result);
     FailOperationResult::InvalidJson { err: result }
 }
 

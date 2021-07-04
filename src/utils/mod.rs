@@ -1,4 +1,5 @@
 mod items_or_none;
+pub mod options_utils;
 mod sorted_hash_map;
 mod string_builder;
 
