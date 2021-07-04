@@ -10,7 +10,7 @@ pub async fn start(app: Arc<AppServices>, azure_connection: Arc<AzureConnection>
     app.logs
         .add_info(
             None,
-            SystemProcess::BlobOperation,
+            SystemProcess::System,
             "Timer blob persistence initialization".to_string(),
             "Started".to_string(),
         )
