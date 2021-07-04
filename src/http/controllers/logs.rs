@@ -98,6 +98,9 @@ fn compile_result(
         let line = format!("{} {:?}", log_item.date.to_iso_string(), log_item.level);
         sb.append_line(&line);
 
+        let line = format!("Process: {:?}", log_item.process);
+        sb.append_line(line.as_str());
+
         let line = format!("Process Name: {}", log_item.process_name);
         sb.append_line(line.as_str());
 
