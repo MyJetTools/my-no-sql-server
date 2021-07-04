@@ -38,7 +38,11 @@ async fn process_socket(
     let socket_result = socket_loop(&mut read_socket, app.as_ref(), data_reader.as_ref()).await;
 
     if let Err(err) = socket_result {
-        println!("Socket Disconnected: {}", err);
+        println!(
+            "Socket {} Disconnected: {}",
+            err,
+            data_reader.to_string().await
+        );
     }
 
     app.data_readers.disconnect(data_reader.id).await;
@@ -124,11 +128,11 @@ async fn handle_incoming_package(
         }
 
         DataReaderContract::Greeting { name } => {
+            data_reader.set_socket_name(name).await;
             println!(
-                "Chaning the name for the connection the {}",
+                "Changing the name for the connection the {}",
                 data_reader.to_string().await
             );
-            data_reader.set_socket_name(name).await;
         }
 
         DataReaderContract::Subscribe { table_name } => {
