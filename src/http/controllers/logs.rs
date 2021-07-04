@@ -132,15 +132,15 @@ fn compile_result(
     let mut sb = StringBuilder::new();
 
     sb.append_line(
-        "<a class='btn btn-outline-primary btn-sm' href='/logs'>Show All Log records</a>",
+        "<a class='btn btn-outline-secondary btn-sm' href='/logs'>Show All Log records</a>",
     );
 
     sb.append_line(
-        "<a class='btn btn-outline-primary btn-sm' href='/logs/table'>Show Log records by table</a>",
+        "<a class='btn btn-outline-secondary btn-sm' href='/logs/table'>Show Log records by table</a>",
     );
 
     sb.append_line(
-        "<a class='btn btn-outline-primary btn-sm' href='/logs/process'>Show Log records by process</a>",
+        "<a class='btn btn-outline-secondary btn-sm' href='/logs/process'>Show Log records by process</a>",
     );
 
     sb.append_line("<hr/>");
