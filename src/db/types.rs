@@ -8,6 +8,7 @@ pub enum OperationResult {
     Rows { rows: Option<Vec<Arc<DbRow>>> },
     Row { row: Arc<DbRow> },
     Text { text: String },
+    Html { title: String, body: String },
     Number { value: i64 },
 }
 

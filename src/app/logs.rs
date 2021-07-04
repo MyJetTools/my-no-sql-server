@@ -7,27 +7,38 @@ use crate::{date_time::MyDateTime, utils::ItemsOrNone};
 #[derive(Debug, Clone, Copy)]
 pub enum SystemProcess {
     System = 0,
-    ServerSocket = 1,
+    TcpSocket = 1,
     BlobOperation = 2,
     TableOperation = 3,
     Init = 4,
 }
 
 impl SystemProcess {
+    pub fn iterate() -> Vec<Self> {
+        let mut result = Vec::new();
+
+        result.push(SystemProcess::System);
+        result.push(SystemProcess::TcpSocket);
+        result.push(SystemProcess::BlobOperation);
+        result.push(SystemProcess::TableOperation);
+        result.push(SystemProcess::Init);
+
+        return result;
+    }
     pub fn parse(value: &str) -> Option<Self> {
         if value == "system" {
             return Some(SystemProcess::System);
         }
 
-        if value == "serversocket" {
-            return Some(SystemProcess::ServerSocket);
+        if value == "tcpsocket" {
+            return Some(SystemProcess::TcpSocket);
         }
 
-        if value == "blob" {
+        if value == "bloboperation" {
             return Some(SystemProcess::BlobOperation);
         }
 
-        if value == "table" {
+        if value == "tableoperation" {
             return Some(SystemProcess::TableOperation);
         }
 

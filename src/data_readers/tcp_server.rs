@@ -10,6 +10,15 @@ use crate::{app::AppServices, data_readers::data_reader::DataReader, date_time::
 use super::{data_reader_contract::DataReaderContract, socket_read_buffer::SocketReadBuffer};
 
 pub async fn start(app: Arc<AppServices>) {
+    app.logs
+        .add_info(
+            None,
+            crate::app::logs::SystemProcess::TcpSocket,
+            "Starting tcp (DataReaders) server".to_string(),
+            "*.5125".to_string(),
+        )
+        .await;
+
     let listener = TcpListener::bind("0.0.0.0:5125").await.unwrap();
     let mut id: u64 = 0;
 
@@ -27,7 +36,7 @@ pub async fn start(app: Arc<AppServices>) {
         app.logs
             .add_info(
                 None,
-                crate::app::logs::SystemProcess::ServerSocket,
+                crate::app::logs::SystemProcess::TcpSocket,
                 "Accept sockets loop".to_string(),
                 format!("Connected socket: {}", addr),
             )
@@ -48,7 +57,7 @@ async fn process_socket(
         app.logs
             .add_info(
                 None,
-                crate::app::logs::SystemProcess::ServerSocket,
+                crate::app::logs::SystemProcess::TcpSocket,
                 format!("Socket {} Processing", data_reader.to_string().await),
                 format!("Disconnected: Reason: {}", err),
             )
@@ -135,7 +144,7 @@ async fn handle_incoming_package(
             app.logs
                 .add_info(
                     None,
-                    crate::app::logs::SystemProcess::ServerSocket,
+                    crate::app::logs::SystemProcess::TcpSocket,
                     format!("handle_incoming_package for connection {}", data_reader.id),
                     format!(
                         "Changing the name for the connection: {}",

@@ -25,6 +25,12 @@ fn get_ok_response(operation_result: OperationResult) -> Response<Body> {
             .status(200)
             .body(Body::from(text))
             .unwrap(),
+
+        OperationResult::Html { title, body } => Response::builder()
+            .header("Content-Type", "text/html")
+            .status(200)
+            .body(Body::from(compile_html(title, body)))
+            .unwrap(),
         OperationResult::Number { value } => Response::builder()
             .header("Content-Type", "text/plain; charset=utf-8 ")
             .status(200)
@@ -117,4 +123,15 @@ pub fn create_transaction_attributes(
         headers: None, //TODO - Enable Headers,
         sync_period,
     }
+}
+
+fn compile_html(title: String, body: String) -> String {
+    format!(
+        r###"<html><head><title>{ver} MyNoSQLServer {title}</title>
+        <link href="/css/bootstrap.css" rel="stylesheet" type="text/css" />
+        </head><body>{body}</body></html>"###,
+        ver = crate::app::APP_VERSION,
+        title = title,
+        body = body
+    )
 }
