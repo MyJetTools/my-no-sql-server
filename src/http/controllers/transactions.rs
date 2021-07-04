@@ -52,3 +52,21 @@ pub async fn commit(
 
     return Ok(OperationResult::Ok);
 }
+
+pub async fn cancel(
+    app: &AppServices,
+    ctx: HttpContext,
+) -> Result<OperationResult, FailOperationResult> {
+    let query_string = ctx.get_query_string();
+
+    let transaction_id = query_string.get_query_required_string_parameter("transactionId")?;
+
+    let result = app.active_transactions.remove(transaction_id).await;
+
+    match result {
+        Some(_) => Ok(OperationResult::Ok),
+        None => Err(FailOperationResult::TransactionNotFound {
+            id: transaction_id.to_string(),
+        }),
+    }
+}

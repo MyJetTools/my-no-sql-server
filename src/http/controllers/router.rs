@@ -96,6 +96,10 @@ pub async fn route_requests(req: Request<Body>, app: Arc<AppServices>) -> Result
             Some(transactions::commit(app.as_ref(), HttpContext::new(req)).await)
         }
 
+        (&Method::POST, "/transaction/cancel") => {
+            Some(transactions::cancel(app.as_ref(), HttpContext::new(req)).await)
+        }
+
         _ => None,
     };
 
