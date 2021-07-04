@@ -25,20 +25,7 @@ impl MyDateTime {
         return format!("{:?}", datetime);
     }
 
-    pub fn duration_from(&self, now: MyDateTime) -> Option<Duration> {
-        if now.miliseconds > self.miliseconds {
-            let milis = now.miliseconds - self.miliseconds;
-            return Some(Duration::from_millis(milis as u64));
-        }
-
-        return None;
-    }
-
     pub fn equals_to(&self, other_one: MyDateTime) -> bool {
         return self.miliseconds == other_one.miliseconds;
-    }
-
-    pub fn update(&mut self, value: MyDateTime) {
-        self.miliseconds = value.miliseconds;
     }
 }

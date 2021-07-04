@@ -1,6 +1,8 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use tokio::sync::RwLock;
+
+use crate::{date_time::MyDateTime, utils::ItemsOrNone};
 
 use super::{data_reader::DataReader, data_reader_contract::DataReaderContract};
 
@@ -57,6 +59,55 @@ impl DataReaders {
             data_reader
                 .send_package(contract.get_table_name(), payload.as_slice())
                 .await;
+        }
+    }
+
+    async fn get_items_to_gc(
+        &self,
+        now: MyDateTime,
+        max_inactive_duration: Duration,
+    ) -> ItemsOrNone<u64> {
+        let read_access = self.data_readers.read().await;
+
+        let mut items_to_gc = ItemsOrNone::new();
+
+        for data_reader in read_access.values() {
+            let inactive_duration = data_reader.last_incoming_package.duration_to(now);
+
+            if inactive_duration.is_none() {
+                continue;
+            }
+
+            let inactive_duration = inactive_duration.unwrap();
+
+            if inactive_duration < max_inactive_duration {
+                continue;
+            }
+
+            items_to_gc.push(data_reader.id);
+        }
+
+        return items_to_gc;
+    }
+
+    pub async fn gc(&self, now: MyDateTime, max_inactive_duration: Duration) {
+        let connections_to_gc = self.get_items_to_gc(now, max_inactive_duration).await;
+
+        let connections_to_gc = connections_to_gc.get();
+
+        if connections_to_gc.is_none() {
+            return;
+        }
+
+        let connections_to_gc = connections_to_gc.unwrap();
+
+        let mut write_access = self.data_readers.write().await;
+        for id in connections_to_gc {
+            let remove_connection_result = write_access.remove(id);
+
+            if let Some(connection) = remove_connection_result {
+                connection.disconnect().await;
+            }
         }
     }
 }

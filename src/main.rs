@@ -27,16 +27,16 @@ async fn main() {
 
     persistence::tables_initializer::init_tables(app.as_ref()).await;
 
-    let tcp_server_handle = tokio::task::spawn(tcp_server::start(app.clone()));
+    let mut background_tasks = Vec::new();
 
-    let data_readers_broadcast_handle = tokio::task::spawn(data_readers_broadcast::start(
+    background_tasks.push(tokio::task::spawn(tcp_server::start(app.clone())));
+
+    background_tasks.push(tokio::task::spawn(data_readers_broadcast::start(
         app.clone(),
         data_readers_reciever,
-    ));
+    )));
 
     let connection = app.get_azure_connection();
-
-    let mut timer_blob_persistence_handler = None;
 
     if let Some(azure_connection) = connection {
         let handler = tokio::task::spawn(crate::timers::blob_operations::blob_persistence::start(
@@ -44,20 +44,20 @@ async fn main() {
             azure_connection.clone(),
         ));
 
-        timer_blob_persistence_handler = Some(handler);
+        background_tasks.push(handler);
     }
 
-    let metrics_timer = tokio::task::spawn(crate::timers::metrics_updater::start(app.clone()));
+    background_tasks.push(tokio::task::spawn(crate::timers::metrics_updater::start(
+        app.clone(),
+    )));
+
+    background_tasks.push(tokio::task::spawn(
+        crate::timers::dead_data_readers_gc::start(app.clone()),
+    ));
 
     http::http_server::start(app).await;
 
-    tcp_server_handle.await.unwrap();
-
-    data_readers_broadcast_handle.await.unwrap();
-
-    metrics_timer.await.unwrap();
-
-    if let Some(handler) = timer_blob_persistence_handler {
-        handler.await.unwrap();
+    for background_task in background_tasks.drain(..) {
+        background_task.await.unwrap();
     }
 }

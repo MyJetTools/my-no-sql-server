@@ -49,7 +49,7 @@ async fn get_readers(app: &AppServices) -> Vec<ReaderModel> {
         let read_data = data_reader.data.read().await;
         result.push(ReaderModel {
             connected_time: data_reader.connected.to_iso_string(),
-            last_incoming_time: format!("{:?}", read_data.last_incoming_package.duration_from(now)),
+            last_incoming_time: format!("{:?}", data_reader.last_incoming_package.duration_to(now)),
             id: data_reader.id,
             ip: read_data.ip.clone(),
             name: read_data.to_string(),

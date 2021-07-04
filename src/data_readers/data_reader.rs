@@ -6,14 +6,13 @@ use tokio::{
     sync::RwLock,
 };
 
-use crate::date_time::MyDateTime;
+use crate::date_time::{AtomicDateTime, MyDateTime};
 
 pub struct DataReadData {
     pub name: Option<String>,
     pub tcp_stream: Option<WriteHalf<TcpStream>>,
     pub ip: String,
     pub tables: HashMap<String, u8>,
-    pub last_incoming_package: MyDateTime,
 }
 
 impl DataReadData {
@@ -29,6 +28,7 @@ pub struct DataReader {
     pub data: RwLock<DataReadData>,
     pub id: u64,
     pub connected: MyDateTime,
+    pub last_incoming_package: AtomicDateTime,
 }
 
 impl DataReader {
@@ -39,13 +39,13 @@ impl DataReader {
             tcp_stream: Some(tcp_stream),
             ip,
             tables: HashMap::new(),
-            last_incoming_package: now,
         };
 
         Self {
             id,
             data: RwLock::new(data),
             connected: now,
+            last_incoming_package: AtomicDateTime::from_date_time(now),
         }
     }
 
@@ -107,11 +107,5 @@ impl DataReader {
     pub async fn subscribe_to_table(&self, table_name: String) {
         let mut data = self.data.write().await;
         data.tables.insert(table_name, 0);
-    }
-
-    pub async fn update_last_incoming_moment(&self) {
-        let now = MyDateTime::utc_now();
-        let mut write_access = self.data.write().await;
-        write_access.last_incoming_package.update(now);
     }
 }

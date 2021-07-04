@@ -5,7 +5,7 @@ use tokio::{
     net::{TcpListener, TcpStream},
 };
 
-use crate::{app::AppServices, data_readers::data_reader::DataReader};
+use crate::{app::AppServices, data_readers::data_reader::DataReader, date_time::MyDateTime};
 
 use super::{data_reader_contract::DataReaderContract, socket_read_buffer::SocketReadBuffer};
 
@@ -118,7 +118,8 @@ async fn handle_incoming_package(
     data_reader: &DataReader,
     contract: DataReaderContract,
 ) {
-    data_reader.update_last_incoming_moment().await;
+    let now = MyDateTime::utc_now();
+    data_reader.last_incoming_package.update(now);
 
     match contract {
         DataReaderContract::Ping => {
@@ -130,7 +131,7 @@ async fn handle_incoming_package(
         DataReaderContract::Greeting { name } => {
             data_reader.set_socket_name(name).await;
             println!(
-                "Changing the name for the connection the {}",
+                "Changing the name for the connection: {}",
                 data_reader.to_string().await
             );
         }
