@@ -79,7 +79,14 @@ pub async fn load_table(
             let mut db_partition = DbPartition::new();
 
             for db_entity_json in raw.as_slice().split_array_json_to_objects() {
-                let db_entity = DbEntity::parse(db_entity_json).unwrap();
+                let db_entity = DbEntity::parse(db_entity_json);
+
+                if let Err(err) = db_entity {
+                    println!("{}", std::str::from_utf8(db_entity_json).unwrap());
+                    panic!("{:?}", err);
+                }
+
+                let db_entity = db_entity.unwrap();
 
                 let db_row = DbRow::form_db_entity(&db_entity);
                 db_partition
