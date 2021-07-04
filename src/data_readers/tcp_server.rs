@@ -13,7 +13,7 @@ pub async fn start(app: Arc<AppServices>) {
     app.logs
         .add_info(
             None,
-            crate::app::logs::SystemProcess::TcpSocket,
+            crate::app::logs::SystemProcess::System,
             "Starting tcp (DataReaders) server".to_string(),
             "*.5125".to_string(),
         )
