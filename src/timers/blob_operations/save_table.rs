@@ -2,7 +2,11 @@ use std::time::Duration;
 
 use my_azure_storage_sdk::{AzureConnection, AzureStorageError};
 
-use crate::{app::AppServices, db::DbTable, utils::StopWatch};
+use crate::{
+    app::{logs::SystemProcess, AppServices},
+    db::DbTable,
+    utils::StopWatch,
+};
 
 pub async fn with_retires(
     app: &AppServices,
@@ -23,6 +27,7 @@ pub async fn with_retires(
         app.logs
             .add_error(
                 Some(db_table.name.to_string()),
+                SystemProcess::BlobOperation,
                 "save_partition".to_string(),
                 format!(
                     "Can not sync table {}. Doing retry. Attempt: {}",
@@ -49,6 +54,7 @@ async fn sync_table(
     app.logs
         .add_info(
             Some(db_table.name.to_string()),
+            SystemProcess::BlobOperation,
             "sync_table".to_string(),
             format!("Synching {} partitions", partition_keys.len()),
         )
@@ -65,6 +71,7 @@ async fn sync_table(
     app.logs
         .add_info(
             Some(db_table.name.to_string()),
+            SystemProcess::BlobOperation,
             "sync_table".to_string(),
             format!(
                 "Synced {} partitions in {:?}",

@@ -27,6 +27,7 @@ pub async fn start(app: Arc<AppServices>, mut receiver: UnboundedReceiver<DataRe
             app.logs
                 .add_error(
                     None,
+                    crate::app::logs::SystemProcess::System,
                     "Reading Data Readers Broadcast".to_string(),
                     "We got None message".to_string(),
                     None,

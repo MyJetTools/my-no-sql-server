@@ -12,6 +12,7 @@ pub async fn start(app: Arc<AppServices>) {
     app.logs
         .add_info(
             None,
+            crate::app::logs::SystemProcess::System,
             "Starting http server".to_string(),
             "*.5123".to_string(),
         )

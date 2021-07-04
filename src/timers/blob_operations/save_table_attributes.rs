@@ -2,7 +2,10 @@ use std::time::Duration;
 
 use my_azure_storage_sdk::AzureConnection;
 
-use crate::{app::AppServices, db::DbTable};
+use crate::{
+    app::{logs::SystemProcess, AppServices},
+    db::DbTable,
+};
 
 pub async fn with_retries(
     app: &AppServices,
@@ -31,6 +34,7 @@ pub async fn with_retries(
         app.logs
             .add_error(
                 Some(db_table.name.to_string()),
+                SystemProcess::BlobOperation,
                 "save_partition".to_string(),
                 format!(
                     "Can not sync table attributes for the tab;e {}. Doing retry. Attempt: {}",

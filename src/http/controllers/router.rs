@@ -17,6 +17,10 @@ pub async fn route_requests(req: Request<Body>, app: Arc<AppServices>) -> Result
         return http_helpers::get_http_response(logs::get_by_table(app.as_ref(), &path).await);
     }
 
+    if path.starts_with("/logs/process") {
+        return http_helpers::get_http_response(logs::get_by_process(app.as_ref(), &path).await);
+    }
+
     let api_response_result = match (req.method(), path.as_str()) {
         (&Method::GET, "/api/isalive") => Some(api::is_alive()),
         (&Method::GET, "/api/status") => Some(status::get(app.as_ref()).await),

@@ -24,7 +24,14 @@ pub async fn start(app: Arc<AppServices>) {
 
         app.data_readers.add(data_reader.clone()).await;
 
-        println!("Connected socket: {}", addr);
+        app.logs
+            .add_info(
+                None,
+                crate::app::logs::SystemProcess::ServerSocket,
+                "Accept sockets loop".to_string(),
+                format!("Connected socket: {}", addr),
+            )
+            .await;
 
         tokio::task::spawn(process_socket(read_socket, app.clone(), data_reader));
     }
@@ -38,11 +45,14 @@ async fn process_socket(
     let socket_result = socket_loop(&mut read_socket, app.as_ref(), data_reader.as_ref()).await;
 
     if let Err(err) = socket_result {
-        println!(
-            "Socket {} Disconnected: {}",
-            err,
-            data_reader.to_string().await
-        );
+        app.logs
+            .add_info(
+                None,
+                crate::app::logs::SystemProcess::ServerSocket,
+                format!("Socket {} Processing", data_reader.to_string().await),
+                format!("Disconnected: Reason: {}", err),
+            )
+            .await;
     }
 
     app.data_readers.disconnect(data_reader.id).await;
@@ -59,32 +69,21 @@ async fn socket_loop(
         let write_slice = buffer.borrow_to_write();
 
         if write_slice.is_none() {
-            let reason = format!(
-                "Socket has no left buffer to read incoming data. Disconnected {}",
-                data_reader.to_string().await
+            return Err(
+                "Socket has no left buffer to read incoming data. Disconnecting it".to_string(),
             );
-            return Err(reason);
         }
 
         let read_result = read_socket.read(&mut write_slice.unwrap()).await;
 
         if let Err(err) = read_result {
-            let reason = format!(
-                "Error reading from the socket {}. Err: {:?}",
-                data_reader.to_string().await,
-                err
-            );
-
+            let reason = format!("Error reading from the socket. Err: {:?}", err);
             return Err(reason);
         }
 
         if let Ok(read_size) = read_result {
             if read_size == 0 {
-                let reason = format!(
-                    "Socket has 0 incoming data. Disconnected {}",
-                    data_reader.to_string().await
-                );
-                return Err(reason);
+                return Err("Socket has 0 incoming data. Disconnecting it".to_string());
             }
             buffer.commit_written_size(read_size);
             process_incoming_data(app, data_reader, &mut buffer).await?;
@@ -103,7 +102,7 @@ async fn process_incoming_data(
         match parse_result {
             Some(contract) => {
                 socket_buffer_reader.confirm_read_package();
-                handle_incoming_package(app, data_reader, contract).await;
+                handle_incoming_package(app, data_reader, contract).await?;
             }
             None => {
                 socket_buffer_reader.reset_read_pos();
@@ -117,7 +116,7 @@ async fn handle_incoming_package(
     app: &AppServices,
     data_reader: &DataReader,
     contract: DataReaderContract,
-) {
+) -> Result<(), String> {
     let now = MyDateTime::utc_now();
     data_reader.last_incoming_package.update(now);
 
@@ -130,10 +129,17 @@ async fn handle_incoming_package(
 
         DataReaderContract::Greeting { name } => {
             data_reader.set_socket_name(name).await;
-            println!(
-                "Changing the name for the connection: {}",
-                data_reader.to_string().await
-            );
+            app.logs
+                .add_info(
+                    None,
+                    crate::app::logs::SystemProcess::ServerSocket,
+                    format!("handle_incoming_package for connection {}", data_reader.id),
+                    format!(
+                        "Changing the name for the connection: {}",
+                        data_reader.to_string().await
+                    ),
+                )
+                .await;
         }
 
         DataReaderContract::Subscribe { table_name } => {
@@ -147,10 +153,9 @@ async fn handle_incoming_package(
         }
 
         _ => {
-            panic!(
-                "handle_incoming_package: Unsupported packet: {:?}",
-                contract
-            );
+            return Err(format!("Unsupported packet: {:?}", contract));
         }
     }
+
+    Ok(())
 }

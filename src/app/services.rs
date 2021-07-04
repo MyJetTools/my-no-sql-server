@@ -57,6 +57,7 @@ impl AppServices {
             self.logs
                 .add_error(
                     None,
+                    crate::app::logs::SystemProcess::System,
                     "post_data_readers_command".to_string(),
                     "Failed posting command".to_string(),
                     Some(format!("{}", err)),

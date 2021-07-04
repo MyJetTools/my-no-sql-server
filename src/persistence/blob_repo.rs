@@ -8,6 +8,7 @@ use my_azure_storage_sdk::BlobContainersApi;
 use my_azure_storage_sdk::BlockBlobApi;
 use serde::{Deserialize, Serialize};
 
+use crate::app::logs::SystemProcess;
 use crate::app::AppServices;
 use crate::db::DbPartition;
 use crate::db::DbRow;
@@ -172,6 +173,7 @@ pub async fn save_table_attributes(
             app.logs
                 .add_info(
                     Some(table_name.to_string()),
+                    SystemProcess::BlobOperation,
                     "save_table_attributes".to_string(),
                     msg.to_string(),
                 )

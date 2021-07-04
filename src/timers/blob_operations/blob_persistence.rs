@@ -2,7 +2,7 @@ use std::{sync::Arc, time::Duration};
 
 use my_azure_storage_sdk::AzureConnection;
 
-use crate::app::AppServices;
+use crate::app::{logs::SystemProcess, AppServices};
 
 use super::BlobOperationsToBeMade;
 
@@ -10,6 +10,7 @@ pub async fn start(app: Arc<AppServices>, azure_connection: Arc<AzureConnection>
     app.logs
         .add_info(
             None,
+            SystemProcess::BlobOperation,
             "Timer blob persistence initialization".to_string(),
             "Started".to_string(),
         )
@@ -39,6 +40,7 @@ async fn iterate(app: &AppServices, azure_connection: &AzureConnection) {
         app.logs
             .add_error(
                 Some(events.0.to_string()),
+                SystemProcess::BlobOperation,
                 "blob_persistece_handler.execute()".to_string(),
                 "Some how blob is not found. BUG".to_string(),
                 Some(format!("{:?}", err)),
