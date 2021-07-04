@@ -32,7 +32,7 @@ pub async fn init_tables(app: &AppServices) {
 
         tables_write_access.insert(table_name.to_string(), Arc::new(db_table));
 
-        sw.start();
+        sw.pause();
 
         app.logs
             .add_info(
