@@ -13,6 +13,8 @@ use crate::app::AppServices;
 use crate::db::DbPartition;
 use crate::db::DbRow;
 use crate::db::{DbTableAttributes, DbTableData};
+use crate::db_entity::DbEntity;
+use crate::json::array_parser::ArrayToJsonObjectsSplitter;
 
 const METADATA_BLOB_NAME: &str = ".metadata";
 
@@ -74,12 +76,12 @@ pub async fn load_table(
                 )
                 .await;
 
-            let entities = crate::json::array_parser::split_to_objects(raw.as_slice()).unwrap();
-
             let mut db_partition = DbPartition::new();
 
-            for entity in &entities {
-                let db_row = DbRow::form_db_entity(entity);
+            for db_entity_json in raw.as_slice().split_array_json_to_objects() {
+                let db_entity = DbEntity::parse(db_entity_json).unwrap();
+
+                let db_row = DbRow::form_db_entity(&db_entity);
                 db_partition
                     .rows
                     .insert(db_row.row_key.to_string(), Arc::new(db_row));

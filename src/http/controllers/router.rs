@@ -1,5 +1,4 @@
 use hyper::{Body, Method, Request, Response, Result, StatusCode};
-use rand::Rng;
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
 
@@ -8,7 +7,7 @@ use crate::http::http_ctx::HttpContext;
 use crate::http::http_helpers;
 use std::sync::Arc;
 
-use super::{api, bulk, gc, logs, metrics, row, rows, status, tables};
+use super::{api, bulk, gc, logs, metrics, row, rows, status, tables, transactions};
 
 pub async fn route_requests(req: Request<Body>, app: Arc<AppServices>) -> Result<Response<Body>> {
     let path = req.uri().path().to_lowercase();
@@ -87,6 +86,16 @@ pub async fn route_requests(req: Request<Body>, app: Arc<AppServices>) -> Result
             Some(gc::clean_and_keep_max_records(HttpContext::new(req), app.as_ref()).await)
         }
 
+        (&Method::POST, "/transaction/start") => Some(transactions::start(app.as_ref()).await),
+
+        (&Method::POST, "/transaction/append") => {
+            Some(transactions::append(app.as_ref(), HttpContext::new(req)).await)
+        }
+
+        (&Method::POST, "/transaction/commit") => {
+            Some(transactions::commit(app.as_ref(), HttpContext::new(req)).await)
+        }
+
         _ => None,
     };
 
@@ -95,7 +104,7 @@ pub async fn route_requests(req: Request<Body>, app: Arc<AppServices>) -> Result
     }
 
     if path == "/" {
-        return get_index_page_content();
+        return get_index_page_content(app.as_ref());
     }
 
     if path.starts_with("/swagger") {
@@ -174,11 +183,7 @@ async fn serve_file_with_content_type(
     }
 }
 
-fn get_index_page_content() -> Result<Response<Body>> {
-    let mut rng = rand::thread_rng();
-
-    let rnd: u64 = rng.gen();
-
+fn get_index_page_content(app: &AppServices) -> Result<Response<Body>> {
     let content = format!(
         r###"<html><head><title>{} MyNoSQLServer</title>
         <link href="/css/bootstrap.css" rel="stylesheet" type="text/css" />
@@ -186,7 +191,7 @@ fn get_index_page_content() -> Result<Response<Body>> {
         <script src="/js/jquery.js"></script><script src="/js/app.js?ver={rnd}"></script>
         </head><body></body></html>"###,
         ver = crate::app::APP_VERSION,
-        rnd = rnd
+        rnd = app.process_id
     );
 
     let result = Response::builder()

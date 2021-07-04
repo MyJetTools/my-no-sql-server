@@ -29,7 +29,7 @@ hmac = "*"
 sha2 = "*"
 base64 = "*"
 serde_yaml = "*"
-rand = "*"
+uuid = { version="*", features=["serde", "v4"] }
 prometheus = "*"
 
 

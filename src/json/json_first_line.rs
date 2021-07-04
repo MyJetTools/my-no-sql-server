@@ -1,56 +1,72 @@
 use chrono::NaiveDate;
 
-use crate::{date_time::MyDateTime, db::FailOperationResult};
+use crate::date_time::MyDateTime;
+
+use super::JsonParseError;
 
 pub struct JsonFirstLine<'t> {
-    pub name: &'t [u8],
-    pub value: &'t [u8],
+    pub name_start: usize,
+    pub name_end: usize,
+    pub value_start: usize,
+    pub value_end: usize,
+    pub data: &'t [u8],
 }
 
 impl<'t> JsonFirstLine<'t> {
-    pub fn get_name(&self) -> Result<&'t str, FailOperationResult> {
-        if self.name.len() < 2 {
-            return Err(FailOperationResult::InvalidJson {
-                err: format!("Invalid name len: {}", self.name.len()),
-            });
-        }
+    pub fn get_name(&self) -> Result<&'t str, JsonParseError> {
+        let name = &self.data[self.name_start + 1..self.name_end - 2];
 
-        let name = &self.name[1..self.name.len() - 1];
+        if name.len() == 0 {
+            return Err(JsonParseError::new(
+                self.data,
+                self.name_start,
+                format!("Invalid name len: {}", name.len()),
+            ));
+        }
 
         let result = std::str::from_utf8(name);
         match result {
             Ok(str) => Ok(str),
-            Err(err) => Err(FailOperationResult::InvalidJson {
-                err: format!("Can get utf8 data: {}", err),
-            }),
+            Err(err) => Err(JsonParseError::new(
+                self.data,
+                self.name_start,
+                format!("Can convert name to utf8 string. Err {}", err),
+            )),
         }
     }
 
-    pub fn get_value(&'t self) -> Result<&'t str, FailOperationResult> {
-        if self.value.len() < 2 {
-            return Err(FailOperationResult::InvalidJson {
-                err: format!("Invalid name len: {}", self.value.len()),
-            });
+    pub fn get_value(&'t self) -> Result<&'t str, JsonParseError> {
+        let mut value = &self.data[self.value_start..self.value_end];
+
+        if value[0] == super::consts::DOUBLE_QUOTE {
+            if value.len() < 2 {
+                return Err(JsonParseError::new(
+                    self.data,
+                    self.value_start,
+                    format!(
+                        "Value starts with '{}' but has a len: {}",
+                        super::consts::DOUBLE_QUOTE,
+                        value.len()
+                    ),
+                ));
+            }
+
+            value = &value[1..value.len() - 1];
         }
 
-        let value;
-
-        if self.value[0] == super::consts::DOUBLE_QUOTE {
-            value = &self.value[1..self.value.len() - 1];
-        } else {
-            value = self.value;
-        }
         let result = std::str::from_utf8(value);
         match result {
             Ok(str) => Ok(str),
-            Err(err) => Err(FailOperationResult::InvalidJson {
-                err: format!("Can not get utf8 value from json: {}", err),
-            }),
+            Err(err) => Err(JsonParseError::new(
+                self.data,
+                self.value_start,
+                format!("Can convert value to utf8 string. Err {}", err),
+            )),
         }
     }
 
     pub fn try_get_date(&self) -> Option<MyDateTime> {
-        parse_date_time(self.value)
+        parse_date_time(&self.data[self.value_start..self.value_end])
     }
 }
 

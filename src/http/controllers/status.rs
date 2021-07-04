@@ -75,7 +75,5 @@ pub async fn get(app: &AppServices) -> Result<OperationResult, FailOperationResu
         readers: get_readers(app).await,
     };
 
-    let json = serde_json::to_string(&model).unwrap();
-
-    return Ok(OperationResult::OkWithJsonString { json });
+    return OperationResult::create_json_response(model);
 }

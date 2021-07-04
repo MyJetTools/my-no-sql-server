@@ -21,9 +21,7 @@ pub fn is_alive() -> Result<OperationResult, FailOperationResult> {
         env_info: env_info.to_string(),
     };
 
-    let json = serde_json::to_string(&model).unwrap();
-
-    return Ok(OperationResult::OkWithJsonString { json });
+    return OperationResult::create_json_response(model);
 }
 
 #[derive(Serialize, Deserialize, Debug)]

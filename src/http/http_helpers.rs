@@ -15,7 +15,7 @@ fn get_ok_response(operation_result: OperationResult) -> Response<Body> {
             .status(200)
             .body(Body::from("OK"))
             .unwrap(),
-        OperationResult::OkWithJsonString { json } => Response::builder()
+        OperationResult::Json { json } => Response::builder()
             .header("Content-Type", "application/json")
             .status(200)
             .body(Body::from(json))
@@ -93,6 +93,13 @@ fn get_fail_response(fail_result: FailOperationResult) -> Response<Body> {
                 "Field partitionKey is required to execute operation"
             )))
             .unwrap(),
+
+        FailOperationResult::JsonParseError(err) => Response::builder()
+            .header("Content-Type", "text/plain")
+            .status(500)
+            .body(Body::from(err.to_string()))
+            .unwrap(),
+
         _ => Response::builder()
             .header("Content-Type", "text/plain")
             .status(500)

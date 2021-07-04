@@ -59,7 +59,7 @@ impl DbPartition {
         return self.rows.len();
     }
 
-    pub fn gc_rows(&mut self, max_rows_amount: usize) -> Vec<Arc<DbRow>> {
+    pub fn gc_rows(&mut self, max_rows_amount: usize) -> Vec<String> {
         let mut partitions_by_date_time: SortedHashMap<i64, String> = SortedHashMap::new();
 
         let mut gced = Vec::new();
@@ -85,7 +85,7 @@ impl DbPartition {
             let removed_result = self.rows.remove(&partition_key);
 
             if let Some(el) = removed_result {
-                gced.push(el);
+                gced.push(el.row_key.to_string());
             }
 
             partitions_by_date_time.remove(&dt);

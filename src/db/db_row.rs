@@ -1,6 +1,6 @@
 use crate::{
     date_time::{AtomicDateTime, MyDateTime},
-    json::db_entity::DbEntity,
+    db_entity::DbEntity,
 };
 
 pub struct DbRow {

@@ -25,9 +25,7 @@ pub async fn list_of_tables(app: &AppServices) -> Result<OperationResult, FailOp
         response.push(TableJsonResult { name });
     }
 
-    let json = serde_json::to_string(&response).unwrap();
-
-    return Ok(OperationResult::OkWithJsonString { json });
+    return OperationResult::create_json_response(response);
 }
 
 pub async fn create_table(

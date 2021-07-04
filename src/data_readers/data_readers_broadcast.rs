@@ -137,10 +137,7 @@ async fn handle_transaction_event(
 
             for (partition_key, db_rows) in rows {
                 for db_row in db_rows {
-                    rows_to_delete.push((
-                        partition_key.to_lowercase(),
-                        db_row.as_ref().row_key.to_string(),
-                    ));
+                    rows_to_delete.push((partition_key.to_string(), db_row.to_string()));
                 }
             }
 

@@ -6,6 +6,7 @@ use tokio::sync::mpsc::UnboundedSender;
 use crate::{
     data_readers::{data_readers::DataReaders, data_readers_broadcast::DataReadersCommand},
     db::DbInstance,
+    db_transactional_operations::ActiveTransactions,
     db_transactions::TransactionEvent,
     persistence::QueueToPersist,
     settings_reader::SettingsModel,
@@ -14,6 +15,7 @@ use crate::{
 use super::{logs::Logs, metrics::PrometheusMetrics};
 
 pub const APP_VERSION: &'static str = env!("CARGO_PKG_VERSION");
+
 pub struct AppServices {
     pub db: DbInstance,
     pub queue_to_persist: QueueToPersist,
@@ -24,6 +26,9 @@ pub struct AppServices {
     pub data_readers_sender: UnboundedSender<DataReadersCommand>,
 
     pub metrics: PrometheusMetrics,
+
+    pub active_transactions: ActiveTransactions,
+    pub process_id: String,
 }
 
 impl AppServices {
@@ -39,6 +44,8 @@ impl AppServices {
             data_readers: DataReaders::new(),
             data_readers_sender,
             metrics: PrometheusMetrics::new(),
+            active_transactions: ActiveTransactions::new(),
+            process_id: uuid::Uuid::new_v4().to_string(),
         }
     }
 

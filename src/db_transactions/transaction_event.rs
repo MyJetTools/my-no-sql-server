@@ -45,7 +45,7 @@ pub enum TransactionEvent {
     DeleteRows {
         table_name: String,
         attr: TransactionAttributes,
-        rows: HashMap<String, Vec<Arc<DbRow>>>,
+        rows: HashMap<String, Vec<String>>,
     },
 }
 

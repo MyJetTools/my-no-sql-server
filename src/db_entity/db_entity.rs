@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{date_time::MyDateTime, db::FailOperationResult};
-
-use super::{consts, JsonFirstLine};
+use crate::{date_time::MyDateTime, db::FailOperationResult, json::JsonFirstLine};
 
 pub struct DbEntity<'s> {
     pub partition_key: String,
@@ -14,15 +12,15 @@ pub struct DbEntity<'s> {
 
 impl<'s> DbEntity<'s> {
     pub fn parse(raw: &'s [u8]) -> Result<Self, FailOperationResult> {
-        let first_line = super::parser::parse_first_line(raw)?;
+        let first_line = crate::json::parser::parse_first_line(raw)?;
 
-        let partition_key = get_json_field_as_string(&first_line, consts::PARTITION_KEY);
+        let partition_key = get_json_field_as_string(&first_line, super::consts::PARTITION_KEY);
 
         if partition_key.is_none() {
             return Err(FailOperationResult::FieldPartitionKeyIsRequired);
         }
 
-        let row_key = get_json_field_as_string(&first_line, consts::ROW_KEY);
+        let row_key = get_json_field_as_string(&first_line, super::consts::ROW_KEY);
 
         if row_key.is_none() {
             return Err(FailOperationResult::FieldRowKeyIsRequired);
@@ -32,8 +30,8 @@ impl<'s> DbEntity<'s> {
             raw,
             partition_key: partition_key.unwrap(),
             row_key: row_key.unwrap(),
-            expires: get_json_field_as_timestamp(&first_line, consts::EXPIRES),
-            time_stamp: get_json_field_as_timestamp(&first_line, consts::TIME_STAMP),
+            expires: get_json_field_as_timestamp(&first_line, super::consts::EXPIRES),
+            time_stamp: get_json_field_as_timestamp(&first_line, super::consts::TIME_STAMP),
         };
 
         return Ok(result);

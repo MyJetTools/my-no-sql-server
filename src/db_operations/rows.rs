@@ -5,8 +5,8 @@ use crate::{
     app::AppServices,
     date_time::MyDateTime,
     db::{DbRow, DbTable, FailOperationResult, OperationResult},
+    db_entity::DbEntity,
     db_transactions::{TransactionAttributes, TransactionEvent},
-    json::{array_parser, db_entity::DbEntity},
 };
 
 pub async fn insert(
@@ -148,38 +148,119 @@ pub async fn clean_table(
     }
 }
 
+pub async fn delete_rows(
+    app: &AppServices,
+    db_table: &DbTable,
+    partition_key: String,
+    row_keys: Vec<String>,
+    attr: Option<TransactionAttributes>,
+) {
+    let mut table_write_access = db_table.data.write().await;
+
+    let mut removed_rows = Vec::new();
+
+    let db_partition = table_write_access.get_partition_mut(partition_key.as_str());
+
+    if db_partition.is_none() {
+        return;
+    }
+
+    for row_key in &row_keys {
+        let delete_row_result = table_write_access.delete_row(partition_key.as_str(), row_key);
+
+        if let Some(deleted_row) = delete_row_result {
+            removed_rows.push(deleted_row.row_key.to_string());
+        }
+    }
+
+    if removed_rows.len() > 0 {
+        if let Some(attr) = attr {
+            let mut rows = HashMap::new();
+            rows.insert(partition_key, removed_rows);
+
+            app.dispatch_event(TransactionEvent::DeleteRows {
+                table_name: db_table.name.clone(),
+                rows,
+                attr,
+            })
+            .await
+        }
+    }
+}
+
+pub async fn delete_partitions(
+    app: &AppServices,
+    db_table: &DbTable,
+    partition_keys: Vec<String>,
+    attr: Option<TransactionAttributes>,
+) {
+    let mut table_write_access = db_table.data.write().await;
+
+    let mut removed_partitions = Vec::new();
+
+    for partition_key in &partition_keys {
+        let remove_partition_result = table_write_access.remove_partition(partition_key);
+
+        if remove_partition_result.is_some() {
+            removed_partitions.push(partition_key.to_string())
+        }
+    }
+
+    if removed_partitions.len() > 0 {
+        if let Some(attr) = attr {
+            app.dispatch_event(TransactionEvent::DeletePartitions {
+                table_name: db_table.name.clone(),
+                partitions: removed_partitions,
+                attr,
+            })
+            .await
+        }
+    }
+}
+
 pub async fn bulk_insert_or_update(
     app: &AppServices,
     db_table: &DbTable,
     payload: &[u8],
     attr: Option<TransactionAttributes>,
 ) -> Result<(), FailOperationResult> {
-    let entities = array_parser::split_to_objects(payload)?;
+    let db_rows_by_partition =
+        crate::db_entity::json_parser::parse_db_rows_to_hash_map_by_partition_key(payload)?;
+
+    bulk_insert_or_update_execute(app, db_table, db_rows_by_partition, attr).await;
+
+    Ok(())
+}
+
+pub async fn bulk_insert_or_update_execute(
+    app: &AppServices,
+    db_table: &DbTable,
+    mut rows_by_partition: HashMap<String, Vec<DbRow>>,
+    attr: Option<TransactionAttributes>,
+) {
     let now = MyDateTime::utc_now();
 
     let mut table_write_access = db_table.data.write().await;
 
     let mut sync = HashMap::new();
 
-    for db_entity in &entities {
+    for (partition_key, mut db_rows) in rows_by_partition.drain() {
         let db_partition = table_write_access
-            .get_or_create_partition_and_update_last_access(db_entity.partition_key.as_str(), now);
+            .get_or_create_partition_and_update_last_access(partition_key.as_str(), now);
 
-        let db_row = DbRow::form_db_entity(db_entity);
+        for db_row in db_rows.drain(..) {
+            let db_row = Arc::new(db_row);
 
-        let db_row = Arc::new(db_row);
+            db_partition
+                .rows
+                .insert(db_row.row_key.to_string(), db_row.clone());
 
-        db_partition
-            .rows
-            .insert(db_entity.row_key.to_string(), db_row.clone());
-
-        if attr.is_some() {
-            if !sync.contains_key(db_entity.partition_key.as_str()) {
-                sync.insert(db_entity.partition_key.to_string(), Vec::new());
+            if attr.is_some() {
+                if !sync.contains_key(partition_key.as_str()) {
+                    sync.insert(partition_key.to_string(), Vec::new());
+                }
+                sync.get_mut(partition_key.as_str()).unwrap().push(db_row);
             }
-            sync.get_mut(db_entity.partition_key.as_str())
-                .unwrap()
-                .push(db_row);
         }
     }
 
@@ -187,8 +268,6 @@ pub async fn bulk_insert_or_update(
         app.dispatch_event(TransactionEvent::update_rows(db_table, attr, sync))
             .await
     }
-
-    Ok(())
 }
 
 pub async fn clean_table_and_bulk_insert(
@@ -197,9 +276,9 @@ pub async fn clean_table_and_bulk_insert(
     payload: &[u8],
     attr: Option<TransactionAttributes>,
 ) -> Result<(), FailOperationResult> {
-    let entities = array_parser::split_to_objects(payload)?;
     let now = MyDateTime::utc_now();
-    let entities = to_hash_map(entities);
+    let entities =
+        crate::db_entity::json_parser::parse_entities_to_hash_map_by_partition_key(payload)?;
 
     let mut write_access = db_table.data.write().await;
 
@@ -247,11 +326,10 @@ pub async fn clean_partition_and_bulk_insert(
     payload: &[u8],
     attr: Option<TransactionAttributes>,
 ) -> Result<(), FailOperationResult> {
-    let entities = array_parser::split_to_objects(payload)?;
+    let entities =
+        crate::db_entity::json_parser::parse_entities_to_hash_map_by_partition_key(payload)?;
 
     let now = MyDateTime::utc_now();
-
-    let entities = to_hash_map(entities);
 
     let mut write_access = db_table.data.write().await;
 
@@ -323,7 +401,7 @@ pub async fn bulk_delete(
             }
 
             let removed = removed.unwrap();
-            deleted_rows.push(removed);
+            deleted_rows.push(removed.row_key.to_string());
         }
 
         if partition.rows.len() == 0 {
@@ -345,22 +423,6 @@ pub async fn bulk_delete(
     }
 
     Ok(())
-}
-
-fn to_hash_map(mut src: Vec<DbEntity>) -> HashMap<String, Vec<DbEntity>> {
-    let mut result = HashMap::new();
-
-    for entity in src.drain(..) {
-        if !result.contains_key(entity.partition_key.as_str()) {
-            result.insert(entity.partition_key.to_string(), Vec::new());
-
-            result
-                .get_mut(entity.partition_key.as_str())
-                .unwrap()
-                .push(entity)
-        }
-    }
-    return result;
 }
 
 #[derive(Deserialize, Serialize)]

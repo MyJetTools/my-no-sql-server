@@ -46,8 +46,30 @@ impl DbTableData {
         return self.partitions.get_mut(partition_key);
     }
 
-    pub fn remove_partition(&mut self, partition_key: &str) {
-        self.partitions.remove(partition_key);
+    pub fn remove_partition(&mut self, partition_key: &str) -> Option<DbPartition> {
+        self.partitions.remove(partition_key)
+    }
+
+    fn remove_row(&mut self, partition_key: &str, row_key: &str) -> Option<Arc<DbRow>> {
+        let db_partition = self.partitions.get_mut(partition_key)?;
+
+        return db_partition.rows.remove(row_key);
+    }
+
+    fn gc_partition_if_needed(&mut self, partition_key: &str) {
+        if self.partitions.get(partition_key).unwrap().rows.len() == 0 {
+            self.remove_partition(partition_key);
+        }
+    }
+
+    pub fn delete_row(&mut self, partition_key: &str, row_key: &str) -> Option<Arc<DbRow>> {
+        let deleted_row = self.remove_row(partition_key, row_key);
+
+        if deleted_row.is_some() {
+            self.gc_partition_if_needed(partition_key);
+        }
+
+        deleted_row
     }
 
     pub fn get_partition_and_update_last_access(

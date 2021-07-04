@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use super::consts;
-use crate::{db::FailOperationResult, json::JsonFirstLine};
+use super::{consts, JsonParseError};
+use crate::json::JsonFirstLine;
 
 enum ExpectedToken {
     OpenBracket,
@@ -42,21 +42,9 @@ fn is_start_of_digit(c: u8) -> bool {
     return false;
 }
 
-fn get_err_message(in_data: &[u8], position: usize) -> FailOperationResult {
-    let mut i = position as i32 - 10;
-
-    if i < 0 {
-        i = 0;
-    }
-
-    let result = String::from_utf8(in_data[i as usize..position].to_vec()).unwrap();
-
-    FailOperationResult::InvalidJson { err: result }
-}
-
 pub fn parse_first_line<'s>(
     in_data: &'s [u8],
-) -> Result<HashMap<&'s str, JsonFirstLine<'s>>, FailOperationResult> {
+) -> Result<HashMap<&'s str, JsonFirstLine<'s>>, JsonParseError> {
     let mut result: HashMap<&'s str, JsonFirstLine<'s>> = HashMap::new();
 
     let mut expected_token = ExpectedToken::OpenBracket;
@@ -86,7 +74,11 @@ pub fn parse_first_line<'s>(
                 }
 
                 if b != consts::OPEN_BRACKET {
-                    return Err(get_err_message(in_data, index));
+                    return Err(JsonParseError::new(
+                        in_data,
+                        index,
+                        format!("Json parser expects '{}'", consts::OPEN_BRACKET),
+                    ));
                 }
 
                 expected_token = ExpectedToken::OpenKey;
@@ -102,7 +94,11 @@ pub fn parse_first_line<'s>(
                 }
 
                 if b != consts::DOUBLE_QUOTE {
-                    return Err(get_err_message(in_data, index));
+                    return Err(JsonParseError::new(
+                        in_data,
+                        index,
+                        format!("Json parser expects '{}'", consts::DOUBLE_QUOTE),
+                    ));
                 }
 
                 key_start_index = index;
@@ -129,7 +125,11 @@ pub fn parse_first_line<'s>(
                 }
 
                 if b != consts::DOUBLE_COLUMN {
-                    return Err(get_err_message(in_data, index));
+                    return Err(JsonParseError::new(
+                        in_data,
+                        index,
+                        format!("Json parser expects '{}'", consts::DOUBLE_COLUMN),
+                    ));
                 }
 
                 expected_token = ExpectedToken::OpenValue;
@@ -160,7 +160,11 @@ pub fn parse_first_line<'s>(
                         if is_start_of_digit(b) || is_start_of_bool(b) {
                             expected_token = ExpectedToken::CloseNumberOrBoolValue;
                         } else {
-                            return Err(get_err_message(in_data, index));
+                            return Err(JsonParseError::new(
+                                in_data,
+                                index,
+                                "Json parser expects Close number or boolean value".to_string(),
+                            ));
                         }
                     }
                 }
@@ -173,8 +177,11 @@ pub fn parse_first_line<'s>(
 
                 consts::DOUBLE_QUOTE => {
                     let itm = JsonFirstLine {
-                        name: &in_data[key_start_index..key_end_index],
-                        value: &in_data[value_start_index..index + 1],
+                        name_start: key_start_index,
+                        name_end: key_end_index,
+                        value_start: value_start_index,
+                        value_end: index + 1,
+                        data: in_data,
                     };
 
                     let key = itm.get_name()?;
@@ -188,8 +195,11 @@ pub fn parse_first_line<'s>(
             ExpectedToken::CloseNumberOrBoolValue => {
                 if b == consts::COMMA || b == consts::CLOSE_BRACKET || is_space(b) {
                     let itm = JsonFirstLine {
-                        name: &in_data[key_start_index..key_end_index],
-                        value: &in_data[value_start_index..index],
+                        name_start: key_start_index,
+                        name_end: key_end_index,
+                        value_start: value_start_index,
+                        value_end: index,
+                        data: in_data,
                     };
 
                     let key = itm.get_name()?;
@@ -217,7 +227,11 @@ pub fn parse_first_line<'s>(
                 }
 
                 if b != consts::COMMA {
-                    return Err(get_err_message(in_data, index));
+                    return Err(JsonParseError::new(
+                        in_data,
+                        index,
+                        format!("Json parser expects {}", consts::COMMA),
+                    ));
                 }
 
                 expected_token = ExpectedToken::OpenKey;
@@ -245,8 +259,11 @@ pub fn parse_first_line<'s>(
                         consts::CLOSE_BRACKET => {
                             if sub_object_level == 0 {
                                 let itm = JsonFirstLine {
-                                    name: &in_data[key_start_index..key_end_index],
-                                    value: &in_data[value_start_index..index + 1],
+                                    name_start: key_start_index,
+                                    name_end: key_end_index,
+                                    value_start: value_start_index,
+                                    value_end: index + 1,
+                                    data: in_data,
                                 };
 
                                 let key = itm.get_name()?;
@@ -286,8 +303,11 @@ pub fn parse_first_line<'s>(
                         consts::CLOSE_ARRAY => {
                             if sub_object_level == 0 {
                                 let itm = JsonFirstLine {
-                                    name: &in_data[key_start_index..key_end_index],
-                                    value: &in_data[value_start_index..index + 1],
+                                    name_start: key_start_index,
+                                    name_end: key_end_index,
+                                    value_start: value_start_index,
+                                    value_end: index + 1,
+                                    data: in_data,
                                 };
 
                                 let key = itm.get_name()?;
@@ -307,9 +327,7 @@ pub fn parse_first_line<'s>(
 
     match expected_token {
         ExpectedToken::EndOfFile => Ok(result),
-        _ => Err(FailOperationResult::InvalidJson {
-            err: "Invalid json".to_string(),
-        }),
+        _ => Err(JsonParseError::new(in_data, 0, "Invalid Json".to_string())),
     }
 }
 
