@@ -2,13 +2,13 @@ pub use consts::*;
 
 use super::consts;
 
-pub struct JsonObjectsIterator<'t> {
+pub struct JsonArrayIterator<'t> {
     data: &'t [u8],
     start_index: usize,
     index: usize,
 }
 
-impl<'t> JsonObjectsIterator<'t> {
+impl<'t> JsonArrayIterator<'t> {
     pub fn new(data: &'t [u8]) -> Self {
         Self {
             data,
@@ -18,7 +18,7 @@ impl<'t> JsonObjectsIterator<'t> {
     }
 }
 
-impl<'t> Iterator for JsonObjectsIterator<'t> {
+impl<'t> Iterator for JsonArrayIterator<'t> {
     type Item = &'t [u8];
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -75,26 +75,14 @@ impl<'t> Iterator for JsonObjectsIterator<'t> {
 }
 
 pub trait ArrayToJsonObjectsSplitter<'t> {
-    fn split_array_json_to_objects(self) -> JsonObjectsIterator<'t>;
+    fn split_array_json_to_objects(self) -> JsonArrayIterator<'t>;
 }
 
 impl<'t> ArrayToJsonObjectsSplitter<'t> for &'t [u8] {
-    fn split_array_json_to_objects(self) -> JsonObjectsIterator<'t> {
-        return JsonObjectsIterator::new(self);
+    fn split_array_json_to_objects(self) -> JsonArrayIterator<'t> {
+        return JsonArrayIterator::new(self);
     }
 }
-
-/*
-pub fn split_to_objects<'t>(data: &'t [u8]) -> Result<Vec<DbEntity<'t>>, FailOperationResult> {
-    let mut result: Vec<DbEntity<'t>> = Vec::new();
-    for slice in data.split_json_to_objects() {
-        let db_entity = DbEntity::<'t>::parse(slice)?;
-        result.push(db_entity)
-    }
-
-    Ok(result)
-}
-*/
 
 #[cfg(test)]
 mod tests {

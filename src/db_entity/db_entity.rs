@@ -1,6 +1,4 @@
-use std::collections::HashMap;
-
-use crate::{date_time::MyDateTime, db::FailOperationResult, json::JsonFirstLine};
+use crate::{date_time::MyDateTime, db::FailOperationResult, json::JsonFirstLineParser};
 
 pub struct DbEntity<'s> {
     pub partition_key: String,
@@ -12,15 +10,36 @@ pub struct DbEntity<'s> {
 
 impl<'s> DbEntity<'s> {
     pub fn parse(raw: &'s [u8]) -> Result<Self, FailOperationResult> {
-        let first_line = crate::json::parser::parse_first_line(raw)?;
+        let mut partition_key = None;
+        let mut row_key = None;
+        let mut expires = None;
+        let mut time_stamp = None;
 
-        let partition_key = get_json_field_as_string(&first_line, super::consts::PARTITION_KEY);
+        for line in JsonFirstLineParser::new(raw) {
+            let line = line?;
+
+            let name = line.get_name()?;
+
+            if name == super::consts::PARTITION_KEY {
+                partition_key = Some(line.get_value()?.to_string())
+            }
+
+            if name == super::consts::ROW_KEY {
+                row_key = Some(line.get_value()?.to_string())
+            }
+
+            if name == super::consts::EXPIRES {
+                expires = line.get_value_as_date_time();
+            }
+
+            if name == super::consts::TIME_STAMP {
+                time_stamp = line.get_value_as_date_time();
+            }
+        }
 
         if partition_key.is_none() {
             return Err(FailOperationResult::FieldPartitionKeyIsRequired);
         }
-
-        let row_key = get_json_field_as_string(&first_line, super::consts::ROW_KEY);
 
         if row_key.is_none() {
             return Err(FailOperationResult::FieldRowKeyIsRequired);
@@ -30,30 +49,10 @@ impl<'s> DbEntity<'s> {
             raw,
             partition_key: partition_key.unwrap(),
             row_key: row_key.unwrap(),
-            expires: get_json_field_as_timestamp(&first_line, super::consts::EXPIRES),
-            time_stamp: get_json_field_as_timestamp(&first_line, super::consts::TIME_STAMP),
+            expires,
+            time_stamp,
         };
 
         return Ok(result);
     }
-}
-
-fn get_json_field_as_string<'s>(
-    first_lines: &'s HashMap<&'s str, JsonFirstLine<'s>>,
-    field_name: &str,
-) -> Option<String> {
-    let result = first_lines.get(field_name)?;
-    let value = result.get_value();
-
-    return match value {
-        Ok(result) => Some(result.to_string()),
-        Err(_) => None,
-    };
-}
-
-fn get_json_field_as_timestamp<'s>(
-    first_lines: &'s HashMap<&'s str, JsonFirstLine>,
-    field_name: &'s str,
-) -> Option<MyDateTime> {
-    return first_lines.get(field_name)?.try_get_date();
 }
