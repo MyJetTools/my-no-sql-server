@@ -1,7 +1,7 @@
 use crate::{
     app::AppServices,
     date_time::MyDateTime,
-    db::{FailOperationResult, OperationResult},
+    http::{http_fail::HttpFailResult, http_ok::HttpOkResult},
 };
 use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Debug)]
@@ -63,7 +63,7 @@ async fn get_readers(app: &AppServices) -> Vec<ReaderModel> {
     result
 }
 
-pub async fn get(app: &AppServices) -> Result<OperationResult, FailOperationResult> {
+pub async fn get(app: &AppServices) -> Result<HttpOkResult, HttpFailResult> {
     let model = StatusModel {
         location: LocationModel {
             id: app.settings.location.to_string(),
@@ -75,5 +75,5 @@ pub async fn get(app: &AppServices) -> Result<OperationResult, FailOperationResu
         readers: get_readers(app).await,
     };
 
-    return OperationResult::create_json_response(model);
+    return HttpOkResult::create_json_response(model);
 }

@@ -1,8 +1,7 @@
 use crate::{
     app::AppServices,
-    db::{FailOperationResult, OperationResult},
     db_operations::{rows, tables},
-    http::http_helpers,
+    http::{http_fail::HttpFailResult, http_helpers, http_ok::HttpOkResult},
 };
 use std::result::Result;
 
@@ -16,7 +15,7 @@ pub struct TableJsonResult {
     pub name: String,
 }
 
-pub async fn list_of_tables(app: &AppServices) -> Result<OperationResult, FailOperationResult> {
+pub async fn list_of_tables(app: &AppServices) -> Result<HttpOkResult, HttpFailResult> {
     let tables = app.db.get_table_names().await;
 
     let mut response: Vec<TableJsonResult> = vec![];
@@ -25,13 +24,13 @@ pub async fn list_of_tables(app: &AppServices) -> Result<OperationResult, FailOp
         response.push(TableJsonResult { name });
     }
 
-    return OperationResult::create_json_response(response);
+    return HttpOkResult::create_json_response(response);
 }
 
 pub async fn create_table(
     ctx: HttpContext,
     app: &AppServices,
-) -> Result<OperationResult, FailOperationResult> {
+) -> Result<HttpOkResult, HttpFailResult> {
     let query = ctx.get_query_string();
 
     let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;
@@ -54,13 +53,13 @@ pub async fn create_table(
     )
     .await?;
 
-    return Ok(OperationResult::Ok);
+    return Ok(HttpOkResult::Ok);
 }
 
 pub async fn create_table_if_not_exists(
     ctx: HttpContext,
     app: &AppServices,
-) -> Result<OperationResult, FailOperationResult> {
+) -> Result<HttpOkResult, HttpFailResult> {
     let query = ctx.get_query_string();
 
     let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;
@@ -82,13 +81,10 @@ pub async fn create_table_if_not_exists(
     )
     .await;
 
-    return Ok(OperationResult::Ok);
+    return Ok(HttpOkResult::Ok);
 }
 
-pub async fn clean(
-    ctx: HttpContext,
-    app: &AppServices,
-) -> Result<OperationResult, FailOperationResult> {
+pub async fn clean(ctx: HttpContext, app: &AppServices) -> Result<HttpOkResult, HttpFailResult> {
     let query = ctx.get_query_string();
 
     let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;
@@ -100,13 +96,13 @@ pub async fn clean(
 
     rows::clean_table(app, db_table.as_ref(), Some(attr)).await;
 
-    return Ok(OperationResult::Ok);
+    return Ok(HttpOkResult::Ok);
 }
 
 pub async fn update_persist(
     ctx: HttpContext,
     app: &AppServices,
-) -> Result<OperationResult, FailOperationResult> {
+) -> Result<HttpOkResult, HttpFailResult> {
     let query = ctx.get_query_string();
 
     let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;
@@ -129,13 +125,13 @@ pub async fn update_persist(
     )
     .await;
 
-    return Ok(OperationResult::Ok);
+    return Ok(HttpOkResult::Ok);
 }
 
 pub async fn get_partitions_count(
     ctx: HttpContext,
     app: &AppServices,
-) -> Result<OperationResult, FailOperationResult> {
+) -> Result<HttpOkResult, HttpFailResult> {
     let query = ctx.get_query_string();
 
     let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;
@@ -144,7 +140,5 @@ pub async fn get_partitions_count(
 
     let partitions_count = db_table.get_partitions_amount().await;
 
-    return Ok(OperationResult::Number {
-        value: partitions_count as i64,
-    });
+    return HttpOkResult::create_as_usize(partitions_count);
 }

@@ -5,7 +5,7 @@ use std::{
 
 use crate::{date_time::MyDateTime, utils::SortedHashMap};
 
-use super::{DbPartition, DbRow, FailOperationResult, OperationResult};
+use super::{DbOperationFail, DbOperationResult, DbPartition, DbRow};
 
 #[derive(Debug, Clone)]
 pub struct DbTableAttributes {
@@ -108,9 +108,9 @@ impl DbTableData {
         result
     }
 
-    pub fn get_all(&self) -> OperationResult {
+    pub fn get_all(&self) -> DbOperationResult {
         if self.partitions.len() == 0 {
-            return OperationResult::Rows { rows: None };
+            return DbOperationResult::Rows { rows: None };
         }
 
         let mut rows = Vec::new();
@@ -122,15 +122,15 @@ impl DbTableData {
         }
 
         if rows.len() == 0 {
-            return OperationResult::Rows { rows: None };
+            return DbOperationResult::Rows { rows: None };
         }
 
-        OperationResult::Rows { rows: Some(rows) }
+        DbOperationResult::Rows { rows: Some(rows) }
     }
 
-    pub fn get_by_row_key(&self, row_key: &str) -> OperationResult {
+    pub fn get_by_row_key(&self, row_key: &str) -> DbOperationResult {
         if self.partitions.len() == 0 {
-            return OperationResult::Rows { rows: None };
+            return DbOperationResult::Rows { rows: None };
         }
 
         let mut rows = Vec::new();
@@ -143,21 +143,21 @@ impl DbTableData {
         }
 
         if rows.len() == 0 {
-            return OperationResult::Rows { rows: None };
+            return DbOperationResult::Rows { rows: None };
         }
 
-        OperationResult::Rows { rows: Some(rows) }
+        DbOperationResult::Rows { rows: Some(rows) }
     }
 
     pub fn get_row(
         &self,
         partition_key: &str,
         row_key: &str,
-    ) -> Result<OperationResult, FailOperationResult> {
+    ) -> Result<DbOperationResult, DbOperationFail> {
         let db_partition = self.partitions.get(partition_key);
 
         if db_partition.is_none() {
-            return Err(FailOperationResult::RecordNotFound);
+            return Err(DbOperationFail::RecordNotFound);
         }
 
         let db_partition = db_partition.unwrap();
@@ -165,12 +165,12 @@ impl DbTableData {
         let db_row = db_partition.rows.get(row_key);
 
         if db_row.is_none() {
-            return Err(FailOperationResult::RecordNotFound);
+            return Err(DbOperationFail::RecordNotFound);
         }
 
         let db_row = db_row.unwrap();
 
-        return Ok(OperationResult::Row {
+        return Ok(DbOperationResult::Row {
             row: db_row.clone(),
         });
     }

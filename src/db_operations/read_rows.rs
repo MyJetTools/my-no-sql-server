@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     date_time::MyDateTime,
-    db::{DbRow, DbTable, FailOperationResult, OperationResult},
+    db::{DbOperationFail, DbOperationResult, DbRow, DbTable},
 };
 
 impl DbTable {
@@ -10,7 +10,7 @@ impl DbTable {
         &self,
         partition_key: Option<&String>,
         row_key: Option<&String>,
-    ) -> Result<OperationResult, FailOperationResult> {
+    ) -> Result<DbOperationResult, DbOperationFail> {
         let read_access = self.data.read().await;
 
         if partition_key.is_none() && row_key.is_none() {
@@ -36,14 +36,14 @@ impl DbTable {
         &self,
         partition_key: &str,
         row_keys: Vec<String>,
-    ) -> Result<OperationResult, FailOperationResult> {
+    ) -> Result<DbOperationResult, DbOperationFail> {
         let read_access = self.data.read().await;
         let now = MyDateTime::utc_now();
 
         let db_partition = read_access.get_partition_and_update_last_access(partition_key, now);
 
         if db_partition.is_none() {
-            return Ok(OperationResult::Rows { rows: None });
+            return Ok(DbOperationResult::Rows { rows: None });
         }
 
         let db_partition = db_partition.unwrap();
@@ -59,10 +59,10 @@ impl DbTable {
         }
 
         if db_rows.len() == 0 {
-            return Ok(OperationResult::Rows { rows: None });
+            return Ok(DbOperationResult::Rows { rows: None });
         }
 
-        return Ok(OperationResult::Rows {
+        return Ok(DbOperationResult::Rows {
             rows: Some(db_rows),
         });
     }
@@ -73,14 +73,14 @@ impl DbTable {
         partition_key: &str,
         row_key: String,
         max_amount: usize,
-    ) -> Result<OperationResult, FailOperationResult> {
+    ) -> Result<DbOperationResult, DbOperationFail> {
         let read_access = self.data.read().await;
         let now = MyDateTime::utc_now();
 
         let db_partition = read_access.get_partition_and_update_last_access(partition_key, now);
 
         if db_partition.is_none() {
-            return Ok(OperationResult::Rows { rows: None });
+            return Ok(DbOperationResult::Rows { rows: None });
         }
 
         let db_partition = db_partition.unwrap();
@@ -88,10 +88,10 @@ impl DbTable {
         let db_rows = db_partition.get_highest_row_and_below(row_key, now);
 
         if db_rows.len() == 0 {
-            return Ok(OperationResult::Rows { rows: None });
+            return Ok(DbOperationResult::Rows { rows: None });
         }
 
-        return Ok(OperationResult::Rows {
+        return Ok(DbOperationResult::Rows {
             rows: Some(reverse_and_take(db_rows, max_amount)),
         });
     }

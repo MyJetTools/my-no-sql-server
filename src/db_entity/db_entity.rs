@@ -1,4 +1,6 @@
-use crate::{date_time::MyDateTime, db::FailOperationResult, json::JsonFirstLineParser};
+use crate::{date_time::MyDateTime, json::JsonFirstLineParser};
+
+use super::DbEntityParseFail;
 
 pub struct DbEntity<'s> {
     pub partition_key: String,
@@ -9,7 +11,7 @@ pub struct DbEntity<'s> {
 }
 
 impl<'s> DbEntity<'s> {
-    pub fn parse(raw: &'s [u8]) -> Result<Self, FailOperationResult> {
+    pub fn parse(raw: &'s [u8]) -> Result<Self, DbEntityParseFail> {
         let mut partition_key = None;
         let mut row_key = None;
         let mut expires = None;
@@ -38,11 +40,11 @@ impl<'s> DbEntity<'s> {
         }
 
         if partition_key.is_none() {
-            return Err(FailOperationResult::FieldPartitionKeyIsRequired);
+            return Err(DbEntityParseFail::FieldPartitionKeyIsRequired);
         }
 
         if row_key.is_none() {
-            return Err(FailOperationResult::FieldRowKeyIsRequired);
+            return Err(DbEntityParseFail::FieldRowKeyIsRequired);
         }
 
         let result = Self {

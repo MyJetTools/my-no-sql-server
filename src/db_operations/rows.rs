@@ -4,8 +4,8 @@ use std::{collections::HashMap, sync::Arc};
 use crate::{
     app::AppServices,
     date_time::MyDateTime,
-    db::{DbRow, DbTable, FailOperationResult, OperationResult},
-    db_entity::DbEntity,
+    db::{DbOperationFail, DbRow, DbTable},
+    db_entity::{DbEntity, DbEntityParseFail},
     db_transactions::{TransactionAttributes, TransactionEvent},
 };
 
@@ -14,7 +14,7 @@ pub async fn insert(
     db_table: &DbTable,
     payload: &[u8],
     attr: Option<TransactionAttributes>,
-) -> Result<OperationResult, FailOperationResult> {
+) -> Result<(), DbOperationFail> {
     let db_entity = DbEntity::parse(payload)?;
     let now = MyDateTime::utc_now();
     let mut table_write_access = db_table.data.write().await;
@@ -38,7 +38,7 @@ pub async fn insert(
         }
     }
 
-    return Ok(OperationResult::Ok);
+    return Ok(());
 }
 
 pub async fn insert_or_replace(
@@ -46,7 +46,7 @@ pub async fn insert_or_replace(
     db_table: &DbTable,
     payload: &[u8],
     attr: Option<TransactionAttributes>,
-) -> Result<OperationResult, FailOperationResult> {
+) -> Result<(), DbOperationFail> {
     let db_entity = DbEntity::parse(payload)?;
     let now = MyDateTime::utc_now();
 
@@ -69,7 +69,7 @@ pub async fn insert_or_replace(
         .await;
     }
 
-    return Ok(OperationResult::Ok);
+    return Ok(());
 }
 
 pub async fn replace(
@@ -77,11 +77,13 @@ pub async fn replace(
     db_table: &DbTable,
     payload: &[u8],
     attr: Option<TransactionAttributes>,
-) -> Result<OperationResult, FailOperationResult> {
+) -> Result<(), DbOperationFail> {
     let entity = DbEntity::parse(payload)?;
 
     if entity.time_stamp.is_none() {
-        return Err(FailOperationResult::TimeStampFieldRequires);
+        return Err(DbOperationFail::DbEntityParseFail(
+            DbEntityParseFail::TimeStampFieldRequires,
+        ));
     }
 
     let entity_time_stamp = entity.time_stamp.unwrap();
@@ -94,7 +96,7 @@ pub async fn replace(
         write_access.get_partition_and_update_last_access_mut(entity.partition_key.as_str(), now);
 
     if db_partition.is_none() {
-        return Err(FailOperationResult::RecordNotFound);
+        return Err(DbOperationFail::RecordNotFound);
     }
 
     let db_partition = db_partition.unwrap();
@@ -102,13 +104,13 @@ pub async fn replace(
     let db_row = db_partition.get_row_and_update_last_time(entity.row_key.as_str(), now);
 
     if db_row.is_none() {
-        return Err(FailOperationResult::RecordNotFound);
+        return Err(DbOperationFail::RecordNotFound);
     }
 
     let db_row = db_row.unwrap();
 
     if !db_row.time_stamp.equals_to(entity_time_stamp) {
-        return Err(FailOperationResult::OptimisticConcurencyUpdateFails);
+        return Err(DbOperationFail::OptimisticConcurencyUpdateFails);
     }
 
     let db_row = Arc::new(DbRow::form_db_entity(&entity));
@@ -125,7 +127,7 @@ pub async fn replace(
         .await
     }
 
-    Ok(OperationResult::Ok)
+    Ok(())
 }
 
 pub async fn clean_table(
@@ -223,7 +225,7 @@ pub async fn bulk_insert_or_update(
     db_table: &DbTable,
     payload: &[u8],
     attr: Option<TransactionAttributes>,
-) -> Result<(), FailOperationResult> {
+) -> Result<(), DbOperationFail> {
     let db_rows_by_partition =
         crate::db_entity::json_parser::parse_db_rows_to_hash_map_by_partition_key(payload)?;
 
@@ -275,7 +277,7 @@ pub async fn clean_table_and_bulk_insert(
     db_table: &DbTable,
     payload: &[u8],
     attr: Option<TransactionAttributes>,
-) -> Result<(), FailOperationResult> {
+) -> Result<(), DbOperationFail> {
     let now = MyDateTime::utc_now();
     let entities =
         crate::db_entity::json_parser::parse_entities_to_hash_map_by_partition_key(payload)?;
@@ -325,7 +327,7 @@ pub async fn clean_partition_and_bulk_insert(
     partition_key: &str,
     payload: &[u8],
     attr: Option<TransactionAttributes>,
-) -> Result<(), FailOperationResult> {
+) -> Result<(), DbOperationFail> {
     let entities =
         crate::db_entity::json_parser::parse_entities_to_hash_map_by_partition_key(payload)?;
 
@@ -375,7 +377,7 @@ pub async fn bulk_delete(
     db_table: &DbTable,
     payload: &[u8],
     attr: Option<TransactionAttributes>,
-) -> Result<(), FailOperationResult> {
+) {
     let rows_to_delete: HashMap<String, Vec<String>> = serde_json::from_slice(payload).unwrap();
 
     let mut write_access = db_table.data.write().await;
@@ -421,8 +423,6 @@ pub async fn bulk_delete(
         })
         .await;
     }
-
-    Ok(())
 }
 
 #[derive(Deserialize, Serialize)]

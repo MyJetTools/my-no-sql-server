@@ -1,18 +1,14 @@
 use crate::db_operations::rows;
 use crate::http::http_ctx::HttpContext;
 
+use crate::app::AppServices;
+use crate::http::http_fail::HttpFailResult;
 use crate::http::http_helpers;
-use crate::{
-    app::AppServices,
-    db::{FailOperationResult, OperationResult},
-};
+use crate::http::http_ok::HttpOkResult;
 
 use super::consts;
 
-pub async fn get_rows(
-    ctx: HttpContext,
-    app: &AppServices,
-) -> Result<OperationResult, FailOperationResult> {
+pub async fn get_rows(ctx: HttpContext, app: &AppServices) -> Result<HttpOkResult, HttpFailResult> {
     let query = ctx.get_query_string();
     let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;
 
@@ -21,13 +17,12 @@ pub async fn get_rows(
 
     let db_table = app.db.get_table(table_name).await?;
 
-    return db_table.get_rows(partition_key, row_key).await;
+    let result = db_table.get_rows(partition_key, row_key).await?;
+
+    Ok(result.into())
 }
 
-pub async fn insert(
-    ctx: HttpContext,
-    app: &AppServices,
-) -> Result<OperationResult, FailOperationResult> {
+pub async fn insert(ctx: HttpContext, app: &AppServices) -> Result<HttpOkResult, HttpFailResult> {
     let query = ctx.get_query_string();
     let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;
 
@@ -39,13 +34,15 @@ pub async fn insert(
 
     let attr = http_helpers::create_transaction_attributes(app, sync_period);
 
-    return rows::insert(app, db_table.as_ref(), &body, Some(attr)).await;
+    rows::insert(app, db_table.as_ref(), &body, Some(attr)).await?;
+
+    Ok(HttpOkResult::Ok)
 }
 
 pub async fn insert_or_replace(
     ctx: HttpContext,
     app: &AppServices,
-) -> Result<OperationResult, FailOperationResult> {
+) -> Result<HttpOkResult, HttpFailResult> {
     let query = ctx.get_query_string();
     let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;
 
@@ -57,13 +54,12 @@ pub async fn insert_or_replace(
 
     let attr = http_helpers::create_transaction_attributes(app, sync_period);
 
-    return rows::insert_or_replace(app, db_table.as_ref(), &body, Some(attr)).await;
+    rows::insert_or_replace(app, db_table.as_ref(), &body, Some(attr)).await?;
+
+    Ok(HttpOkResult::Ok)
 }
 
-pub async fn replace(
-    ctx: HttpContext,
-    app: &AppServices,
-) -> Result<OperationResult, FailOperationResult> {
+pub async fn replace(ctx: HttpContext, app: &AppServices) -> Result<HttpOkResult, HttpFailResult> {
     let query = ctx.get_query_string();
     let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;
 
@@ -74,5 +70,7 @@ pub async fn replace(
     let db_table = app.db.get_table(table_name).await?;
     let attr = http_helpers::create_transaction_attributes(app, sync_period);
 
-    return rows::replace(app, db_table.as_ref(), body.as_slice(), Some(attr)).await;
+    rows::replace(app, db_table.as_ref(), body.as_slice(), Some(attr)).await?;
+
+    Ok(HttpOkResult::Ok)
 }

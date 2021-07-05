@@ -1,10 +1,10 @@
 use crate::{
     app::AppServices,
-    db::{FailOperationResult, OperationResult},
+    http::{http_fail::HttpFailResult, http_ok::HttpOkResult},
 };
 
-pub fn get(app: &AppServices) -> Result<OperationResult, FailOperationResult> {
-    let result = OperationResult::Text {
+pub fn get(app: &AppServices) -> Result<HttpOkResult, HttpFailResult> {
+    let result = HttpOkResult::Text {
         text: app.metrics.build(),
     };
 

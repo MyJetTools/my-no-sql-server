@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     app::AppServices,
-    db::{DbRow, FailOperationResult},
+    db::{DbOperationFail, DbRow},
     db_entity::DbEntity,
     db_transactions::TransactionAttributes,
     json::array_parser::ArrayToJsonObjectsSplitter,
@@ -16,7 +16,7 @@ pub async fn appen_events(
     app: &AppServices,
     transaction_id: &str,
     payload: Vec<u8>,
-) -> Result<(), FailOperationResult> {
+) -> Result<(), DbOperationFail> {
     let transactions = parse_transactions(payload.as_slice())?;
     app.active_transactions
         .add_events(transaction_id, transactions)
@@ -29,11 +29,11 @@ pub async fn commit(
     app: &AppServices,
     transaction_id: &str,
     attr: TransactionAttributes,
-) -> Result<(), FailOperationResult> {
+) -> Result<(), DbOperationFail> {
     let transaction = app.active_transactions.remove(transaction_id).await;
 
     if transaction.is_none() {
-        return Err(FailOperationResult::TransactionNotFound {
+        return Err(DbOperationFail::TransactionNotFound {
             id: transaction_id.to_string(),
         });
     }
@@ -108,9 +108,18 @@ pub async fn commit(
     Ok(())
 }
 
-fn parse_transactions(
-    payload: &[u8],
-) -> Result<Vec<TransactionalOperationStep>, FailOperationResult> {
+pub async fn cancel(app: &AppServices, transaction_id: &str) -> Result<(), DbOperationFail> {
+    let result = app.active_transactions.remove(transaction_id).await;
+
+    match result {
+        Some(_) => Ok(()),
+        None => Err(DbOperationFail::TransactionNotFound {
+            id: transaction_id.to_string(),
+        }),
+    }
+}
+
+fn parse_transactions(payload: &[u8]) -> Result<Vec<TransactionalOperationStep>, DbOperationFail> {
     let mut result = Vec::new();
     for json_object in payload.split_array_json_to_objects() {
         let type_model: JsonBaseTransaction = serde_json::from_slice(json_object).unwrap();
@@ -225,7 +234,7 @@ pub struct InsertOrUpdateTransactionJsonModel {
 }
 
 impl InsertOrUpdateTransactionJsonModel {
-    pub fn into(self) -> Result<TransactionalOperationStep, FailOperationResult> {
+    pub fn into(self) -> Result<TransactionalOperationStep, DbOperationFail> {
         let mut rows_by_partition = HashMap::new();
 
         for entity in &self.entities {

@@ -1,15 +1,12 @@
 use std::collections::HashMap;
 
-use crate::{
-    db::{DbRow, FailOperationResult},
-    json::array_parser::ArrayToJsonObjectsSplitter,
-};
+use crate::{db::DbRow, json::array_parser::ArrayToJsonObjectsSplitter};
 
-use super::DbEntity;
+use super::{DbEntity, DbEntityParseFail};
 
 pub fn parse_entities_to_hash_map_by_partition_key<'s>(
     src: &'s [u8],
-) -> Result<HashMap<String, Vec<DbEntity>>, FailOperationResult> {
+) -> Result<HashMap<String, Vec<DbEntity>>, DbEntityParseFail> {
     let mut result = HashMap::new();
 
     for json in src.split_array_json_to_objects() {
@@ -28,7 +25,7 @@ pub fn parse_entities_to_hash_map_by_partition_key<'s>(
 
 pub fn parse_db_rows_to_hash_map_by_partition_key(
     src: &[u8],
-) -> Result<HashMap<String, Vec<DbRow>>, FailOperationResult> {
+) -> Result<HashMap<String, Vec<DbRow>>, DbEntityParseFail> {
     let mut result = HashMap::new();
 
     for json in src.split_array_json_to_objects() {

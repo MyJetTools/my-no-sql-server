@@ -1,18 +1,17 @@
 use crate::db_operations::rows;
 use crate::http::http_ctx::HttpContext;
 
+use crate::app::AppServices;
+use crate::http::http_fail::HttpFailResult;
 use crate::http::http_helpers;
-use crate::{
-    app::AppServices,
-    db::{FailOperationResult, OperationResult},
-};
+use crate::http::http_ok::HttpOkResult;
 
 use super::consts;
 
 pub async fn insert_or_replace(
     ctx: HttpContext,
     app: &AppServices,
-) -> Result<OperationResult, FailOperationResult> {
+) -> Result<HttpOkResult, HttpFailResult> {
     let query = ctx.get_query_string();
     let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;
 
@@ -25,13 +24,13 @@ pub async fn insert_or_replace(
 
     rows::bulk_insert_or_update(app, db_table.as_ref(), body.as_slice(), Some(attr)).await?;
 
-    return Ok(OperationResult::Ok);
+    return Ok(HttpOkResult::Ok);
 }
 
 pub async fn clean_and_bulk_insert(
     ctx: HttpContext,
     app: &AppServices,
-) -> Result<OperationResult, FailOperationResult> {
+) -> Result<HttpOkResult, HttpFailResult> {
     let query = ctx.get_query_string();
     let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;
 
@@ -62,13 +61,13 @@ pub async fn clean_and_bulk_insert(
         }
     }
 
-    return Ok(OperationResult::Ok);
+    return Ok(HttpOkResult::Ok);
 }
 
 pub async fn bulk_delete(
     ctx: HttpContext,
     app: &AppServices,
-) -> Result<OperationResult, FailOperationResult> {
+) -> Result<HttpOkResult, HttpFailResult> {
     let query = ctx.get_query_string();
     let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;
 
@@ -79,7 +78,7 @@ pub async fn bulk_delete(
 
     let attr = http_helpers::create_transaction_attributes(app, sync_period);
 
-    rows::bulk_delete(app, db_table.as_ref(), body.as_slice(), Some(attr)).await?;
+    rows::bulk_delete(app, db_table.as_ref(), body.as_slice(), Some(attr)).await;
 
-    Ok(OperationResult::Ok)
+    Ok(HttpOkResult::Ok)
 }

@@ -5,11 +5,11 @@ use crate::{
         logs::{LogItem, SystemProcess},
         AppServices,
     },
-    db::{FailOperationResult, OperationResult},
+    http::{http_fail::HttpFailResult, http_ok::HttpOkResult},
     utils::{StopWatch, StringBuilder},
 };
 
-pub async fn get(app: &AppServices) -> Result<OperationResult, FailOperationResult> {
+pub async fn get(app: &AppServices) -> Result<HttpOkResult, HttpFailResult> {
     let mut sw = StopWatch::new();
     sw.start();
     let logs = app.logs.get().await;
@@ -17,10 +17,7 @@ pub async fn get(app: &AppServices) -> Result<OperationResult, FailOperationResu
     return compile_result("logs", logs, sw);
 }
 
-pub async fn get_by_table(
-    app: &AppServices,
-    path: &str,
-) -> Result<OperationResult, FailOperationResult> {
+pub async fn get_by_table(app: &AppServices, path: &str) -> Result<HttpOkResult, HttpFailResult> {
     let table_name = get_table_name(&path);
 
     if table_name.is_none() {
@@ -38,21 +35,21 @@ pub async fn get_by_table(
         None => {
             sw.pause();
 
-            Ok(OperationResult::Text {
-                text: format!(
-                    "Result compiled in: {:?}. No log recods for the table '{}'",
-                    sw.duration(),
-                    table_name
-                ),
+            let content = format!(
+                "Result compiled in: {:?}. No log recods for the table '{}'",
+                sw.duration(),
+                table_name
+            );
+
+            Ok(HttpOkResult::Content {
+                content_type: Some(crate::http::web_content_type::WebContentType::Text),
+                content: content.into_bytes(),
             })
         }
     }
 }
 
-pub async fn get_by_process(
-    app: &AppServices,
-    path: &str,
-) -> Result<OperationResult, FailOperationResult> {
+pub async fn get_by_process(app: &AppServices, path: &str) -> Result<HttpOkResult, HttpFailResult> {
     let process_name = get_process_name(&path);
 
     if process_name.is_none() {
@@ -64,8 +61,9 @@ pub async fn get_by_process(
     let process = SystemProcess::parse(process_name);
 
     if process.is_none() {
-        return Ok(OperationResult::Text {
-            text: format!("Invalid process name: {}", process_name),
+        return Ok(HttpOkResult::Content {
+            content_type: Some(crate::http::web_content_type::WebContentType::Text),
+            content: format!("Invalid process name: {}", process_name).into(),
         });
     }
 
@@ -80,12 +78,14 @@ pub async fn get_by_process(
         None => {
             sw.pause();
 
-            Ok(OperationResult::Text {
-                text: format!(
+            Ok(HttpOkResult::Content {
+                content_type: Some(crate::http::web_content_type::WebContentType::Text),
+                content: format!(
                     "Result compiled in: {:?}. No log recods for the process '{}'",
                     sw.duration(),
                     process_name
-                ),
+                )
+                .into_bytes(),
             })
         }
     }
@@ -128,7 +128,7 @@ fn compile_result(
     title: &str,
     logs: Vec<Arc<LogItem>>,
     mut sw: StopWatch,
-) -> Result<OperationResult, FailOperationResult> {
+) -> Result<HttpOkResult, HttpFailResult> {
     let mut sb = StringBuilder::new();
 
     sb.append_line(
@@ -187,7 +187,7 @@ fn compile_result(
     let line = format!("Rendered in {:?}", sw.duration());
     sb.append_line(line.as_str());
 
-    Ok(OperationResult::Html {
+    Ok(HttpOkResult::Html {
         title: title.to_string(),
         body: sb.to_string_utf8().unwrap(),
     })
@@ -200,7 +200,7 @@ fn get_log_level_color(item: &LogItem) -> &str {
     }
 }
 
-async fn render_select_table(app: &AppServices) -> Result<OperationResult, FailOperationResult> {
+async fn render_select_table(app: &AppServices) -> Result<HttpOkResult, HttpFailResult> {
     let mut sb = StringBuilder::new();
 
     sb.append_line("<h1>Please, select table to show logs</h1>");
@@ -213,13 +213,13 @@ async fn render_select_table(app: &AppServices) -> Result<OperationResult, FailO
         sb.append_line(line.as_str())
     }
 
-    Ok(OperationResult::Html {
+    Ok(HttpOkResult::Html {
         title: "Select table to show logs".to_string(),
         body: sb.to_string_utf8().unwrap(),
     })
 }
 
-async fn render_select_process() -> Result<OperationResult, FailOperationResult> {
+async fn render_select_process() -> Result<HttpOkResult, HttpFailResult> {
     let mut sb = StringBuilder::new();
 
     sb.append_line("<h1>Please, select process to show logs</h1>");
@@ -232,7 +232,7 @@ async fn render_select_process() -> Result<OperationResult, FailOperationResult>
         sb.append_line(line.as_str())
     }
 
-    Ok(OperationResult::Html {
+    Ok(HttpOkResult::Html {
         title: "Select table to show logs".to_string(),
         body: sb.to_string_utf8().unwrap(),
     })

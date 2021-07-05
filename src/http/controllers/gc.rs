@@ -1,7 +1,6 @@
 use crate::{
     app::AppServices,
-    db::{FailOperationResult, OperationResult},
-    http::{http_ctx::HttpContext, http_helpers},
+    http::{http_ctx::HttpContext, http_fail::HttpFailResult, http_helpers, http_ok::HttpOkResult},
 };
 
 use super::consts;
@@ -9,7 +8,7 @@ use super::consts;
 pub async fn clean_and_keep_max_partitions_amount(
     ctx: HttpContext,
     app: &AppServices,
-) -> Result<OperationResult, FailOperationResult> {
+) -> Result<HttpOkResult, HttpFailResult> {
     let query = ctx.get_query_string();
     let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;
 
@@ -28,13 +27,13 @@ pub async fn clean_and_keep_max_partitions_amount(
     )
     .await;
 
-    Ok(OperationResult::Ok)
+    Ok(HttpOkResult::Ok)
 }
 
 pub async fn clean_and_keep_max_records(
     ctx: HttpContext,
     app: &AppServices,
-) -> Result<OperationResult, FailOperationResult> {
+) -> Result<HttpOkResult, HttpFailResult> {
     let query = ctx.get_query_string();
     let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;
 
@@ -55,5 +54,5 @@ pub async fn clean_and_keep_max_records(
     )
     .await;
 
-    Ok(OperationResult::Ok)
+    Ok(HttpOkResult::Ok)
 }

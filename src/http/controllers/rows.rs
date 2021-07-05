@@ -1,7 +1,6 @@
 use crate::{
     app::AppServices,
-    db::{FailOperationResult, OperationResult},
-    http::http_ctx::HttpContext,
+    http::{http_ctx::HttpContext, http_fail::HttpFailResult, http_ok::HttpOkResult},
 };
 
 use super::consts;
@@ -9,7 +8,7 @@ use super::consts;
 pub async fn get_single_partition_multiple_rows(
     ctx: HttpContext,
     app: &AppServices,
-) -> Result<OperationResult, FailOperationResult> {
+) -> Result<HttpOkResult, HttpFailResult> {
     let query = ctx.get_query_string();
     let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;
 
@@ -21,15 +20,17 @@ pub async fn get_single_partition_multiple_rows(
 
     let row_keys = serde_json::from_slice(body.as_slice()).unwrap();
 
-    return db_table
+    let result = db_table
         .get_single_partition_multiple_rows(partition_key, row_keys)
-        .await;
+        .await?;
+
+    Ok(result.into())
 }
 
 pub async fn get_highest_row_and_below(
     ctx: HttpContext,
     app: &AppServices,
-) -> Result<OperationResult, FailOperationResult> {
+) -> Result<HttpOkResult, HttpFailResult> {
     let query = ctx.get_query_string();
     let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;
 
@@ -40,7 +41,9 @@ pub async fn get_highest_row_and_below(
 
     let db_table = app.db.get_table(table_name).await?;
 
-    return db_table
+    let result = db_table
         .get_highest_row_and_below(partition_key, row_key.to_string(), max_amount)
-        .await;
+        .await?;
+
+    Ok(result.into())
 }

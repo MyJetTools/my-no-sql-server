@@ -2,9 +2,9 @@ use std::time::SystemTime;
 
 use serde::{Deserialize, Serialize};
 
-use crate::db::{FailOperationResult, OperationResult};
+use crate::http::{http_fail::HttpFailResult, http_ok::HttpOkResult};
 
-pub fn is_alive() -> Result<OperationResult, FailOperationResult> {
+pub fn is_alive() -> Result<HttpOkResult, HttpFailResult> {
     let version = env!("CARGO_PKG_VERSION");
 
     let env_info = env!("ENV_INFO");
@@ -21,7 +21,7 @@ pub fn is_alive() -> Result<OperationResult, FailOperationResult> {
         env_info: env_info.to_string(),
     };
 
-    return OperationResult::create_json_response(model);
+    return HttpOkResult::create_json_response(model);
 }
 
 #[derive(Serialize, Deserialize, Debug)]

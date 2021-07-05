@@ -1,6 +1,6 @@
 use std::{collections::HashMap, str::FromStr};
 
-use crate::db::FailOperationResult;
+use super::http_fail::HttpFailResult;
 
 pub struct QueryString {
     query_string: HashMap<String, String>,
@@ -22,14 +22,12 @@ impl QueryString {
     pub fn get_query_required_string_parameter<'r, 't>(
         &'r self,
         name: &'t str,
-    ) -> Result<&'r String, FailOperationResult> {
+    ) -> Result<&'r String, HttpFailResult> {
         let result = self.query_string.get(name);
 
         match result {
             Some(e) => Ok(e),
-            None => Err(FailOperationResult::QueryParameterRequires {
-                param_name: name.to_string(),
-            }),
+            None => Err(HttpFailResult::as_query_parameter_required(name)),
         }
     }
 
@@ -74,7 +72,7 @@ impl QueryString {
     pub fn get_query_required_parameter<'r, 't, T: FromStr>(
         &'r self,
         name: &'t str,
-    ) -> Result<T, FailOperationResult> {
+    ) -> Result<T, HttpFailResult> {
         let result = self.query_string.get(name);
 
         match result {
@@ -83,16 +81,10 @@ impl QueryString {
 
                 return match result {
                     Ok(value) => Ok(value),
-                    _ => Err(FailOperationResult::QueryParameterRequires {
-                        param_name: name.to_string(),
-                    }),
+                    _ => Err(HttpFailResult::as_query_parameter_required(name)),
                 };
             }
-            None => {
-                return Err(FailOperationResult::QueryParameterRequires {
-                    param_name: name.to_string(),
-                })
-            }
+            None => return Err(HttpFailResult::as_query_parameter_required(name)),
         };
     }
 }

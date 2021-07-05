@@ -3,7 +3,7 @@ use std::{collections::HashMap, sync::Arc};
 use crate::{
     app::AppServices,
     date_time::MyDateTime,
-    db::{DbTable, DbTableAttributes, DbTableData, FailOperationResult},
+    db::{DbOperationFail, DbTable, DbTableAttributes, DbTableData},
     db_transactions::{TransactionAttributes, TransactionEvent},
 };
 
@@ -12,9 +12,9 @@ fn create_table_with_write_access(
     name: &str,
     persist: bool,
     max_partitions_amount: Option<usize>,
-) -> Result<Arc<DbTable>, FailOperationResult> {
+) -> Result<Arc<DbTable>, DbOperationFail> {
     if tables_write_access.contains_key(name) {
-        return Err(FailOperationResult::TableAlreadyExist {
+        return Err(DbOperationFail::TableAlreadyExist {
             table_name: name.to_string(),
         });
     }
@@ -40,7 +40,7 @@ pub async fn create_table(
     persist_table: bool,
     max_partitions_amount: Option<usize>,
     attr: Option<TransactionAttributes>,
-) -> Result<Arc<DbTable>, FailOperationResult> {
+) -> Result<Arc<DbTable>, DbOperationFail> {
     let mut tables_write_access = app.db.tables.write().await;
 
     let db_table = create_table_with_write_access(
