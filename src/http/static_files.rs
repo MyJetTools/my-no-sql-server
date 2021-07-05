@@ -24,7 +24,7 @@ pub async fn serve_path(path_and_file: &str) -> Result<HttpOkResult, HttpFailRes
     }
 }
 
-async fn load_file(filename: &str) -> std::io::Result<Vec<u8>> {
+pub async fn load_file(filename: &str) -> std::io::Result<Vec<u8>> {
     let filename = format!("./wwwroot{}", filename);
 
     let mut file = File::open(&filename).await?;

@@ -8,7 +8,7 @@ use super::{
     controllers::{api, bulk, gc, logs, metrics, row, rows, status, tables, transactions},
     http_fail::HttpFailResult,
     http_ok::HttpOkResult,
-    static_files,
+    static_files, swagger,
 };
 
 pub async fn route_requests(
@@ -113,9 +113,6 @@ pub async fn route_requests(
             return transactions::cancel(app.as_ref(), HttpContext::new(req)).await;
         }
 
-        (&Method::GET, "/swagger") => {
-            return static_files::serve_path("/swagger/index.html").await;
-        }
         _ => {}
     };
 
@@ -132,7 +129,7 @@ pub async fn route_requests(
     }
 
     if path.starts_with("/swagger") {
-        return static_files::serve_path(path.as_str()).await;
+        return swagger::handle_request(path.as_str(), HttpContext::new(req)).await;
     }
 
     if path.starts_with("/css") {

@@ -5,9 +5,9 @@
         "title": "MyNoSqlServer",
         "version": "1.0.0"
     },
-    "host": "localhost:5123",
+    "host": "***HOST***",
     "schemes": [
-        "http"
+        "***SCHEME***"
     ],
     "paths": {
         "/api/isalive": {

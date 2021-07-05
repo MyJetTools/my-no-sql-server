@@ -7,6 +7,7 @@ use crate::db::{DbOperationResult, DbRow};
 
 use super::{http_fail::HttpFailResult, web_content_type::WebContentType};
 
+#[derive(Clone)]
 pub enum HttpOkResult {
     Ok,
 

@@ -3,7 +3,7 @@ use hyper::{Body, Request};
 use super::query_string::QueryString;
 
 pub struct HttpContext {
-    req: Request<Body>,
+    pub req: Request<Body>,
 }
 
 impl HttpContext {
