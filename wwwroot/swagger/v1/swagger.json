@@ -228,6 +228,31 @@
                 }
             }
         },
+        "/GarbageCollector/Execute": {
+            "post": {
+                "tags": [
+                    "GarbageCollector"
+                ],
+                "operationId": "GarbageCollector_Execute",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "tableName",
+                        "in": "query",
+                        "x-nullable": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "x-nullable": true,
+                        "description": "",
+                        "schema": {
+                            "type": "file"
+                        }
+                    }
+                }
+            }
+        },
         "/": {
             "get": {
                 "tags": [
