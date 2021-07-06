@@ -1,5 +1,5 @@
 {
-    "x-generator": "NSwag v13.7.0.0 (NJsonSchema v10.1.24.0 (Newtonsoft.Json v12.0.0.0))",
+    "x-generator": "NSwag v13.11.3.0 (NJsonSchema v10.4.4.0 (Newtonsoft.Json v13.0.0.0))",
     "swagger": "2.0",
     "info": {
         "title": "MyNoSqlServer",
@@ -16,23 +16,6 @@
                     "Api"
                 ],
                 "operationId": "Api_IsAlive",
-                "responses": {
-                    "200": {
-                        "x-nullable": true,
-                        "description": "",
-                        "schema": {
-                            "type": "file"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/status": {
-            "get": {
-                "tags": [
-                    "Api"
-                ],
-                "operationId": "Api_Status",
                 "responses": {
                     "200": {
                         "x-nullable": true,
@@ -112,6 +95,57 @@
                 }
             }
         },
+        "/Bulk/Delete": {
+            "post": {
+                "tags": [
+                    "Bulk"
+                ],
+                "operationId": "Bulk_Delete",
+                "consumes": [
+                    "application/json",
+                    "text/json",
+                    "application/*+json"
+                ],
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "tableName",
+                        "in": "query",
+                        "x-nullable": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "syncPeriod",
+                        "in": "query",
+                        "x-nullable": true
+                    },
+                    {
+                        "name": "partitionsAndRows",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "x-nullable": false
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "x-nullable": true,
+                        "description": "",
+                        "schema": {
+                            "type": "file"
+                        }
+                    }
+                }
+            }
+        },
         "/GarbageCollector/CleanAndKeepMaxPartitions": {
             "post": {
                 "tags": [
@@ -131,6 +165,12 @@
                         "in": "query",
                         "format": "int32",
                         "x-nullable": false
+                    },
+                    {
+                        "type": "string",
+                        "name": "syncPeriod",
+                        "in": "query",
+                        "x-nullable": true
                     }
                 ],
                 "responses": {
@@ -200,6 +240,59 @@
                         "description": "",
                         "schema": {
                             "type": "file"
+                        }
+                    }
+                }
+            }
+        },
+        "/Logs": {
+            "get": {
+                "tags": [
+                    "Logs"
+                ],
+                "operationId": "Logs_GetLogs",
+                "produces": [
+                    "text/plain",
+                    "application/json",
+                    "text/json"
+                ],
+                "responses": {
+                    "200": {
+                        "x-nullable": false,
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/Logs/{tableName}": {
+            "get": {
+                "tags": [
+                    "Logs"
+                ],
+                "operationId": "Logs_GetLogsByTable",
+                "produces": [
+                    "text/plain",
+                    "application/json",
+                    "text/json"
+                ],
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "tableName",
+                        "in": "path",
+                        "required": true,
+                        "x-nullable": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "x-nullable": false,
+                        "description": "",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
@@ -619,6 +712,23 @@
                 }
             }
         },
+        "/api/status": {
+            "get": {
+                "tags": [
+                    "Status"
+                ],
+                "operationId": "Status_Status",
+                "responses": {
+                    "200": {
+                        "x-nullable": true,
+                        "description": "",
+                        "schema": {
+                            "type": "file"
+                        }
+                    }
+                }
+            }
+        },
         "/Tables/List": {
             "get": {
                 "tags": [
@@ -648,6 +758,24 @@
                         "name": "tableName",
                         "in": "query",
                         "x-nullable": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "persist",
+                        "in": "query",
+                        "x-nullable": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "maxPartitionsAmount",
+                        "in": "query",
+                        "x-nullable": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "syncPeriod",
+                        "in": "query",
+                        "x-nullable": true
                     }
                 ],
                 "responses": {
@@ -673,6 +801,24 @@
                         "name": "tableName",
                         "in": "query",
                         "x-nullable": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "persist",
+                        "in": "query",
+                        "x-nullable": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "maxPartitionsAmount",
+                        "in": "query",
+                        "x-nullable": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "syncPeriod",
+                        "in": "query",
+                        "x-nullable": true
                     }
                 ],
                 "responses": {
@@ -687,7 +833,7 @@
             }
         },
         "/Tables/Clean": {
-            "delete": {
+            "put": {
                 "tags": [
                     "Tables"
                 ],
@@ -702,6 +848,203 @@
                     {
                         "type": "string",
                         "name": "syncPeriod",
+                        "in": "query",
+                        "x-nullable": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "x-nullable": true,
+                        "description": "",
+                        "schema": {
+                            "type": "file"
+                        }
+                    }
+                }
+            }
+        },
+        "/Tables/DeleteIfExists": {
+            "delete": {
+                "tags": [
+                    "Tables"
+                ],
+                "operationId": "Tables_DeleteIfExists",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "tableName",
+                        "in": "query",
+                        "x-nullable": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "syncPeriod",
+                        "in": "query",
+                        "x-nullable": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "apiKey",
+                        "in": "header",
+                        "x-nullable": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "x-nullable": true,
+                        "description": "",
+                        "schema": {
+                            "type": "file"
+                        }
+                    }
+                }
+            }
+        },
+        "/Tables/UpdatePersist": {
+            "post": {
+                "tags": [
+                    "Tables"
+                ],
+                "operationId": "Tables_UpdatePersist",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "tableName",
+                        "in": "query",
+                        "x-nullable": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "persist",
+                        "in": "query",
+                        "x-nullable": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "syncPeriod",
+                        "in": "query",
+                        "x-nullable": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "x-nullable": true,
+                        "description": "",
+                        "schema": {
+                            "type": "file"
+                        }
+                    }
+                }
+            }
+        },
+        "/Tables/PartitionsCount": {
+            "get": {
+                "tags": [
+                    "Tables"
+                ],
+                "operationId": "Tables_PartitionsCount",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "tableName",
+                        "in": "query",
+                        "x-nullable": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "x-nullable": true,
+                        "description": "",
+                        "schema": {
+                            "type": "file"
+                        }
+                    }
+                }
+            }
+        },
+        "/Transaction/Start": {
+            "post": {
+                "tags": [
+                    "Transaction"
+                ],
+                "operationId": "Transaction_Start",
+                "responses": {
+                    "200": {
+                        "x-nullable": true,
+                        "description": "",
+                        "schema": {
+                            "type": "file"
+                        }
+                    }
+                }
+            }
+        },
+        "/Transaction/Append": {
+            "post": {
+                "tags": [
+                    "Transaction"
+                ],
+                "operationId": "Transaction_Append",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "transactionId",
+                        "in": "query",
+                        "x-nullable": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "x-nullable": true,
+                        "description": "",
+                        "schema": {
+                            "type": "file"
+                        }
+                    }
+                }
+            }
+        },
+        "/Transaction/Commit": {
+            "post": {
+                "tags": [
+                    "Transaction"
+                ],
+                "operationId": "Transaction_Commit",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "transactionId",
+                        "in": "query",
+                        "x-nullable": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "syncPeriod",
+                        "in": "query",
+                        "x-nullable": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "x-nullable": true,
+                        "description": "",
+                        "schema": {
+                            "type": "file"
+                        }
+                    }
+                }
+            }
+        },
+        "/Transaction/Cancel": {
+            "post": {
+                "tags": [
+                    "Transaction"
+                ],
+                "operationId": "Transaction_Cancel",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "transactionId",
                         "in": "query",
                         "x-nullable": true
                     }
