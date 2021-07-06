@@ -42,10 +42,11 @@ async fn iterate(app: &AppServices, azure_connection: &AzureConnection) {
                 Some(events.0.to_string()),
                 SystemProcess::BlobOperation,
                 "blob_persistece_handler.execute()".to_string(),
-                "Some how blob is not found. BUG".to_string(),
+                "Some how db_table is not found. BUG".to_string(),
                 Some(format!("{:?}", err)),
             )
             .await;
+        return;
     }
 
     let db_table = db_table.unwrap();
