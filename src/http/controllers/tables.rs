@@ -14,6 +14,7 @@ use crate::http::http_ctx::HttpContext;
 pub struct TableJsonResult {
     pub name: String,
     pub persist: bool,
+    #[serde(rename = "maxPartitionsAmount")]
     pub max_partitions_amount: Option<usize>,
 }
 
