@@ -6,6 +6,7 @@ pub struct BlobOperationsToBeMade {
     pub sync_attributes: bool,
     pub sync_table: bool,
     pub sync_partitions: HashMap<String, bool>,
+    pub delete_table: bool, //TODO - Make different saving optimization
 }
 
 impl BlobOperationsToBeMade {
@@ -14,6 +15,7 @@ impl BlobOperationsToBeMade {
             sync_attributes: false,
             sync_partitions: HashMap::new(),
             sync_table: false,
+            delete_table: false,
         };
 
         for event in transactions {
@@ -86,6 +88,10 @@ impl BlobOperationsToBeMade {
                         }
                     }
                 }
+                TransactionEvent::DeleteTable {
+                    db_table: _,
+                    attr: _,
+                } => result.delete_table = true,
             }
         }
 

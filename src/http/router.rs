@@ -40,15 +40,19 @@ pub async fn route_requests(
         (&Method::POST, "/tables/createifnotexists") => {
             return tables::create_table_if_not_exists(HttpContext::new(req), app.as_ref()).await;
         }
-        (&Method::DELETE, "/tables/clean") => {
+        (&Method::PUT, "/tables/clean") => {
             return tables::clean(HttpContext::new(req), app.as_ref()).await;
         }
 
-        (&Method::DELETE, "/tables/updatepersist") => {
+        (&Method::DELETE, "/tables/delete") => {
+            return tables::delete(HttpContext::new(req), app.as_ref()).await;
+        }
+
+        (&Method::POST, "/tables/updatepersist") => {
             return tables::update_persist(HttpContext::new(req), app.as_ref()).await;
         }
 
-        (&Method::DELETE, "/tables/partitionscount") => {
+        (&Method::GET, "/tables/partitionscount") => {
             return tables::get_partitions_count(HttpContext::new(req), app.as_ref()).await;
         }
 

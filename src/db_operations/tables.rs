@@ -144,3 +144,18 @@ pub async fn set_table_attrubutes(
         }
     }
 }
+
+pub async fn delete_table(
+    app: &AppServices,
+    table_name: &str,
+    attr: Option<TransactionAttributes>,
+) -> Result<(), DbOperationFail> {
+    let db_table = app.db.delete_table(table_name).await?;
+
+    if let Some(attr) = attr {
+        app.dispatch_event(TransactionEvent::DeleteTable { db_table, attr })
+            .await;
+    }
+
+    Ok(())
+}

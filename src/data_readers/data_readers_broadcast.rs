@@ -6,6 +6,7 @@ use crate::{
     app::{logs::LogItem, AppServices},
     db_operations::read_as_json::{hash_map_to_vec, DbEntityAsJsonArray},
     db_transactions::TransactionEvent,
+    json,
     utils::ItemsOrNone,
 };
 
@@ -154,6 +155,13 @@ async fn handle_transaction_event(
             persist: _,
             max_partitions_amount: _,
         } => {}
+        TransactionEvent::DeleteTable { db_table, attr: _ } => {
+            let contract = DataReaderContract::InitTable {
+                table_name: db_table.name.to_string(),
+                data: json::consts::EMPTY_ARRAY.to_vec(),
+            };
+            app.data_readers.broadcast(contract).await?;
+        }
     }
 
     Ok(())

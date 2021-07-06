@@ -11,6 +11,11 @@ pub enum TransactionEvent {
         partitions: HashMap<String, Vec<Arc<DbRow>>>,
     },
 
+    DeleteTable {
+        db_table: Arc<DbTable>,
+        attr: TransactionAttributes,
+    },
+
     CleanTable {
         table_name: String,
         attr: TransactionAttributes,
@@ -130,6 +135,7 @@ impl TransactionEvent {
                 attr: _,
                 rows: _,
             } => table_name,
+            TransactionEvent::DeleteTable { db_table, attr: _ } => db_table.name.as_str(),
         }
     }
 }

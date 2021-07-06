@@ -1,5 +1,6 @@
 use crate::{db_transactions::DataSynchronizationPeriod, http::query_string::QueryString};
 
+pub const API_KEY: &str = "apiKey";
 pub const PARAM_TABLE_NAME: &str = "tableName";
 pub const PARAM_PARTITION_KEY: &str = "partitionKey";
 pub const PARAM_ROW_KEY: &str = "rowKey";

@@ -11,6 +11,9 @@ pub struct SettingsModel {
 
     #[serde(rename = "CompressData")]
     pub compress_data: bool,
+
+    #[serde(rename = "TableApiKey")]
+    pub table_api_key: String,
 }
 
 impl SettingsModel {

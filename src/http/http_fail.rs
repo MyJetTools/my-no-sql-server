@@ -27,6 +27,14 @@ impl HttpFailResult {
             status_code: 404,
         }
     }
+
+    pub fn as_unauthorized() -> Self {
+        Self {
+            content_type: WebContentType::Text,
+            content: "Unauthorized request".to_string().into_bytes(),
+            status_code: 301,
+        }
+    }
 }
 
 impl Into<Response<Body>> for HttpFailResult {

@@ -888,12 +888,12 @@
                 }
             }
         },
-        "/Tables/DeleteIfExists": {
+        "/Tables/Delete": {
             "delete": {
                 "tags": [
                     "Tables"
                 ],
-                "operationId": "Tables_DeleteIfExists",
+                "operationId": "Tables_Delete",
                 "parameters": [
                     {
                         "type": "string",

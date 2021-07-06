@@ -150,3 +150,22 @@ pub async fn get_partitions_count(
 
     return HttpOkResult::create_as_usize(partitions_count);
 }
+
+pub async fn delete(ctx: HttpContext, app: &AppServices) -> Result<HttpOkResult, HttpFailResult> {
+    let query = ctx.get_query_string();
+
+    let api_key = query.get_query_required_string_parameter(consts::API_KEY)?;
+
+    if api_key != app.settings.table_api_key.as_str() {
+        return Err(HttpFailResult::as_unauthorized());
+    }
+
+    let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;
+    let sync_period = query.get_sync_period();
+
+    let attr = http_helpers::create_transaction_attributes(app, sync_period);
+
+    tables::delete_table(app, table_name, Some(attr)).await?;
+
+    return Ok(HttpOkResult::Ok);
+}

@@ -46,4 +46,16 @@ impl DbInstance {
             }),
         };
     }
+
+    pub async fn delete_table(&self, table_name: &str) -> Result<Arc<DbTable>, DbOperationFail> {
+        let mut write_access = self.tables.write().await;
+        let result = write_access.remove(table_name);
+
+        return match result {
+            Some(table) => Ok(table),
+            None => Err(DbOperationFail::TableNotFound {
+                table_name: table_name.to_string(),
+            }),
+        };
+    }
 }
