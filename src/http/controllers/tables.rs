@@ -13,15 +13,22 @@ use crate::http::http_ctx::HttpContext;
 #[derive(Deserialize, Serialize)]
 pub struct TableJsonResult {
     pub name: String,
+    pub persist: bool,
+    pub max_partitions_amount: Option<usize>,
 }
 
 pub async fn list_of_tables(app: &AppServices) -> Result<HttpOkResult, HttpFailResult> {
-    let tables = app.db.get_table_names().await;
+    let tables = app.db.get_tables().await;
 
     let mut response: Vec<TableJsonResult> = vec![];
 
-    for name in tables {
-        response.push(TableJsonResult { name });
+    for db_table in &tables {
+        let attr = db_table.get_attributes().await;
+        response.push(TableJsonResult {
+            name: db_table.name.to_string(),
+            persist: attr.persist,
+            max_partitions_amount: attr.max_partitions_amount,
+        });
     }
 
     return HttpOkResult::create_json_response(response);

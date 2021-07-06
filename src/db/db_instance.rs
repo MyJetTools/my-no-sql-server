@@ -24,6 +24,16 @@ impl DbInstance {
         return result;
     }
 
+    pub async fn get_tables(&self) -> Vec<Arc<DbTable>> {
+        let read_access = self.tables.read().await;
+
+        return read_access
+            .values()
+            .into_iter()
+            .map(|table| table.clone())
+            .collect();
+    }
+
     pub async fn get_table(&self, table_name: &str) -> Result<Arc<DbTable>, DbOperationFail> {
         let read_access = self.tables.read().await;
 

@@ -26,17 +26,9 @@ pub async fn start(app: Arc<AppServices>) {
     loop {
         tokio::time::sleep(delay).await;
 
-        let tables = app.db.get_table_names().await;
+        let tables = app.db.get_tables().await;
 
-        for table_name in &tables {
-            let db_table = app.db.get_table(table_name).await;
-
-            if db_table.is_err() {
-                continue;
-            }
-
-            let db_table = db_table.unwrap();
-
+        for db_table in &tables {
             let attr = db_table.get_attributes().await;
 
             if attr.max_partitions_amount.is_none() {
