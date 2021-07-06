@@ -3,8 +3,9 @@ use std::collections::HashMap;
 #[derive(Clone, Copy)]
 pub enum EventSource {
     ClientRequest,
+    GarbageCollector,
     // Synchronization, //TODO - when we doing nodes support - we restore these
-    // Init,
+    // Init
 }
 
 #[derive(Clone, Copy)]

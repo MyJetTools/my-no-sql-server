@@ -6,7 +6,7 @@ use crate::{
     db_transactions::{TransactionAttributes, TransactionEvent},
 };
 
-pub async fn clean_and_keep_max_partitions_amount(
+pub async fn keep_max_partitions_amount(
     app: &AppServices,
     db_table: &DbTable,
     max_partitions_amount: usize,

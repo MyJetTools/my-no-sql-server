@@ -97,6 +97,10 @@ pub async fn route_requests(
             return gc::clean_and_keep_max_records(HttpContext::new(req), app.as_ref()).await;
         }
 
+        (&Method::POST, "/garbagecollector/gc") => {
+            return gc::execute(HttpContext::new(req), app.as_ref()).await;
+        }
+
         (&Method::POST, "/transaction/start") => {
             return transactions::start(app.as_ref()).await;
         }

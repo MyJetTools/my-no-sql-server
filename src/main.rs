@@ -57,6 +57,10 @@ async fn main() {
         crate::timers::dead_data_readers_gc::start(app.clone()),
     ));
 
+    background_tasks.push(tokio::task::spawn(crate::timers::data_gc::start(
+        app.clone(),
+    )));
+
     http::http_server::start(app).await;
 
     for background_task in background_tasks.drain(..) {
