@@ -1,54 +1,71 @@
 use std::{collections::HashMap, sync::Arc};
 
-use crate::db::{DbRow, DbTable};
+use crate::{
+    date_time::MyDateTime,
+    db::{DbRow, DbTable},
+};
 
 use super::TransactionAttributes;
 
+pub struct TransactionTableInfo {
+    pub name: String,
+    pub created: MyDateTime,
+}
+
+impl From<&DbTable> for TransactionTableInfo {
+    fn from(src: &DbTable) -> Self {
+        Self {
+            name: src.name.to_string(),
+            created: src.created,
+        }
+    }
+}
+
 pub enum TransactionEvent {
     InitTable {
-        table_name: String,
+        table: TransactionTableInfo,
         attr: TransactionAttributes,
         partitions: HashMap<String, Vec<Arc<DbRow>>>,
     },
 
     DeleteTable {
-        db_table: Arc<DbTable>,
+        table: TransactionTableInfo,
         attr: TransactionAttributes,
     },
 
     CleanTable {
-        table_name: String,
+        table: TransactionTableInfo,
         attr: TransactionAttributes,
     },
 
     DeletePartitions {
-        table_name: String,
+        table: TransactionTableInfo,
         partitions: Vec<String>,
         attr: TransactionAttributes,
     },
 
     UpdateTableAttributes {
-        table_name: String,
+        table: TransactionTableInfo,
         attr: TransactionAttributes,
         persist: bool,
         max_partitions_amount: Option<usize>,
     },
 
     UpdateRow {
-        table_name: String,
+        table: TransactionTableInfo,
         attr: TransactionAttributes,
         partition_key: String,
         row: Arc<DbRow>,
     },
 
     UpdateRows {
-        table_name: String,
+        table: TransactionTableInfo,
         attr: TransactionAttributes,
         rows_by_partition: HashMap<String, Vec<Arc<DbRow>>>,
     },
 
     DeleteRows {
-        table_name: String,
+        table: TransactionTableInfo,
         attr: TransactionAttributes,
         rows: HashMap<String, Vec<String>>,
     },
@@ -56,13 +73,13 @@ pub enum TransactionEvent {
 
 impl TransactionEvent {
     pub fn init_table(
-        table_name: String,
+        table: &DbTable,
         attr: TransactionAttributes,
         partitions: HashMap<String, Vec<Arc<DbRow>>>,
     ) -> Self {
         Self::InitTable {
             attr,
-            table_name,
+            table: table.into(),
             partitions,
         }
     }
@@ -78,7 +95,7 @@ impl TransactionEvent {
         rows_by_partition.insert(partition_key.to_string(), vec![row]);
 
         Self::UpdateRows {
-            table_name: table.name.to_string(),
+            table: table.into(),
             attr: attr,
             rows_by_partition,
         }
@@ -90,7 +107,7 @@ impl TransactionEvent {
         rows_by_partition: HashMap<String, Vec<Arc<DbRow>>>,
     ) -> Self {
         Self::UpdateRows {
-            table_name: table.name.to_string(),
+            table: table.into(),
             attr: attr,
             rows_by_partition,
         }
@@ -99,43 +116,40 @@ impl TransactionEvent {
     pub fn get_table_name(&self) -> &str {
         match self {
             TransactionEvent::InitTable {
-                table_name,
+                table,
                 attr: _,
                 partitions: _,
-            } => table_name,
-            TransactionEvent::CleanTable {
-                table_name,
-                attr: _,
-            } => table_name,
+            } => table.name.as_str(),
+            TransactionEvent::CleanTable { table, attr: _ } => table.name.as_str(),
             TransactionEvent::UpdateTableAttributes {
-                table_name,
+                table,
                 attr: _,
                 persist: _,
                 max_partitions_amount: _,
-            } => table_name,
+            } => table.name.as_str(),
             TransactionEvent::UpdateRow {
-                table_name,
+                table,
                 attr: _,
                 partition_key: _,
                 row: _,
-            } => table_name,
+            } => table.name.as_str(),
             TransactionEvent::UpdateRows {
-                table_name,
+                table,
                 attr: _,
                 rows_by_partition: _,
-            } => table_name,
+            } => table.name.as_str(),
 
             TransactionEvent::DeletePartitions {
-                table_name,
+                table,
                 attr: _,
                 partitions: _,
-            } => &table_name,
+            } => table.name.as_str(),
             TransactionEvent::DeleteRows {
-                table_name,
+                table,
                 attr: _,
                 rows: _,
-            } => table_name,
-            TransactionEvent::DeleteTable { db_table, attr: _ } => db_table.name.as_str(),
+            } => table.name.as_str(),
+            TransactionEvent::DeleteTable { table, attr: _ } => table.name.as_str(),
         }
     }
 }

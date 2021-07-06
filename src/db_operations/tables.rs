@@ -53,7 +53,7 @@ pub async fn create_table(
     if let Some(attr) = attr {
         let table_read_access = db_table.data.read().await;
         app.dispatch_event(TransactionEvent::init_table(
-            table_name.to_string(),
+            db_table.as_ref(),
             attr,
             table_read_access.get_snapshot(),
         ))
@@ -89,7 +89,7 @@ async fn get_or_create_table(
     if let Some(attr) = attr {
         let table_read_access = db_table.data.read().await;
         app.dispatch_event(TransactionEvent::init_table(
-            table_name.to_string(),
+            db_table.as_ref(),
             attr.clone(),
             table_read_access.get_snapshot(),
         ))
@@ -135,7 +135,7 @@ pub async fn set_table_attrubutes(
     if result {
         if let Some(attr) = attr {
             app.dispatch_event(TransactionEvent::UpdateTableAttributes {
-                table_name: db_table.name.clone(),
+                table: db_table.into(),
                 attr,
                 persist,
                 max_partitions_amount,
@@ -153,8 +153,11 @@ pub async fn delete_table(
     let db_table = app.db.delete_table(table_name).await?;
 
     if let Some(attr) = attr {
-        app.dispatch_event(TransactionEvent::DeleteTable { db_table, attr })
-            .await;
+        app.dispatch_event(TransactionEvent::DeleteTable {
+            table: db_table.as_ref().into(),
+            attr,
+        })
+        .await;
     }
 
     Ok(())

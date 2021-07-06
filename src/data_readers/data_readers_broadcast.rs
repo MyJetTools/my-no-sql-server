@@ -62,66 +62,63 @@ async fn handle_transaction_event(
 ) -> Result<(), ItemsOrNone<LogItem>> {
     match event.as_ref() {
         TransactionEvent::InitTable {
-            table_name,
+            table,
             attr: _,
             partitions,
         } => {
             app.data_readers
                 .broadcast(DataReaderContract::InitTable {
-                    table_name: table_name.to_string(),
+                    table_name: table.name.to_string(),
                     data: hash_map_to_vec(partitions),
                 })
                 .await?;
         }
 
         TransactionEvent::UpdateRow {
-            table_name,
+            table,
             partition_key: _,
             attr: _,
             row,
         } => {
             app.data_readers
                 .broadcast(DataReaderContract::UpdateRows {
-                    table_name: table_name.to_string(),
+                    table_name: table.name.to_string(),
                     data: row.as_ref().as_json_array(),
                 })
                 .await?;
         }
 
         TransactionEvent::UpdateRows {
-            table_name,
+            table,
             rows_by_partition,
             attr: _,
         } => {
             app.data_readers
                 .broadcast(DataReaderContract::UpdateRows {
-                    table_name: table_name.to_string(),
+                    table_name: table.name.to_string(),
                     data: hash_map_to_vec(rows_by_partition),
                 })
                 .await?;
         }
 
-        TransactionEvent::CleanTable {
-            table_name,
-            attr: _,
-        } => {
+        TransactionEvent::CleanTable { table, attr: _ } => {
             app.data_readers
                 .broadcast(DataReaderContract::InitTable {
-                    table_name: table_name.to_string(),
+                    table_name: table.name.to_string(),
                     data: crate::json::consts::EMPTY_ARRAY.to_vec(),
                 })
                 .await?;
         }
 
         TransactionEvent::DeletePartitions {
-            table_name,
+            table,
             partitions,
             attr: _,
         } => {
             for partition_key in partitions {
                 app.data_readers
                     .broadcast(DataReaderContract::InitPartition {
-                        table_name: table_name.to_string(),
+                        table_name: table.name.to_string(),
                         partition_key: partition_key.to_string(),
                         data: crate::json::consts::EMPTY_ARRAY.to_vec(),
                     })
@@ -130,7 +127,7 @@ async fn handle_transaction_event(
         }
 
         TransactionEvent::DeleteRows {
-            table_name,
+            table,
             attr: _,
             rows,
         } => {
@@ -144,20 +141,20 @@ async fn handle_transaction_event(
 
             app.data_readers
                 .broadcast(DataReaderContract::DeleteRows {
-                    table_name: table_name.to_string(),
+                    table_name: table.name.to_string(),
                     rows: rows_to_delete,
                 })
                 .await?;
         }
         TransactionEvent::UpdateTableAttributes {
-            table_name: _,
+            table: _,
             attr: _,
             persist: _,
             max_partitions_amount: _,
         } => {}
-        TransactionEvent::DeleteTable { db_table, attr: _ } => {
+        TransactionEvent::DeleteTable { table, attr: _ } => {
             let contract = DataReaderContract::InitTable {
-                table_name: db_table.name.to_string(),
+                table_name: table.name.to_string(),
                 data: json::consts::EMPTY_ARRAY.to_vec(),
             };
             app.data_readers.broadcast(contract).await?;

@@ -21,16 +21,13 @@ impl BlobOperationsToBeMade {
         for event in transactions {
             match event.as_ref() {
                 TransactionEvent::InitTable {
-                    table_name: _,
+                    table: _,
                     attr: _,
                     partitions: _,
                 } => result.sync_table = true,
-                TransactionEvent::CleanTable {
-                    table_name: _,
-                    attr: _,
-                } => result.sync_table = true,
+                TransactionEvent::CleanTable { table: _, attr: _ } => result.sync_table = true,
                 TransactionEvent::DeletePartitions {
-                    table_name: _,
+                    table: _,
                     partitions,
                     attr: _,
                 } => {
@@ -43,7 +40,7 @@ impl BlobOperationsToBeMade {
                     }
                 }
                 TransactionEvent::UpdateTableAttributes {
-                    table_name: _,
+                    table: _,
                     attr: _,
                     persist: _,
                     max_partitions_amount: _,
@@ -51,7 +48,7 @@ impl BlobOperationsToBeMade {
                     result.sync_attributes = true;
                 }
                 TransactionEvent::UpdateRow {
-                    table_name: _,
+                    table: _,
                     attr: _,
                     partition_key,
                     row: _,
@@ -63,7 +60,7 @@ impl BlobOperationsToBeMade {
                     }
                 }
                 TransactionEvent::UpdateRows {
-                    table_name: _,
+                    table: _,
                     attr: _,
                     rows_by_partition,
                 } => {
@@ -76,7 +73,7 @@ impl BlobOperationsToBeMade {
                     }
                 }
                 TransactionEvent::DeleteRows {
-                    table_name: _,
+                    table: _,
                     attr: _,
                     rows,
                 } => {
@@ -88,10 +85,7 @@ impl BlobOperationsToBeMade {
                         }
                     }
                 }
-                TransactionEvent::DeleteTable {
-                    db_table: _,
-                    attr: _,
-                } => result.delete_table = true,
+                TransactionEvent::DeleteTable { table: _, attr: _ } => result.delete_table = true,
             }
         }
 

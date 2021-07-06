@@ -24,7 +24,7 @@ pub async fn keep_max_partitions_amount(
 
     if let Some(attr) = attr {
         app.dispatch_event(TransactionEvent::DeletePartitions {
-            table_name: db_table.name.to_string(),
+            table: db_table.into(),
             attr,
             partitions: gced_partitions_result,
         })
@@ -66,7 +66,7 @@ pub async fn clean_and_keep_max_records(
 
     if let Some(attr) = attr {
         app.dispatch_event(TransactionEvent::DeleteRows {
-            table_name: db_table.name.to_string(),
+            table: db_table.into(),
             attr,
             rows: sync,
         })

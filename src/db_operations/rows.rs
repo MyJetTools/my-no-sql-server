@@ -119,7 +119,7 @@ pub async fn replace(
 
     if let Some(attr) = attr {
         app.dispatch_event(TransactionEvent::UpdateRow {
-            table_name: db_table.name.clone(),
+            table: db_table.into(),
             attr,
             partition_key: entity.partition_key.to_string(),
             row: db_row,
@@ -142,7 +142,7 @@ pub async fn clean_table(
     if cleaned {
         if let Some(attr) = attr {
             app.dispatch_event(TransactionEvent::CleanTable {
-                table_name: db_table.name.clone(),
+                table: db_table.into(),
                 attr,
             })
             .await
@@ -181,7 +181,7 @@ pub async fn delete_rows(
             rows.insert(partition_key, removed_rows);
 
             app.dispatch_event(TransactionEvent::DeleteRows {
-                table_name: db_table.name.clone(),
+                table: db_table.into(),
                 rows,
                 attr,
             })
@@ -211,7 +211,7 @@ pub async fn delete_partitions(
     if removed_partitions.len() > 0 {
         if let Some(attr) = attr {
             app.dispatch_event(TransactionEvent::DeletePartitions {
-                table_name: db_table.name.clone(),
+                table: db_table.into(),
                 partitions: removed_partitions,
                 attr,
             })
@@ -289,7 +289,7 @@ pub async fn clean_table_and_bulk_insert(
     if write_access.clear() {
         if let Some(attr_ref) = &attr {
             let evnt = TransactionEvent::CleanTable {
-                table_name: db_table.name.to_string(),
+                table: db_table.into(),
                 attr: attr_ref.clone(),
             };
             app.dispatch_event(evnt).await;
@@ -340,7 +340,7 @@ pub async fn clean_partition_and_bulk_insert(
     if write_access.clear_partition(partition_key) {
         if let Some(attr_ref) = &attr {
             let evnt = TransactionEvent::CleanTable {
-                table_name: db_table.name.to_string(),
+                table: db_table.into(),
                 attr: attr_ref.clone(),
             };
             app.dispatch_event(evnt).await;
@@ -417,7 +417,7 @@ pub async fn bulk_delete(
 
     if let Some(attr) = attr {
         app.dispatch_event(TransactionEvent::DeleteRows {
-            table_name: db_table.name.to_string(),
+            table: db_table.into(),
             attr,
             rows: sync,
         })
