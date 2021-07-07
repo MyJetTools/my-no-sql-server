@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use crate::db::DbRow;
 
@@ -19,7 +19,7 @@ pub enum TransactionalOperationStep {
 
     UpdateRows {
         table_name: String,
-        rows_by_partition: HashMap<String, Vec<DbRow>>,
+        rows_by_partition: HashMap<String, Vec<Arc<DbRow>>>,
     },
 }
 

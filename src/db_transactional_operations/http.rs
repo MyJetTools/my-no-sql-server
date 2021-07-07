@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use crate::{
     app::AppServices,
@@ -239,7 +239,7 @@ impl InsertOrUpdateTransactionJsonModel {
 
         for entity in &self.entities {
             let db_entity = DbEntity::parse(entity)?;
-            let db_row = DbRow::form_db_entity(&db_entity);
+            let db_row = Arc::new(DbRow::form_db_entity(&db_entity));
 
             if !rows_by_partition.contains_key(db_entity.partition_key.as_str()) {
                 rows_by_partition.insert(db_entity.partition_key.to_string(), Vec::new());

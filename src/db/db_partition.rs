@@ -1,12 +1,14 @@
 use crate::date_time::{AtomicDateTime, MyDateTime};
 use crate::utils::SortedHashMap;
+use std::collections::btree_map::Values;
 use std::{collections::BTreeMap, sync::Arc};
 
 use super::DbRow;
 
 pub struct DbPartition {
-    pub rows: BTreeMap<String, Arc<DbRow>>,
+    rows: BTreeMap<String, Arc<DbRow>>,
     pub last_access: AtomicDateTime,
+    pub last_updated: AtomicDateTime,
 }
 
 impl DbPartition {
@@ -14,45 +16,69 @@ impl DbPartition {
         DbPartition {
             rows: BTreeMap::new(),
             last_access: AtomicDateTime::utc_now(),
+            last_updated: AtomicDateTime::utc_now(),
         }
+    }
+
+    pub fn get_all_rows(&self) -> Vec<Arc<DbRow>> {
+        let mut db_rows = Vec::new();
+
+        for db_row in self.rows.values() {
+            db_rows.push(db_row.clone());
+        }
+
+        db_rows
+    }
+
+    pub fn borrow_all_rows(&self) -> Values<String, Arc<DbRow>> {
+        let result = self.rows.values().into_iter();
+        result
+    }
+    pub fn get_row(&self, row_key: &str) -> Option<Arc<DbRow>> {
+        let result = self.rows.get(row_key)?;
+        return Some(result.clone());
+    }
+
+    pub fn rows_count(&self) -> usize {
+        return self.rows.len();
     }
 
     pub fn update_last_access(&self, now: MyDateTime) {
         self.last_access.update(now);
     }
 
-    /*
-       pub fn as_bytes(&self) -> Vec<u8> {
-           let mut json = Vec::new();
-
-           for db_row in self.rows.values() {
-               if json.len() == 0 {
-                   json.push(crate::json::consts::OPEN_ARRAY);
-               } else {
-                   json.push(crate::json::consts::COMMA);
-               }
-
-               json.extend(db_row.data.as_slice());
-           }
-
-           json.push(crate::json::consts::CLOSE_ARRAY);
-
-           return json;
-       }
-    */
-
-    pub fn insert(&mut self, db_row: Arc<DbRow>) -> bool {
+    pub fn insert(&mut self, db_row: Arc<DbRow>, now: MyDateTime) -> bool {
         if self.rows.contains_key(db_row.row_key.as_str()) {
             return false;
         }
 
         self.rows.insert(db_row.row_key.to_string(), db_row);
+        self.last_updated.update(now);
 
         return true;
     }
 
-    pub fn insert_or_replace(&mut self, db_row: Arc<DbRow>) {
+    pub fn bulk_insert_or_replace(&mut self, db_rows: &[Arc<DbRow>], now: MyDateTime) {
+        for db_row in db_rows {
+            self.rows.insert(db_row.row_key.to_string(), db_row.clone());
+        }
+
+        self.last_updated.update(now);
+    }
+
+    pub fn insert_or_replace(&mut self, db_row: Arc<DbRow>, now: MyDateTime) {
         self.rows.insert(db_row.row_key.to_string(), db_row);
+        self.last_updated.update(now);
+    }
+
+    pub fn remove(&mut self, row_key: &str, now: MyDateTime) -> Option<Arc<DbRow>> {
+        let result = self.rows.remove(row_key);
+
+        if result.is_some() {
+            self.last_updated.update(now);
+        }
+
+        return result;
     }
 
     pub fn get_rows_amount(&self) -> usize {

@@ -24,7 +24,7 @@ pub async fn insert(
 
     let db_row = Arc::new(DbRow::form_db_entity(&db_entity));
 
-    let inserted = db_partition.insert(db_row.clone());
+    let inserted = db_partition.insert(db_row.clone(), now);
 
     if inserted {
         if let Some(attr) = attr {
@@ -57,7 +57,7 @@ pub async fn insert_or_replace(
 
     let db_row = Arc::new(DbRow::form_db_entity(&db_entity));
 
-    db_partition.insert_or_replace(db_row.clone());
+    db_partition.insert_or_replace(db_row.clone(), now);
 
     if let Some(attr) = attr {
         app.dispatch_event(TransactionEvent::update_row(
@@ -115,7 +115,7 @@ pub async fn replace(
 
     let db_row = Arc::new(DbRow::form_db_entity(&entity));
 
-    db_partition.insert_or_replace(db_row.clone());
+    db_partition.insert_or_replace(db_row.clone(), now);
 
     if let Some(attr) = attr {
         app.dispatch_event(TransactionEvent::UpdateRow {
@@ -159,6 +159,8 @@ pub async fn delete_rows(
 ) {
     let mut table_write_access = db_table.data.write().await;
 
+    let now = MyDateTime::utc_now();
+
     let mut removed_rows = Vec::new();
 
     let db_partition = table_write_access.get_partition_mut(partition_key.as_str());
@@ -168,7 +170,7 @@ pub async fn delete_rows(
     }
 
     for row_key in &row_keys {
-        let delete_row_result = table_write_access.delete_row(partition_key.as_str(), row_key);
+        let delete_row_result = table_write_access.delete_row(partition_key.as_str(), row_key, now);
 
         if let Some(deleted_row) = delete_row_result {
             removed_rows.push(deleted_row.row_key.to_string());
@@ -237,7 +239,7 @@ pub async fn bulk_insert_or_update(
 pub async fn bulk_insert_or_update_execute(
     app: &AppServices,
     db_table: &DbTable,
-    mut rows_by_partition: HashMap<String, Vec<DbRow>>,
+    mut rows_by_partition: HashMap<String, Vec<Arc<DbRow>>>,
     attr: Option<TransactionAttributes>,
 ) {
     let now = MyDateTime::utc_now();
@@ -250,13 +252,9 @@ pub async fn bulk_insert_or_update_execute(
         let db_partition = table_write_access
             .get_or_create_partition_and_update_last_access(partition_key.as_str(), now);
 
+        db_partition.bulk_insert_or_replace(&db_rows, now);
+
         for db_row in db_rows.drain(..) {
-            let db_row = Arc::new(db_row);
-
-            db_partition
-                .rows
-                .insert(db_row.row_key.to_string(), db_row.clone());
-
             if attr.is_some() {
                 if !sync.contains_key(partition_key.as_str()) {
                     sync.insert(partition_key.to_string(), Vec::new());
@@ -300,17 +298,9 @@ pub async fn clean_table_and_bulk_insert(
         let db_partition = write_access
             .get_or_create_partition_and_update_last_access(partition_key.as_str(), now);
 
-        let mut rows_to_sync = Vec::new();
+        db_partition.bulk_insert_or_replace(&rows, now);
 
-        for db_entity in &rows {
-            let db_row = Arc::new(DbRow::form_db_entity(db_entity));
-            db_partition
-                .rows
-                .insert(db_row.row_key.to_string(), db_row.clone());
-            rows_to_sync.push(db_row);
-        }
-
-        sync.insert(partition_key.to_string(), rows_to_sync);
+        sync.insert(partition_key.to_string(), rows);
     }
 
     if let Some(attr) = attr {
@@ -347,21 +337,13 @@ pub async fn clean_partition_and_bulk_insert(
         }
     }
 
-    for (partition_key, rows) in entities {
+    for (partition_key, db_rows) in entities {
         let db_partition = write_access
             .get_or_create_partition_and_update_last_access(partition_key.as_str(), now);
 
-        let mut rows_to_sync = Vec::new();
+        db_partition.bulk_insert_or_replace(&db_rows, now);
 
-        for db_entity in &rows {
-            let db_row = Arc::new(DbRow::form_db_entity(db_entity));
-            db_partition
-                .rows
-                .insert(db_row.row_key.to_string(), db_row.clone());
-            rows_to_sync.push(db_row);
-        }
-
-        sync.insert(partition_key.to_string(), rows_to_sync);
+        sync.insert(partition_key.to_string(), db_rows);
     }
 
     if let Some(attr) = attr {
@@ -384,6 +366,8 @@ pub async fn bulk_delete(
 
     let mut sync = HashMap::new();
 
+    let now = MyDateTime::utc_now();
+
     for (partition_key, row_keys) in &rows_to_delete {
         let partition = write_access.get_partition_mut(partition_key);
 
@@ -396,7 +380,7 @@ pub async fn bulk_delete(
         let mut deleted_rows = Vec::new();
 
         for row_key in row_keys {
-            let removed = partition.rows.remove(row_key);
+            let removed = partition.remove(row_key, now);
 
             if removed.is_none() {
                 continue;
@@ -406,7 +390,7 @@ pub async fn bulk_delete(
             deleted_rows.push(removed.row_key.to_string());
         }
 
-        if partition.rows.len() == 0 {
+        if partition.rows_count() == 0 {
             write_access.remove_partition(partition_key);
         }
 

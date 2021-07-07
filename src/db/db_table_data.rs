@@ -50,20 +50,30 @@ impl DbTableData {
         self.partitions.remove(partition_key)
     }
 
-    fn remove_row(&mut self, partition_key: &str, row_key: &str) -> Option<Arc<DbRow>> {
+    fn remove_row(
+        &mut self,
+        partition_key: &str,
+        row_key: &str,
+        now: MyDateTime,
+    ) -> Option<Arc<DbRow>> {
         let db_partition = self.partitions.get_mut(partition_key)?;
 
-        return db_partition.rows.remove(row_key);
+        return db_partition.remove(row_key, now);
     }
 
     fn gc_partition_if_needed(&mut self, partition_key: &str) {
-        if self.partitions.get(partition_key).unwrap().rows.len() == 0 {
+        if self.partitions.get(partition_key).unwrap().rows_count() == 0 {
             self.remove_partition(partition_key);
         }
     }
 
-    pub fn delete_row(&mut self, partition_key: &str, row_key: &str) -> Option<Arc<DbRow>> {
-        let deleted_row = self.remove_row(partition_key, row_key);
+    pub fn delete_row(
+        &mut self,
+        partition_key: &str,
+        row_key: &str,
+        now: MyDateTime,
+    ) -> Option<Arc<DbRow>> {
+        let deleted_row = self.remove_row(partition_key, row_key, now);
 
         if deleted_row.is_some() {
             self.gc_partition_if_needed(partition_key);
@@ -96,13 +106,7 @@ impl DbTableData {
         let mut result = HashMap::new();
 
         for (partition_key, db_partition) in &self.partitions {
-            let mut db_rows = Vec::new();
-
-            for db_row in db_partition.rows.values() {
-                db_rows.push(db_row.clone());
-            }
-
-            result.insert(partition_key.to_string(), db_rows);
+            result.insert(partition_key.to_string(), db_partition.get_all_rows());
         }
 
         result
@@ -116,9 +120,7 @@ impl DbTableData {
         let mut rows = Vec::new();
 
         for db_partition in self.partitions.values() {
-            for db_row in db_partition.rows.values() {
-                rows.push(db_row.clone());
-            }
+            rows.extend(db_partition.get_all_rows());
         }
 
         if rows.len() == 0 {
@@ -136,9 +138,9 @@ impl DbTableData {
         let mut rows = Vec::new();
 
         for db_partition in self.partitions.values() {
-            let db_row = db_partition.rows.get(row_key);
+            let db_row = db_partition.get_row(row_key);
             if let Some(db_row) = db_row {
-                rows.push(db_row.clone());
+                rows.push(db_row);
             }
         }
 
@@ -162,7 +164,7 @@ impl DbTableData {
 
         let db_partition = db_partition.unwrap();
 
-        let db_row = db_partition.rows.get(row_key);
+        let db_row = db_partition.get_row(row_key);
 
         if db_row.is_none() {
             return Err(DbOperationFail::RecordNotFound);
@@ -170,9 +172,7 @@ impl DbTableData {
 
         let db_row = db_row.unwrap();
 
-        return Ok(DbOperationResult::Row {
-            row: db_row.clone(),
-        });
+        return Ok(DbOperationResult::Row { row: db_row });
     }
 
     pub fn clear(&mut self) -> bool {

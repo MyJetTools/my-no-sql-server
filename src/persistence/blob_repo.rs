@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::app::logs::SystemProcess;
 use crate::app::AppServices;
+use crate::date_time::MyDateTime;
 use crate::db::DbPartition;
 use crate::db::DbRow;
 use crate::db::{DbTableAttributes, DbTableData};
@@ -89,9 +90,7 @@ pub async fn load_table(
                 let db_entity = db_entity.unwrap();
 
                 let db_row = DbRow::form_db_entity(&db_entity);
-                db_partition
-                    .rows
-                    .insert(db_row.row_key.to_string(), Arc::new(db_row));
+                db_partition.insert(Arc::new(db_row), MyDateTime::utc_now());
             }
 
             db_table_data.init_partition(partition_key, db_partition);

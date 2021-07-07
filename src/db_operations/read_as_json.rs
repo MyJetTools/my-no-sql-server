@@ -14,7 +14,7 @@ impl DbEntityAsJsonArray for DbTableData {
         let mut json_array_builder = JsonArrayBuilder::new();
 
         for (_, db_partition) in &self.partitions {
-            for (_, db_row) in &db_partition.rows {
+            for db_row in db_partition.borrow_all_rows() {
                 json_array_builder.append_json_object(db_row.data.as_slice());
             }
         }
@@ -26,7 +26,7 @@ impl DbEntityAsJsonArray for DbTableData {
 impl DbEntityAsJsonArray for DbPartition {
     fn as_json_array(&self) -> Vec<u8> {
         let mut json_array_builder = JsonArrayBuilder::new();
-        for (_, db_rows) in &self.rows {
+        for db_rows in self.borrow_all_rows() {
             json_array_builder.append_json_object(db_rows.data.as_slice());
         }
 
