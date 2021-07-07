@@ -7,7 +7,7 @@ use crate::{app::AppServices, date_time::MyDateTime, db::DbTable, utils::StopWat
 pub async fn init_tables(app: &AppServices) {
     let connection = AzureConnection::from_conn_string(app.settings.persistence_dest.as_str());
 
-    let tables = super::blob_repo::get_tables(&connection).await.unwrap();
+    let tables = super::blob::repo::get_tables(&connection).await.unwrap();
 
     for table_name in &tables {
         app.logs
@@ -20,7 +20,7 @@ pub async fn init_tables(app: &AppServices) {
             .await;
         let mut sw = StopWatch::new();
         sw.start();
-        let table_data = super::blob_repo::load_table(app, &connection, table_name)
+        let table_data = super::blob::repo::load_table(app, &connection, table_name)
             .await
             .unwrap();
 

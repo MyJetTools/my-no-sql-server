@@ -15,7 +15,7 @@ pub async fn get_rows(ctx: HttpContext, app: &AppServices) -> Result<HttpOkResul
     let partition_key = query.get_query_optional_string_parameter(consts::PARAM_PARTITION_KEY);
     let row_key = query.get_query_optional_string_parameter(consts::PARAM_ROW_KEY);
 
-    let db_table = app.db.get_table(table_name).await?;
+    let db_table = app.get_table(table_name).await?;
 
     let result = db_table.get_rows(partition_key, row_key).await?;
 
@@ -30,11 +30,11 @@ pub async fn insert(ctx: HttpContext, app: &AppServices) -> Result<HttpOkResult,
 
     let body = ctx.get_body().await;
 
-    let db_table = app.db.get_table(table_name).await?;
+    let db_table = app.get_table(table_name).await?;
 
     let attr = http_helpers::create_transaction_attributes(app, sync_period);
 
-    rows::insert(app, db_table.as_ref(), &body, Some(attr)).await?;
+    rows::insert(app, db_table, &body, Some(attr)).await?;
 
     Ok(HttpOkResult::Ok)
 }
@@ -50,11 +50,11 @@ pub async fn insert_or_replace(
 
     let body = ctx.get_body().await;
 
-    let db_table = app.db.get_table(table_name).await?;
+    let db_table = app.get_table(table_name).await?;
 
     let attr = http_helpers::create_transaction_attributes(app, sync_period);
 
-    rows::insert_or_replace(app, db_table.as_ref(), &body, Some(attr)).await?;
+    rows::insert_or_replace(app, db_table, &body, Some(attr)).await?;
 
     Ok(HttpOkResult::Ok)
 }
@@ -67,10 +67,11 @@ pub async fn replace(ctx: HttpContext, app: &AppServices) -> Result<HttpOkResult
 
     let body = ctx.get_body().await;
 
-    let db_table = app.db.get_table(table_name).await?;
+    let db_table = app.get_table(table_name).await?;
+
     let attr = http_helpers::create_transaction_attributes(app, sync_period);
 
-    rows::replace(app, db_table.as_ref(), body.as_slice(), Some(attr)).await?;
+    rows::replace(app, db_table, body.as_slice(), Some(attr)).await?;
 
     Ok(HttpOkResult::Ok)
 }

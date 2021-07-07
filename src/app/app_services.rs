@@ -5,10 +5,10 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
     data_readers::{data_readers::DataReaders, data_readers_broadcast::DataReadersCommand},
-    db::DbInstance,
+    db::{DbInstance, DbOperationFail, DbTable},
     db_transactional_operations::ActiveTransactions,
     db_transactions::TransactionEvent,
-    persistence::QueueToPersist,
+    persistence::{blob_content_cache::BlobContentCache, QueueToPersist},
     settings_reader::SettingsModel,
 };
 
@@ -29,6 +29,8 @@ pub struct AppServices {
 
     pub active_transactions: ActiveTransactions,
     pub process_id: String,
+
+    pub blob_content_cache: BlobContentCache,
 }
 
 impl AppServices {
@@ -46,6 +48,7 @@ impl AppServices {
             metrics: PrometheusMetrics::new(),
             active_transactions: ActiveTransactions::new(),
             process_id: uuid::Uuid::new_v4().to_string(),
+            blob_content_cache: BlobContentCache::new(),
         }
     }
 
@@ -79,5 +82,16 @@ impl AppServices {
         }
         let result = AzureConnection::from_conn_string(self.settings.persistence_dest.as_str());
         return Some(Arc::new(result));
+    }
+
+    pub async fn get_table(&self, table_name: &str) -> Result<Arc<DbTable>, DbOperationFail> {
+        let get_table_result = self.db.get_table(table_name).await;
+
+        match get_table_result {
+            Some(db_table) => Ok(db_table),
+            None => Err(DbOperationFail::TableNotFound {
+                table_name: table_name.to_string(),
+            }),
+        }
     }
 }

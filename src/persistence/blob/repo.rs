@@ -100,21 +100,32 @@ pub async fn load_table(
     return Ok(db_table_data);
 }
 
-pub async fn clean_table(
+pub async fn delete_table(
     azure_connection: &AzureConnection,
     table_name: &str,
 ) -> Result<(), AzureStorageError> {
     let blobs = azure_connection.get_list_of_blobs(table_name).await?;
 
     for blob_name in blobs {
-        if blob_name != METADATA_BLOB_NAME {
-            azure_connection
-                .delete_blob(table_name, blob_name.as_str())
-                .await?;
-        }
+        azure_connection
+            .delete_blob_if_exists(table_name, blob_name.as_str())
+            .await?;
     }
 
+    azure_connection
+        .delete_container_if_exists(table_name)
+        .await?;
+
     Ok(())
+}
+
+pub async fn create_table_if_not_exists(
+    azure_connection: &AzureConnection,
+    table_name: &str,
+) -> Result<(), AzureStorageError> {
+    azure_connection
+        .create_container_if_not_exist(table_name)
+        .await
 }
 
 pub async fn delete_partition(
@@ -124,7 +135,7 @@ pub async fn delete_partition(
 ) -> Result<(), AzureStorageError> {
     let blob_name = get_blob_file_by_partition_name(partition_key);
     azure_connection
-        .delete_blob(table_name, blob_name.as_str())
+        .delete_blob_if_exists(table_name, blob_name.as_str())
         .await?;
 
     Ok(())
@@ -165,7 +176,6 @@ pub async fn save_table_attributes(
     azure_connection: &AzureConnection,
     table_name: &str,
     attributes: &DbTableAttributes,
-    app: &AppServices,
 ) -> Result<(), AzureStorageError> {
     let contract = TableMetadataFileContract {
         persist: attributes.persist,
@@ -187,14 +197,6 @@ pub async fn save_table_attributes(
                 "Could not serialize table attributes to save it to the table. {}",
                 err
             );
-            app.logs
-                .add_info(
-                    Some(table_name.to_string()),
-                    SystemProcess::BlobOperation,
-                    "save_table_attributes".to_string(),
-                    msg.to_string(),
-                )
-                .await;
 
             return Err(AzureStorageError::UnknownError { msg });
         }

@@ -28,7 +28,7 @@ pub async fn start(app: Arc<AppServices>) {
 
         let tables = app.db.get_tables().await;
 
-        for db_table in &tables {
+        for db_table in tables {
             let attr = db_table.get_attributes().await;
 
             if attr.max_partitions_amount.is_none() {
@@ -39,7 +39,7 @@ pub async fn start(app: Arc<AppServices>) {
 
             crate::db_operations::gc::keep_max_partitions_amount(
                 app.as_ref(),
-                db_table.as_ref(),
+                db_table,
                 max_partitions_amount,
                 Some(transaction_attr.clone()),
             )

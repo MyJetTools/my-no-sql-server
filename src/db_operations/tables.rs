@@ -53,7 +53,7 @@ pub async fn create_table(
     if let Some(attr) = attr {
         let table_read_access = db_table.data.read().await;
         app.dispatch_event(TransactionEvent::init_table(
-            db_table.as_ref(),
+            db_table.clone(),
             attr,
             table_read_access.get_snapshot(),
         ))
@@ -89,7 +89,7 @@ async fn get_or_create_table(
     if let Some(attr) = attr {
         let table_read_access = db_table.data.read().await;
         app.dispatch_event(TransactionEvent::init_table(
-            db_table.as_ref(),
+            db_table.clone(),
             attr.clone(),
             table_read_access.get_snapshot(),
         ))
@@ -111,7 +111,7 @@ pub async fn create_table_if_not_exist(
 
     set_table_attrubutes(
         app,
-        db_table.as_ref(),
+        db_table.clone(),
         true,
         persist_table,
         max_partitions_amount,
@@ -124,7 +124,7 @@ pub async fn create_table_if_not_exist(
 
 pub async fn set_table_attrubutes(
     app: &AppServices,
-    db_table: &DbTable,
+    db_table: Arc<DbTable>,
     table_is_just_created: bool,
     persist: bool,
     max_partitions_amount: Option<usize>,
@@ -137,7 +137,7 @@ pub async fn set_table_attrubutes(
     if result {
         if let Some(attr) = attr {
             app.dispatch_event(TransactionEvent::UpdateTableAttributes {
-                table: db_table.into(),
+                table: db_table.clone(),
                 attr,
                 table_is_just_created,
                 persist,
@@ -153,15 +153,20 @@ pub async fn delete_table(
     table_name: &str,
     attr: Option<TransactionAttributes>,
 ) -> Result<(), DbOperationFail> {
-    let db_table = app.db.delete_table(table_name).await?;
+    match app.db.delete_table(table_name).await {
+        Some(db_table) => {
+            if let Some(attr) = attr {
+                app.dispatch_event(TransactionEvent::DeleteTable {
+                    table: db_table.clone(),
+                    attr,
+                })
+                .await;
+            }
 
-    if let Some(attr) = attr {
-        app.dispatch_event(TransactionEvent::DeleteTable {
-            table: db_table.as_ref().into(),
-            attr,
-        })
-        .await;
+            Ok(())
+        }
+        None => Err(DbOperationFail::TableNotFound {
+            table_name: table_name.to_string(),
+        }),
     }
-
-    Ok(())
 }

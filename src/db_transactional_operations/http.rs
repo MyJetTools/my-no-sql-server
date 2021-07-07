@@ -43,7 +43,7 @@ pub async fn commit(
     let mut tables = HashMap::new();
 
     for table_name in transaction.operations.keys() {
-        let db_table = app.db.get_table(table_name).await?;
+        let db_table = app.get_table(table_name).await?;
         tables.insert(table_name.to_string(), db_table);
     }
 
@@ -54,7 +54,7 @@ pub async fn commit(
                     let db_table = tables.get(table_name.as_str()).unwrap();
                     crate::db_operations::rows::clean_table(
                         app,
-                        db_table.as_ref(),
+                        db_table.clone(),
                         Some(attr.clone()),
                     )
                     .await;
@@ -66,7 +66,7 @@ pub async fn commit(
                     let db_table = tables.get(table_name.as_str()).unwrap();
                     crate::db_operations::rows::delete_partitions(
                         app,
-                        db_table.as_ref(),
+                        db_table.clone(),
                         partition_keys,
                         Some(attr.clone()),
                     )
@@ -80,7 +80,7 @@ pub async fn commit(
                     let db_table = tables.get(table_name.as_str()).unwrap();
                     crate::db_operations::rows::delete_rows(
                         app,
-                        db_table.as_ref(),
+                        db_table.clone(),
                         partition_key,
                         row_keys,
                         Some(attr.clone()),
@@ -95,7 +95,7 @@ pub async fn commit(
 
                     crate::db_operations::rows::bulk_insert_or_update_execute(
                         app,
-                        db_table,
+                        db_table.clone(),
                         rows_by_partition,
                         Some(attr.clone()),
                     )

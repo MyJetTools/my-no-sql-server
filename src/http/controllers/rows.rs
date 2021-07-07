@@ -16,7 +16,7 @@ pub async fn get_single_partition_multiple_rows(
 
     let body = ctx.get_body().await;
 
-    let db_table = app.db.get_table(table_name).await?;
+    let db_table = app.get_table(table_name).await?;
 
     let row_keys = serde_json::from_slice(body.as_slice()).unwrap();
 
@@ -39,7 +39,7 @@ pub async fn get_highest_row_and_below(
 
     let max_amount = query.get_query_required_parameter("maxAmount")?;
 
-    let db_table = app.db.get_table(table_name).await?;
+    let db_table = app.get_table(table_name).await?;
 
     let result = db_table
         .get_highest_row_and_below(partition_key, row_key.to_string(), max_amount)

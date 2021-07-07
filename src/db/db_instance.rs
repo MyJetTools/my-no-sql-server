@@ -1,6 +1,6 @@
 use tokio::sync::RwLock;
 
-use super::{DbOperationFail, DbTable};
+use super::DbTable;
 use std::{collections::HashMap, sync::Arc};
 pub struct DbInstance {
     pub tables: RwLock<HashMap<String, Arc<DbTable>>>,
@@ -34,28 +34,15 @@ impl DbInstance {
             .collect();
     }
 
-    pub async fn get_table(&self, table_name: &str) -> Result<Arc<DbTable>, DbOperationFail> {
+    pub async fn get_table(&self, table_name: &str) -> Option<Arc<DbTable>> {
         let read_access = self.tables.read().await;
 
-        let result = read_access.get(table_name);
-
-        return match result {
-            Some(table) => Ok(table.clone()),
-            None => Err(DbOperationFail::TableNotFound {
-                table_name: table_name.to_string(),
-            }),
-        };
+        let result = read_access.get(table_name)?;
+        return Some(result.clone());
     }
 
-    pub async fn delete_table(&self, table_name: &str) -> Result<Arc<DbTable>, DbOperationFail> {
+    pub async fn delete_table(&self, table_name: &str) -> Option<Arc<DbTable>> {
         let mut write_access = self.tables.write().await;
-        let result = write_access.remove(table_name);
-
-        return match result {
-            Some(table) => Ok(table),
-            None => Err(DbOperationFail::TableNotFound {
-                table_name: table_name.to_string(),
-            }),
-        };
+        return write_access.remove(table_name);
     }
 }

@@ -27,7 +27,7 @@ async fn main() {
     let app = AppServices::new(settings, data_readers_sender);
     let app = Arc::new(app);
 
-    persistence::tables_initializer::init_tables(app.as_ref()).await;
+    persistence::data_initializer::init_tables(app.as_ref()).await;
 
     let mut background_tasks = Vec::new();
 
@@ -41,7 +41,7 @@ async fn main() {
     let connection = app.get_azure_connection();
 
     if let Some(azure_connection) = connection {
-        let handler = tokio::task::spawn(crate::timers::blob_operations::blob_persistence::start(
+        let handler = tokio::task::spawn(crate::timers::blob_persistence::start(
             app.clone(),
             azure_connection.clone(),
         ));

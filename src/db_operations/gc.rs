@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use crate::{
     app::AppServices,
@@ -8,7 +8,7 @@ use crate::{
 
 pub async fn keep_max_partitions_amount(
     app: &AppServices,
-    db_table: &DbTable,
+    db_table: Arc<DbTable>,
     max_partitions_amount: usize,
     attr: Option<TransactionAttributes>,
 ) {
@@ -24,7 +24,7 @@ pub async fn keep_max_partitions_amount(
 
     if let Some(attr) = attr {
         app.dispatch_event(TransactionEvent::DeletePartitions {
-            table: db_table.into(),
+            table: db_table.clone(),
             attr,
             partitions: gced_partitions_result,
         })
@@ -34,7 +34,7 @@ pub async fn keep_max_partitions_amount(
 
 pub async fn clean_and_keep_max_records(
     app: &AppServices,
-    db_table: &DbTable,
+    db_table: Arc<DbTable>,
     partition_key: &str,
     max_rows_amount: usize,
     attr: Option<TransactionAttributes>,
@@ -66,7 +66,7 @@ pub async fn clean_and_keep_max_records(
 
     if let Some(attr) = attr {
         app.dispatch_event(TransactionEvent::DeleteRows {
-            table: db_table.into(),
+            table: db_table.clone(),
             attr,
             rows: sync,
         })

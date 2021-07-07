@@ -11,7 +11,7 @@ use crate::{
 
 pub async fn insert(
     app: &AppServices,
-    db_table: &DbTable,
+    db_table: Arc<DbTable>,
     payload: &[u8],
     attr: Option<TransactionAttributes>,
 ) -> Result<(), DbOperationFail> {
@@ -29,7 +29,7 @@ pub async fn insert(
     if inserted {
         if let Some(attr) = attr {
             app.dispatch_event(TransactionEvent::update_row(
-                db_table,
+                db_table.clone(),
                 attr,
                 db_entity.partition_key.as_str(),
                 db_row,
@@ -43,7 +43,7 @@ pub async fn insert(
 
 pub async fn insert_or_replace(
     app: &AppServices,
-    db_table: &DbTable,
+    db_table: Arc<DbTable>,
     payload: &[u8],
     attr: Option<TransactionAttributes>,
 ) -> Result<(), DbOperationFail> {
@@ -61,7 +61,7 @@ pub async fn insert_or_replace(
 
     if let Some(attr) = attr {
         app.dispatch_event(TransactionEvent::update_row(
-            db_table,
+            db_table.clone(),
             attr,
             db_entity.partition_key.as_str(),
             db_row.clone(),
@@ -74,7 +74,7 @@ pub async fn insert_or_replace(
 
 pub async fn replace(
     app: &AppServices,
-    db_table: &DbTable,
+    db_table: Arc<DbTable>,
     payload: &[u8],
     attr: Option<TransactionAttributes>,
 ) -> Result<(), DbOperationFail> {
@@ -119,7 +119,7 @@ pub async fn replace(
 
     if let Some(attr) = attr {
         app.dispatch_event(TransactionEvent::UpdateRow {
-            table: db_table.into(),
+            table: db_table.clone(),
             attr,
             partition_key: entity.partition_key.to_string(),
             row: db_row,
@@ -132,7 +132,7 @@ pub async fn replace(
 
 pub async fn clean_table(
     app: &AppServices,
-    db_table: &DbTable,
+    db_table: Arc<DbTable>,
     attr: Option<TransactionAttributes>,
 ) {
     let mut table_write_access = db_table.data.write().await;
@@ -142,7 +142,7 @@ pub async fn clean_table(
     if cleaned {
         if let Some(attr) = attr {
             app.dispatch_event(TransactionEvent::CleanTable {
-                table: db_table.into(),
+                table: db_table.clone(),
                 attr,
             })
             .await
@@ -152,7 +152,7 @@ pub async fn clean_table(
 
 pub async fn delete_rows(
     app: &AppServices,
-    db_table: &DbTable,
+    db_table: Arc<DbTable>,
     partition_key: String,
     row_keys: Vec<String>,
     attr: Option<TransactionAttributes>,
@@ -183,7 +183,7 @@ pub async fn delete_rows(
             rows.insert(partition_key, removed_rows);
 
             app.dispatch_event(TransactionEvent::DeleteRows {
-                table: db_table.into(),
+                table: db_table.clone(),
                 rows,
                 attr,
             })
@@ -194,7 +194,7 @@ pub async fn delete_rows(
 
 pub async fn delete_partitions(
     app: &AppServices,
-    db_table: &DbTable,
+    db_table: Arc<DbTable>,
     partition_keys: Vec<String>,
     attr: Option<TransactionAttributes>,
 ) {
@@ -213,7 +213,7 @@ pub async fn delete_partitions(
     if removed_partitions.len() > 0 {
         if let Some(attr) = attr {
             app.dispatch_event(TransactionEvent::DeletePartitions {
-                table: db_table.into(),
+                table: db_table.clone(),
                 partitions: removed_partitions,
                 attr,
             })
@@ -224,7 +224,7 @@ pub async fn delete_partitions(
 
 pub async fn bulk_insert_or_update(
     app: &AppServices,
-    db_table: &DbTable,
+    db_table: Arc<DbTable>,
     payload: &[u8],
     attr: Option<TransactionAttributes>,
 ) -> Result<(), DbOperationFail> {
@@ -238,7 +238,7 @@ pub async fn bulk_insert_or_update(
 
 pub async fn bulk_insert_or_update_execute(
     app: &AppServices,
-    db_table: &DbTable,
+    db_table: Arc<DbTable>,
     mut rows_by_partition: HashMap<String, Vec<Arc<DbRow>>>,
     attr: Option<TransactionAttributes>,
 ) {
@@ -265,14 +265,14 @@ pub async fn bulk_insert_or_update_execute(
     }
 
     if let Some(attr) = attr {
-        app.dispatch_event(TransactionEvent::update_rows(db_table, attr, sync))
+        app.dispatch_event(TransactionEvent::update_rows(db_table.clone(), attr, sync))
             .await
     }
 }
 
 pub async fn clean_table_and_bulk_insert(
     app: &AppServices,
-    db_table: &DbTable,
+    db_table: Arc<DbTable>,
     payload: &[u8],
     attr: Option<TransactionAttributes>,
 ) -> Result<(), DbOperationFail> {
@@ -287,7 +287,7 @@ pub async fn clean_table_and_bulk_insert(
     if write_access.clear() {
         if let Some(attr_ref) = &attr {
             let evnt = TransactionEvent::CleanTable {
-                table: db_table.into(),
+                table: db_table.clone(),
                 attr: attr_ref.clone(),
             };
             app.dispatch_event(evnt).await;
@@ -304,7 +304,7 @@ pub async fn clean_table_and_bulk_insert(
     }
 
     if let Some(attr) = attr {
-        app.dispatch_event(TransactionEvent::update_rows(db_table, attr, sync))
+        app.dispatch_event(TransactionEvent::update_rows(db_table.clone(), attr, sync))
             .await;
     }
 
@@ -313,7 +313,7 @@ pub async fn clean_table_and_bulk_insert(
 
 pub async fn clean_partition_and_bulk_insert(
     app: &AppServices,
-    db_table: &DbTable,
+    db_table: Arc<DbTable>,
     partition_key: &str,
     payload: &[u8],
     attr: Option<TransactionAttributes>,
@@ -330,7 +330,7 @@ pub async fn clean_partition_and_bulk_insert(
     if write_access.clear_partition(partition_key) {
         if let Some(attr_ref) = &attr {
             let evnt = TransactionEvent::CleanTable {
-                table: db_table.into(),
+                table: db_table.clone(),
                 attr: attr_ref.clone(),
             };
             app.dispatch_event(evnt).await;
@@ -347,7 +347,7 @@ pub async fn clean_partition_and_bulk_insert(
     }
 
     if let Some(attr) = attr {
-        app.dispatch_event(TransactionEvent::update_rows(db_table, attr, sync))
+        app.dispatch_event(TransactionEvent::update_rows(db_table.clone(), attr, sync))
             .await;
     }
 
@@ -356,7 +356,7 @@ pub async fn clean_partition_and_bulk_insert(
 
 pub async fn bulk_delete(
     app: &AppServices,
-    db_table: &DbTable,
+    db_table: Arc<DbTable>,
     payload: &[u8],
     attr: Option<TransactionAttributes>,
 ) {
@@ -401,7 +401,7 @@ pub async fn bulk_delete(
 
     if let Some(attr) = attr {
         app.dispatch_event(TransactionEvent::DeleteRows {
-            table: db_table.into(),
+            table: db_table.clone(),
             attr,
             rows: sync,
         })
