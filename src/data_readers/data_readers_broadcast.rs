@@ -149,6 +149,7 @@ async fn handle_transaction_event(
         TransactionEvent::UpdateTableAttributes {
             table: _,
             attr: _,
+            table_is_just_created: _,
             persist: _,
             max_partitions_amount: _,
         } => {}

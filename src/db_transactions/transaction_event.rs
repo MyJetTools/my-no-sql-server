@@ -22,6 +22,13 @@ impl From<&DbTable> for TransactionTableInfo {
 }
 
 pub enum TransactionEvent {
+    UpdateTableAttributes {
+        table: TransactionTableInfo,
+        attr: TransactionAttributes,
+        table_is_just_created: bool,
+        persist: bool,
+        max_partitions_amount: Option<usize>,
+    },
     InitTable {
         table: TransactionTableInfo,
         attr: TransactionAttributes,
@@ -42,13 +49,6 @@ pub enum TransactionEvent {
         table: TransactionTableInfo,
         partitions: Vec<String>,
         attr: TransactionAttributes,
-    },
-
-    UpdateTableAttributes {
-        table: TransactionTableInfo,
-        attr: TransactionAttributes,
-        persist: bool,
-        max_partitions_amount: Option<usize>,
     },
 
     UpdateRow {
@@ -124,6 +124,7 @@ impl TransactionEvent {
             TransactionEvent::UpdateTableAttributes {
                 table,
                 attr: _,
+                table_is_just_created: _,
                 persist: _,
                 max_partitions_amount: _,
             } => table.name.as_str(),

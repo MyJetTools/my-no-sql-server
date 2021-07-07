@@ -127,6 +127,7 @@ pub async fn update_persist(
     tables::set_table_attrubutes(
         app,
         db_table.as_ref(),
+        false,
         persist,
         max_partitions_amount,
         Some(attr),
