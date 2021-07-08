@@ -25,6 +25,7 @@ pub async fn update_table(app: &AppServices, table_name: &str, azure_connection:
                     azure_connection,
                     partitions_in_blob.unwrap(),
                 )
+                .await;
             }
         }
         None => {
@@ -37,13 +38,63 @@ pub async fn update_table(app: &AppServices, table_name: &str, azure_connection:
     }
 }
 
-fn sync_partitions_difference(
+async fn sync_partitions_difference(
     app: &AppServices,
     db_table: &DbTable,
     azure_connection: &AzureConnection,
-    partitions_in_blob: HashMap<String, i64>,
+    mut partitions_in_blob: HashMap<String, i64>,
 ) {
-    todo!("Implement")
+    let partitions_in_db = db_table.get_partitions_update_time().await;
+
+    for (partition_key, last_update_in_db) in &partitions_in_db {
+        let last_update_in_blob = partitions_in_blob.get(partition_key);
+
+        match last_update_in_blob {
+            Some(last_update_in_blob) => {
+                // If we have it in Db and in Blob - but it has different update Time = we sync it
+                if *last_update_in_blob != *last_update_in_db {
+                    let partition_snapshot = db_table.get_partition_snapshot(partition_key).await;
+
+                    sync_partition_to_blob(
+                        app,
+                        azure_connection,
+                        db_table.name.as_str(),
+                        partition_key,
+                        partition_snapshot,
+                    )
+                    .await
+                }
+            }
+            None => {
+                // If we do not have record in Blob - but have it in Db - we upload it
+                let partition_snapshot = db_table.get_partition_snapshot(partition_key).await;
+
+                if let Some(partition_snapshot) = partition_snapshot {
+                    sync_partition_to_blob(
+                        app,
+                        azure_connection,
+                        db_table.name.as_str(),
+                        partition_key,
+                        Some(partition_snapshot),
+                    )
+                    .await
+                }
+            }
+        }
+        partitions_in_blob.remove(partition_key);
+    }
+
+    for (partition_key, _) in &partitions_in_blob {
+        //We have it in blob - but do not have it in DB. Remove it...
+        sync_partition_to_blob(
+            app,
+            azure_connection,
+            db_table.name.as_str(),
+            partition_key,
+            None,
+        )
+        .await;
+    }
 }
 
 pub async fn update_partitions(

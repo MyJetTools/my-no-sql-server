@@ -49,6 +49,17 @@ impl DbTable {
         return Some(partition.last_updated.get());
     }
 
+    pub async fn get_partitions_update_time(&self) -> HashMap<String, i64> {
+        let read_access = self.data.read().await;
+        let mut result = HashMap::new();
+
+        for (partition_key, db_partition) in &read_access.partitions {
+            result.insert(partition_key.to_string(), db_partition.last_updated.get());
+        }
+
+        return result;
+    }
+
     pub async fn get_snapshot(&self) -> DbTableSnapshot {
         let read_access = self.data.read().await;
 
