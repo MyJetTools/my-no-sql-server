@@ -1,15 +1,16 @@
 use std::sync::Arc;
 
+use rust_extensions::{StopWatch, StringBuilder};
+
 use crate::{
     app::{
         logs::{LogItem, SystemProcess},
-        AppServices,
+        AppContext,
     },
     http::{http_fail::HttpFailResult, http_ok::HttpOkResult},
-    utils::{StopWatch, StringBuilder},
 };
 
-pub async fn get(app: &AppServices) -> Result<HttpOkResult, HttpFailResult> {
+pub async fn get(app: &AppContext) -> Result<HttpOkResult, HttpFailResult> {
     let mut sw = StopWatch::new();
     sw.start();
     let logs = app.logs.get().await;
@@ -17,7 +18,7 @@ pub async fn get(app: &AppServices) -> Result<HttpOkResult, HttpFailResult> {
     return compile_result("logs", logs, sw);
 }
 
-pub async fn get_by_table(app: &AppServices, path: &str) -> Result<HttpOkResult, HttpFailResult> {
+pub async fn get_by_table(app: &AppContext, path: &str) -> Result<HttpOkResult, HttpFailResult> {
     let table_name = get_table_name(&path);
 
     if table_name.is_none() {
@@ -49,7 +50,7 @@ pub async fn get_by_table(app: &AppServices, path: &str) -> Result<HttpOkResult,
     }
 }
 
-pub async fn get_by_process(app: &AppServices, path: &str) -> Result<HttpOkResult, HttpFailResult> {
+pub async fn get_by_process(app: &AppContext, path: &str) -> Result<HttpOkResult, HttpFailResult> {
     let process_name = get_process_name(&path);
 
     if process_name.is_none() {
@@ -149,7 +150,7 @@ fn compile_result(
         let line = format!(
             "<b style='background:{color}; color:white;'>{level:?}:</b> {dt}</br>",
             color = get_log_level_color(&log_item.as_ref()),
-            dt = log_item.date.to_iso_string(),
+            dt = log_item.date.to_rfc3339(),
             level = log_item.level
         );
         sb.append_line(&line);
@@ -196,11 +197,12 @@ fn compile_result(
 fn get_log_level_color(item: &LogItem) -> &str {
     match &item.level {
         crate::app::logs::LogLevel::Info => "green",
-        crate::app::logs::LogLevel::Error => "red",
+        crate::app::logs::LogLevel::Error => "orange",
+        crate::app::logs::LogLevel::FatalError => "red",
     }
 }
 
-async fn render_select_table(app: &AppServices) -> Result<HttpOkResult, HttpFailResult> {
+async fn render_select_table(app: &AppContext) -> Result<HttpOkResult, HttpFailResult> {
     let mut sb = StringBuilder::new();
 
     sb.append_line("<h1>Please, select table to show logs</h1>");

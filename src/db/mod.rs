@@ -1,20 +1,18 @@
-pub use db_instance::DbInstance;
-pub use db_operation_fail::DbOperationFail;
+pub use db_instance::{CreateTableResult, DbInstance};
 pub use db_operation_result::DbOperationResult;
-pub use db_partition::DbPartition;
-pub use db_partition_snapshot::DbPartitionSnapshot;
+
+pub use db_table::{DbTable, DbTableAttributes, DbTableData, DbTableSnapshot};
+
+pub use db_partition::{DbPartition, DbPartitionSnapshot};
+
 pub use db_row::DbRow;
-pub use db_table::DbTable;
-pub use db_table_data::DbTableAttributes;
-pub use db_table_data::DbTableData;
-pub use db_table_snapshot::DbTableSnapshot;
 
 mod db_instance;
-mod db_operation_fail;
 mod db_operation_result;
 mod db_partition;
-mod db_partition_snapshot;
+
 mod db_row;
 mod db_table;
-mod db_table_data;
-mod db_table_snapshot;
+mod error;
+
+pub mod read_as_json;

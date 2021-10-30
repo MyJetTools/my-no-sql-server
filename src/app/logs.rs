@@ -1,8 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
+use rust_extensions::date_time::DateTimeAsMicroseconds;
 use tokio::sync::RwLock;
-
-use crate::{date_time::MyDateTime, utils::ItemsOrNone};
 
 #[derive(Debug, Clone, Copy)]
 pub enum SystemProcess {
@@ -59,10 +58,11 @@ impl SystemProcess {
 pub enum LogLevel {
     Info,
     Error,
+    FatalError,
 }
 #[derive(Debug, Clone)]
 pub struct LogItem {
-    pub date: MyDateTime,
+    pub date: DateTimeAsMicroseconds,
 
     pub table: Option<String>,
 
@@ -129,7 +129,7 @@ impl Logs {
         message: String,
     ) {
         let item = LogItem {
-            date: MyDateTime::utc_now(),
+            date: DateTimeAsMicroseconds::now(),
             level: LogLevel::Info,
             table,
             process_name,
@@ -149,7 +149,7 @@ impl Logs {
         err_ctx: Option<String>,
     ) {
         let item = LogItem {
-            date: MyDateTime::utc_now(),
+            date: DateTimeAsMicroseconds::now(),
             level: LogLevel::Error,
             table,
             process_name,
@@ -158,32 +158,46 @@ impl Logs {
             err_ctx,
         };
 
+        self.print_to_console(&item);
+
         self.add(item).await;
     }
 
-    pub async fn handle_result(&self, log_item: Result<(), LogItem>) {
-        if let Err(log_item) = log_item {
-            self.add(log_item).await;
-        }
+    pub async fn add_fatal_error(
+        &self,
+        process: SystemProcess,
+        process_name: String,
+        message: String,
+    ) {
+        let item = LogItem {
+            date: DateTimeAsMicroseconds::now(),
+            level: LogLevel::FatalError,
+            table: None,
+            process_name,
+            process,
+            message: message,
+            err_ctx: None,
+        };
+
+        self.print_to_console(&item);
+
+        self.add(item).await;
     }
 
-    pub async fn handle_aggregated_result(&self, items: Result<(), ItemsOrNone<LogItem>>) {
-        if items.is_ok() {
-            return;
+    fn print_to_console(&self, item: &LogItem) {
+        println!(
+            "{} {:?} {:?} -----------",
+            item.date.to_rfc3339(),
+            item.level,
+            item.process
+        );
+        if let Some(table) = &item.table {
+            println!("Table: {}", table);
         }
-
-        let items = items.err().unwrap();
-
-        let items = items.consume();
-
-        if items.is_none() {
-            return;
-        }
-
-        let mut items = items.unwrap();
-
-        for item in items.drain(..) {
-            self.add(item).await;
+        println!("Process: {}", item.process_name);
+        println!("Message: {}", item.message);
+        if let Some(err_ctx) = &item.err_ctx {
+            println!("Err_ctx: {}", err_ctx);
         }
     }
 

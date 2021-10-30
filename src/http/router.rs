@@ -1,6 +1,6 @@
 use hyper::{Body, Method, Request};
 
-use crate::app::AppServices;
+use crate::app::AppContext;
 use crate::http::http_ctx::HttpContext;
 use std::sync::Arc;
 
@@ -13,7 +13,7 @@ use super::{
 
 pub async fn route_requests(
     req: Request<Body>,
-    app: Arc<AppServices>,
+    app: Arc<AppContext>,
 ) -> Result<HttpOkResult, HttpFailResult> {
     let path = req.uri().path().to_lowercase();
 
@@ -102,7 +102,8 @@ pub async fn route_requests(
         }
 
         (&Method::POST, "/garbagecollector/gc") => {
-            return gc::execute(HttpContext::new(req), app.as_ref()).await;
+            return gc::clean_and_keep_max_partitions_amount(HttpContext::new(req), app.as_ref())
+                .await;
         }
 
         (&Method::POST, "/transaction/start") => {
@@ -151,7 +152,7 @@ pub async fn route_requests(
     return Err(HttpFailResult::as_not_found("Not Found".to_string()));
 }
 
-fn get_index_page_content(app: &AppServices) -> HttpOkResult {
+fn get_index_page_content(app: &AppContext) -> HttpOkResult {
     let content = format!(
         r###"<html><head><title>{} MyNoSQLServer</title>
         <link href="/css/bootstrap.css" rel="stylesheet" type="text/css" />

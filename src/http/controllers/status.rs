@@ -1,8 +1,8 @@
 use crate::{
-    app::AppServices,
-    date_time::MyDateTime,
+    app::AppContext,
     http::{http_fail::HttpFailResult, http_ok::HttpOkResult},
 };
+use rust_extensions::date_time::DateTimeAsMicroseconds;
 use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Debug)]
 struct NodeModel {}
@@ -39,35 +39,35 @@ struct StatusModel {
     pub readers: Vec<ReaderModel>,
 }
 
-async fn get_readers(app: &AppServices) -> Vec<ReaderModel> {
+async fn get_readers(app: &AppContext) -> Vec<ReaderModel> {
     let mut result = Vec::new();
-    let now = MyDateTime::utc_now();
+    let now = DateTimeAsMicroseconds::now();
 
-    for data_reader in app.data_readers.get_all().await {
-        let read_data = data_reader.data.read().await;
+    for session in app.data_readers.get_all().await {
+        let metrics = session.metrics.get_metrics().await;
+
         result.push(ReaderModel {
-            connected_time: data_reader.connected.to_iso_string(),
-            last_incoming_time: format!("{:?}", data_reader.last_incoming_package.duration_to(now)),
-            id: data_reader.id,
-            ip: read_data.ip.clone(),
-            name: read_data.to_string(),
-            tables: read_data
-                .tables
-                .keys()
-                .into_iter()
-                .map(|name| name.to_string())
-                .collect(),
+            connected_time: metrics.connected.to_rfc3339(),
+            last_incoming_time: format!("{:?}", now.duration_since(metrics.last_incoming_moment)),
+            id: metrics.session_id,
+            ip: metrics.ip.clone(),
+            name: if let Some(name) = metrics.name {
+                name
+            } else {
+                "???".to_string()
+            },
+            tables: session.get_tables().await,
         });
     }
 
     result
 }
 
-pub async fn get(app: &AppServices) -> Result<HttpOkResult, HttpFailResult> {
+pub async fn get(app: &AppContext) -> Result<HttpOkResult, HttpFailResult> {
     let model = StatusModel {
         location: LocationModel {
-            id: app.settings.location.to_string(),
-            compress: app.settings.compress_data,
+            id: app.location.to_string(),
+            compress: app.compress_data,
         },
         master_node: None,
         nodes: vec![],

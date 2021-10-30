@@ -1,3 +1,4 @@
+use my_azure_storage_sdk::AzureConnection;
 use serde::{Deserialize, Serialize};
 use std::env;
 use tokio::{fs::File, io::AsyncReadExt};
@@ -19,6 +20,14 @@ pub struct SettingsModel {
 impl SettingsModel {
     pub fn persist_to_blob(&self) -> bool {
         return !self.persistence_dest.starts_with("http");
+    }
+
+    pub fn get_azure_connection(&self) -> Option<AzureConnection> {
+        if !self.persist_to_blob() {
+            return None;
+        }
+        let result = AzureConnection::from_conn_string(self.persistence_dest.as_str());
+        return Some(result);
     }
 }
 

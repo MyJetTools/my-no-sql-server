@@ -5,16 +5,16 @@ use hyper::{
 
 use std::net::SocketAddr;
 
-use crate::app::AppServices;
+use crate::app::AppContext;
 use std::sync::Arc;
 
-pub async fn start(app: Arc<AppServices>) {
+pub async fn start(app: Arc<AppContext>, addr: SocketAddr) {
     app.logs
         .add_info(
             None,
             crate::app::logs::SystemProcess::System,
-            "Starting http server".to_string(),
-            "*.5123".to_string(),
+            format!("Starting http server {}", addr),
+            format!("Starting http server {}", addr),
         )
         .await;
 
@@ -24,14 +24,12 @@ pub async fn start(app: Arc<AppServices>) {
         async move { Ok::<_, hyper::Error>(service_fn(move |_req| handle_requests(_req, app.clone()))) }
     });
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 5123));
-
     Server::bind(&addr).serve(make_service).await.unwrap();
 }
 
 pub async fn handle_requests(
     req: Request<Body>,
-    app: Arc<AppServices>,
+    app: Arc<AppContext>,
 ) -> hyper::Result<Response<Body>> {
     let response = super::router::route_requests(req, app).await;
 

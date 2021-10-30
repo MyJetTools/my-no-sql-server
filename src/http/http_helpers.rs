@@ -1,16 +1,16 @@
 use crate::{
-    app::AppServices,
-    db_transactions::{DataSynchronizationPeriod, TransactionAttributes},
+    app::AppContext,
+    db_sync::{DataSynchronizationPeriod, SyncAttributes},
 };
 
 pub fn create_transaction_attributes(
-    app: &AppServices,
+    app: &AppContext,
     sync_period: DataSynchronizationPeriod,
-) -> TransactionAttributes {
-    let locations = vec![app.settings.location.to_string()];
-    TransactionAttributes {
+) -> SyncAttributes {
+    let locations = vec![app.location.to_string()];
+    SyncAttributes {
         locations,
-        event_source: crate::db_transactions::EventSource::ClientRequest,
+        event_source: crate::db_sync::EventSource::ClientRequest,
         headers: None, //TODO - Enable Headers,
         sync_period,
     }

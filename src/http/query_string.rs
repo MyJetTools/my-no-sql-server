@@ -1,6 +1,6 @@
 use std::{collections::HashMap, str::FromStr};
 
-use super::http_fail::HttpFailResult;
+use super::{http_fail::HttpFailResult, url_utils};
 
 pub struct QueryString {
     query_string: HashMap<String, String>,
@@ -13,7 +13,7 @@ impl QueryString {
         };
 
         if let Some(src) = src {
-            crate::utils::url_utils::parse_query_string(&mut result.query_string, src);
+            url_utils::parse_query_string(&mut result.query_string, src);
         }
 
         return result;

@@ -2,10 +2,10 @@ use std::sync::Arc;
 
 use tokio::sync::Mutex;
 
-use crate::db_transactions::TransactionEvent;
+use crate::db_sync::SyncEvent;
 
 pub struct QueueToPersist {
-    queue: Mutex<Vec<Arc<TransactionEvent>>>,
+    queue: Mutex<Vec<Arc<SyncEvent>>>,
 }
 
 impl QueueToPersist {
@@ -15,13 +15,13 @@ impl QueueToPersist {
         }
     }
 
-    pub async fn enqueue(&self, event: Arc<TransactionEvent>) {
+    pub async fn enqueue(&self, event: Arc<SyncEvent>) {
         let mut queue = self.queue.lock().await;
 
         queue.push(event);
     }
 
-    pub async fn dequeue(&self) -> Option<Arc<TransactionEvent>> {
+    pub async fn dequeue(&self) -> Option<Arc<SyncEvent>> {
         let mut queue = self.queue.lock().await;
 
         if queue.len() == 0 {

@@ -83,6 +83,8 @@ pub fn to_json_array(db_rows: Option<Vec<Arc<DbRow>>>) -> Vec<u8> {
     return json;
 }
 
+
+
 impl Into<Response<Body>> for HttpOkResult {
     fn into(self) -> Response<Body> {
         return match self {

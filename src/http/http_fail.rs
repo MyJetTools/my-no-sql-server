@@ -1,6 +1,6 @@
 use hyper::{Body, Response};
 
-use crate::{db::DbOperationFail, db_entity::DbEntityParseFail, json::JsonParseError};
+use crate::{db_json_entity::DbEntityParseFail, json::JsonParseError};
 
 use super::web_content_type::WebContentType;
 
@@ -78,40 +78,6 @@ impl From<DbEntityParseFail> for HttpFailResult {
             DbEntityParseFail::JsonParseError(json_parse_error) => {
                 HttpFailResult::from(json_parse_error)
             }
-        }
-    }
-}
-
-impl From<DbOperationFail> for HttpFailResult {
-    fn from(src: DbOperationFail) -> Self {
-        match src {
-            DbOperationFail::TableAlreadyExist { table_name } => HttpFailResult {
-                content_type: WebContentType::Text,
-                status_code: 401,
-                content: format!("Table '{}' already exists", table_name).into_bytes(),
-            },
-            DbOperationFail::TableNotFound { table_name } => HttpFailResult {
-                content_type: WebContentType::Text,
-                status_code: 401,
-                content: format!("Table '{}' not found", table_name).into_bytes(),
-            },
-            DbOperationFail::RecordNotFound => HttpFailResult {
-                content_type: WebContentType::Text,
-                status_code: 404,
-                content: "Record not found".as_bytes().to_vec(),
-            },
-            DbOperationFail::OptimisticConcurencyUpdateFails => HttpFailResult {
-                content_type: WebContentType::Text,
-                status_code: 403, //TODO - Check the code with the reader
-                content: "Record is changed found".as_bytes().to_vec(),
-            },
-
-            DbOperationFail::TransactionNotFound { id } => HttpFailResult {
-                content_type: WebContentType::Text,
-                status_code: 401,
-                content: format!("Transaction {} is not foud", id).into_bytes(),
-            },
-            DbOperationFail::DbEntityParseFail(fail) => HttpFailResult::from(fail),
         }
     }
 }

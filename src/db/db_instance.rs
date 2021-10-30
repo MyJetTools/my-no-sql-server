@@ -1,9 +1,15 @@
+use rust_extensions::date_time::DateTimeAsMicroseconds;
 use tokio::sync::RwLock;
 
-use super::DbTable;
+use super::{DbTable, DbTableAttributes, DbTableData};
 use std::{collections::HashMap, sync::Arc};
 pub struct DbInstance {
     pub tables: RwLock<HashMap<String, Arc<DbTable>>>,
+}
+
+pub enum CreateTableResult {
+    JustCreated(Arc<DbTable>),
+    AlreadyHadTable(Arc<DbTable>),
 }
 
 impl DbInstance {
@@ -44,5 +50,37 @@ impl DbInstance {
     pub async fn delete_table(&self, table_name: &str) -> Option<Arc<DbTable>> {
         let mut write_access = self.tables.write().await;
         return write_access.remove(table_name);
+    }
+
+    pub async fn get_or_create_table(
+        &self,
+        name: &str,
+        persist: bool,
+        max_partitions_amount: Option<usize>,
+        now: DateTimeAsMicroseconds,
+    ) -> CreateTableResult {
+        let mut write_access = self.tables.write().await;
+
+        if let Some(table) = write_access.get(name) {
+            return CreateTableResult::AlreadyHadTable(table.clone());
+        }
+
+        let table_attributes = DbTableAttributes {
+            persist,
+            max_partitions_amount,
+        };
+
+        let db_table_data = DbTableData::new(table_attributes, now);
+
+        let new_table = DbTable::new(
+            name.to_string(),
+            db_table_data,
+            DateTimeAsMicroseconds::now(),
+        );
+
+        let new_table = Arc::new(new_table);
+        write_access.insert(name.to_string(), new_table.clone());
+
+        return CreateTableResult::JustCreated(new_table);
     }
 }

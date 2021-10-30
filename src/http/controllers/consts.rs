@@ -1,4 +1,4 @@
-use crate::{db_transactions::DataSynchronizationPeriod, http::query_string::QueryString};
+use crate::{db_sync::DataSynchronizationPeriod, http::query_string::QueryString};
 
 pub const API_KEY: &str = "apiKey";
 pub const PARAM_TABLE_NAME: &str = "tableName";

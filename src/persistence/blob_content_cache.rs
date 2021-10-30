@@ -1,17 +1,18 @@
 use std::collections::HashMap;
 
+use rust_extensions::date_time::DateTimeAsMicroseconds;
 use tokio::sync::RwLock;
 
 use crate::db::{DbTableAttributes, DbTableSnapshot};
 
 pub struct PersistedTableData {
     pub attr: DbTableAttributes,
-    pub created: i64,
-    pub partitions: HashMap<String, i64>,
+    pub created: DateTimeAsMicroseconds,
+    pub partitions: HashMap<String, DateTimeAsMicroseconds>,
 }
 
 impl PersistedTableData {
-    pub fn new(attr: DbTableAttributes, created: i64) -> Self {
+    pub fn new(attr: DbTableAttributes, created: DateTimeAsMicroseconds) -> Self {
         Self {
             attr,
             created,
@@ -21,7 +22,7 @@ impl PersistedTableData {
 }
 
 pub enum BlobPartitionUpdateTimeResult {
-    Ok(i64),
+    Ok(DateTimeAsMicroseconds),
     TableNotFound,
     PartitionNoFound,
 }
@@ -62,7 +63,7 @@ impl BlobContentCache {
         &self,
         table_name: &str,
         partition_key: &str,
-        snapshot_id: i64,
+        timestamp: DateTimeAsMicroseconds,
     ) {
         let mut write_access = self.data_by_table.write().await;
 
@@ -71,11 +72,14 @@ impl BlobContentCache {
         if let Some(table) = table {
             table
                 .partitions
-                .insert(partition_key.to_string(), snapshot_id);
+                .insert(partition_key.to_string(), timestamp);
         }
     }
 
-    pub async fn get_snapshot(&self, table_name: &str) -> Option<HashMap<String, i64>> {
+    pub async fn get_snapshot(
+        &self,
+        table_name: &str,
+    ) -> Option<HashMap<String, DateTimeAsMicroseconds>> {
         let read_access = self.data_by_table.read().await;
         let table = read_access.get(table_name)?;
 

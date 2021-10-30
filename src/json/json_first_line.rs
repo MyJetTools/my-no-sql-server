@@ -2,8 +2,7 @@
 use std::str::Utf8Error;
 
 use chrono::NaiveDate;
-
-use crate::date_time::MyDateTime;
+use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use super::JsonParseError;
 
@@ -80,12 +79,12 @@ impl<'t> JsonFirstLine<'t> {
         }
     }
 
-    pub fn get_value_as_date_time(&self) -> Option<MyDateTime> {
+    pub fn get_value_as_date_time(&self) -> Option<DateTimeAsMicroseconds> {
         parse_date_time(&self.data[self.value_start..self.value_end])
     }
 }
 
-fn parse_date_time(time_as_string: &[u8]) -> Option<MyDateTime> {
+fn parse_date_time(time_as_string: &[u8]) -> Option<DateTimeAsMicroseconds> {
     if time_as_string.len() == 19 {
         return parse_date_time_19(time_as_string);
     }
@@ -95,7 +94,7 @@ fn parse_date_time(time_as_string: &[u8]) -> Option<MyDateTime> {
 
 const START_ZERO: u8 = '0' as u8;
 //YYYY-MM-DDThh:mm:ss
-fn parse_date_time_19(time_as_string: &[u8]) -> Option<MyDateTime> {
+fn parse_date_time_19(time_as_string: &[u8]) -> Option<DateTimeAsMicroseconds> {
     let year = (time_as_string[0] - START_ZERO) as i32 * 1000
         + (time_as_string[1] - START_ZERO) as i32 * 100
         + (time_as_string[2] - START_ZERO) as i32 * 10
@@ -118,7 +117,7 @@ fn parse_date_time_19(time_as_string: &[u8]) -> Option<MyDateTime> {
 
     let date_time = NaiveDate::from_ymd(year, month, day).and_hms(hour, min, sec);
 
-    Some(MyDateTime::new(date_time.timestamp()))
+    Some(DateTimeAsMicroseconds::new(date_time.timestamp()))
 }
 
 #[cfg(test)]
@@ -131,6 +130,6 @@ mod tests {
 
         let i = parse_date_time(&src_data.into_bytes()).unwrap();
 
-        println!("{}", i.to_iso_string());
+        println!("{}", i.to_rfc3339());
     }
 }

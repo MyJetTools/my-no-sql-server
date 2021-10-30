@@ -1,4 +1,4 @@
-use crate::utils::StringBuilder;
+use rust_extensions::StringBuilder;
 
 #[derive(Debug)]
 pub struct JsonParseError {
@@ -59,13 +59,13 @@ impl JsonParseError {
 
         if let Some(before) = &self.json_before {
             sb.append_bytes(before);
-            sb.append(" -->");
+            sb.append_str(" -->");
         }
 
-        sb.append_u8(self.invalid_symbol);
+        sb.append_byte(self.invalid_symbol);
 
         if let Some(after) = &self.json_after {
-            sb.append("<-- ");
+            sb.append_str("<-- ");
             sb.append_bytes(after.as_slice());
         }
 

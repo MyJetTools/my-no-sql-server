@@ -1,5 +1,5 @@
 use crate::{
-    app::AppServices,
+    app::AppContext,
     http::{http_ctx::HttpContext, http_fail::HttpFailResult, http_helpers, http_ok::HttpOkResult},
 };
 
@@ -11,7 +11,7 @@ pub struct StartTransactionResponse {
     transaction_id: String,
 }
 
-pub async fn start(app: &AppServices) -> Result<HttpOkResult, HttpFailResult> {
+pub async fn start(app: &AppContext) -> Result<HttpOkResult, HttpFailResult> {
     let transaction_id = app.active_transactions.issue_new().await;
 
     let response = StartTransactionResponse { transaction_id };
@@ -19,36 +19,38 @@ pub async fn start(app: &AppServices) -> Result<HttpOkResult, HttpFailResult> {
     return HttpOkResult::create_json_response(response);
 }
 
-pub async fn append(app: &AppServices, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+pub async fn append(app: &AppContext, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
     let query_string = ctx.get_query_string();
 
     let transaction_id = query_string.get_query_required_string_parameter("transactionId")?;
 
     let body = ctx.get_body().await;
 
-    crate::db_transactional_operations::http::appen_events(app, transaction_id, body).await?;
+    let tranactions = crate::db_transactions::json_parser::parse_transactions(body.as_slice())?;
+
+    crate::db_operations::transactions::append_events(app, transaction_id, tranactions).await?;
 
     return Ok(HttpOkResult::Ok);
 }
 
-pub async fn commit(app: &AppServices, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+pub async fn commit(app: &AppContext, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
     let query_string = ctx.get_query_string();
 
     let transaction_id = query_string.get_query_required_string_parameter("transactionId")?;
 
     let attr = http_helpers::create_transaction_attributes(
         app,
-        crate::db_transactions::DataSynchronizationPeriod::Sec1,
+        crate::db_sync::DataSynchronizationPeriod::Sec1,
     );
 
-    crate::db_transactional_operations::http::commit(app, transaction_id, attr).await?;
+    crate::db_operations::transactions::commit(app, transaction_id, attr).await?;
 
     return Ok(HttpOkResult::Ok);
 }
 
-pub async fn cancel(app: &AppServices, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+pub async fn cancel(app: &AppContext, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
     let query_string = ctx.get_query_string();
     let transaction_id = query_string.get_query_required_string_parameter("transactionId")?;
-    crate::db_transactional_operations::http::cancel(app, transaction_id).await?;
+    crate::db_operations::transactions::cancel(app, transaction_id).await?;
     return Ok(HttpOkResult::Ok);
 }
