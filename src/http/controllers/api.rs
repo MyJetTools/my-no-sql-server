@@ -19,9 +19,9 @@ pub fn is_alive() -> Result<HttpOkResult, HttpFailResult> {
         time: time,
         version: version.to_string(),
         env_info: if let Ok(value) = env_info {
-            value
+            Some(value)
         } else {
-            "".to_string()
+            None
         },
     };
 
@@ -33,5 +33,5 @@ struct ApiModel {
     name: String,
     time: u64,
     version: String,
-    env_info: String,
+    env_info: Option<String>,
 }
