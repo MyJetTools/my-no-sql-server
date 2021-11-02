@@ -34,7 +34,7 @@ pub async fn create(
 
             return Ok(db_table);
         }
-        CreateTableResult::AlreadyHadTable(db_table) => {
+        CreateTableResult::AlreadyHadTable(_) => {
             return Err(DbOperationError::TableAlreadyExists);
         }
     }

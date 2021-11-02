@@ -1,9 +1,5 @@
-use std::sync::Arc;
-
 use hyper::{Body, Response};
 use serde::Serialize;
-
-use crate::db::{DbOperationResult, DbRow};
 
 use super::{http_fail::HttpFailResult, web_content_type::WebContentType};
 
@@ -40,50 +36,6 @@ impl HttpOkResult {
         })
     }
 }
-
-impl Into<HttpOkResult> for DbOperationResult {
-    fn into(self) -> HttpOkResult {
-        match self {
-            DbOperationResult::Rows { rows } => HttpOkResult::Content {
-                content_type: Some(WebContentType::Json),
-                content: to_json_array(rows),
-            },
-            DbOperationResult::Row { row } => HttpOkResult::Content {
-                content_type: Some(WebContentType::Json),
-                content: row.data.clone(),
-            },
-        }
-    }
-}
-
-pub fn to_json_array(db_rows: Option<Vec<Arc<DbRow>>>) -> Vec<u8> {
-    if db_rows.is_none() {
-        return vec![
-            crate::json::consts::OPEN_ARRAY,
-            crate::json::consts::CLOSE_ARRAY,
-        ];
-    }
-
-    let mut json = Vec::new();
-
-    let db_rows = db_rows.unwrap();
-
-    for db_row in db_rows.as_slice() {
-        if json.len() == 0 {
-            json.push(crate::json::consts::OPEN_ARRAY);
-        } else {
-            json.push(crate::json::consts::COMMA);
-        }
-
-        json.extend(db_row.data.as_slice());
-    }
-
-    json.push(crate::json::consts::CLOSE_ARRAY);
-
-    return json;
-}
-
-
 
 impl Into<Response<Body>> for HttpOkResult {
     fn into(self) -> Response<Body> {

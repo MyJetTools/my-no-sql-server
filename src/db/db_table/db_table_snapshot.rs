@@ -14,13 +14,13 @@ pub struct DbTableSnapshot {
 }
 
 impl DbTableSnapshot {
-    pub fn new(table_data: &DbTableData, update_read_time: Option<DateTimeAsMicroseconds>) -> Self {
+    pub fn new(table_data: &DbTableData) -> Self {
         let mut data = BTreeMap::new();
 
         for (partition_key, partition) in &table_data.partitions {
             data.insert(
                 partition_key.to_string(),
-                partition.get_db_partition_snapshot(update_read_time),
+                partition.get_db_partition_snapshot(),
             );
         }
 
@@ -32,10 +32,10 @@ impl DbTableSnapshot {
         }
     }
 
-    pub fn get_snapshot(&self) -> Vec<u8> {
+    pub fn as_raw_bytes(&self) -> Vec<u8> {
         let mut result = JsonArrayBuilder::new();
 
-        for (partition_key, db_partition) in self.data {
+        for db_partition in self.data.values() {
             for db_row in &db_partition.content {
                 result.append_json_object(&db_row.data);
             }

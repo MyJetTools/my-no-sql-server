@@ -6,7 +6,7 @@ use rust_extensions::{date_time::DateTimeAsMicroseconds, StopWatch};
 use crate::{app::AppContext, db::DbTable};
 
 pub async fn init_tables(app: &AppContext, connection: &AzureConnection) {
-    let tables = crate::operations::blob::repo::get_tables(connection)
+    let tables = crate::blob_operations::table::get_list(connection)
         .await
         .unwrap();
 
@@ -21,7 +21,7 @@ pub async fn init_tables(app: &AppContext, connection: &AzureConnection) {
             .await;
         let mut sw = StopWatch::new();
         sw.start();
-        let table_data = crate::operations::blob::repo::load_table(app, &connection, table_name)
+        let table_data = crate::blob_operations::table::load(app, &connection, table_name)
             .await
             .unwrap();
 

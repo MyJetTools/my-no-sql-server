@@ -68,9 +68,10 @@ impl DbInstance {
         let table_attributes = DbTableAttributes {
             persist,
             max_partitions_amount,
+            created: now,
         };
 
-        let db_table_data = DbTableData::new(table_attributes, now);
+        let db_table_data = DbTableData::new(table_attributes);
 
         let new_table = DbTable::new(
             name.to_string(),

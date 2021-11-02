@@ -3,6 +3,7 @@ use std::{net::SocketAddr, sync::Arc, time::Duration};
 
 mod app;
 
+mod blob_operations;
 mod db;
 mod db_json_entity;
 mod db_operations;
@@ -33,7 +34,7 @@ async fn main() {
     if let Some(connection) = connection {
         crate::operations::data_initializer::init_tables(app.as_ref(), &connection).await;
 
-        let handler = tokio::task::spawn(crate::background::blob_persistence::start(
+        let handler = tokio::task::spawn(crate::background::flush_to_blobs::start(
             app.clone(),
             connection,
         ));
@@ -60,9 +61,10 @@ async fn main() {
         app.clone(),
     )));
 
-    background_tasks.push(tokio::task::spawn(
-        crate::background::transactions_handler::start(app.clone(), transactions_receiver),
-    ));
+    background_tasks.push(tokio::task::spawn(crate::background::sync_handler::start(
+        app.clone(),
+        transactions_receiver,
+    )));
 
     tokio::task::spawn(http::http_server::start(
         app.clone(),
@@ -98,4 +100,6 @@ async fn shut_down_task(app: Arc<AppContext>) {
     tokio::time::sleep(duration).await;
 
     crate::operations::shutdown::execute(app.as_ref()).await;
+
+    app.states.set_shutted_down();
 }

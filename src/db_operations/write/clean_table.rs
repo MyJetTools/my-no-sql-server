@@ -13,7 +13,7 @@ pub async fn execute(app: &AppContext, db_table: Arc<DbTable>, attr: Option<Sync
         return;
     }
 
-    let sync = if let Some(attr) = attr {
+    if let Some(attr) = attr {
         let mut init_state = InitTableEventState::new(db_table.clone(), attr);
         clean_table(&mut table_write_access, &mut init_state);
 

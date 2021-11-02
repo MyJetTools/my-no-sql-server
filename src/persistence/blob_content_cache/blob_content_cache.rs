@@ -3,23 +3,9 @@ use std::collections::HashMap;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 use tokio::sync::RwLock;
 
-use crate::db::{DbTableAttributes, DbTableSnapshot};
+use crate::db::DbTableAttributes;
 
-pub struct PersistedTableData {
-    pub attr: DbTableAttributes,
-    pub created: DateTimeAsMicroseconds,
-    pub partitions: HashMap<String, DateTimeAsMicroseconds>,
-}
-
-impl PersistedTableData {
-    pub fn new(attr: DbTableAttributes, created: DateTimeAsMicroseconds) -> Self {
-        Self {
-            attr,
-            created,
-            partitions: HashMap::new(),
-        }
-    }
-}
+use super::PersistedTableData;
 
 pub enum BlobPartitionUpdateTimeResult {
     Ok(DateTimeAsMicroseconds),
@@ -38,8 +24,8 @@ impl BlobContentCache {
         }
     }
 
-    pub async fn create_table(&self, table_name: &str, snapshot: &DbTableSnapshot) {
-        let table_data = PersistedTableData::new(snapshot.attr.clone(), snapshot.created);
+    pub async fn create_table(&self, table_name: &str, attr: DbTableAttributes) {
+        let table_data = PersistedTableData::new(attr);
         let mut write_access = self.data_by_table.write().await;
         write_access.insert(table_name.to_string(), table_data);
     }

@@ -2,27 +2,21 @@ use std::time::Duration;
 
 use my_azure_storage_sdk::AzureConnection;
 
-use crate::{
-    app::{logs::SystemProcess, AppContext},
-    db::DbTableAttributes,
-};
+use crate::app::AppContext;
 
-pub async fn with_retries(
-    app: &AppContext,
-    azure_connection: &AzureConnection,
-    table_name: &str,
-    attr: &DbTableAttributes,
-) {
+pub async fn with_retries(app: &AppContext, azure_connection: &AzureConnection, table_name: &str) {
     let mut attempt_no = 0;
     loop {
-        let result = super::repo::save_table_attributes(&azure_connection, table_name, &attr).await;
+        let result = super::table::delete(azure_connection, table_name).await;
 
         if result.is_ok() {
+            app.blob_content_cache.delete_table(table_name).await;
+
             app.logs
                 .add_info(
                     Some(table_name.to_string()),
                     crate::app::logs::SystemProcess::BlobOperation,
-                    "save_table_attributes".to_string(),
+                    "delete_table".to_string(),
                     "Saved".to_string(),
                 )
                 .await;
@@ -36,9 +30,9 @@ pub async fn with_retries(
         app.logs
             .add_error(
                 Some(table_name.to_string()),
-                SystemProcess::BlobOperation,
-                "save_table_attributes".to_string(),
-                format!("Can not sync table attributes.Attempt: {}", attempt_no),
+                crate::app::logs::SystemProcess::BlobOperation,
+                "delete_table".to_string(),
+                format!("Attempt: {}", attempt_no),
                 Some(format!("{:?}", err)),
             )
             .await;

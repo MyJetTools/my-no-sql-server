@@ -9,9 +9,9 @@ use std::{
 use super::DbPartitionSnapshot;
 
 pub struct DbPartition {
-    rows: BTreeMap<String, Arc<DbRow>>,
+    pub rows: BTreeMap<String, Arc<DbRow>>,
     pub last_read_access: AtomicDateTimeAsMicroseconds,
-    pub last_write_access: AtomicDateTimeAsMicroseconds,
+    pub last_write_moment: AtomicDateTimeAsMicroseconds,
 }
 
 impl DbPartition {
@@ -19,25 +19,12 @@ impl DbPartition {
         DbPartition {
             rows: BTreeMap::new(),
             last_read_access: AtomicDateTimeAsMicroseconds::now(),
-            last_write_access: AtomicDateTimeAsMicroseconds::now(),
+            last_write_moment: AtomicDateTimeAsMicroseconds::now(),
         }
-    }
-
-    pub fn clear(&mut self) -> bool {
-        if self.rows.len() == 0 {
-            return false;
-        }
-
-        self.rows.clear();
-        return true;
     }
 
     pub fn rows_count(&self) -> usize {
         return self.rows.len();
-    }
-
-    pub fn update_last_access(&self, now: DateTimeAsMicroseconds) {
-        self.last_read_access.update(now);
     }
 
     pub fn insert(
@@ -52,7 +39,7 @@ impl DbPartition {
         self.rows.insert(db_row.row_key.to_string(), db_row);
 
         if let Some(write_access_time) = update_write_access {
-            self.last_write_access.update(write_access_time);
+            self.last_write_moment.update(write_access_time);
         }
 
         return true;
@@ -68,7 +55,7 @@ impl DbPartition {
         }
 
         if let Some(write_access_time) = update_write_access {
-            self.last_write_access.update(write_access_time);
+            self.last_write_moment.update(write_access_time);
         }
     }
 
@@ -80,7 +67,7 @@ impl DbPartition {
         self.rows.insert(db_row.row_key.to_string(), db_row);
 
         if let Some(write_access_time) = update_write_access {
-            self.last_write_access.update(write_access_time);
+            self.last_write_moment.update(write_access_time);
         }
     }
 
@@ -88,7 +75,7 @@ impl DbPartition {
         let result = self.rows.remove(row_key);
 
         if result.is_some() {
-            self.last_write_access.update(now);
+            self.last_write_moment.update(now);
         }
 
         return result;
@@ -97,15 +84,6 @@ impl DbPartition {
     pub fn get_row(&self, row_key: &str) -> Option<&DbRow> {
         let result = self.rows.get(row_key)?;
         Some(result.as_ref())
-    }
-
-    pub fn get_and_clone_row(&self, row_key: &str) -> Option<Arc<DbRow>> {
-        let result = self.rows.get(row_key)?;
-        Some(result.clone())
-    }
-
-    pub fn get_rows_amount(&self) -> usize {
-        return self.rows.len();
     }
 
     pub fn gc_rows(&mut self, max_rows_amount: usize) -> Option<HashMap<String, Arc<DbRow>>> {
@@ -163,27 +141,16 @@ impl DbPartition {
         result
     }
 
-    pub fn fill_with_json_data(
-        &self,
-        builder: &mut JsonArrayBuilder,
-        update_read_access_time: Option<DateTimeAsMicroseconds>,
-    ) {
+    pub fn fill_with_json_data(&self, builder: &mut JsonArrayBuilder) {
         for db_row in self.rows.values() {
-            if let Some(update_time) = update_read_access_time {
-                db_row.last_read_access.update(update_time)
-            }
-
             builder.append_json_object(db_row.data.as_slice());
         }
     }
 
-    pub fn get_db_partition_snapshot(
-        &self,
-        update_read_access_time: Option<DateTimeAsMicroseconds>,
-    ) -> DbPartitionSnapshot {
+    pub fn get_db_partition_snapshot(&self) -> DbPartitionSnapshot {
         DbPartitionSnapshot {
             last_read_access: self.last_read_access.as_date_time(),
-            last_write_access: self.last_write_access.as_date_time(),
+            last_write_moment: self.last_write_moment.as_date_time(),
             content: self.rows.values().map(|itm| itm.clone()).collect(),
         }
     }

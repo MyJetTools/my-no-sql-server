@@ -25,8 +25,7 @@ pub async fn execute(
     };
 
     for (partition_key, db_rows) in rows_by_partition {
-        let db_partition =
-            table_write_access.get_or_create_partition(partition_key.as_str(), Some(now));
+        let db_partition = table_write_access.get_or_create_partition(partition_key.as_str());
 
         db_partition.bulk_insert_or_replace(&db_rows, Some(now));
 

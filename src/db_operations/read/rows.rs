@@ -13,9 +13,7 @@ pub async fn get_all_table_rows(table: &DbTable) -> ReadOperationResult {
     let table_data = table.data.read().await;
 
     table_data.last_read_time.update(now);
-
-    let result = table_data.as_json_array(Some(now));
-    return ReadOperationResult::RowsArray(result);
+    return ReadOperationResult::RowsArray(table_data.as_json_array());
 }
 
 pub async fn get_all_rows_by_partition_key(
@@ -33,8 +31,7 @@ pub async fn get_all_rows_by_partition_key(
     match get_partition_result {
         Some(partition) => {
             partition.last_read_access.update(now);
-            let result = partition.as_json_array(Some(now));
-            ReadOperationResult::RowsArray(result)
+            ReadOperationResult::RowsArray(partition.as_json_array())
         }
         None => ReadOperationResult::EmptyArray,
     }
@@ -71,7 +68,7 @@ pub async fn get_row(table: &DbTable, partition_key: &str, row_key: &str) -> Rea
     let partition = table_data.partitions.get(partition_key);
 
     if partition.is_none() {
-        ReadOperationResult::EmptyArray;
+        return ReadOperationResult::EmptyArray;
     }
 
     let partition = partition.unwrap();
@@ -79,7 +76,7 @@ pub async fn get_row(table: &DbTable, partition_key: &str, row_key: &str) -> Rea
     let db_row = partition.get_row(row_key);
 
     if db_row.is_none() {
-        ReadOperationResult::EmptyArray;
+        return ReadOperationResult::EmptyArray;
     }
 
     let db_row = db_row.unwrap();
@@ -106,22 +103,17 @@ pub async fn get_single_partition_multiple_rows(
 
     let db_partition = db_partition.unwrap();
 
-    let mut result = None;
+    let mut result = JsonArrayBuilder::new();
 
     for row_key in &row_keys {
         let db_row = db_partition.get_row(row_key);
 
         if let Some(db_row) = db_row {
-            if result.is_none() {
-                result = Some(Vec::new())
-            }
+            db_row.update_last_access(now);
 
-            result.as_mut().unwrap().push(db_row);
+            result.append_json_object(&db_row.data);
         }
     }
 
-    return match result {
-        Some(db_rows) => ReadOperationResult::RowsArray(db_rows.as_json_array(Some(now))),
-        None => ReadOperationResult::EmptyArray,
-    };
+    return ReadOperationResult::RowsArray(result.build());
 }

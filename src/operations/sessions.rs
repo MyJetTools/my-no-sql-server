@@ -17,4 +17,5 @@ pub async fn send_package(
 
 pub async fn send_package_and_forget(session: &ReaderSession, tcp_contract: &TcpContract) {
     let result = session.send_package(tcp_contract).await;
+    if let Err(_) = result {}
 }

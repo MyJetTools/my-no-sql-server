@@ -73,7 +73,7 @@ pub struct ReaderSession {
     pub ip: String,
     pub metrics: SessionMetrics,
     data: Mutex<ReaderSessionData>,
-    logs: Arc<Logs>,
+    pub logs: Arc<Logs>,
 }
 
 impl ReaderSession {

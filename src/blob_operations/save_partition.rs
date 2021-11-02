@@ -2,26 +2,37 @@ use std::time::Duration;
 
 use my_azure_storage_sdk::AzureConnection;
 
-use crate::app::{logs::SystemProcess, AppContext};
+use crate::{
+    app::{logs::SystemProcess, AppContext},
+    db::{read_as_json::DbEntityAsJsonArray, DbPartitionSnapshot},
+};
 
 pub async fn with_retries(
     app: &AppContext,
     azure_connection: &AzureConnection,
     table_name: &str,
     partition_key: &str,
-    content: &[u8],
+    snapshot: DbPartitionSnapshot,
 ) {
     let mut attempt_no = 0;
     loop {
-        let result = super::repo::save_partition(
+        let result = super::partition::save(
             azure_connection,
             table_name,
             partition_key,
-            content.to_vec(),
+            snapshot.content.as_json_array(),
         )
         .await;
 
         if result.is_ok() {
+            app.blob_content_cache
+                .update_table_partition_snapshot_id(
+                    table_name,
+                    partition_key,
+                    snapshot.last_write_moment,
+                )
+                .await;
+
             app.logs
                 .add_info(
                     Some(table_name.to_string()),

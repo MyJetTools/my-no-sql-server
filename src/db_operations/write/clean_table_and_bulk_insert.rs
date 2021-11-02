@@ -34,14 +34,13 @@ pub async fn execute(
     };
 
     for (partition_key, rows) in entities {
-        let db_partition =
-            table_write_access.get_or_create_partition(partition_key.as_str(), Some(now));
+        let db_partition = table_write_access.get_or_create_partition(partition_key.as_str());
 
         db_partition.bulk_insert_or_replace(&rows, Some(now));
     }
 
     if let Some(mut state) = sync {
-        let table_snapshot = DbTableSnapshot::new(&table_write_access, None);
+        let table_snapshot = DbTableSnapshot::new(&table_write_access);
 
         state.add_table_snapshot(table_snapshot);
         app.events_dispatcher

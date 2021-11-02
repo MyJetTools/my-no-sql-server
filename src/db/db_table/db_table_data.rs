@@ -15,70 +15,25 @@ pub struct DbTableData {
 }
 
 impl DbTableData {
-    pub fn new(attributes: DbTableAttributes, now: DateTimeAsMicroseconds) -> Self {
+    pub fn new(attributes: DbTableAttributes) -> Self {
+        let created = attributes.created;
         Self {
             partitions: BTreeMap::new(),
             attributes,
-            last_update_time: AtomicDateTimeAsMicroseconds::new(now.unix_microseconds),
-            created: now,
-            last_read_time: AtomicDateTimeAsMicroseconds::new(now.unix_microseconds),
+            last_update_time: AtomicDateTimeAsMicroseconds::new(created.unix_microseconds),
+            created,
+            last_read_time: AtomicDateTimeAsMicroseconds::new(created.unix_microseconds),
         }
     }
 
-    pub fn get_or_create_partition(
-        &mut self,
-        partition_key: &str,
-        update_last_access: Option<DateTimeAsMicroseconds>,
-    ) -> &mut DbPartition {
-        if let Some(partition) = self.partitions.get_mut(partition_key) {
-            if let Some(last_access) = update_last_access {
-                partition.update_last_access(last_access);
-            }
+    pub fn get_or_create_partition(&mut self, partition_key: &str) -> &mut DbPartition {
+        if !self.partitions.contains_key(partition_key) {
+            let result = DbPartition::new();
 
-            return partition;
+            self.partitions.insert(partition_key.to_string(), result);
         }
 
-        let result = DbPartition::new();
-
-        self.partitions.insert(partition_key.to_string(), result);
-
-        return self.partitions.get_mut(partition_key).as_mut().unwrap();
-    }
-
-    pub fn get_partition(
-        &self,
-        partition_key: &str,
-        update_last_access: Option<DateTimeAsMicroseconds>,
-    ) -> Option<&mut DbPartition> {
-        let result = DbPartition::new();
-
-        let result = self.partitions.get_mut(partition_key);
-
-        if let Some(result) = result {
-            if let Some(last_access) = update_last_access {
-                result.update_last_access(last_access);
-            }
-        }
-
-        result
-    }
-
-    pub fn get_partition_mut(
-        &mut self,
-        partition_key: &str,
-        update_last_access: Option<DateTimeAsMicroseconds>,
-    ) -> Option<&mut DbPartition> {
-        let result = DbPartition::new();
-
-        let result = self.partitions.get_mut(partition_key);
-
-        if let Some(result) = result {
-            if let Some(last_access) = update_last_access {
-                result.update_last_access(last_access);
-            }
-        }
-
-        result
+        return self.partitions.get_mut(partition_key).unwrap();
     }
 
     pub fn gc_and_keep_max_partitions_amount(

@@ -15,7 +15,7 @@ pub async fn execute(
 ) {
     let mut write_access = db_table.data.write().await;
 
-    let partition = write_access.get_partition_mut(partition_key, None);
+    let partition = write_access.partitions.get_mut(partition_key);
 
     if partition.is_none() {
         return;

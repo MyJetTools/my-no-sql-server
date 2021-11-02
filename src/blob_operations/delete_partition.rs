@@ -2,19 +2,28 @@ use std::time::Duration;
 
 use my_azure_storage_sdk::AzureConnection;
 
-use crate::app::AppContext;
+use crate::app::{logs::SystemProcess, AppContext};
 
-pub async fn with_retries(app: &AppContext, azure_connection: &AzureConnection, table_name: &str) {
+pub async fn with_retires(
+    app: &AppContext,
+    azure_connection: &AzureConnection,
+    table_name: &str,
+    partition_key: &str,
+) {
     let mut attempt_no = 0;
     loop {
-        let result = super::repo::delete_table(azure_connection, table_name).await;
+        let result = super::partition::delete(azure_connection, table_name, partition_key).await;
 
         if result.is_ok() {
+            app.blob_content_cache
+                .delete_table_partition(table_name, partition_key)
+                .await;
+
             app.logs
                 .add_info(
                     Some(table_name.to_string()),
                     crate::app::logs::SystemProcess::BlobOperation,
-                    "delete_table".to_string(),
+                    "delete_partition".to_string(),
                     "Saved".to_string(),
                 )
                 .await;
@@ -28,9 +37,9 @@ pub async fn with_retries(app: &AppContext, azure_connection: &AzureConnection, 
         app.logs
             .add_error(
                 Some(table_name.to_string()),
-                crate::app::logs::SystemProcess::BlobOperation,
-                "delete_table".to_string(),
-                format!("Attempt: {}", attempt_no),
+                SystemProcess::BlobOperation,
+                "delete_partition".to_string(),
+                format!("PartitionKey: {}, Attempt: {}", partition_key, attempt_no),
                 Some(format!("{:?}", err)),
             )
             .await;

@@ -6,9 +6,9 @@ use super::web_content_type::WebContentType;
 
 #[derive(Debug)]
 pub struct HttpFailResult {
-    content_type: WebContentType,
-    status_code: u16,
-    content: Vec<u8>,
+    pub content_type: WebContentType,
+    pub status_code: u16,
+    pub content: Vec<u8>,
 }
 
 impl HttpFailResult {
@@ -70,11 +70,7 @@ impl From<DbEntityParseFail> for HttpFailResult {
                 status_code: 401,
                 content: "RowKey field is required".as_bytes().to_vec(),
             },
-            DbEntityParseFail::TimeStampFieldRequires => Self {
-                content_type: WebContentType::Text,
-                status_code: 401,
-                content: "TimeStamp field is required".as_bytes().to_vec(),
-            },
+
             DbEntityParseFail::JsonParseError(json_parse_error) => {
                 HttpFailResult::from(json_parse_error)
             }

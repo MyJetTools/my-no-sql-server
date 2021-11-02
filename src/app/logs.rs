@@ -104,6 +104,20 @@ impl Logs {
         let item = Arc::new(item);
         let mut wirte_access = self.data.write().await;
 
+        match &item.level {
+            LogLevel::Info => {}
+            LogLevel::Error => print_to_console(&item),
+            LogLevel::FatalError => print_to_console(&item),
+        }
+
+        match &item.process {
+            SystemProcess::System => print_to_console(&item),
+            SystemProcess::TcpSocket => {}
+            SystemProcess::BlobOperation => {}
+            SystemProcess::TableOperation => {}
+            SystemProcess::Init => print_to_console(&item),
+        }
+
         let process_id = item.as_ref().process.as_u8();
 
         add_table_data(
@@ -137,6 +151,7 @@ impl Logs {
             message: message,
             err_ctx: None,
         };
+
         self.add(item).await;
     }
 
@@ -158,8 +173,6 @@ impl Logs {
             err_ctx,
         };
 
-        self.print_to_console(&item);
-
         self.add(item).await;
     }
 
@@ -179,26 +192,7 @@ impl Logs {
             err_ctx: None,
         };
 
-        self.print_to_console(&item);
-
         self.add(item).await;
-    }
-
-    fn print_to_console(&self, item: &LogItem) {
-        println!(
-            "{} {:?} {:?} -----------",
-            item.date.to_rfc3339(),
-            item.level,
-            item.process
-        );
-        if let Some(table) = &item.table {
-            println!("Table: {}", table);
-        }
-        println!("Process: {}", item.process_name);
-        println!("Message: {}", item.message);
-        if let Some(err_ctx) = &item.err_ctx {
-            println!("Err_ctx: {}", err_ctx);
-        }
     }
 
     pub async fn get(&self) -> Vec<Arc<LogItem>> {
@@ -216,6 +210,23 @@ impl Logs {
         let read_access = self.data.read().await;
         let result = read_access.items_by_process.get(&process.as_u8())?;
         return Some(result.to_vec());
+    }
+}
+
+fn print_to_console(item: &LogItem) {
+    println!(
+        "{} {:?} {:?} -----------",
+        item.date.to_rfc3339(),
+        item.level,
+        item.process
+    );
+    if let Some(table) = &item.table {
+        println!("Table: {}", table);
+    }
+    println!("Process: {}", item.process_name);
+    println!("Message: {}", item.message);
+    if let Some(err_ctx) = &item.err_ctx {
+        println!("Err_ctx: {}", err_ctx);
     }
 }
 

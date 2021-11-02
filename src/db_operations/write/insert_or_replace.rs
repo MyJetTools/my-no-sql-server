@@ -15,8 +15,7 @@ pub async fn execute(
 ) {
     let mut table_write_access = db_table.data.write().await;
 
-    let db_partition =
-        table_write_access.get_or_create_partition(partition_key, Some(db_row.time_stamp));
+    let db_partition = table_write_access.get_or_create_partition(partition_key);
 
     let update_time = db_row.time_stamp;
 

@@ -37,7 +37,7 @@ impl InitTableEventState {
         self.table_snapshot = Some(snapshot);
     }
 
-    pub fn get_snapshot(&self) -> Vec<u8> {
-        return self.table_snapshot.as_ref().unwrap().get_snapshot();
+    pub fn as_raw_bytes(&self) -> Vec<u8> {
+        return self.table_snapshot.as_ref().unwrap().as_raw_bytes();
     }
 }

@@ -49,7 +49,7 @@ impl<'t> JsonFirstLine<'t> {
         return std::str::from_utf8(value);
     }
 
-    pub fn get_value(&'t self) -> Result<&'t str, JsonParseError> {
+    pub fn get_value(&self) -> Result<&'t str, JsonParseError> {
         let mut value = &self.data[self.value_start..self.value_end];
 
         if value[0] == super::consts::DOUBLE_QUOTE {

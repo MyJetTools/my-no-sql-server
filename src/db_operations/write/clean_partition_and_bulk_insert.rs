@@ -29,19 +29,20 @@ pub async fn execute(
     let removed_partition_result = write_access.partitions.remove(partition_key);
 
     for (partition_key, db_rows) in entities {
-        let db_partition = write_access.get_or_create_partition(partition_key.as_str(), Some(now));
-        db_partition.bulk_insert_or_replace(&db_rows, None);
+        let db_partition = write_access.get_or_create_partition(partition_key.as_str());
+        db_partition.last_write_moment.update(now);
+        db_partition.bulk_insert_or_replace(&db_rows, Some(now));
 
         if let Some(state) = &mut update_partitions_state {
             state.add(
                 partition_key,
-                Some(db_partition.get_db_partition_snapshot(None)),
+                Some(db_partition.get_db_partition_snapshot()),
             );
         }
     }
 
     //TODO - Unit test usecase where deleted partition had not Rows to insert
-    if let Some(removed_partition) = removed_partition_result {
+    if removed_partition_result.is_some() {
         if let Some(update_partitions_state) = &mut update_partitions_state {
             if !update_partitions_state
                 .partitions_to_update
@@ -50,7 +51,7 @@ pub async fn execute(
                 match write_access.partitions.get(partition_key) {
                     Some(partition) => update_partitions_state.add(
                         partition_key.to_string(),
-                        Some(partition.get_db_partition_snapshot(None)),
+                        Some(partition.get_db_partition_snapshot()),
                     ),
                     None => update_partitions_state.add(partition_key.to_string(), None),
                 };

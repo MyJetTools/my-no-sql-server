@@ -15,6 +15,10 @@ pub async fn with_retries(
         let result = create_table(azure_connection, table_name, attr).await;
 
         if result.is_ok() {
+            app.blob_content_cache
+                .create_table(table_name, attr.clone())
+                .await;
+
             app.logs
                 .add_info(
                     Some(table_name.to_string()),
@@ -49,9 +53,8 @@ async fn create_table(
     table_name: &str,
     attr: &DbTableAttributes,
 ) -> Result<(), AzureStorageError> {
-    super::repo::create_table_if_not_exists(azure_connection, table_name).await?;
-
-    super::repo::save_table_attributes(azure_connection, table_name, attr).await?;
+    super::table::create_if_not_exists(azure_connection, table_name).await?;
+    super::table::save_attributes(azure_connection, table_name, attr).await?;
 
     Ok(())
 }

@@ -39,7 +39,7 @@ impl DeleteEventState {
         let deleted_rows = self.deleted_rows.as_mut().unwrap();
 
         if !deleted_rows.contains_key(partition_key) {
-            deleted_rows.insert(row_key, BTreeMap::new());
+            deleted_rows.insert(row_key.to_string(), BTreeMap::new());
         }
 
         deleted_rows

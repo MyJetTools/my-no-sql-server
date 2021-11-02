@@ -22,9 +22,9 @@ pub async fn start(app: Arc<AppContext>, addr: SocketAddr) {
     app.logs
         .add_info(
             None,
-            crate::app::logs::SystemProcess::TcpSocket,
+            crate::app::logs::SystemProcess::System,
             "Tcp socket is started".to_string(),
-            format!("{:?}", addr),
+            format!("Tcp socket: {:?}", addr),
         )
         .await;
 

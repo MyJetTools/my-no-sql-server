@@ -13,8 +13,8 @@ pub async fn start(app: Arc<AppContext>, addr: SocketAddr) {
         .add_info(
             None,
             crate::app::logs::SystemProcess::System,
-            format!("Starting http server {}", addr),
-            format!("Starting http server {}", addr),
+            format!("Http socket is started"),
+            format!("Http socket: {}", addr),
         )
         .await;
 

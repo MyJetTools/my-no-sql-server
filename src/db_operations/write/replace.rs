@@ -52,7 +52,7 @@ pub async fn execute(
 ) -> Result<(), DbOperationError> {
     let mut write_access = db_table.data.write().await;
 
-    let db_partition = write_access.get_partition_mut(partition_key, Some(db_row.time_stamp));
+    let db_partition = write_access.partitions.get_mut(partition_key);
 
     if db_partition.is_none() {
         return Err(DbOperationError::RecordNotFound);

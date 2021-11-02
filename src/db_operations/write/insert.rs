@@ -43,7 +43,7 @@ pub async fn execute(
     {
         let mut table_write_access = db_table.data.write().await;
 
-        let db_partition = table_write_access.get_or_create_partition(partition_key, Some(now));
+        let db_partition = table_write_access.get_or_create_partition(partition_key);
 
         let inserted = db_partition.insert(db_row.clone(), Some(now));
 
