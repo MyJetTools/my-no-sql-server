@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::atomic::AtomicBool};
 
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 use tokio::sync::RwLock;
@@ -11,14 +11,17 @@ pub struct DbTable {
     pub name: String,
     pub created: DateTimeAsMicroseconds,
     pub data: RwLock<DbTableData>,
+    persist: AtomicBool,
 }
 
 impl DbTable {
     pub fn new(name: String, data: DbTableData, created: DateTimeAsMicroseconds) -> Self {
+        let persist = AtomicBool::new(data.attributes.persist);
         DbTable {
             created,
             name: name,
             data: RwLock::new(data),
+            persist,
         }
     }
 
@@ -47,8 +50,14 @@ impl DbTable {
 
         write_access.attributes.persist = persist_table;
         write_access.attributes.max_partitions_amount = max_partitions_amount;
+        self.persist
+            .store(persist_table, std::sync::atomic::Ordering::SeqCst);
 
         return true;
+    }
+
+    pub fn get_persist(&self) -> bool {
+        return self.persist.load(std::sync::atomic::Ordering::Relaxed);
     }
 
     pub async fn get_snapshot_as_partitions(&self) -> HashMap<String, DbPartitionSnapshot> {

@@ -24,14 +24,14 @@ impl EventsDispatcher {
 
     pub async fn dispatch(&self, event: SyncEvent) {
         {
-            let table = event.get_table();
+            let table_name = event.get_table_name();
             let mut write_access = self.events.lock().await;
 
-            if !write_access.contains_key(&table.name) {
-                write_access.insert(table.name.to_string(), Vec::new());
+            if !write_access.contains_key(table_name) {
+                write_access.insert(table_name.to_string(), Vec::new());
             }
 
-            write_access.get_mut(&table.name).unwrap().push(event);
+            write_access.get_mut(table_name).unwrap().push(event);
         }
 
         if let Some(sender) = &self.sender {

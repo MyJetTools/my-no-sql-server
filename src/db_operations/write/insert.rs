@@ -1,12 +1,10 @@
 use std::sync::Arc;
 
-use rust_extensions::date_time::DateTimeAsMicroseconds;
-
 use crate::{
     app::AppContext,
     db::{DbRow, DbTable},
     db_operations::DbOperationError,
-    db_sync::{states::UpdateRowsSyncState, SyncAttributes, SyncEvent},
+    db_sync::{states::UpdateRowsSyncData, SyncAttributes, SyncEvent},
 };
 
 pub async fn validate_before(
@@ -33,19 +31,17 @@ pub async fn validate_before(
 
 pub async fn execute(
     app: &AppContext,
-    db_table: Arc<DbTable>,
+    db_table: &DbTable,
     partition_key: &str,
     db_row: Arc<DbRow>,
     attr: Option<SyncAttributes>,
 ) -> Result<(), DbOperationError> {
-    let now = DateTimeAsMicroseconds::now();
-
     {
         let mut table_write_access = db_table.data.write().await;
 
         let db_partition = table_write_access.get_or_create_partition(partition_key);
 
-        let inserted = db_partition.insert(db_row.clone(), Some(now));
+        let inserted = db_partition.insert(db_row.clone(), Some(db_row.time_stamp));
 
         if !inserted {
             return Err(DbOperationError::RecordAlreadyExists);
@@ -53,7 +49,7 @@ pub async fn execute(
     }
 
     if let Some(attr) = attr {
-        let mut update_rows_state = UpdateRowsSyncState::new(db_table, attr);
+        let mut update_rows_state = UpdateRowsSyncData::new(db_table, attr);
 
         update_rows_state.add_row(partition_key, db_row);
 

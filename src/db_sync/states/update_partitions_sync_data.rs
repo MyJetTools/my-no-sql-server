@@ -1,20 +1,22 @@
-use std::{collections::BTreeMap, sync::Arc};
+use std::collections::BTreeMap;
 
 use crate::{
     db::{DbPartitionSnapshot, DbTable},
     db_sync::SyncAttributes,
 };
 
-pub struct UpdatePartitionsState {
-    pub table: Arc<DbTable>,
+use super::SyncTableData;
+
+pub struct UpdatePartitionsSyncData {
+    pub table_data: SyncTableData,
     pub attr: SyncAttributes,
     pub partitions_to_update: BTreeMap<String, Option<DbPartitionSnapshot>>,
 }
 
-impl UpdatePartitionsState {
-    pub fn new(table: Arc<DbTable>, attr: SyncAttributes) -> Self {
+impl UpdatePartitionsSyncData {
+    pub fn new(table: &DbTable, attr: SyncAttributes) -> Self {
         Self {
-            table,
+            table_data: SyncTableData::new(table),
             attr,
             partitions_to_update: BTreeMap::new(),
         }

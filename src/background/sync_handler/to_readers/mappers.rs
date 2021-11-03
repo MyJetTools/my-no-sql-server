@@ -10,30 +10,24 @@ pub enum TcpContractsToSend {
 
 pub fn into_tcp_contract(event: &SyncEvent) -> TcpContractsToSend {
     match event {
-        SyncEvent::UpdateTableAttributes {
-            table: _,
-            attr: _,
-            table_is_just_created: _,
-            persist: _,
-            max_partitions_amount: _,
-        } => TcpContractsToSend::None,
-        SyncEvent::InitTable(state) => {
+        SyncEvent::UpdateTableAttributes(_) => TcpContractsToSend::None,
+        SyncEvent::InitTable(data) => {
             let result = TcpContract::InitTable {
-                table_name: state.table.name.to_string(),
-                data: state.as_raw_bytes(),
+                table_name: data.table_data.table_name.to_string(),
+                data: data.as_raw_bytes(),
             };
 
             TcpContractsToSend::Single(result)
         }
-        SyncEvent::InitPartitions(state) => {
+        SyncEvent::InitPartitions(data) => {
             let mut result = Vec::new();
 
-            for (partition_key, data) in &state.partitions_to_update {
+            for (partition_key, snapshot) in &data.partitions_to_update {
                 let contract = TcpContract::InitPartition {
                     partition_key: partition_key.to_string(),
-                    table_name: state.table.name.to_string(),
-                    data: if let Some(data) = data {
-                        data.content.as_json_array()
+                    table_name: data.table_data.table_name.to_string(),
+                    data: if let Some(snapshot) = snapshot {
+                        snapshot.content.as_json_array()
                     } else {
                         EMPTY_ARRAY.to_vec()
                     },
@@ -44,27 +38,27 @@ pub fn into_tcp_contract(event: &SyncEvent) -> TcpContractsToSend {
 
             TcpContractsToSend::Multiple(result)
         }
-        SyncEvent::UpdateRows(state) => {
+        SyncEvent::UpdateRows(data) => {
             let result = TcpContract::UpdateRows {
-                table_name: state.table.name.to_string(),
-                data: state.updated_rows_by_partition.as_json_array(),
+                table_name: data.table_data.table_name.to_string(),
+                data: data.updated_rows_by_partition.as_json_array(),
             };
             TcpContractsToSend::Single(result)
         }
-        SyncEvent::Delete(state) => {
+        SyncEvent::Delete(data) => {
             let mut result = Vec::new();
 
-            if let Some(deleted_partitions) = &state.deleted_partitions {
+            if let Some(deleted_partitions) = &data.deleted_partitions {
                 for (partition_key, _) in deleted_partitions {
                     result.push(TcpContract::InitPartition {
-                        table_name: state.table.name.to_string(),
+                        table_name: data.table_data.table_name.to_string(),
                         partition_key: partition_key.to_string(),
                         data: EMPTY_ARRAY.to_vec(),
                     });
                 }
             }
 
-            if let Some(deleted_rows) = &state.deleted_rows {
+            if let Some(deleted_rows) = &data.deleted_rows {
                 for (partition_key, rows) in deleted_rows {
                     let mut deleted_rows = Vec::new();
 
@@ -78,7 +72,7 @@ pub fn into_tcp_contract(event: &SyncEvent) -> TcpContractsToSend {
                     }
 
                     let contract = TcpContract::DeleteRows {
-                        table_name: state.table.name.to_string(),
+                        table_name: data.table_data.table_name.to_string(),
                         rows: deleted_rows,
                     };
 
@@ -88,9 +82,9 @@ pub fn into_tcp_contract(event: &SyncEvent) -> TcpContractsToSend {
 
             TcpContractsToSend::Multiple(result)
         }
-        SyncEvent::DeleteTable { table, attr: _ } => {
+        SyncEvent::DeleteTable(data) => {
             let contract = TcpContract::InitTable {
-                table_name: table.name.to_string(),
+                table_name: data.table_data.table_name.to_string(),
                 data: EMPTY_ARRAY.to_vec(),
             };
 

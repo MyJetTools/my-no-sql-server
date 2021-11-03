@@ -6,7 +6,7 @@ use crate::{
     app::AppContext,
     db::{DbRow, DbTable},
     db_operations::DbOperationError,
-    db_sync::{states::UpdateRowsSyncState, SyncAttributes, SyncEvent},
+    db_sync::{states::UpdateRowsSyncData, SyncAttributes, SyncEvent},
 };
 
 use serde::{Deserialize, Serialize};
@@ -45,10 +45,11 @@ pub async fn validate_before(
 
 pub async fn execute(
     app: &AppContext,
-    db_table: Arc<DbTable>,
+    db_table: &DbTable,
     partition_key: &str,
     db_row: Arc<DbRow>,
     attr: Option<SyncAttributes>,
+    entity_timestamp: DateTimeAsMicroseconds,
 ) -> Result<(), DbOperationError> {
     let mut write_access = db_table.data.write().await;
 
@@ -69,7 +70,7 @@ pub async fn execute(
 
         let db_row = db_row.unwrap();
 
-        if db_row.time_stamp.unix_microseconds != db_row.time_stamp.unix_microseconds {
+        if db_row.time_stamp.unix_microseconds != entity_timestamp.unix_microseconds {
             return Err(DbOperationError::OptimisticConcurencyUpdateFails);
         }
     }
@@ -79,7 +80,7 @@ pub async fn execute(
     db_partition.insert_or_replace(db_row.clone(), Some(update_write_time));
 
     if let Some(attr) = attr {
-        let mut update_rows_state = UpdateRowsSyncState::new(db_table.clone(), attr);
+        let mut update_rows_state = UpdateRowsSyncData::new(db_table, attr);
 
         update_rows_state.add_row(partition_key, db_row);
 

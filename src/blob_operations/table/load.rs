@@ -66,7 +66,12 @@ pub async fn load(
 
                 let db_entity = db_entity.unwrap();
 
-                let db_row = db_entity.to_db_row();
+                let db_row = if let Some(time_stamp) = db_entity.time_stamp {
+                    db_entity.restore_db_row(time_stamp)
+                } else {
+                    db_entity.to_db_row(now)
+                };
+
                 db_partition.insert(Arc::new(db_row), Some(now));
             }
 

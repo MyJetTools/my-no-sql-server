@@ -1,49 +1,31 @@
-use std::sync::Arc;
-
-use crate::db::DbTable;
-
-use super::{
-    states::{DeleteEventState, InitTableEventState, UpdatePartitionsState, UpdateRowsSyncState},
-    SyncAttributes,
+use super::states::{
+    DeleteEventSyncData, DeleteTableSyncData, InitTableEventSyncData, UpdatePartitionsSyncData,
+    UpdateRowsSyncData, UpdateTableAttributesSyncData,
 };
 
 pub enum SyncEvent {
-    UpdateTableAttributes {
-        table: Arc<DbTable>,
-        attr: SyncAttributes,
-        table_is_just_created: bool,
-        persist: bool,
-        max_partitions_amount: Option<usize>,
-    },
-    InitTable(InitTableEventState),
+    UpdateTableAttributes(UpdateTableAttributesSyncData),
 
-    InitPartitions(UpdatePartitionsState),
+    InitTable(InitTableEventSyncData),
 
-    UpdateRows(UpdateRowsSyncState),
+    InitPartitions(UpdatePartitionsSyncData),
 
-    Delete(DeleteEventState),
+    UpdateRows(UpdateRowsSyncData),
 
-    DeleteTable {
-        table: Arc<DbTable>,
-        attr: SyncAttributes,
-    },
+    Delete(DeleteEventSyncData),
+
+    DeleteTable(DeleteTableSyncData),
 }
 
 impl SyncEvent {
-    pub fn get_table(&self) -> Arc<DbTable> {
+    pub fn get_table_name(&self) -> &str {
         match self {
-            SyncEvent::UpdateTableAttributes {
-                table,
-                attr: _,
-                table_is_just_created: _,
-                persist: _,
-                max_partitions_amount: _,
-            } => table.clone(),
-            SyncEvent::InitTable(state) => state.table.clone(),
-            SyncEvent::InitPartitions(state) => state.table.clone(),
-            SyncEvent::UpdateRows(state) => state.table.clone(),
-            SyncEvent::Delete(state) => state.table.clone(),
-            SyncEvent::DeleteTable { table, attr: _ } => table.clone(),
+            SyncEvent::UpdateTableAttributes(data) => data.table_data.table_name.as_ref(),
+            SyncEvent::InitTable(data) => data.table_data.table_name.as_ref(),
+            SyncEvent::InitPartitions(data) => data.table_data.table_name.as_ref(),
+            SyncEvent::UpdateRows(data) => data.table_data.table_name.as_ref(),
+            SyncEvent::Delete(data) => data.table_data.table_name.as_ref(),
+            SyncEvent::DeleteTable(data) => data.table_data.table_name.as_ref(),
         }
     }
 }

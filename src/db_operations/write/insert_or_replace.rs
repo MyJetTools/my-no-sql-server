@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::{
     app::AppContext,
     db::{DbRow, DbTable},
-    db_sync::{states::UpdateRowsSyncState, SyncAttributes, SyncEvent},
+    db_sync::{states::UpdateRowsSyncData, SyncAttributes, SyncEvent},
 };
 
 pub async fn execute(
@@ -22,7 +22,7 @@ pub async fn execute(
     db_partition.insert_or_replace(db_row.clone(), Some(update_time));
 
     if let Some(attr) = attr {
-        let mut update_rows_state = UpdateRowsSyncState::new(db_table.clone(), attr);
+        let mut update_rows_state = UpdateRowsSyncData::new(db_table.as_ref(), attr);
 
         update_rows_state.add_row(partition_key, db_row);
         app.events_dispatcher

@@ -6,7 +6,13 @@ use crate::{
     app::AppContext,
     db::{CreateTableResult, DbTable},
     db_operations::DbOperationError,
-    db_sync::{states::InitTableEventState, SyncAttributes, SyncEvent},
+    db_sync::{
+        states::{
+            DeleteTableSyncData, InitTableEventSyncData, SyncTableData,
+            UpdateTableAttributesSyncData,
+        },
+        SyncAttributes, SyncEvent,
+    },
 };
 
 pub async fn create(
@@ -26,7 +32,7 @@ pub async fn create(
     match create_table_result {
         CreateTableResult::JustCreated(db_table) => {
             if let Some(attr) = attr {
-                let state = InitTableEventState::new(db_table.clone(), attr);
+                let state = InitTableEventSyncData::new(db_table.as_ref(), attr);
                 app.events_dispatcher
                     .dispatch(SyncEvent::InitTable(state))
                     .await;
@@ -57,7 +63,7 @@ async fn get_or_create(
     match create_table_result {
         CreateTableResult::JustCreated(db_table) => {
             if let Some(attr) = attr {
-                let state = InitTableEventState::new(db_table.clone(), attr);
+                let state = InitTableEventSyncData::new(db_table.as_ref(), attr);
                 app.events_dispatcher
                     .dispatch(SyncEvent::InitTable(state))
                     .await;
@@ -115,13 +121,18 @@ pub async fn set_table_attrubutes(
     if result {
         if let Some(attr) = attr {
             app.events_dispatcher
-                .dispatch(SyncEvent::UpdateTableAttributes {
-                    table: db_table.clone(),
-                    attr,
-                    table_is_just_created,
-                    persist,
-                    max_partitions_amount,
-                })
+                .dispatch(SyncEvent::UpdateTableAttributes(
+                    UpdateTableAttributesSyncData {
+                        table_data: SyncTableData {
+                            table_name: db_table.name.to_string(),
+                            persist,
+                        },
+                        attr,
+                        table_is_just_created,
+                        persist,
+                        max_partitions_amount,
+                    },
+                ))
                 .await;
         }
     }
@@ -142,10 +153,10 @@ pub async fn delete(
 
     if let Some(attr) = attr {
         app.events_dispatcher
-            .dispatch(SyncEvent::DeleteTable {
-                table: db_table.clone(),
+            .dispatch(SyncEvent::DeleteTable(DeleteTableSyncData::new(
+                db_table.as_ref(),
                 attr,
-            })
+            )))
             .await;
     }
 

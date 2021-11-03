@@ -5,16 +5,18 @@ use crate::{
     db_sync::SyncAttributes,
 };
 
-pub struct UpdateRowsSyncState {
-    pub table: Arc<DbTable>,
+use super::SyncTableData;
+
+pub struct UpdateRowsSyncData {
+    pub table_data: SyncTableData,
     pub attr: SyncAttributes,
     pub updated_rows_by_partition: BTreeMap<String, Vec<Arc<DbRow>>>,
 }
 
-impl UpdateRowsSyncState {
-    pub fn new(table: Arc<DbTable>, attr: SyncAttributes) -> Self {
+impl UpdateRowsSyncData {
+    pub fn new(table: &DbTable, attr: SyncAttributes) -> Self {
         Self {
-            table,
+            table_data: SyncTableData::new(table),
             attr,
             updated_rows_by_partition: BTreeMap::new(),
         }

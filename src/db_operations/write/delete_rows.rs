@@ -5,7 +5,7 @@ use rust_extensions::date_time::DateTimeAsMicroseconds;
 use crate::{
     app::AppContext,
     db::DbTable,
-    db_sync::{states::DeleteEventState, SyncAttributes, SyncEvent},
+    db_sync::{states::DeleteEventSyncData, SyncAttributes, SyncEvent},
 };
 
 pub async fn execute(
@@ -28,7 +28,7 @@ pub async fn execute(
     let db_partition = db_partition.unwrap();
 
     let mut sync = if let Some(attr) = attr {
-        Some(DeleteEventState::new(db_table.clone(), attr))
+        Some(DeleteEventSyncData::new(db_table.as_ref(), attr))
     } else {
         None
     };

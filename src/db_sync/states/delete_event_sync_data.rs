@@ -5,17 +5,19 @@ use crate::{
     db_sync::SyncAttributes,
 };
 
-pub struct DeleteEventState {
-    pub table: Arc<DbTable>,
+use super::SyncTableData;
+
+pub struct DeleteEventSyncData {
+    pub table_data: SyncTableData,
     pub attr: SyncAttributes,
     pub deleted_partitions: Option<BTreeMap<String, DbPartition>>,
     pub deleted_rows: Option<BTreeMap<String, BTreeMap<String, Arc<DbRow>>>>,
 }
 
-impl DeleteEventState {
-    pub fn new(table: Arc<DbTable>, attr: SyncAttributes) -> Self {
+impl DeleteEventSyncData {
+    pub fn new(table: &DbTable, attr: SyncAttributes) -> Self {
         Self {
-            table,
+            table_data: SyncTableData::new(table),
             attr,
             deleted_partitions: None,
             deleted_rows: None,

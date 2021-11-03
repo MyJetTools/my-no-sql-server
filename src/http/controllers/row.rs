@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use rust_extensions::date_time::DateTimeAsMicroseconds;
+
 use crate::db_json_entity::DbJsonEntity;
 use crate::http::http_ctx::HttpContext;
 
@@ -65,7 +67,7 @@ pub async fn insert(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult, 
     let body = ctx.get_body().await;
 
     let db_table = crate::db_operations::read::table::get(app, table_name).await?;
-
+    let now = DateTimeAsMicroseconds::now();
     let db_json_entity = DbJsonEntity::parse(&body)?;
 
     crate::db_operations::write::insert::validate_before(
@@ -77,11 +79,11 @@ pub async fn insert(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult, 
 
     let attr = http_helpers::create_transaction_attributes(app, sync_period);
 
-    let db_row = Arc::new(db_json_entity.to_db_row());
+    let db_row = Arc::new(db_json_entity.to_db_row(now));
 
     crate::db_operations::write::insert::execute(
         app,
-        db_table,
+        db_table.as_ref(),
         db_json_entity.partition_key,
         db_row,
         Some(attr),
@@ -106,9 +108,11 @@ pub async fn insert_or_replace(
 
     let attr = http_helpers::create_transaction_attributes(app, sync_period);
 
+    let now = DateTimeAsMicroseconds::now();
+
     let db_json_entity = DbJsonEntity::parse(&body)?;
 
-    let db_row = Arc::new(db_json_entity.to_db_row());
+    let db_row = Arc::new(db_json_entity.to_db_row(now));
 
     crate::db_operations::write::insert_or_replace::execute(
         app,
@@ -132,6 +136,8 @@ pub async fn replace(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult,
 
     let db_table = crate::db_operations::read::table::get(app, table_name).await?;
 
+    let now = DateTimeAsMicroseconds::now();
+
     let db_json_entity = DbJsonEntity::parse(&body)?;
 
     crate::db_operations::write::replace::validate_before(
@@ -142,16 +148,17 @@ pub async fn replace(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult,
     )
     .await?;
 
-    let db_row = Arc::new(db_json_entity.to_db_row());
+    let db_row = Arc::new(db_json_entity.to_db_row(now));
 
     let attr = http_helpers::create_transaction_attributes(app, sync_period);
 
     crate::db_operations::write::replace::execute(
         app,
-        db_table,
+        db_table.as_ref(),
         db_json_entity.partition_key,
         db_row,
         Some(attr),
+        db_json_entity.time_stamp.unwrap(),
     )
     .await?;
 

@@ -7,14 +7,15 @@ use crate::{
     json::{array_parser::ArrayToJsonObjectsSplitter, JsonFirstLineParser},
 };
 
-use super::DbEntityParseFail;
+use super::{date_time_injector::TimeStampValuePosition, utils::JsonTimeStamp, DbEntityParseFail};
 
 pub struct DbJsonEntity<'s> {
     pub partition_key: &'s str,
     pub row_key: &'s str,
     pub expires: Option<DateTimeAsMicroseconds>,
     pub time_stamp: Option<DateTimeAsMicroseconds>,
-    pub raw: &'s [u8],
+    timestamp_value_position: Option<TimeStampValuePosition>,
+    raw: &'s [u8],
 }
 
 impl<'s> DbJsonEntity<'s> {
@@ -23,6 +24,7 @@ impl<'s> DbJsonEntity<'s> {
         let mut row_key = None;
         let mut expires = None;
         let mut time_stamp = None;
+        let mut timestamp_value_position = None;
 
         for line in JsonFirstLineParser::new(raw) {
             let line = line?;
@@ -42,7 +44,12 @@ impl<'s> DbJsonEntity<'s> {
             }
 
             if name == super::consts::TIME_STAMP {
-                time_stamp = line.get_value_as_date_time();
+                timestamp_value_position = Some(TimeStampValuePosition {
+                    start: line.value_start,
+                    end: line.value_end,
+                });
+
+                time_stamp = line.get_value_as_date_time()
             }
         }
 
@@ -60,17 +67,25 @@ impl<'s> DbJsonEntity<'s> {
             row_key: row_key.unwrap(),
             expires,
             time_stamp,
+            timestamp_value_position,
         };
 
         return Ok(result);
     }
 
-    pub fn to_db_row(&self) -> DbRow {
-        let time_stamp = match self.time_stamp {
-            Some(value) => value,
-            None => DateTimeAsMicroseconds::now(),
-        };
+    pub fn to_db_row(&self, time_stamp: DateTimeAsMicroseconds) -> DbRow {
+        let data = compile_row_content(self.raw, &self.timestamp_value_position, time_stamp);
 
+        return DbRow {
+            row_key: self.row_key.to_string(),
+            data,
+            expires: self.expires,
+            time_stamp,
+            last_read_access: AtomicDateTimeAsMicroseconds::now(),
+        };
+    }
+
+    pub fn restore_db_row(&self, time_stamp: DateTimeAsMicroseconds) -> DbRow {
         return DbRow {
             row_key: self.row_key.to_string(),
             data: self.raw.to_vec(),
@@ -82,12 +97,13 @@ impl<'s> DbJsonEntity<'s> {
 
     pub fn parse_as_btreemap(
         src: &'s [u8],
+        time_stamp: DateTimeAsMicroseconds,
     ) -> Result<BTreeMap<String, Vec<Arc<DbRow>>>, DbEntityParseFail> {
         let mut result = BTreeMap::new();
 
         for json in src.split_array_json_to_objects() {
             let db_entity = DbJsonEntity::parse(json)?;
-            let db_row = db_entity.to_db_row();
+            let db_row = db_entity.to_db_row(time_stamp);
             if !result.contains_key(db_entity.partition_key) {
                 result.insert(db_entity.partition_key.to_string(), Vec::new());
 
@@ -98,5 +114,23 @@ impl<'s> DbJsonEntity<'s> {
             }
         }
         return Ok(result);
+    }
+}
+
+fn compile_row_content(
+    raw: &[u8],
+    time_stamp_value_position: &Option<TimeStampValuePosition>,
+    time_stamp: DateTimeAsMicroseconds,
+) -> Vec<u8> {
+    let json_time_stamp = JsonTimeStamp::new(time_stamp);
+
+    if let Some(time_stamp_value_position) = time_stamp_value_position {
+        return super::date_time_injector::replace_timestamp_value(
+            raw,
+            time_stamp_value_position,
+            json_time_stamp,
+        );
+    } else {
+        return super::date_time_injector::inject(raw, json_time_stamp);
     }
 }

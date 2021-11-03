@@ -19,62 +19,63 @@ pub async fn execute(app: &AppContext, next_events: &NextEventsToHandle) {
     if get_table_result.is_some() {
         for next_event in &next_events.events {
             match &next_event {
-                SyncEvent::UpdateTableAttributes {
-                    table: _,
-                    attr: _,
-                    table_is_just_created: _,
-                    persist: _,
-                    max_partitions_amount: _,
-                } => {
+                SyncEvent::UpdateTableAttributes(_) => {
                     app.updates_to_persist_by_table
                         .update_table_attributes(next_events.table_name.as_str(), sync_moment)
                         .await;
                 }
-                SyncEvent::InitTable(_) => {
-                    app.updates_to_persist_by_table
-                        .update_table(next_events.table_name.as_str(), sync_moment)
-                        .await;
-                }
-                SyncEvent::InitPartitions(state) => {
-                    app.updates_to_persist_by_table
-                        .update_partitions(
-                            next_events.table_name.as_str(),
-                            state.partitions_to_update.keys(),
-                            sync_moment,
-                        )
-                        .await;
-                }
-                SyncEvent::UpdateRows(state) => {
-                    app.updates_to_persist_by_table
-                        .update_partitions(
-                            next_events.table_name.as_str(),
-                            state.updated_rows_by_partition.keys(),
-                            sync_moment,
-                        )
-                        .await;
-                }
-                SyncEvent::Delete(state) => {
-                    if let Some(deleted_partitions) = &state.deleted_partitions {
+                SyncEvent::InitTable(data) => {
+                    if data.table_data.persist {
                         app.updates_to_persist_by_table
-                            .update_partitions(
-                                next_events.table_name.as_str(),
-                                deleted_partitions.keys(),
-                                sync_moment,
-                            )
+                            .update_table(next_events.table_name.as_str(), sync_moment)
                             .await;
                     }
-
-                    if let Some(deleted_rows) = &state.deleted_rows {
+                }
+                SyncEvent::InitPartitions(data) => {
+                    if data.table_data.persist {
                         app.updates_to_persist_by_table
                             .update_partitions(
                                 next_events.table_name.as_str(),
-                                deleted_rows.keys(),
+                                data.partitions_to_update.keys(),
                                 sync_moment,
                             )
                             .await;
                     }
                 }
-                SyncEvent::DeleteTable { table: _, attr: _ } => {
+                SyncEvent::UpdateRows(data) => {
+                    if data.table_data.persist {
+                        app.updates_to_persist_by_table
+                            .update_partitions(
+                                next_events.table_name.as_str(),
+                                data.updated_rows_by_partition.keys(),
+                                sync_moment,
+                            )
+                            .await;
+                    }
+                }
+                SyncEvent::Delete(data) => {
+                    if data.table_data.persist {
+                        if let Some(deleted_partitions) = &data.deleted_partitions {
+                            app.updates_to_persist_by_table
+                                .update_partitions(
+                                    next_events.table_name.as_str(),
+                                    deleted_partitions.keys(),
+                                    sync_moment,
+                                )
+                                .await;
+                        }
+                        if let Some(deleted_rows) = &data.deleted_rows {
+                            app.updates_to_persist_by_table
+                                .update_partitions(
+                                    next_events.table_name.as_str(),
+                                    deleted_rows.keys(),
+                                    sync_moment,
+                                )
+                                .await;
+                        }
+                    }
+                }
+                SyncEvent::DeleteTable(_) => {
                     app.updates_to_persist_by_table
                         .update_table(next_events.table_name.as_str(), sync_moment)
                         .await;

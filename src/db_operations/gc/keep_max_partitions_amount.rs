@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::{
     app::AppContext,
     db::DbTable,
-    db_sync::{states::UpdatePartitionsState, SyncAttributes, SyncEvent},
+    db_sync::{states::UpdatePartitionsSyncData, SyncAttributes, SyncEvent},
 };
 
 pub async fn execute(
@@ -19,7 +19,7 @@ pub async fn execute(
     }
 
     let sync = if let Some(attr) = attr {
-        Some(UpdatePartitionsState::new(db_table.clone(), attr))
+        Some(UpdatePartitionsSyncData::new(db_table.as_ref(), attr))
     } else {
         None
     };

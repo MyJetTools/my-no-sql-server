@@ -40,7 +40,7 @@ pub async fn route_requests(
         (&Method::POST, "/tables/createifnotexists") => {
             return tables::create_table_if_not_exists(HttpContext::new(req), app.as_ref()).await;
         }
-        (&Method::PUT, "/tables/clean") => {
+        (&Method::POST, "/tables/clean") => {
             return tables::clean(HttpContext::new(req), app.as_ref()).await;
         }
 

@@ -3,7 +3,7 @@ use std::{collections::BTreeMap, sync::Arc};
 use crate::{
     app::AppContext,
     db::{DbTable, DbTableData},
-    db_sync::{states::InitTableEventState, SyncAttributes, SyncEvent},
+    db_sync::{states::InitTableEventSyncData, SyncAttributes, SyncEvent},
 };
 
 pub async fn execute(app: &AppContext, db_table: Arc<DbTable>, attr: Option<SyncAttributes>) {
@@ -14,7 +14,7 @@ pub async fn execute(app: &AppContext, db_table: Arc<DbTable>, attr: Option<Sync
     }
 
     if let Some(attr) = attr {
-        let mut init_state = InitTableEventState::new(db_table.clone(), attr);
+        let mut init_state = InitTableEventSyncData::new(db_table.as_ref(), attr);
         clean_table(&mut table_write_access, &mut init_state);
 
         app.events_dispatcher
@@ -25,7 +25,7 @@ pub async fn execute(app: &AppContext, db_table: Arc<DbTable>, attr: Option<Sync
     };
 }
 
-pub fn clean_table(db_table_data: &mut DbTableData, init_state: &mut InitTableEventState) {
+pub fn clean_table(db_table_data: &mut DbTableData, init_state: &mut InitTableEventSyncData) {
     let mut old_partitions = BTreeMap::new();
     std::mem::swap(&mut old_partitions, &mut db_table_data.partitions);
 

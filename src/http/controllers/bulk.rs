@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use rust_extensions::date_time::DateTimeAsMicroseconds;
+
 use crate::db_json_entity::DbJsonEntity;
 use crate::http::http_ctx::HttpContext;
 
@@ -24,7 +26,9 @@ pub async fn insert_or_replace(
 
     let attr = http_helpers::create_transaction_attributes(app, sync_period);
 
-    let rows_by_partition = DbJsonEntity::parse_as_btreemap(body.as_slice())?;
+    let now = DateTimeAsMicroseconds::now();
+
+    let rows_by_partition = DbJsonEntity::parse_as_btreemap(body.as_slice(), now)?;
 
     crate::db_operations::write::bulk_insert_or_update::execute(
         app,
@@ -53,7 +57,9 @@ pub async fn clean_and_bulk_insert(
     let sync_period = query.get_sync_period();
 
     let attr = http_helpers::create_transaction_attributes(app, sync_period);
-    let rows_by_partition = DbJsonEntity::parse_as_btreemap(body.as_slice())?;
+    let now = DateTimeAsMicroseconds::now();
+
+    let rows_by_partition = DbJsonEntity::parse_as_btreemap(body.as_slice(), now)?;
 
     match partition_key_param {
         Some(partition_key) => {

@@ -1,21 +1,23 @@
-use std::{collections::BTreeMap, sync::Arc};
+use std::collections::BTreeMap;
 
 use crate::{
     db::{DbPartition, DbTable, DbTableSnapshot},
     db_sync::SyncAttributes,
 };
 
-pub struct InitTableEventState {
-    pub table: Arc<DbTable>,
+use super::SyncTableData;
+
+pub struct InitTableEventSyncData {
+    pub table_data: SyncTableData,
     pub attrs: SyncAttributes,
     pub cleaned_partitions_before: Option<BTreeMap<String, DbPartition>>,
     pub table_snapshot: Option<DbTableSnapshot>,
 }
 
-impl InitTableEventState {
-    pub fn new(table: Arc<DbTable>, attrs: SyncAttributes) -> Self {
+impl InitTableEventSyncData {
+    pub fn new(table: &DbTable, attrs: SyncAttributes) -> Self {
         Self {
-            table,
+            table_data: SyncTableData::new(table),
             attrs,
             cleaned_partitions_before: None,
             table_snapshot: None,
