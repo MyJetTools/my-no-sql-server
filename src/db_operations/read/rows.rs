@@ -1,24 +1,30 @@
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-use crate::{
-    db::{read_as_json::DbEntityAsJsonArray, DbTable},
-    json::JsonArrayBuilder,
-};
+use crate::{db::DbTable, json::JsonArrayBuilder};
 
 use super::ReadOperationResult;
 
-pub async fn get_all_table_rows(table: &DbTable) -> ReadOperationResult {
+pub async fn get_all_table_rows(
+    table: &DbTable,
+    limit: Option<usize>,
+    skip: Option<usize>,
+) -> ReadOperationResult {
     let now = DateTimeAsMicroseconds::now();
 
     let table_data = table.data.read().await;
 
     table_data.last_read_time.update(now);
-    return ReadOperationResult::RowsArray(table_data.as_json_array());
+
+    let result = table_data.iterate_all_rows();
+
+    ReadOperationResult::RowsArray(super::read_filter::filter_it(result, limit, skip))
 }
 
 pub async fn get_all_rows_by_partition_key(
     table: &DbTable,
     partition_key: &str,
+    limit: Option<usize>,
+    skip: Option<usize>,
 ) -> ReadOperationResult {
     let now = DateTimeAsMicroseconds::now();
 
@@ -31,31 +37,44 @@ pub async fn get_all_rows_by_partition_key(
     match get_partition_result {
         Some(partition) => {
             partition.last_read_access.update(now);
-            ReadOperationResult::RowsArray(partition.as_json_array())
+
+            ReadOperationResult::RowsArray(super::read_filter::filter_it(
+                partition.rows.values(),
+                limit,
+                skip,
+            ))
         }
         None => ReadOperationResult::EmptyArray,
     }
 }
 
-pub async fn get_all_rows_by_row_key(table: &DbTable, row_key: &str) -> ReadOperationResult {
+pub async fn get_all_rows_by_row_key(
+    table: &DbTable,
+    row_key: &str,
+    limit: Option<usize>,
+    skip: Option<usize>,
+) -> ReadOperationResult {
     let now = DateTimeAsMicroseconds::now();
 
     let table_data = table.data.read().await;
 
     table_data.last_read_time.update(now);
 
-    let mut json_array_builder = JsonArrayBuilder::new();
+    let mut result = Vec::new();
+
     for partition in table_data.partitions.values() {
-        let get_row_result = partition.get_row(row_key);
+        let get_row_result = partition.rows.get(row_key);
 
         if let Some(db_row) = get_row_result {
-            db_row.last_read_access.update(now);
-            partition.last_read_access.update(now);
-            json_array_builder.append_json_object(&db_row.data);
+            result.push(db_row);
         }
     }
 
-    return ReadOperationResult::RowsArray(json_array_builder.build());
+    return ReadOperationResult::RowsArray(super::read_filter::filter_it(
+        result.into_iter(),
+        limit,
+        skip,
+    ));
 }
 
 pub async fn get_row(table: &DbTable, partition_key: &str, row_key: &str) -> ReadOperationResult {

@@ -4,7 +4,7 @@ use std::collections::{BTreeMap, HashMap};
 
 use crate::db::DbPartition;
 
-use super::db_table_attributes::DbTableAttributes;
+use super::{db_table_attributes::DbTableAttributes, DbTableDataIterator};
 
 pub struct DbTableData {
     pub partitions: BTreeMap<String, DbPartition>,
@@ -69,5 +69,9 @@ impl DbTableData {
         }
 
         Some(result)
+    }
+
+    pub fn iterate_all_rows<'s>(&'s self) -> DbTableDataIterator<'s> {
+        DbTableDataIterator::new(self)
     }
 }

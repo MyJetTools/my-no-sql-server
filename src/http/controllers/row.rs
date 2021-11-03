@@ -32,9 +32,14 @@ pub async fn get_rows(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult
 
             return Ok(result.into());
         } else {
+            let limit = query.get_query_optional_parameter::<usize>(consts::PARAM_LIMIT);
+            let skip = query.get_query_optional_parameter::<usize>(consts::PARAM_SKIP);
+
             let result = crate::db_operations::read::rows::get_all_rows_by_partition_key(
                 db_table.as_ref(),
                 partition_key,
+                limit,
+                skip,
             )
             .await;
 
@@ -42,16 +47,28 @@ pub async fn get_rows(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult
         }
     } else {
         if let Some(row_key) = row_key {
+            let limit = query.get_query_optional_parameter::<usize>(consts::PARAM_LIMIT);
+            let skip = query.get_query_optional_parameter::<usize>(consts::PARAM_SKIP);
+
             let result = crate::db_operations::read::rows::get_all_rows_by_row_key(
                 db_table.as_ref(),
                 row_key,
+                limit,
+                skip,
             )
             .await;
 
             return Ok(result.into());
         } else {
-            let result =
-                crate::db_operations::read::rows::get_all_table_rows(db_table.as_ref()).await;
+            let limit = query.get_query_optional_parameter::<usize>(consts::PARAM_LIMIT);
+            let skip = query.get_query_optional_parameter::<usize>(consts::PARAM_SKIP);
+
+            let result = crate::db_operations::read::rows::get_all_table_rows(
+                db_table.as_ref(),
+                limit,
+                skip,
+            )
+            .await;
 
             return Ok(result.into());
         }
