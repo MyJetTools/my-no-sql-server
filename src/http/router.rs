@@ -15,6 +15,10 @@ pub async fn route_requests(
     req: Request<Body>,
     app: Arc<AppContext>,
 ) -> Result<HttpOkResult, HttpFailResult> {
+    if app.states.is_shutting_down() {
+        return Err(HttpFailResult::is_shutting_down());
+    }
+
     let path = req.uri().path().to_lowercase();
 
     match (req.method(), path.as_str()) {

@@ -77,12 +77,16 @@ impl TableUpdates {
         }
     }
 
-    pub fn get_update_state(&mut self, now: DateTimeAsMicroseconds) -> Option<TableUpdatesState> {
+    pub fn get_update_state(
+        &mut self,
+        now: DateTimeAsMicroseconds,
+        is_shutting_down: bool,
+    ) -> Option<TableUpdatesState> {
         match &mut self.state {
             TableUpdatesState::Empty(_) => None,
             TableUpdatesState::PartitionsAreUpdated(state) => {
                 let sync_it = if let Some(sync_moment) = &state.common_state.sync_moment {
-                    now.unix_microseconds >= sync_moment.unix_microseconds
+                    is_shutting_down || now.unix_microseconds >= sync_moment.unix_microseconds
                 } else {
                     true
                 };

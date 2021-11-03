@@ -1,7 +1,5 @@
 use hyper::{Body, Response};
 
-use crate::{db_json_entity::DbEntityParseFail, json::JsonParseError};
-
 use super::web_content_type::WebContentType;
 
 #[derive(Debug)]
@@ -35,6 +33,14 @@ impl HttpFailResult {
             status_code: 301,
         }
     }
+
+    pub fn is_shutting_down() -> Self {
+        Self {
+            content_type: WebContentType::Text,
+            content: "App is being shutting down".to_string().into_bytes(),
+            status_code: 301,
+        }
+    }
 }
 
 impl Into<Response<Body>> for HttpFailResult {
@@ -44,36 +50,5 @@ impl Into<Response<Body>> for HttpFailResult {
             .status(self.status_code)
             .body(Body::from(self.content))
             .unwrap()
-    }
-}
-
-impl From<JsonParseError> for HttpFailResult {
-    fn from(value: JsonParseError) -> Self {
-        Self {
-            content_type: WebContentType::Text,
-            status_code: 401,
-            content: value.to_string().into_bytes(),
-        }
-    }
-}
-
-impl From<DbEntityParseFail> for HttpFailResult {
-    fn from(src: DbEntityParseFail) -> Self {
-        match src {
-            DbEntityParseFail::FieldPartitionKeyIsRequired => Self {
-                content_type: WebContentType::Text,
-                status_code: 401,
-                content: "PartitionKey field is required".as_bytes().to_vec(),
-            },
-            DbEntityParseFail::FieldRowKeyIsRequired => Self {
-                content_type: WebContentType::Text,
-                status_code: 401,
-                content: "RowKey field is required".as_bytes().to_vec(),
-            },
-
-            DbEntityParseFail::JsonParseError(json_parse_error) => {
-                HttpFailResult::from(json_parse_error)
-            }
-        }
     }
 }

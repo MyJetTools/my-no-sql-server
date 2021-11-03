@@ -27,9 +27,11 @@ pub async fn start(app: Arc<AppContext>, azure_connection: AzureConnection) {
 async fn iteration(app: Arc<AppContext>, azure_connection: Arc<AzureConnection>) {
     let now = DateTimeAsMicroseconds::now();
 
+    let is_shutting_down = app.states.is_shutting_down();
+
     while let Some(persist_event) = app
         .updates_to_persist_by_table
-        .get_next_sync_event(now)
+        .get_next_sync_event(now, is_shutting_down)
         .await
     {
         let get_table_result = app.db.get_table(persist_event.table_name.as_str()).await;

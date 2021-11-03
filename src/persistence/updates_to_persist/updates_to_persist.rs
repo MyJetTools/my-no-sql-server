@@ -48,11 +48,15 @@ impl UpdatesToPersistByTable {
         diff.table_attributes_are_updated(sync_moment);
     }
 
-    pub async fn get_next_sync_event(&self, now: DateTimeAsMicroseconds) -> Option<PersistEvent> {
+    pub async fn get_next_sync_event(
+        &self,
+        now: DateTimeAsMicroseconds,
+        is_shutting_down: bool,
+    ) -> Option<PersistEvent> {
         let mut write_access = self.data_by_table.lock().await;
 
         for (table_name, table_updates) in &mut *write_access {
-            let state = table_updates.get_update_state(now);
+            let state = table_updates.get_update_state(now, is_shutting_down);
 
             if let Some(table_updates_state) = state {
                 return Some(PersistEvent {
