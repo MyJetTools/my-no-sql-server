@@ -1,7 +1,5 @@
-use std::collections::BTreeMap;
-
 use crate::{
-    db::{DbPartition, DbTable, DbTableSnapshot},
+    db::{DbTable, DbTableSnapshot},
     db_sync::SyncAttributes,
 };
 
@@ -10,7 +8,6 @@ use super::SyncTableData;
 pub struct InitTableEventSyncData {
     pub table_data: SyncTableData,
     pub attrs: SyncAttributes,
-    pub cleaned_partitions_before: Option<BTreeMap<String, DbPartition>>,
     pub table_snapshot: Option<DbTableSnapshot>,
 }
 
@@ -19,20 +16,8 @@ impl InitTableEventSyncData {
         Self {
             table_data: SyncTableData::new(table),
             attrs,
-            cleaned_partitions_before: None,
             table_snapshot: None,
         }
-    }
-
-    pub fn add_cleaned_partition_before(&mut self, partition_key: String, partition: DbPartition) {
-        if self.cleaned_partitions_before.is_none() {
-            self.cleaned_partitions_before = Some(BTreeMap::new());
-        }
-
-        self.cleaned_partitions_before
-            .as_mut()
-            .unwrap()
-            .insert(partition_key, partition);
     }
 
     pub fn add_table_snapshot(&mut self, snapshot: DbTableSnapshot) {

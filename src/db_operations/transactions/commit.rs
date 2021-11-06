@@ -59,11 +59,12 @@ pub async fn commit(
                     row_keys,
                 } => {
                     let db_table = tables.get(table_name.as_str()).unwrap();
-                    crate::db_operations::write::delete_rows::execute(
+                    let mut rows_to_delete = HashMap::new();
+                    rows_to_delete.insert(partition_key, row_keys);
+                    crate::db_operations::write::bulk_delete::execute(
                         app,
                         db_table.clone(),
-                        partition_key.as_str(),
-                        row_keys,
+                        rows_to_delete,
                         Some(attr.clone()),
                     )
                     .await;

@@ -1,10 +1,8 @@
 use crate::{
-    db_json_entity::DbEntityParseFail,
-    db_operations::DbOperationError,
-    http::{http_fail::HttpFailResult, web_content_type::WebContentType},
-    json::JsonParseError,
+    db_json_entity::DbEntityParseFail, db_operations::DbOperationError, json::JsonParseError,
 };
 
+use my_http_utils::{HttpFailResult, WebContentType};
 use serde::{Deserialize, Serialize};
 
 const TABLE_ALREADY_EXISTS_ERR: i16 = -1;

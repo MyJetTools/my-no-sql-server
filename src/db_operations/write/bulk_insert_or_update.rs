@@ -22,9 +22,26 @@ pub async fn execute(
 
     for (partition_key, db_rows) in rows_by_partition {
         let db_partition = table_write_access.get_or_create_partition(partition_key.as_str());
+
         let update_time = db_rows.get(0).unwrap().time_stamp;
 
-        db_partition.bulk_insert_or_replace(&db_rows, Some(update_time));
+        super::db_actions::bulk_remove_db_rows(
+            app,
+            db_table.name.as_str(),
+            db_partition,
+            db_rows.iter().map(|itm| &itm.row_key),
+            update_time,
+        )
+        .await;
+
+        super::db_actions::bulk_insert_db_rows(
+            app,
+            db_table.name.as_str(),
+            db_partition,
+            db_rows.as_slice(),
+            update_time,
+        )
+        .await;
 
         if let Some(state) = &mut update_rows_state {
             state.add_rows(partition_key.as_str(), db_rows);

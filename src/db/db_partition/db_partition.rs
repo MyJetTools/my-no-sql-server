@@ -1,10 +1,7 @@
 use rust_extensions::date_time::{AtomicDateTimeAsMicroseconds, DateTimeAsMicroseconds};
 
 use crate::{db::DbRow, json::JsonArrayBuilder, utils::SortedDictionary};
-use std::{
-    collections::{BTreeMap, HashMap},
-    sync::Arc,
-};
+use std::{collections::BTreeMap, sync::Arc};
 
 use super::DbPartitionSnapshot;
 
@@ -45,7 +42,7 @@ impl DbPartition {
         return true;
     }
 
-    pub fn bulk_insert_or_replace(
+    pub fn bulk_insert(
         &mut self,
         db_rows: &[Arc<DbRow>],
         update_write_access: Option<DateTimeAsMicroseconds>,
@@ -71,7 +68,7 @@ impl DbPartition {
         }
     }
 
-    pub fn remove(&mut self, row_key: &str, now: DateTimeAsMicroseconds) -> Option<Arc<DbRow>> {
+    pub fn remove_row(&mut self, row_key: &str, now: DateTimeAsMicroseconds) -> Option<Arc<DbRow>> {
         let result = self.rows.remove(row_key);
 
         if result.is_some() {
@@ -86,7 +83,7 @@ impl DbPartition {
         Some(result.as_ref())
     }
 
-    pub fn gc_rows(&mut self, max_rows_amount: usize) -> Option<HashMap<String, Arc<DbRow>>> {
+    pub fn gc_rows(&mut self, max_rows_amount: usize) -> Option<Vec<Arc<DbRow>>> {
         if self.rows.len() == 0 {
             return None;
         }
@@ -118,10 +115,10 @@ impl DbPartition {
 
             if let Some(db_row) = removed_result {
                 if gced.is_none() {
-                    gced = Some(HashMap::new())
+                    gced = Some(Vec::new())
                 }
 
-                gced.as_mut().unwrap().insert(row_key, db_row);
+                gced.as_mut().unwrap().push(db_row);
             }
 
             partitions_by_date_time.remove(&dt);

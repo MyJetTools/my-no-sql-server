@@ -1,6 +1,5 @@
 use hyper::{Body, Request};
-
-use super::query_string::QueryString;
+use my_http_utils::{HttpFailResult, QueryString};
 
 pub struct HttpContext {
     pub req: Request<Body>,
@@ -11,9 +10,12 @@ impl HttpContext {
         Self { req }
     }
 
-    pub fn get_query_string(&self) -> QueryString {
+    pub fn get_query_string(&self) -> Result<QueryString, HttpFailResult> {
         let query = self.req.uri().query();
-        return QueryString::new(query);
+        match query {
+            Some(query) => Ok(QueryString::new(query)?),
+            None => panic!("Can not get query"),
+        }
     }
 
     pub async fn get_body(self) -> Vec<u8> {

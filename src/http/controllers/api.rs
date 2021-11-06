@@ -1,8 +1,9 @@
 use std::time::SystemTime;
 
+use my_http_utils::HttpFailResult;
 use serde::{Deserialize, Serialize};
 
-use crate::http::{http_fail::HttpFailResult, http_ok::HttpOkResult};
+use crate::http::http_ok::HttpOkResult;
 
 pub fn is_alive() -> Result<HttpOkResult, HttpFailResult> {
     let version = env!("CARGO_PKG_VERSION");

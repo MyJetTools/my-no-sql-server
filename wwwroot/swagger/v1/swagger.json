@@ -962,6 +962,43 @@
                 }
             }
         },
+        "/Tables/MigrateFrom": {
+            "post": {
+                "tags": [
+                    "Tables"
+                ],
+                "operationId": "Tables_Migrate",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "remoteUrl",
+                        "in": "query",
+                        "x-nullable": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "remoteTableName",
+                        "in": "query",
+                        "x-nullable": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "tableName",
+                        "in": "query",
+                        "x-nullable": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "x-nullable": true,
+                        "description": "",
+                        "schema": {
+                            "type": "file"
+                        }
+                    }
+                }
+            }
+        },
         "/Tables/PartitionsCount": {
             "get": {
                 "tags": [

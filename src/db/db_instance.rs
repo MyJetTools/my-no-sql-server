@@ -71,7 +71,7 @@ impl DbInstance {
             created: now,
         };
 
-        let db_table_data = DbTableData::new(table_attributes);
+        let db_table_data = DbTableData::new(name.to_string(), table_attributes);
 
         let new_table = DbTable::new(
             name.to_string(),

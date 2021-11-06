@@ -1,15 +1,17 @@
+use my_http_utils::HttpFailResult;
+
 use crate::{
     app::AppContext,
-    http::{http_ctx::HttpContext, http_fail::HttpFailResult, http_helpers, http_ok::HttpOkResult},
+    http::{http_ctx::HttpContext, http_helpers, http_ok::HttpOkResult},
 };
 
-use super::consts;
+use super::consts::{self, MyNoSqlQueryString};
 
 pub async fn clean_and_keep_max_partitions_amount(
     ctx: HttpContext,
     app: &AppContext,
 ) -> Result<HttpOkResult, HttpFailResult> {
-    let query = ctx.get_query_string();
+    let query = ctx.get_query_string()?;
     let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;
 
     let max_partitions_amount = query.get_query_required_parameter("maxAmount")?;
@@ -35,7 +37,7 @@ pub async fn clean_and_keep_max_records(
     ctx: HttpContext,
     app: &AppContext,
 ) -> Result<HttpOkResult, HttpFailResult> {
-    let query = ctx.get_query_string();
+    let query = ctx.get_query_string()?;
     let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;
 
     let partition_key = query.get_query_required_string_parameter("partitionKey")?;

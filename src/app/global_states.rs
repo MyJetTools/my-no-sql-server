@@ -16,7 +16,7 @@ impl GlobalStates {
     }
 
     pub fn is_initialized(&self) -> bool {
-        return self.initialized.load(std::sync::atomic::Ordering::Relaxed);
+        self.initialized.load(std::sync::atomic::Ordering::Relaxed)
     }
 
     pub fn set_initialized(&self) {
@@ -25,9 +25,9 @@ impl GlobalStates {
     }
 
     pub fn is_shutting_down(&self) -> bool {
-        return self
+        self
             .shutting_down
-            .load(std::sync::atomic::Ordering::Relaxed);
+            .load(std::sync::atomic::Ordering::Relaxed)
     }
 
     pub fn set_shutted_down(&self) {
@@ -36,6 +36,6 @@ impl GlobalStates {
     }
 
     pub fn app_is_shutted_down(&self) -> bool {
-        return self.shutted_down.load(std::sync::atomic::Ordering::Relaxed);
+        self.shutted_down.load(std::sync::atomic::Ordering::Relaxed)
     }
 }

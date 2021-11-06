@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 
-use super::{
-    http_ctx::HttpContext, http_fail::HttpFailResult, http_ok::HttpOkResult, static_files,
-    web_content_type::WebContentType,
-};
+use my_http_utils::{HttpFailResult, WebContentType};
+
+use super::{http_ctx::HttpContext, http_ok::HttpOkResult, static_files};
 
 pub async fn handle_request(path: &str, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
     if path == "/swagger" {

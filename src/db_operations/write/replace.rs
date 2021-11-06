@@ -62,22 +62,32 @@ pub async fn execute(
     let db_partition = db_partition.unwrap();
 
     {
-        let db_row = db_partition.get_row(&db_row.row_key);
+        let current_db_row = db_partition.get_row(db_row.row_key.as_str());
 
-        if db_row.is_none() {
-            return Err(DbOperationError::RecordNotFound);
-        }
-
-        let db_row = db_row.unwrap();
-
-        if db_row.time_stamp.unix_microseconds != entity_timestamp.unix_microseconds {
-            return Err(DbOperationError::OptimisticConcurencyUpdateFails);
+        match current_db_row {
+            Some(current_db_row) => {
+                if current_db_row.time_stamp.unix_microseconds != entity_timestamp.unix_microseconds
+                {
+                    return Err(DbOperationError::OptimisticConcurencyUpdateFails);
+                }
+            }
+            None => {
+                return Err(DbOperationError::RecordNotFound);
+            }
         }
     }
 
-    let update_write_time = db_row.time_stamp;
+    super::db_actions::remove_db_row(
+        app,
+        db_table.name.as_str(),
+        db_partition,
+        db_row.row_key.as_str(),
+        db_row.time_stamp,
+    )
+    .await;
 
-    db_partition.insert_or_replace(db_row.clone(), Some(update_write_time));
+    super::db_actions::insert_db_row(app, db_table.name.as_str(), db_partition, db_row.clone())
+        .await;
 
     if let Some(attr) = attr {
         let mut update_rows_state = UpdateRowsSyncData::new(db_table, attr);

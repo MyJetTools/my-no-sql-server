@@ -7,14 +7,14 @@ use crate::{
 
 use super::SyncTableData;
 
-pub struct DeleteEventSyncData {
+pub struct DeleteRowsEventSyncData {
     pub table_data: SyncTableData,
     pub attr: SyncAttributes,
     pub deleted_partitions: Option<BTreeMap<String, DbPartition>>,
     pub deleted_rows: Option<BTreeMap<String, BTreeMap<String, Arc<DbRow>>>>,
 }
 
-impl DeleteEventSyncData {
+impl DeleteRowsEventSyncData {
     pub fn new(table: &DbTable, attr: SyncAttributes) -> Self {
         Self {
             table_data: SyncTableData::new(table),
@@ -24,12 +24,13 @@ impl DeleteEventSyncData {
         }
     }
 
-    pub fn add_deleted_row(&mut self, partition_key: &str, row_key: String, db_row: Arc<DbRow>) {
+    pub fn add_deleted_rows(&mut self, partition_key: &str, deleted_rows: &[Arc<DbRow>]) {
         if let Some(deleted_partitions) = &self.deleted_partitions {
             if deleted_partitions.contains_key(partition_key) {
                 panic!(
-                    "Can not add deleted rows {}/{}",
-                    partition_key, db_row.row_key
+                    "Can not add deleted rows from partition {}. Amount{}",
+                    partition_key,
+                    deleted_rows.len()
                 );
             }
         }
@@ -38,17 +39,19 @@ impl DeleteEventSyncData {
             self.deleted_rows = Some(BTreeMap::new())
         }
 
-        let deleted_rows = self.deleted_rows.as_mut().unwrap();
+        let deleted_rows_btree_map = self.deleted_rows.as_mut().unwrap();
 
-        if !deleted_rows.contains_key(partition_key) {
-            deleted_rows.insert(row_key.to_string(), BTreeMap::new());
+        for db_row in deleted_rows {
+            if !deleted_rows_btree_map.contains_key(partition_key) {
+                deleted_rows_btree_map.insert(db_row.row_key.to_string(), BTreeMap::new());
+            }
+
+            deleted_rows_btree_map
+                .get_mut(partition_key)
+                .as_mut()
+                .unwrap()
+                .insert(db_row.row_key.to_string(), db_row.clone());
         }
-
-        deleted_rows
-            .get_mut(partition_key)
-            .as_mut()
-            .unwrap()
-            .insert(row_key.to_string(), db_row);
     }
 
     pub fn new_deleted_partition(&mut self, partition_key: String, partition: DbPartition) {
@@ -64,9 +67,5 @@ impl DeleteEventSyncData {
             .as_mut()
             .unwrap()
             .insert(partition_key, partition);
-    }
-
-    pub fn has_records(&self) -> bool {
-        self.deleted_rows.is_some() || self.deleted_partitions.is_some()
     }
 }

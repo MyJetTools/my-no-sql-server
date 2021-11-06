@@ -5,7 +5,7 @@ use rust_extensions::date_time::DateTimeAsMicroseconds;
 use crate::{
     app::AppContext,
     db::DbTable,
-    db_sync::{states::DeleteEventSyncData, SyncAttributes, SyncEvent},
+    db_sync::{states::DeleteRowsEventSyncData, SyncAttributes, SyncEvent},
 };
 
 pub async fn execute(
@@ -19,7 +19,7 @@ pub async fn execute(
     let now = DateTimeAsMicroseconds::now();
 
     let mut delete_event_state = if let Some(attr) = attr {
-        Some(DeleteEventSyncData::new(db_table.as_ref(), attr))
+        Some(DeleteRowsEventSyncData::new(db_table.as_ref(), attr))
     } else {
         None
     };
@@ -33,17 +33,18 @@ pub async fn execute(
 
         let partition = partition.unwrap();
 
-        for row_key in row_keys {
-            let remove_result = partition.remove(row_key.as_str(), now);
+        let remove_result = super::db_actions::bulk_remove_db_rows(
+            app,
+            db_table.name.as_str(),
+            partition,
+            row_keys.iter(),
+            now,
+        )
+        .await;
 
-            if let Some(delete_event_state) = &mut delete_event_state {
-                if let Some(removed_row) = remove_result {
-                    delete_event_state.add_deleted_row(
-                        partition_key.as_str(),
-                        row_key,
-                        removed_row,
-                    );
-                }
+        if let Some(delete_event_state) = &mut delete_event_state {
+            if let Some(removed_rows) = remove_result {
+                delete_event_state.add_deleted_rows(partition_key.as_str(), &removed_rows);
             }
         }
 

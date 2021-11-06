@@ -1,8 +1,8 @@
-use std::{collections::BTreeMap, sync::Arc};
+use std::sync::Arc;
 
 use crate::{
     app::AppContext,
-    db::{DbTable, DbTableData},
+    db::{DbTable, DbTableSnapshot},
     db_sync::{states::InitTableEventSyncData, SyncAttributes, SyncEvent},
 };
 
@@ -13,23 +13,17 @@ pub async fn execute(app: &AppContext, db_table: Arc<DbTable>, attr: Option<Sync
         return;
     }
 
-    if let Some(attr) = attr {
-        let mut init_state = InitTableEventSyncData::new(db_table.as_ref(), attr);
-        clean_table(&mut table_write_access, &mut init_state);
+    let removed = super::db_actions::clean_table(app, &mut table_write_access).await;
 
-        app.events_dispatcher
-            .dispatch(SyncEvent::InitTable(init_state))
-            .await
-    } else {
-        table_write_access.partitions.clear();
-    };
-}
+    if removed.is_some() {
+        if let Some(attr) = attr {
+            let mut init_state = InitTableEventSyncData::new(db_table.as_ref(), attr);
 
-pub fn clean_table(db_table_data: &mut DbTableData, init_state: &mut InitTableEventSyncData) {
-    let mut old_partitions = BTreeMap::new();
-    std::mem::swap(&mut old_partitions, &mut db_table_data.partitions);
+            init_state.add_table_snapshot(DbTableSnapshot::new(&table_write_access));
 
-    for (partition_key, db_partition) in old_partitions {
-        init_state.add_cleaned_partition_before(partition_key, db_partition);
+            app.events_dispatcher
+                .dispatch(SyncEvent::InitTable(init_state))
+                .await
+        }
     }
 }

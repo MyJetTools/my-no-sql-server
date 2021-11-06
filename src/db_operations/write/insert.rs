@@ -36,16 +36,14 @@ pub async fn execute(
     db_row: Arc<DbRow>,
     attr: Option<SyncAttributes>,
 ) -> Result<(), DbOperationError> {
-    {
-        let mut table_write_access = db_table.data.write().await;
+    let mut table_write_access = db_table.data.write().await;
 
-        let db_partition = table_write_access.get_or_create_partition(partition_key);
+    let db_partition = table_write_access.get_or_create_partition(partition_key);
 
-        let inserted = db_partition.insert(db_row.clone(), Some(db_row.time_stamp));
+    let inserted = db_partition.insert(db_row.clone(), Some(db_row.time_stamp));
 
-        if !inserted {
-            return Err(DbOperationError::RecordAlreadyExists);
-        }
+    if !inserted {
+        return Err(DbOperationError::RecordAlreadyExists);
     }
 
     if let Some(attr) = attr {

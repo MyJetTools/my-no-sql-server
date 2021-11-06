@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::{
     app::AppContext,
     db::DbTable,
-    db_sync::{states::DeleteEventSyncData, SyncAttributes, SyncEvent},
+    db_sync::{states::DeleteRowsEventSyncData, SyncAttributes, SyncEvent},
 };
 
 pub async fn execute(
@@ -15,7 +15,7 @@ pub async fn execute(
     let mut table_write_access = db_table.data.write().await;
 
     let mut sync = if let Some(attr) = attr {
-        Some(DeleteEventSyncData::new(db_table.as_ref(), attr))
+        Some(DeleteRowsEventSyncData::new(db_table.as_ref(), attr))
     } else {
         None
     };

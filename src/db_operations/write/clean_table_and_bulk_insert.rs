@@ -19,21 +19,27 @@ pub async fn execute(
         return Ok(());
     }
 
-    let sync = if let Some(attr) = attr {
-        let mut init_state = InitTableEventSyncData::new(db_table.as_ref(), attr);
-        super::clean_table::clean_table(&mut table_write_access, &mut init_state);
+    super::db_actions::clean_table(app, &mut table_write_access).await;
 
-        Some(init_state)
+    let sync = if let Some(attr) = attr {
+        Some(InitTableEventSyncData::new(db_table.as_ref(), attr))
     } else {
         table_write_access.partitions.clear();
         None
     };
 
-    for (partition_key, rows) in entities {
+    for (partition_key, db_rows) in entities {
         let db_partition = table_write_access.get_or_create_partition(partition_key.as_str());
 
-        let now = rows[0].time_stamp;
-        db_partition.bulk_insert_or_replace(&rows, Some(now));
+        let now = db_rows[0].time_stamp;
+        super::db_actions::bulk_insert_db_rows(
+            app,
+            db_table.name.as_str(),
+            db_partition,
+            &db_rows,
+            now,
+        )
+        .await;
     }
 
     if let Some(mut state) = sync {

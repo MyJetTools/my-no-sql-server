@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::{
     app::AppContext,
     db::DbTable,
-    db_sync::{states::DeleteEventSyncData, SyncAttributes, SyncEvent},
+    db_sync::{states::DeleteRowsEventSyncData, SyncAttributes, SyncEvent},
 };
 
 pub async fn execute(
@@ -27,11 +27,9 @@ pub async fn execute(
 
     if let Some(gced_rows) = gced_rows_result {
         if let Some(attr) = attr {
-            let mut sync_data = DeleteEventSyncData::new(db_table.as_ref(), attr);
+            let mut sync_data = DeleteRowsEventSyncData::new(db_table.as_ref(), attr);
 
-            for (row_key, db_row) in gced_rows {
-                sync_data.add_deleted_row(partition_key, row_key, db_row);
-            }
+            sync_data.add_deleted_rows(partition_key, &gced_rows);
 
             app.events_dispatcher
                 .dispatch(SyncEvent::Delete(sync_data))

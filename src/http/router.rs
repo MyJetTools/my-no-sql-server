@@ -1,4 +1,5 @@
 use hyper::{Body, Method, Request};
+use my_http_utils::{HttpFailResult, WebContentType};
 
 use crate::app::AppContext;
 use crate::http::http_ctx::HttpContext;
@@ -6,7 +7,6 @@ use std::sync::Arc;
 
 use super::{
     controllers::{api, bulk, gc, logs, metrics, row, rows, status, tables, transactions},
-    http_fail::HttpFailResult,
     http_ok::HttpOkResult,
     static_files, swagger,
 };
@@ -16,7 +16,11 @@ pub async fn route_requests(
     app: Arc<AppContext>,
 ) -> Result<HttpOkResult, HttpFailResult> {
     if app.states.is_shutting_down() {
-        return Err(HttpFailResult::is_shutting_down());
+        return Err(HttpFailResult {
+            content_type: WebContentType::Text,
+            content: "App is being shutting down".to_string().into_bytes(),
+            status_code: 301,
+        });
     }
 
     let path = req.uri().path().to_lowercase();
@@ -36,28 +40,35 @@ pub async fn route_requests(
         }
 
         (&Method::GET, "/tables/list") => {
-            return tables::list_of_tables(app.as_ref()).await;
+            return tables::list_of_tables::get(app.as_ref()).await;
         }
+
         (&Method::POST, "/tables/create") => {
-            return tables::create_table(HttpContext::new(req), app.as_ref()).await;
+            return tables::create::post(HttpContext::new(req), app.as_ref()).await;
         }
+
         (&Method::POST, "/tables/createifnotexists") => {
-            return tables::create_table_if_not_exists(HttpContext::new(req), app.as_ref()).await;
+            return tables::create_if_not_exists::post(HttpContext::new(req), app.as_ref()).await;
         }
+
         (&Method::POST, "/tables/clean") => {
-            return tables::clean(HttpContext::new(req), app.as_ref()).await;
+            return tables::clean::post(HttpContext::new(req), app.as_ref()).await;
         }
 
         (&Method::DELETE, "/tables/delete") => {
-            return tables::delete(HttpContext::new(req), app.as_ref()).await;
+            return tables::delete::delete(HttpContext::new(req), app.as_ref()).await;
         }
 
         (&Method::POST, "/tables/updatepersist") => {
-            return tables::update_persist(HttpContext::new(req), app.as_ref()).await;
+            return tables::update_persist::post(HttpContext::new(req), app.as_ref()).await;
         }
 
         (&Method::GET, "/tables/partitionscount") => {
-            return tables::get_partitions_count(HttpContext::new(req), app.as_ref()).await;
+            return tables::partitions_count::get(HttpContext::new(req), app.as_ref()).await;
+        }
+
+        (&Method::POST, "/tables/migratefrom") => {
+            return tables::migrate_from::post(HttpContext::new(req), app.as_ref()).await;
         }
 
         (&Method::GET, "/row") => {
@@ -71,6 +82,7 @@ pub async fn route_requests(
         (&Method::POST, "/row/insert") => {
             return row::insert(HttpContext::new(req), app.as_ref()).await;
         }
+
         (&Method::POST, "/row/insertorreplace") => {
             return row::insert_or_replace(HttpContext::new(req), app.as_ref()).await;
         }
@@ -168,7 +180,7 @@ fn get_index_page_content(app: &AppContext) -> HttpOkResult {
     );
 
     HttpOkResult::Content {
-        content_type: Some(crate::http::web_content_type::WebContentType::Html),
+        content_type: Some(my_http_utils::WebContentType::Html),
         content: content.into_bytes(),
     }
 }

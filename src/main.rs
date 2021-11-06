@@ -12,6 +12,7 @@ mod db_transactions;
 mod http;
 mod json;
 mod operations;
+mod rows_with_expiration;
 mod tcp;
 
 mod background;

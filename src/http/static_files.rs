@@ -1,7 +1,8 @@
+use my_http_utils::HttpFailResult;
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
 
-use super::{http_fail::HttpFailResult, http_ok::HttpOkResult};
+use super::http_ok::HttpOkResult;
 
 pub async fn serve_path(path_and_file: &str) -> Result<HttpOkResult, HttpFailResult> {
     match load_file(path_and_file).await {

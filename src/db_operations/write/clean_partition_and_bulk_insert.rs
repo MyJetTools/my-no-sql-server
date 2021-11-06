@@ -22,13 +22,30 @@ pub async fn execute(
         None
     };
 
-    let removed_partition_result = write_access.partitions.remove(partition_key);
+    let removed_partition_result =
+        super::db_actions::remove_partition(app, &mut write_access, partition_key).await;
 
     for (partition_key, db_rows) in entities {
         let now = db_rows[0].time_stamp;
         let db_partition = write_access.get_or_create_partition(partition_key.as_str());
-        db_partition.last_write_moment.update(now);
-        db_partition.bulk_insert_or_replace(&db_rows, Some(now));
+
+        super::db_actions::bulk_remove_db_rows(
+            app,
+            db_table.name.as_str(),
+            db_partition,
+            db_rows.iter().map(|itm| &itm.row_key),
+            now,
+        )
+        .await;
+
+        super::db_actions::bulk_insert_db_rows(
+            app,
+            db_table.name.as_str(),
+            db_partition,
+            &db_rows,
+            now,
+        )
+        .await;
 
         if let Some(state) = &mut update_partitions_state {
             state.add(

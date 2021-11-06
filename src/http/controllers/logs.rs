@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use my_http_utils::{HttpFailResult, WebContentType};
 use rust_extensions::{StopWatch, StringBuilder};
 
 use crate::{
@@ -7,7 +8,7 @@ use crate::{
         logs::{LogItem, SystemProcess},
         AppContext,
     },
-    http::{http_fail::HttpFailResult, http_ok::HttpOkResult},
+    http::http_ok::HttpOkResult,
 };
 
 pub async fn get(app: &AppContext) -> Result<HttpOkResult, HttpFailResult> {
@@ -43,7 +44,7 @@ pub async fn get_by_table(app: &AppContext, path: &str) -> Result<HttpOkResult, 
             );
 
             Ok(HttpOkResult::Content {
-                content_type: Some(crate::http::web_content_type::WebContentType::Text),
+                content_type: Some(WebContentType::Text),
                 content: content.into_bytes(),
             })
         }
@@ -63,7 +64,7 @@ pub async fn get_by_process(app: &AppContext, path: &str) -> Result<HttpOkResult
 
     if process.is_none() {
         return Ok(HttpOkResult::Content {
-            content_type: Some(crate::http::web_content_type::WebContentType::Text),
+            content_type: Some(WebContentType::Text),
             content: format!("Invalid process name: {}", process_name).into(),
         });
     }
@@ -80,7 +81,7 @@ pub async fn get_by_process(app: &AppContext, path: &str) -> Result<HttpOkResult
             sw.pause();
 
             Ok(HttpOkResult::Content {
-                content_type: Some(crate::http::web_content_type::WebContentType::Text),
+                content_type: Some(WebContentType::Text),
                 content: format!(
                     "Result compiled in: {:?}. No log recods for the process '{}'",
                     sw.duration(),

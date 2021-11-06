@@ -1,19 +1,19 @@
 use std::sync::Arc;
 
+use my_http_utils::HttpFailResult;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::db_json_entity::DbJsonEntity;
 use crate::http::http_ctx::HttpContext;
 
 use crate::app::AppContext;
-use crate::http::http_fail::HttpFailResult;
 use crate::http::http_helpers;
 use crate::http::http_ok::HttpOkResult;
 
-use super::consts;
+use super::consts::{self, MyNoSqlQueryString};
 
 pub async fn get_rows(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult, HttpFailResult> {
-    let query = ctx.get_query_string();
+    let query = ctx.get_query_string()?;
     let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;
 
     let partition_key = query.get_query_optional_string_parameter(consts::PARAM_PARTITION_KEY);
@@ -76,7 +76,7 @@ pub async fn get_rows(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult
 }
 
 pub async fn insert(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult, HttpFailResult> {
-    let query = ctx.get_query_string();
+    let query = ctx.get_query_string()?;
     let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;
 
     let sync_period = query.get_sync_period();
@@ -114,7 +114,7 @@ pub async fn insert_or_replace(
     ctx: HttpContext,
     app: &AppContext,
 ) -> Result<HttpOkResult, HttpFailResult> {
-    let query = ctx.get_query_string();
+    let query = ctx.get_query_string()?;
     let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;
 
     let sync_period = query.get_sync_period();
@@ -144,7 +144,7 @@ pub async fn insert_or_replace(
 }
 
 pub async fn replace(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult, HttpFailResult> {
-    let query = ctx.get_query_string();
+    let query = ctx.get_query_string()?;
     let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;
 
     let sync_period = query.get_sync_period();

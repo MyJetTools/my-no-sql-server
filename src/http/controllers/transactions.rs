@@ -1,8 +1,9 @@
 use crate::{
     app::AppContext,
-    http::{http_ctx::HttpContext, http_fail::HttpFailResult, http_helpers, http_ok::HttpOkResult},
+    http::{http_ctx::HttpContext, http_helpers, http_ok::HttpOkResult},
 };
 
+use my_http_utils::HttpFailResult;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -20,7 +21,7 @@ pub async fn start(app: &AppContext) -> Result<HttpOkResult, HttpFailResult> {
 }
 
 pub async fn append(app: &AppContext, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
-    let query_string = ctx.get_query_string();
+    let query_string = ctx.get_query_string()?;
 
     let transaction_id = query_string.get_query_required_string_parameter("transactionId")?;
 
@@ -34,7 +35,7 @@ pub async fn append(app: &AppContext, ctx: HttpContext) -> Result<HttpOkResult, 
 }
 
 pub async fn commit(app: &AppContext, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
-    let query_string = ctx.get_query_string();
+    let query_string = ctx.get_query_string()?;
 
     let transaction_id = query_string.get_query_required_string_parameter("transactionId")?;
 
@@ -49,7 +50,7 @@ pub async fn commit(app: &AppContext, ctx: HttpContext) -> Result<HttpOkResult, 
 }
 
 pub async fn cancel(app: &AppContext, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
-    let query_string = ctx.get_query_string();
+    let query_string = ctx.get_query_string()?;
     let transaction_id = query_string.get_query_required_string_parameter("transactionId")?;
     crate::db_operations::transactions::cancel(app, transaction_id).await?;
     return Ok(HttpOkResult::Ok);

@@ -9,7 +9,7 @@ use super::{db_table_attributes::DbTableAttributes, DbTableData};
 pub struct DbTableSnapshot {
     pub attr: DbTableAttributes,
     pub created: DateTimeAsMicroseconds,
-    pub last_upade: DateTimeAsMicroseconds,
+    pub last_update: DateTimeAsMicroseconds,
     pub data: BTreeMap<String, DbPartitionSnapshot>,
 }
 
@@ -27,7 +27,7 @@ impl DbTableSnapshot {
         Self {
             attr: table_data.attributes.clone(),
             created: table_data.created,
-            last_upade: table_data.last_update_time.as_date_time(),
+            last_update: table_data.last_update_time.as_date_time(),
             data,
         }
     }

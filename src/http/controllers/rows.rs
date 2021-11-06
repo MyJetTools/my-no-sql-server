@@ -1,6 +1,8 @@
+use my_http_utils::HttpFailResult;
+
 use crate::{
     app::AppContext,
-    http::{http_ctx::HttpContext, http_fail::HttpFailResult, http_ok::HttpOkResult},
+    http::{http_ctx::HttpContext, http_ok::HttpOkResult},
 };
 
 use super::consts;
@@ -9,7 +11,7 @@ pub async fn get_single_partition_multiple_rows(
     ctx: HttpContext,
     app: &AppContext,
 ) -> Result<HttpOkResult, HttpFailResult> {
-    let query = ctx.get_query_string();
+    let query = ctx.get_query_string()?;
     let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;
 
     let partition_key = query.get_query_required_string_parameter(consts::PARAM_PARTITION_KEY)?;
@@ -34,7 +36,7 @@ pub async fn get_highest_row_and_below(
     ctx: HttpContext,
     app: &AppContext,
 ) -> Result<HttpOkResult, HttpFailResult> {
-    let query = ctx.get_query_string();
+    let query = ctx.get_query_string()?;
     let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;
 
     let partition_key = query.get_query_required_string_parameter(consts::PARAM_PARTITION_KEY)?;

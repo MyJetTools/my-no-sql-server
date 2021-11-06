@@ -7,6 +7,7 @@ use crate::db::DbPartition;
 use super::{db_table_attributes::DbTableAttributes, DbTableDataIterator};
 
 pub struct DbTableData {
+    pub name: String,
     pub partitions: BTreeMap<String, DbPartition>,
     pub attributes: DbTableAttributes,
     pub created: DateTimeAsMicroseconds,
@@ -15,9 +16,10 @@ pub struct DbTableData {
 }
 
 impl DbTableData {
-    pub fn new(attributes: DbTableAttributes) -> Self {
+    pub fn new(name: String, attributes: DbTableAttributes) -> Self {
         let created = attributes.created;
         Self {
+            name,
             partitions: BTreeMap::new(),
             attributes,
             last_update_time: AtomicDateTimeAsMicroseconds::new(created.unix_microseconds),

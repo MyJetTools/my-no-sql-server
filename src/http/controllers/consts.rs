@@ -1,4 +1,6 @@
-use crate::{db_sync::DataSynchronizationPeriod, http::query_string::QueryString};
+use my_http_utils::QueryString;
+
+use crate::db_sync::DataSynchronizationPeriod;
 
 pub const API_KEY: &str = "apiKey";
 pub const PARAM_TABLE_NAME: &str = "tableName";
@@ -13,8 +15,12 @@ pub const PARAM_MAX_PARTITIONS_AMOUNT: &str = "maxPartitionsAmount";
 
 const DEFAULT_SYNC_PERIOD: DataSynchronizationPeriod = DataSynchronizationPeriod::Sec5;
 
-impl QueryString {
-    pub fn get_sync_period(&self) -> DataSynchronizationPeriod {
+pub trait MyNoSqlQueryString {
+    fn get_sync_period(&self) -> DataSynchronizationPeriod;
+}
+
+impl MyNoSqlQueryString for QueryString {
+    fn get_sync_period(&self) -> DataSynchronizationPeriod {
         let sync_period = self.get_query_optional_string_parameter(PARAM_SYNC_PERIOD);
 
         if sync_period.is_none() {

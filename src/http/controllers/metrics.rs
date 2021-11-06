@@ -1,7 +1,6 @@
-use crate::{
-    app::AppContext,
-    http::{http_fail::HttpFailResult, http_ok::HttpOkResult},
-};
+use my_http_utils::HttpFailResult;
+
+use crate::{app::AppContext, http::http_ok::HttpOkResult};
 
 pub fn get(app: &AppContext) -> Result<HttpOkResult, HttpFailResult> {
     let result = HttpOkResult::Text {

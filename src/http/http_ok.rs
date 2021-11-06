@@ -1,7 +1,6 @@
 use hyper::{Body, Response};
+use my_http_utils::{HttpFailResult, WebContentType};
 use serde::Serialize;
-
-use super::{http_fail::HttpFailResult, web_content_type::WebContentType};
 
 #[derive(Clone)]
 pub enum HttpOkResult {

@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, sync::Arc};
 
-use rust_extensions::date_time::{AtomicDateTimeAsMicroseconds, DateTimeAsMicroseconds};
+use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
     db::DbRow,
@@ -76,23 +76,23 @@ impl<'s> DbJsonEntity<'s> {
     pub fn to_db_row(&self, time_stamp: DateTimeAsMicroseconds) -> DbRow {
         let data = compile_row_content(self.raw, &self.timestamp_value_position, time_stamp);
 
-        return DbRow {
-            row_key: self.row_key.to_string(),
+        return DbRow::new(
+            self.partition_key.to_string(),
+            self.row_key.to_string(),
             data,
-            expires: self.expires,
+            self.expires,
             time_stamp,
-            last_read_access: AtomicDateTimeAsMicroseconds::now(),
-        };
+        );
     }
 
     pub fn restore_db_row(&self, time_stamp: DateTimeAsMicroseconds) -> DbRow {
-        return DbRow {
-            row_key: self.row_key.to_string(),
-            data: self.raw.to_vec(),
-            expires: self.expires,
+        return DbRow::new(
+            self.partition_key.to_string(),
+            self.row_key.to_string(),
+            self.raw.to_vec(),
+            self.expires,
             time_stamp,
-            last_read_access: AtomicDateTimeAsMicroseconds::now(),
-        };
+        );
     }
 
     pub fn parse_as_btreemap(

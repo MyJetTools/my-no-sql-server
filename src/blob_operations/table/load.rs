@@ -29,7 +29,7 @@ pub async fn load(
         created: now,
     };
 
-    let mut db_table_data = DbTableData::new(attributes);
+    let mut db_table_data = DbTableData::new(table_name.to_string(), attributes);
 
     for blob_name in blobs {
         let raw = azure_connection
