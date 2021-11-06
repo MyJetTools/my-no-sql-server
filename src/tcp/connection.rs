@@ -2,9 +2,12 @@ use std::sync::Arc;
 
 use my_no_sql_tcp_shared::TcpContract;
 
+use crate::app::AppContext;
+
 use super::{error::ReadSocketError, ReaderSession};
 
 pub async fn handle_incoming_payload(
+    app: &AppContext,
     tcp_contract: TcpContract,
     session: Arc<ReaderSession>,
 ) -> Result<(), ReadSocketError> {
@@ -20,7 +23,16 @@ pub async fn handle_incoming_payload(
         }
 
         TcpContract::Subscribe { table_name } => {
-            session.subscribe(table_name).await;
+            let result =
+                crate::operations::sessions::subscribe(app, session.as_ref(), &table_name).await;
+
+            if !result {
+                println!("Can not subscribe to the table {}", table_name.as_str());
+                return Err(ReadSocketError::Other(format!(
+                    "Can not subscribe to the table {}",
+                    table_name,
+                )));
+            }
             Ok(())
         }
         _ => return Ok(()),

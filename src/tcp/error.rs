@@ -6,6 +6,7 @@ use super::SendPackageError;
 pub enum ReadSocketError {
     ReadingTcpContractFail(ReadingTcpContractFail),
     SendPackageError(SendPackageError),
+    Other(String),
 }
 
 impl From<SendPackageError> for ReadSocketError {

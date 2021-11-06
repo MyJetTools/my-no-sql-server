@@ -96,8 +96,12 @@ async fn process_socket(
     app: Arc<AppContext>,
     reader_session: Arc<ReaderSession>,
 ) {
-    let socket_loop_result =
-        tokio::task::spawn(socket_loop(read_socket, reader_session.clone())).await;
+    let socket_loop_result = tokio::task::spawn(socket_loop(
+        app.clone(),
+        read_socket,
+        reader_session.clone(),
+    ))
+    .await;
 
     let name = reader_session.get_name().await;
 
@@ -128,6 +132,7 @@ async fn process_socket(
 }
 
 async fn socket_loop(
+    app: Arc<AppContext>,
     read_socket: ReadHalf<TcpStream>,
     session: Arc<ReaderSession>,
 ) -> Result<(), ReadSocketError> {
@@ -143,6 +148,7 @@ async fn socket_loop(
             .increase_read_size(socket_reader.read_size, now)
             .await;
 
-        super::connection::handle_incoming_payload(tcp_contract, session.clone()).await?;
+        super::connection::handle_incoming_payload(app.as_ref(), tcp_contract, session.clone())
+            .await?;
     }
 }

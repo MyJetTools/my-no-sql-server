@@ -3,7 +3,7 @@ use std::{collections::HashMap, sync::atomic::AtomicBool};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 use tokio::sync::RwLock;
 
-use crate::db::DbPartitionSnapshot;
+use crate::{db::DbPartitionSnapshot, json::JsonArrayBuilder};
 
 use super::{db_table_attributes::DbTableAttributes, db_table_data::DbTableData};
 
@@ -58,6 +58,17 @@ impl DbTable {
 
     pub fn get_persist(&self) -> bool {
         return self.persist.load(std::sync::atomic::Ordering::Relaxed);
+    }
+
+    pub async fn as_json(&self) -> Vec<u8> {
+        let mut result = JsonArrayBuilder::new();
+        let read_access = self.data.read().await;
+
+        for db_partition in read_access.partitions.values() {
+            db_partition.fill_with_json_data(&mut result);
+        }
+
+        result.build()
     }
 
     pub async fn get_snapshot_as_partitions(&self) -> HashMap<String, DbPartitionSnapshot> {

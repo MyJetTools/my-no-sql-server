@@ -40,7 +40,6 @@ async fn iteration(app: Arc<AppContext>, azure_connection: Arc<AzureConnection>)
 
         match get_table_result {
             Some(db_table) => match persist_event.state {
-                TableUpdatesState::Empty(_) => {}
                 TableUpdatesState::PartitionsAreUpdated(data) => {
                     if data.common_state.sync_table_attrs {
                         crate::operations::blob_sync::sync_table_attributes::execute(
