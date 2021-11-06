@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 use tokio::sync::RwLock;
 
-use crate::db::DbTableAttributes;
+use crate::db::{DbTableAttributes, DbTableData};
 
 use super::PersistedTableData;
 
@@ -22,6 +22,12 @@ impl BlobContentCache {
         Self {
             data_by_table: RwLock::new(HashMap::new()),
         }
+    }
+
+    pub async fn init(&self, table_data: &DbTableData) {
+        let data_to_insert = PersistedTableData::init(table_data);
+        let mut write_access = self.data_by_table.write().await;
+        write_access.insert(table_data.name.to_string(), data_to_insert);
     }
 
     pub async fn create_table(&self, table_name: &str, attr: DbTableAttributes) {

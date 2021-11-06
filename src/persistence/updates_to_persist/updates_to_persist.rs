@@ -21,7 +21,7 @@ impl UpdatesToPersistByTable {
         }
     }
 
-    pub async fn update_partitions<'a, TKeys: Iterator<Item = &'a String>>(
+    pub async fn flag_paritions_to_update<'a, TKeys: Iterator<Item = &'a String>>(
         &self,
         table_name: &str,
         partitions: TKeys,
@@ -32,7 +32,11 @@ impl UpdatesToPersistByTable {
         diff.partitions_are_updated(partitions, sync_moment);
     }
 
-    pub async fn update_table(&self, table_name: &str, sync_moment: DateTimeAsMicroseconds) {
+    pub async fn flag_table_to_update(
+        &self,
+        table_name: &str,
+        sync_moment: DateTimeAsMicroseconds,
+    ) {
         let mut write_access = self.data_by_table.lock().await;
         let diff = get_table_difference_mut(&mut write_access, table_name);
         diff.table_is_updated(sync_moment);

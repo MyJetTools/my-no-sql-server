@@ -40,9 +40,9 @@ impl TableUpdates {
     ) {
         match &mut self.state {
             TableUpdatesState::Empty(common_state) => {
-                self.state = TableUpdatesState::PartitionsAreUpdated(
-                    PartitionsAreUpdatedStateData::new(common_state.clone()),
-                );
+                let mut state = PartitionsAreUpdatedStateData::new(common_state.clone());
+                state.new_partitions(partitions);
+                self.state = TableUpdatesState::PartitionsAreUpdated(state);
             }
             TableUpdatesState::PartitionsAreUpdated(state) => {
                 state.new_partitions(partitions);

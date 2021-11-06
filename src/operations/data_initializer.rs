@@ -1,9 +1,7 @@
-use std::sync::Arc;
-
 use my_azure_storage_sdk::AzureConnection;
 use rust_extensions::{date_time::DateTimeAsMicroseconds, StopWatch};
 
-use crate::{app::AppContext, db::DbTable};
+use crate::app::AppContext;
 
 pub async fn init_tables(app: &AppContext, connection: &AzureConnection) {
     let tables = crate::blob_operations::table::get_list(connection)
@@ -26,12 +24,7 @@ pub async fn init_tables(app: &AppContext, connection: &AzureConnection) {
             .unwrap();
 
         let now = DateTimeAsMicroseconds::now();
-
-        let db_table = DbTable::new(table_name.to_string(), table_data, now);
-
-        let mut tables_write_access = app.db.tables.write().await;
-
-        tables_write_access.insert(table_name.to_string(), Arc::new(db_table));
+        crate::db_operations::write::table::init(app, table_data, now).await;
 
         sw.pause();
 

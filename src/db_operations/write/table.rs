@@ -4,7 +4,7 @@ use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
     app::AppContext,
-    db::{CreateTableResult, DbTable},
+    db::{CreateTableResult, DbTable, DbTableData},
     db_operations::DbOperationError,
     db_sync::{
         states::{
@@ -161,4 +161,13 @@ pub async fn delete(
     }
 
     Ok(())
+}
+
+pub async fn init(app: &AppContext, table_data: DbTableData, now: DateTimeAsMicroseconds) {
+    app.blob_content_cache.init(&table_data).await;
+
+    let db_table = DbTable::new(table_data, now);
+    let mut tables_write_access = app.db.tables.write().await;
+
+    tables_write_access.insert(db_table.name.to_string(), Arc::new(db_table));
 }

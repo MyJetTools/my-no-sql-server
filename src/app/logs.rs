@@ -152,6 +152,10 @@ impl Logs {
             err_ctx: None,
         };
 
+        if let SystemProcess::BlobOperation = process {
+            print_to_console(&item);
+        }
+
         self.add(item).await;
     }
 

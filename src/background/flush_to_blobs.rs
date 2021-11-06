@@ -11,6 +11,8 @@ pub async fn start(app: Arc<AppContext>, azure_connection: AzureConnection) {
         tokio::time::sleep(one_sec).await;
     }
 
+    println!("Persistence loop is started");
+
     let connection = Arc::new(azure_connection);
 
     loop {

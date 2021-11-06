@@ -15,11 +15,11 @@ pub struct DbTable {
 }
 
 impl DbTable {
-    pub fn new(name: String, data: DbTableData, created: DateTimeAsMicroseconds) -> Self {
+    pub fn new(data: DbTableData, created: DateTimeAsMicroseconds) -> Self {
         let persist = AtomicBool::new(data.attributes.persist);
         DbTable {
             created,
-            name: name,
+            name: data.name.to_string(),
             data: RwLock::new(data),
             persist,
         }

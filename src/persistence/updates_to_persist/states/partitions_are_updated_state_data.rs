@@ -17,7 +17,7 @@ impl PartitionsAreUpdatedStateData {
 
     pub fn new_partitions<'a, TKeys: Iterator<Item = &'a String>>(&mut self, partitions: TKeys) {
         for partition_key in partitions.into_iter() {
-            if self.partitions.contains_key(partition_key.as_str()) {
+            if !self.partitions.contains_key(partition_key.as_str()) {
                 self.partitions.insert(partition_key.to_string(), 0);
             }
         }

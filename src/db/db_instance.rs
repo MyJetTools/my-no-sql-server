@@ -73,11 +73,7 @@ impl DbInstance {
 
         let db_table_data = DbTableData::new(name.to_string(), table_attributes);
 
-        let new_table = DbTable::new(
-            name.to_string(),
-            db_table_data,
-            DateTimeAsMicroseconds::now(),
-        );
+        let new_table = DbTable::new(db_table_data, DateTimeAsMicroseconds::now());
 
         let new_table = Arc::new(new_table);
         write_access.insert(name.to_string(), new_table.clone());
