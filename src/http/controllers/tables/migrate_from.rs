@@ -1,10 +1,9 @@
 use flurl::FlUrl;
 use my_http_utils::{HttpFailResult, WebContentType};
-use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
     app::AppContext,
-    db_json_entity::DbJsonEntity,
+    db_json_entity::{DbJsonEntity, JsonTimeStamp},
     http::{http_ctx::HttpContext, http_helpers, http_ok::HttpOkResult},
 };
 
@@ -28,8 +27,8 @@ pub async fn post(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult, Ht
 
     let body = response.get_body().await.unwrap();
 
-    let now = DateTimeAsMicroseconds::now();
-    let rows_by_partition = DbJsonEntity::parse_as_btreemap(body.as_slice(), now)?;
+    let now = JsonTimeStamp::now();
+    let rows_by_partition = DbJsonEntity::parse_as_btreemap(body.as_slice(), &now)?;
 
     let partitions_count = rows_by_partition.len();
     let attr = http_helpers::create_transaction_attributes(
@@ -42,6 +41,7 @@ pub async fn post(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult, Ht
         db_table,
         rows_by_partition,
         Some(attr),
+        &now,
     )
     .await;
 

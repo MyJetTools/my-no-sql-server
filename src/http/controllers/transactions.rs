@@ -1,5 +1,6 @@
 use crate::{
     app::AppContext,
+    db_json_entity::JsonTimeStamp,
     http::{http_ctx::HttpContext, http_helpers, http_ok::HttpOkResult},
 };
 
@@ -44,7 +45,9 @@ pub async fn commit(app: &AppContext, ctx: HttpContext) -> Result<HttpOkResult, 
         crate::db_sync::DataSynchronizationPeriod::Sec1,
     );
 
-    crate::db_operations::transactions::commit(app, transaction_id, attr).await?;
+    let now = JsonTimeStamp::now();
+
+    crate::db_operations::transactions::commit(app, transaction_id, attr, &now).await?;
 
     return Ok(HttpOkResult::Ok);
 }

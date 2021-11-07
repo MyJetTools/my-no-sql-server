@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 
 use my_http_utils::HttpFailResult;
-use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-use crate::db_json_entity::DbJsonEntity;
+use crate::db_json_entity::{DbJsonEntity, JsonTimeStamp};
 use crate::http::http_ctx::HttpContext;
 
 use crate::app::AppContext;
@@ -26,15 +25,16 @@ pub async fn insert_or_replace(
 
     let attr = http_helpers::create_transaction_attributes(app, sync_period);
 
-    let now = DateTimeAsMicroseconds::now();
+    let now = JsonTimeStamp::now();
 
-    let rows_by_partition = DbJsonEntity::parse_as_btreemap(body.as_slice(), now)?;
+    let rows_by_partition = DbJsonEntity::parse_as_btreemap(body.as_slice(), &now)?;
 
     crate::db_operations::write::bulk_insert_or_update::execute(
         app,
         db_table,
         rows_by_partition,
         Some(attr),
+        &now,
     )
     .await;
 
@@ -57,9 +57,9 @@ pub async fn clean_and_bulk_insert(
     let sync_period = query.get_sync_period();
 
     let attr = http_helpers::create_transaction_attributes(app, sync_period);
-    let now = DateTimeAsMicroseconds::now();
+    let now = JsonTimeStamp::now();
 
-    let rows_by_partition = DbJsonEntity::parse_as_btreemap(body.as_slice(), now)?;
+    let rows_by_partition = DbJsonEntity::parse_as_btreemap(body.as_slice(), &now)?;
 
     match partition_key_param {
         Some(partition_key) => {
@@ -69,6 +69,7 @@ pub async fn clean_and_bulk_insert(
                 partition_key,
                 rows_by_partition,
                 Some(attr),
+                &now,
             )
             .await?;
         }
@@ -78,6 +79,7 @@ pub async fn clean_and_bulk_insert(
                 db_table,
                 rows_by_partition,
                 Some(attr),
+                &now,
             )
             .await?;
         }
@@ -103,8 +105,16 @@ pub async fn bulk_delete(
     let rows_to_delete: HashMap<String, Vec<String>> =
         serde_json::from_slice(body.as_slice()).unwrap();
 
-    crate::db_operations::write::bulk_delete::execute(app, db_table, rows_to_delete, Some(attr))
-        .await;
+    let now = JsonTimeStamp::now();
+
+    crate::db_operations::write::bulk_delete::execute(
+        app,
+        db_table,
+        rows_to_delete,
+        Some(attr),
+        &now,
+    )
+    .await;
 
     Ok(HttpOkResult::Ok)
 }

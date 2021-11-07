@@ -1,10 +1,9 @@
 use std::sync::Arc;
 
-use rust_extensions::date_time::DateTimeAsMicroseconds;
-
 use crate::{
     app::AppContext,
     db::{DbRow, DbTable},
+    db_json_entity::JsonTimeStamp,
     db_operations::DbOperationError,
     db_sync::{states::UpdateRowsSyncData, SyncAttributes, SyncEvent},
 };
@@ -16,7 +15,7 @@ pub async fn validate_before(
     db_table: &DbTable,
     partition_key: &str,
     row_key: &str,
-    entity_timestamp: Option<DateTimeAsMicroseconds>,
+    entity_timestamp: Option<&str>,
 ) -> Result<(), DbOperationError> {
     if entity_timestamp.is_none() {
         return Err(DbOperationError::TimeStampFieldRequires);
@@ -36,7 +35,7 @@ pub async fn validate_before(
         return Err(DbOperationError::RecordNotFound);
     }
 
-    if db_row.unwrap().time_stamp.unix_microseconds != entity_timestamp.unwrap().unix_microseconds {
+    if db_row.unwrap().time_stamp != entity_timestamp.unwrap() {
         return Err(DbOperationError::OptimisticConcurencyUpdateFails);
     }
 
@@ -49,7 +48,8 @@ pub async fn execute(
     partition_key: &str,
     db_row: Arc<DbRow>,
     attr: Option<SyncAttributes>,
-    entity_timestamp: DateTimeAsMicroseconds,
+    entity_timestamp: &str,
+    now: &JsonTimeStamp,
 ) -> Result<Option<Arc<DbRow>>, DbOperationError> {
     let mut write_access = db_table.data.write().await;
 
@@ -66,8 +66,7 @@ pub async fn execute(
 
         match current_db_row {
             Some(current_db_row) => {
-                if current_db_row.time_stamp.unix_microseconds != entity_timestamp.unix_microseconds
-                {
+                if current_db_row.time_stamp != entity_timestamp {
                     return Err(DbOperationError::OptimisticConcurencyUpdateFails);
                 }
             }
@@ -82,12 +81,18 @@ pub async fn execute(
         db_table.name.as_str(),
         db_partition,
         db_row.row_key.as_str(),
-        db_row.time_stamp,
+        now,
     )
     .await;
 
-    super::db_actions::insert_db_row(app, db_table.name.as_str(), db_partition, db_row.clone())
-        .await;
+    super::db_actions::insert_db_row(
+        app,
+        db_table.name.as_str(),
+        db_partition,
+        db_row.clone(),
+        now,
+    )
+    .await;
 
     if let Some(attr) = attr {
         let mut update_rows_state = UpdateRowsSyncData::new(db_table, attr);

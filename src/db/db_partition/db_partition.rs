@@ -1,6 +1,8 @@
-use rust_extensions::date_time::{AtomicDateTimeAsMicroseconds, DateTimeAsMicroseconds};
+use rust_extensions::date_time::AtomicDateTimeAsMicroseconds;
 
-use crate::{db::DbRow, json::JsonArrayBuilder, utils::SortedDictionary};
+use crate::{
+    db::DbRow, db_json_entity::JsonTimeStamp, json::JsonArrayBuilder, utils::SortedDictionary,
+};
 use std::{collections::BTreeMap, sync::Arc};
 
 use super::DbPartitionSnapshot;
@@ -27,7 +29,7 @@ impl DbPartition {
     pub fn insert(
         &mut self,
         db_row: Arc<DbRow>,
-        update_write_access: Option<DateTimeAsMicroseconds>,
+        update_write_access: Option<&JsonTimeStamp>,
     ) -> bool {
         if self.rows.contains_key(db_row.row_key.as_str()) {
             return false;
@@ -36,7 +38,7 @@ impl DbPartition {
         self.rows.insert(db_row.row_key.to_string(), db_row);
 
         if let Some(write_access_time) = update_write_access {
-            self.last_write_moment.update(write_access_time);
+            self.last_write_moment.update(write_access_time.date_time);
         }
 
         return true;
@@ -45,36 +47,36 @@ impl DbPartition {
     pub fn bulk_insert(
         &mut self,
         db_rows: &[Arc<DbRow>],
-        update_write_access: Option<DateTimeAsMicroseconds>,
+        update_write_access: Option<&JsonTimeStamp>,
     ) {
         for db_row in db_rows {
             self.rows.insert(db_row.row_key.to_string(), db_row.clone());
         }
 
         if let Some(write_access_time) = update_write_access {
-            self.last_write_moment.update(write_access_time);
+            self.last_write_moment.update(write_access_time.date_time);
         }
     }
 
     pub fn insert_or_replace(
         &mut self,
         db_row: Arc<DbRow>,
-        update_write_access: Option<DateTimeAsMicroseconds>,
+        update_write_access: Option<&JsonTimeStamp>,
     ) -> Option<Arc<DbRow>> {
         let result = self.rows.insert(db_row.row_key.to_string(), db_row);
 
         if let Some(write_access_time) = update_write_access {
-            self.last_write_moment.update(write_access_time);
+            self.last_write_moment.update(write_access_time.date_time);
         }
 
         result
     }
 
-    pub fn remove_row(&mut self, row_key: &str, now: DateTimeAsMicroseconds) -> Option<Arc<DbRow>> {
+    pub fn remove_row(&mut self, row_key: &str, now: &JsonTimeStamp) -> Option<Arc<DbRow>> {
         let result = self.rows.remove(row_key);
 
         if result.is_some() {
-            self.last_write_moment.update(now);
+            self.last_write_moment.update(now.date_time);
         }
 
         return result;

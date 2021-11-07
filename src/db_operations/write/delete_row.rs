@@ -1,10 +1,9 @@
 use std::sync::Arc;
 
-use rust_extensions::date_time::DateTimeAsMicroseconds;
-
 use crate::{
     app::AppContext,
     db::{DbRow, DbTable},
+    db_json_entity::JsonTimeStamp,
     db_sync::{states::DeleteRowsEventSyncData, SyncAttributes, SyncEvent},
 };
 
@@ -14,7 +13,7 @@ pub async fn execute(
     partition_key: &str,
     row_key: &str,
     attr: Option<SyncAttributes>,
-    now: DateTimeAsMicroseconds,
+    now: &JsonTimeStamp,
 ) -> Option<Arc<DbRow>> {
     let mut table_write_access = db_table.data.write().await;
 

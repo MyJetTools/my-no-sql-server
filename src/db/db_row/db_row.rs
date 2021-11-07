@@ -2,12 +2,14 @@ use std::sync::atomic::AtomicI64;
 
 use rust_extensions::date_time::{AtomicDateTimeAsMicroseconds, DateTimeAsMicroseconds};
 
+use crate::db_json_entity::JsonTimeStamp;
+
 pub struct DbRow {
     pub partition_key: String,
     pub row_key: String,
     pub data: Vec<u8>,
     expires: AtomicI64,
-    pub time_stamp: DateTimeAsMicroseconds,
+    pub time_stamp: String,
     pub last_read_access: AtomicDateTimeAsMicroseconds,
 }
 
@@ -17,16 +19,17 @@ impl DbRow {
         row_key: String,
         data: Vec<u8>,
         expires: Option<DateTimeAsMicroseconds>,
-        time_stamp: DateTimeAsMicroseconds,
+        time_stamp: &JsonTimeStamp,
     ) -> Self {
-        let last_read_access = AtomicDateTimeAsMicroseconds::new(time_stamp.unix_microseconds);
+        let last_read_access =
+            AtomicDateTimeAsMicroseconds::new(time_stamp.date_time.unix_microseconds);
 
         Self {
             partition_key,
             row_key,
             data,
             expires: expires_to_atomic(expires),
-            time_stamp,
+            time_stamp: time_stamp.as_str().to_string(),
             last_read_access,
         }
     }

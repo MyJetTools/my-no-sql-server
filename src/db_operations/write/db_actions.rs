@@ -1,10 +1,9 @@
 use std::sync::Arc;
 
-use rust_extensions::date_time::DateTimeAsMicroseconds;
-
 use crate::{
     app::AppContext,
     db::{DbPartition, DbRow, DbTableData},
+    db_json_entity::JsonTimeStamp,
     db_sync::states::DeleteRowsEventSyncData,
 };
 
@@ -19,7 +18,7 @@ pub async fn remove_db_row(
     table_name: &str,
     db_partition: &mut DbPartition,
     row_key: &str,
-    now: DateTimeAsMicroseconds,
+    now: &JsonTimeStamp,
 ) -> Option<RemoveRowResult> {
     let removed_row = db_partition.remove_row(row_key, now);
 
@@ -66,7 +65,7 @@ pub async fn bulk_remove_db_rows<'s, TIter: Iterator<Item = &'s String>>(
     table_name: &str,
     db_partition: &mut DbPartition,
     row_keys: TIter,
-    now: DateTimeAsMicroseconds,
+    now: &JsonTimeStamp,
 ) -> Option<Vec<Arc<DbRow>>> {
     let mut removed_rows = Vec::new();
     for row_key in row_keys {
@@ -94,9 +93,9 @@ pub async fn insert_db_row(
     table_name: &str,
     db_partition: &mut DbPartition,
     db_row: Arc<DbRow>,
+    now: &JsonTimeStamp,
 ) {
-    let write_access_moment = db_row.time_stamp;
-    db_partition.insert(db_row.clone(), Some(write_access_moment));
+    db_partition.insert(db_row.clone(), Some(now));
 
     app.rows_with_expiration.add(table_name, db_row).await;
 }
@@ -107,7 +106,7 @@ pub async fn bulk_insert_db_rows(
     table_name: &str,
     db_partition: &mut DbPartition,
     db_rows: &[Arc<DbRow>],
-    write_access_moment: DateTimeAsMicroseconds,
+    write_access_moment: &JsonTimeStamp,
 ) {
     db_partition.bulk_insert(db_rows, Some(write_access_moment));
 

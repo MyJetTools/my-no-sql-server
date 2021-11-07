@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
 use crate::{
-    app::AppContext, db_sync::SyncAttributes, db_transactions::steps::TransactionalOperationStep,
+    app::AppContext, db_json_entity::JsonTimeStamp, db_sync::SyncAttributes,
+    db_transactions::steps::TransactionalOperationStep,
 };
 
 use super::TransactionOperationError;
@@ -10,6 +11,7 @@ pub async fn commit(
     app: &AppContext,
     transaction_id: &str,
     attr: SyncAttributes,
+    now: &JsonTimeStamp,
 ) -> Result<(), TransactionOperationError> {
     let transaction = app.active_transactions.remove(transaction_id).await;
 
@@ -66,6 +68,7 @@ pub async fn commit(
                         db_table.clone(),
                         rows_to_delete,
                         Some(attr.clone()),
+                        now,
                     )
                     .await;
                 }
@@ -76,6 +79,7 @@ pub async fn commit(
                         db_table.clone(),
                         state.rows_by_partition,
                         Some(attr.clone()),
+                        now,
                     )
                     .await;
                 }

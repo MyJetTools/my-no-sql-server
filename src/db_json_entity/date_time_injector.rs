@@ -8,7 +8,7 @@ pub struct TimeStampValuePosition {
 pub fn replace_timestamp_value(
     raw: &[u8],
     time_stamp_value_position: &TimeStampValuePosition,
-    json_time_stamp: JsonTimeStamp,
+    json_time_stamp: &JsonTimeStamp,
 ) -> Vec<u8> {
     let timestamp_value = format!("{dq}{val}{dq}", dq = '"', val = json_time_stamp.as_str());
 
@@ -31,7 +31,7 @@ pub fn replace_timestamp_value(
     return result;
 }
 
-pub fn inject(raw: &[u8], time_stamp: JsonTimeStamp) -> Vec<u8> {
+pub fn inject(raw: &[u8], time_stamp: &JsonTimeStamp) -> Vec<u8> {
     let date_time = format!(
         ",{dq}{ts}{dq}:{dq}{val}{dq}",
         dq = '"',
@@ -66,14 +66,11 @@ fn get_the_end_of_the_json(data: &[u8]) -> usize {
 #[cfg(test)]
 mod tests {
 
-    use rust_extensions::date_time::DateTimeAsMicroseconds;
-
     use crate::db_json_entity::{date_time_injector::TimeStampValuePosition, utils::JsonTimeStamp};
 
     #[test]
     fn test_timestamp_injection() {
-        let now = DateTimeAsMicroseconds::now();
-        let json_ts = JsonTimeStamp::new(now);
+        let json_ts = JsonTimeStamp::now();
 
         let src_json = r#"{"Field1":"Value1"} "#;
 
@@ -84,7 +81,7 @@ mod tests {
             '}'
         );
 
-        let result = super::inject(src_json.as_bytes(), json_ts);
+        let result = super::inject(src_json.as_bytes(), &json_ts);
 
         let dest_json = String::from_utf8(result).unwrap();
 
@@ -96,8 +93,7 @@ mod tests {
 
     #[test]
     fn test_replace_null_to_timestamp() {
-        let now = DateTimeAsMicroseconds::now();
-        let json_ts = JsonTimeStamp::new(now);
+        let json_ts = JsonTimeStamp::now();
 
         let src_json = r#"{"Field1":"Value1","TimeStamp":null}"#;
 
@@ -116,7 +112,7 @@ mod tests {
         };
 
         let result =
-            super::replace_timestamp_value(src_json.as_bytes(), &ts_value_position, json_ts);
+            super::replace_timestamp_value(src_json.as_bytes(), &ts_value_position, &json_ts);
 
         let dest_json = String::from_utf8(result).unwrap();
 
@@ -128,8 +124,7 @@ mod tests {
 
     #[test]
     fn test_replace_some_string_to_timestamp() {
-        let now = DateTimeAsMicroseconds::now();
-        let json_ts = JsonTimeStamp::new(now);
+        let json_ts = JsonTimeStamp::now();
 
         let src_json = r#"{"Field1":"Value1","TimeStamp":"ReplaceHere"}"#;
 
@@ -150,7 +145,7 @@ mod tests {
         };
 
         let result =
-            super::replace_timestamp_value(src_json.as_bytes(), &ts_value_position, json_ts);
+            super::replace_timestamp_value(src_json.as_bytes(), &ts_value_position, &json_ts);
 
         let dest_json = String::from_utf8(result).unwrap();
 

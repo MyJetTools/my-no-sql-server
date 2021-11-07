@@ -1,10 +1,9 @@
 use std::{collections::HashMap, sync::Arc};
 
-use rust_extensions::date_time::DateTimeAsMicroseconds;
-
 use crate::{
     app::AppContext,
     db::DbTable,
+    db_json_entity::JsonTimeStamp,
     db_sync::{states::DeleteRowsEventSyncData, SyncAttributes, SyncEvent},
 };
 
@@ -13,10 +12,9 @@ pub async fn execute(
     db_table: Arc<DbTable>,
     rows_to_delete: HashMap<String, Vec<String>>,
     attr: Option<SyncAttributes>,
+    now: &JsonTimeStamp,
 ) {
     let mut write_access = db_table.data.write().await;
-
-    let now = DateTimeAsMicroseconds::now();
 
     let mut delete_event_state = if let Some(attr) = attr {
         Some(DeleteRowsEventSyncData::new(db_table.as_ref(), attr))

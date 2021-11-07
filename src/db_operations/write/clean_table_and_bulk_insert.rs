@@ -3,6 +3,7 @@ use std::{collections::BTreeMap, sync::Arc};
 use crate::{
     app::AppContext,
     db::{DbRow, DbTable, DbTableSnapshot},
+    db_json_entity::JsonTimeStamp,
     db_operations::DbOperationError,
     db_sync::{states::InitTableEventSyncData, SyncAttributes, SyncEvent},
 };
@@ -12,6 +13,7 @@ pub async fn execute(
     db_table: Arc<DbTable>,
     entities: BTreeMap<String, Vec<Arc<DbRow>>>,
     attr: Option<SyncAttributes>,
+    now: &JsonTimeStamp,
 ) -> Result<(), DbOperationError> {
     let mut table_write_access = db_table.data.write().await;
 
@@ -31,7 +33,6 @@ pub async fn execute(
     for (partition_key, db_rows) in entities {
         let db_partition = table_write_access.get_or_create_partition(partition_key.as_str());
 
-        let now = db_rows[0].time_stamp;
         super::db_actions::bulk_insert_db_rows(
             app,
             db_table.name.as_str(),

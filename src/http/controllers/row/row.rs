@@ -1,6 +1,6 @@
 use my_http_utils::HttpFailResult;
-use rust_extensions::date_time::DateTimeAsMicroseconds;
 
+use crate::db_json_entity::JsonTimeStamp;
 use crate::http::controllers::consts::MyNoSqlQueryString;
 use crate::http::http_helpers;
 use crate::{db_operations, http::http_ctx::HttpContext};
@@ -85,14 +85,14 @@ pub async fn delete(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult, 
     let db_table = crate::db_operations::read::table::get(app, table_name).await?;
 
     let attr = http_helpers::create_transaction_attributes(app, sync_period);
-    let now = DateTimeAsMicroseconds::now();
+    let now = JsonTimeStamp::now();
     let result = db_operations::write::delete_row::execute(
         app,
         db_table,
         partition_key,
         row_key,
         Some(attr),
-        now,
+        &now,
     )
     .await;
 

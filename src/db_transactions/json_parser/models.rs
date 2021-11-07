@@ -1,10 +1,9 @@
 use std::{collections::BTreeMap, sync::Arc};
 
-use rust_extensions::date_time::DateTimeAsMicroseconds;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    db_json_entity::{DbEntityParseFail, DbJsonEntity},
+    db_json_entity::{DbEntityParseFail, DbJsonEntity, JsonTimeStamp},
     db_transactions::steps::{TransactionalOperationStep, UpdateRowsStepState},
 };
 
@@ -85,11 +84,11 @@ impl InsertOrUpdateTransactionJsonModel {
     pub fn into(self) -> Result<TransactionalOperationStep, DbEntityParseFail> {
         let mut rows_by_partition = BTreeMap::new();
 
-        let now = DateTimeAsMicroseconds::now();
+        let now = JsonTimeStamp::now();
 
         for entity in &self.entities {
             let db_entity = DbJsonEntity::parse(entity)?;
-            let db_row = Arc::new(db_entity.to_db_row(now));
+            let db_row = Arc::new(db_entity.to_db_row(&now));
 
             if !rows_by_partition.contains_key(db_entity.partition_key) {
                 rows_by_partition.insert(db_entity.partition_key.to_string(), Vec::new());

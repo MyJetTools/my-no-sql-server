@@ -3,6 +3,7 @@ use std::{collections::BTreeMap, sync::Arc};
 use crate::{
     app::AppContext,
     db::{DbRow, DbTable},
+    db_json_entity::JsonTimeStamp,
     db_operations::DbOperationError,
     db_sync::{states::UpdatePartitionsSyncData, SyncAttributes, SyncEvent},
 };
@@ -13,6 +14,7 @@ pub async fn execute(
     partition_key: &str,
     entities: BTreeMap<String, Vec<Arc<DbRow>>>,
     attr: Option<SyncAttributes>,
+    now: &JsonTimeStamp,
 ) -> Result<(), DbOperationError> {
     let mut write_access = db_table.data.write().await;
 
@@ -26,7 +28,6 @@ pub async fn execute(
         super::db_actions::remove_partition(app, &mut write_access, partition_key).await;
 
     for (partition_key, db_rows) in entities {
-        let now = db_rows[0].time_stamp;
         let db_partition = write_access.get_or_create_partition(partition_key.as_str());
 
         super::db_actions::bulk_remove_db_rows(

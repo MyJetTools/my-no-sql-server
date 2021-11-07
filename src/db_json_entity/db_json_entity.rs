@@ -13,7 +13,7 @@ pub struct DbJsonEntity<'s> {
     pub partition_key: &'s str,
     pub row_key: &'s str,
     pub expires: Option<DateTimeAsMicroseconds>,
-    pub time_stamp: Option<DateTimeAsMicroseconds>,
+    pub time_stamp: Option<&'s str>,
     timestamp_value_position: Option<TimeStampValuePosition>,
     raw: &'s [u8],
 }
@@ -49,7 +49,7 @@ impl<'s> DbJsonEntity<'s> {
                     end: line.value_end,
                 });
 
-                time_stamp = line.get_value_as_date_time()
+                time_stamp = Some(line.get_value()?)
             }
         }
 
@@ -73,7 +73,7 @@ impl<'s> DbJsonEntity<'s> {
         return Ok(result);
     }
 
-    pub fn to_db_row(&self, time_stamp: DateTimeAsMicroseconds) -> DbRow {
+    pub fn to_db_row(&self, time_stamp: &JsonTimeStamp) -> DbRow {
         let data = compile_row_content(self.raw, &self.timestamp_value_position, time_stamp);
 
         return DbRow::new(
@@ -85,7 +85,7 @@ impl<'s> DbJsonEntity<'s> {
         );
     }
 
-    pub fn restore_db_row(&self, time_stamp: DateTimeAsMicroseconds) -> DbRow {
+    pub fn restore_db_row(&self, time_stamp: &JsonTimeStamp) -> DbRow {
         return DbRow::new(
             self.partition_key.to_string(),
             self.row_key.to_string(),
@@ -97,7 +97,7 @@ impl<'s> DbJsonEntity<'s> {
 
     pub fn parse_as_btreemap(
         src: &'s [u8],
-        time_stamp: DateTimeAsMicroseconds,
+        time_stamp: &JsonTimeStamp,
     ) -> Result<BTreeMap<String, Vec<Arc<DbRow>>>, DbEntityParseFail> {
         let mut result = BTreeMap::new();
 
@@ -120,17 +120,15 @@ impl<'s> DbJsonEntity<'s> {
 fn compile_row_content(
     raw: &[u8],
     time_stamp_value_position: &Option<TimeStampValuePosition>,
-    time_stamp: DateTimeAsMicroseconds,
+    time_stamp: &JsonTimeStamp,
 ) -> Vec<u8> {
-    let json_time_stamp = JsonTimeStamp::new(time_stamp);
-
     if let Some(time_stamp_value_position) = time_stamp_value_position {
         return super::date_time_injector::replace_timestamp_value(
             raw,
             time_stamp_value_position,
-            json_time_stamp,
+            time_stamp,
         );
     } else {
-        return super::date_time_injector::inject(raw, json_time_stamp);
+        return super::date_time_injector::inject(raw, time_stamp);
     }
 }

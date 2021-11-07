@@ -1,9 +1,8 @@
 use std::sync::Arc;
 
 use my_http_utils::HttpFailResult;
-use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-use crate::db_json_entity::DbJsonEntity;
+use crate::db_json_entity::{DbJsonEntity, JsonTimeStamp};
 use crate::http::http_ctx::HttpContext;
 
 use crate::app::AppContext;
@@ -24,11 +23,11 @@ pub async fn post(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult, Ht
 
     let attr = http_helpers::create_transaction_attributes(app, sync_period);
 
-    let now = DateTimeAsMicroseconds::now();
+    let now = JsonTimeStamp::now();
 
     let db_json_entity = DbJsonEntity::parse(&body)?;
 
-    let db_row = Arc::new(db_json_entity.to_db_row(now));
+    let db_row = Arc::new(db_json_entity.to_db_row(&now));
 
     let removed_db_row = crate::db_operations::write::insert_or_replace::execute(
         app,
@@ -36,6 +35,7 @@ pub async fn post(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult, Ht
         db_json_entity.partition_key,
         db_row,
         Some(attr),
+        &now,
     )
     .await;
 

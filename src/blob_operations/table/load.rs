@@ -1,14 +1,14 @@
 use std::sync::Arc;
 
 use my_azure_storage_sdk::{AzureConnection, AzureStorageError, BlobApi};
-use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use my_azure_storage_sdk::BlobContainersApi;
+use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
     app::{logs::SystemProcess, AppContext},
     db::{DbPartition, DbTableAttributes, DbTableData},
-    db_json_entity::DbJsonEntity,
+    db_json_entity::{DbJsonEntity, JsonTimeStamp},
     json::array_parser::ArrayToJsonObjectsSplitter,
 };
 
@@ -21,12 +21,10 @@ pub async fn load(
 ) -> Result<DbTableData, AzureStorageError> {
     let blobs = azure_connection.get_list_of_blobs(table_name).await?;
 
-    let now = DateTimeAsMicroseconds::now();
-
     let attributes = DbTableAttributes {
         max_partitions_amount: None,
         persist: true,
-        created: now,
+        created: DateTimeAsMicroseconds::now(),
     };
 
     let mut db_table_data = DbTableData::new(table_name.to_string(), attributes);
@@ -67,12 +65,14 @@ pub async fn load(
                 let db_entity = db_entity.unwrap();
 
                 let db_row = if let Some(time_stamp) = db_entity.time_stamp {
-                    db_entity.restore_db_row(time_stamp)
+                    let time_stamp = JsonTimeStamp::parse_or_now(time_stamp);
+                    db_entity.restore_db_row(&time_stamp)
                 } else {
-                    db_entity.to_db_row(now)
+                    let time_stamp = JsonTimeStamp::now();
+                    db_entity.to_db_row(&time_stamp)
                 };
 
-                db_partition.insert(Arc::new(db_row), Some(now));
+                db_partition.insert(Arc::new(db_row), None);
             }
 
             db_table_data.partitions.insert(partition_key, db_partition);

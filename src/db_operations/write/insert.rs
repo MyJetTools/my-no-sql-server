@@ -3,6 +3,7 @@ use std::sync::Arc;
 use crate::{
     app::AppContext,
     db::{DbRow, DbTable},
+    db_json_entity::JsonTimeStamp,
     db_operations::DbOperationError,
     db_sync::{states::UpdateRowsSyncData, SyncAttributes, SyncEvent},
 };
@@ -35,12 +36,13 @@ pub async fn execute(
     partition_key: &str,
     db_row: Arc<DbRow>,
     attr: Option<SyncAttributes>,
+    now: &JsonTimeStamp,
 ) -> Result<(), DbOperationError> {
     let mut table_write_access = db_table.data.write().await;
 
     let db_partition = table_write_access.get_or_create_partition(partition_key);
 
-    let inserted = db_partition.insert(db_row.clone(), Some(db_row.time_stamp));
+    let inserted = db_partition.insert(db_row.clone(), Some(now));
 
     if !inserted {
         return Err(DbOperationError::RecordAlreadyExists);

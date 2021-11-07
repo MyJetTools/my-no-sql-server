@@ -7,11 +7,9 @@ use serde::{Deserialize, Serialize};
 
 const TABLE_ALREADY_EXISTS_ERR: i16 = -1;
 const TABLE_NOT_FOUND_ERR: i16 = -2;
-const RECORD_NOT_FOUND_ERR: i16 = -3;
-const OPTIMISTIC_CONCURENCY_ERR: i16 = -4;
-const RECORD_ALREADY_EXISTS_ERR: i16 = -5;
-const FIELD_REQUIERS_ERR: i16 = -6;
-const JSON_PARSE_ERR: i16 = -7;
+const RECORD_ALREADY_EXISTS_ERR: i16 = -3;
+const REQUIERED_ENTITY_FIELD_IS_MISSING_ERR: i16 = -4;
+const JSON_PARSE_ERR: i16 = -5;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct HttpErrorModel {
@@ -48,32 +46,16 @@ impl From<DbOperationError> for HttpFailResult {
                     content,
                 }
             }
-            DbOperationError::RecordNotFound => {
-                let err_model = HttpErrorModel {
-                    code: RECORD_NOT_FOUND_ERR,
-                    message: format!("Record not found"),
-                };
-                let content = serde_json::to_vec(&err_model).unwrap();
-
-                HttpFailResult {
-                    content_type: WebContentType::Json,
-                    status_code: 400,
-                    content,
-                }
-            }
-            DbOperationError::OptimisticConcurencyUpdateFails => {
-                let err_model = HttpErrorModel {
-                    code: OPTIMISTIC_CONCURENCY_ERR,
-                    message: format!("Record is changed"),
-                };
-                let content = serde_json::to_vec(&err_model).unwrap();
-
-                HttpFailResult {
-                    content_type: WebContentType::Json,
-                    status_code: 400,
-                    content,
-                }
-            }
+            DbOperationError::RecordNotFound => HttpFailResult {
+                content_type: WebContentType::Json,
+                status_code: 404,
+                content: format!("Record not found").into_bytes(),
+            },
+            DbOperationError::OptimisticConcurencyUpdateFails => HttpFailResult {
+                content_type: WebContentType::Json,
+                status_code: 409,
+                content: format!("Record is changed").into_bytes(),
+            },
             DbOperationError::RecordAlreadyExists => {
                 let err_model = HttpErrorModel {
                     code: RECORD_ALREADY_EXISTS_ERR,
@@ -89,7 +71,7 @@ impl From<DbOperationError> for HttpFailResult {
             }
             DbOperationError::TimeStampFieldRequires => {
                 let err_model = HttpErrorModel {
-                    code: FIELD_REQUIERS_ERR,
+                    code: REQUIERED_ENTITY_FIELD_IS_MISSING_ERR,
                     message: format!("Timestamp field requires"),
                 };
 
@@ -126,7 +108,7 @@ impl From<DbEntityParseFail> for HttpFailResult {
         match src {
             DbEntityParseFail::FieldPartitionKeyIsRequired => {
                 let err_model = HttpErrorModel {
-                    code: FIELD_REQUIERS_ERR,
+                    code: REQUIERED_ENTITY_FIELD_IS_MISSING_ERR,
                     message: format!("PartitionKey field is required"),
                 };
 
@@ -140,7 +122,7 @@ impl From<DbEntityParseFail> for HttpFailResult {
             }
             DbEntityParseFail::FieldRowKeyIsRequired => {
                 let err_model = HttpErrorModel {
-                    code: FIELD_REQUIERS_ERR,
+                    code: REQUIERED_ENTITY_FIELD_IS_MISSING_ERR,
                     message: format!("RowKey field is required"),
                 };
 
