@@ -50,7 +50,7 @@ pub async fn execute(
     db_row: Arc<DbRow>,
     attr: Option<SyncAttributes>,
     entity_timestamp: DateTimeAsMicroseconds,
-) -> Result<(), DbOperationError> {
+) -> Result<Option<Arc<DbRow>>, DbOperationError> {
     let mut write_access = db_table.data.write().await;
 
     let db_partition = write_access.partitions.get_mut(partition_key);
@@ -77,7 +77,7 @@ pub async fn execute(
         }
     }
 
-    super::db_actions::remove_db_row(
+    let remove_row_result = super::db_actions::remove_db_row(
         app,
         db_table.name.as_str(),
         db_partition,
@@ -99,7 +99,12 @@ pub async fn execute(
             .await
     }
 
-    Ok(())
+    let result = match remove_row_result {
+        Some(remove_row_result) => Some(remove_row_result.removed_row),
+        None => None,
+    };
+
+    Ok(result)
 }
 
 #[derive(Deserialize, Serialize)]

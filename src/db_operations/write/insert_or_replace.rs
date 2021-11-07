@@ -12,14 +12,14 @@ pub async fn execute(
     partition_key: &str,
     db_row: Arc<DbRow>,
     attr: Option<SyncAttributes>,
-) {
+) -> Option<Arc<DbRow>> {
     let mut table_write_access = db_table.data.write().await;
 
     let db_partition = table_write_access.get_or_create_partition(partition_key);
 
     let update_time = db_row.time_stamp;
 
-    db_partition.insert_or_replace(db_row.clone(), Some(update_time));
+    let result = db_partition.insert_or_replace(db_row.clone(), Some(update_time));
 
     if let Some(attr) = attr {
         let mut update_rows_state = UpdateRowsSyncData::new(db_table.as_ref(), attr);
@@ -29,4 +29,6 @@ pub async fn execute(
             .dispatch(SyncEvent::UpdateRows(update_rows_state))
             .await;
     }
+
+    result
 }

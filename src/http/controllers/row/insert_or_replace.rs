@@ -12,10 +12,7 @@ use crate::http::http_ok::HttpOkResult;
 
 use super::super::consts::{self, MyNoSqlQueryString};
 
-pub async fn post(
-    ctx: HttpContext,
-    app: &AppContext,
-) -> Result<HttpOkResult, HttpFailResult> {
+pub async fn post(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult, HttpFailResult> {
     let query = ctx.get_query_string()?;
     let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;
 
@@ -33,7 +30,7 @@ pub async fn post(
 
     let db_row = Arc::new(db_json_entity.to_db_row(now));
 
-    crate::db_operations::write::insert_or_replace::execute(
+    let removed_db_row = crate::db_operations::write::insert_or_replace::execute(
         app,
         db_table,
         db_json_entity.partition_key,
@@ -42,5 +39,5 @@ pub async fn post(
     )
     .await;
 
-    Ok(HttpOkResult::Ok)
+    Ok(HttpOkResult::as_db_row(removed_db_row))
 }

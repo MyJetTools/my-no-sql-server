@@ -38,7 +38,7 @@ pub async fn put(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult, Htt
 
     let attr = http_helpers::create_transaction_attributes(app, sync_period);
 
-    crate::db_operations::write::replace::execute(
+    let removed_row = crate::db_operations::write::replace::execute(
         app,
         db_table.as_ref(),
         db_json_entity.partition_key,
@@ -48,5 +48,5 @@ pub async fn put(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult, Htt
     )
     .await?;
 
-    Ok(HttpOkResult::Ok)
+    Ok(HttpOkResult::as_db_row(removed_row))
 }

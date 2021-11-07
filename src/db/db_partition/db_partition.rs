@@ -60,12 +60,14 @@ impl DbPartition {
         &mut self,
         db_row: Arc<DbRow>,
         update_write_access: Option<DateTimeAsMicroseconds>,
-    ) {
-        self.rows.insert(db_row.row_key.to_string(), db_row);
+    ) -> Option<Arc<DbRow>> {
+        let result = self.rows.insert(db_row.row_key.to_string(), db_row);
 
         if let Some(write_access_time) = update_write_access {
             self.last_write_moment.update(write_access_time);
         }
+
+        result
     }
 
     pub fn remove_row(&mut self, row_key: &str, now: DateTimeAsMicroseconds) -> Option<Arc<DbRow>> {
