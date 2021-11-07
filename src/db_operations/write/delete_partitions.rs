@@ -32,7 +32,7 @@ pub async fn execute(
 
     if let Some(state) = sync {
         app.events_dispatcher
-            .dispatch(SyncEvent::Delete(state))
+            .dispatch(SyncEvent::DeleteRows(state))
             .await
     }
 }

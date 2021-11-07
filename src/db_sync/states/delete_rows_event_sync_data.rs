@@ -24,14 +24,13 @@ impl DeleteRowsEventSyncData {
         }
     }
 
-    pub fn add_deleted_rows(&mut self, partition_key: &str, deleted_rows: &[Arc<DbRow>]) {
+    fn check_that_we_are_in_partition_mode(
+        &mut self,
+        partition_key: &str,
+    ) -> &mut BTreeMap<String, BTreeMap<String, Arc<DbRow>>> {
         if let Some(deleted_partitions) = &self.deleted_partitions {
             if deleted_partitions.contains_key(partition_key) {
-                panic!(
-                    "Can not add deleted rows from partition {}. Amount{}",
-                    partition_key,
-                    deleted_rows.len()
-                );
+                panic!("Can not add deleted rows from partition {}", partition_key);
             }
         }
 
@@ -39,18 +38,33 @@ impl DeleteRowsEventSyncData {
             self.deleted_rows = Some(BTreeMap::new())
         }
 
-        let deleted_rows_btree_map = self.deleted_rows.as_mut().unwrap();
+        return self.deleted_rows.as_mut().unwrap();
+    }
 
-        for db_row in deleted_rows {
-            if !deleted_rows_btree_map.contains_key(partition_key) {
-                deleted_rows_btree_map.insert(db_row.row_key.to_string(), BTreeMap::new());
-            }
+    pub fn add_deleted_row(&mut self, partition_key: &str, deleted_row: Arc<DbRow>) {
+        let deleted_rows_btree_map = self.check_that_we_are_in_partition_mode(partition_key);
 
-            deleted_rows_btree_map
-                .get_mut(partition_key)
-                .as_mut()
-                .unwrap()
-                .insert(db_row.row_key.to_string(), db_row.clone());
+        if !deleted_rows_btree_map.contains_key(partition_key) {
+            deleted_rows_btree_map.insert(partition_key.to_string(), BTreeMap::new());
+        }
+
+        deleted_rows_btree_map
+            .get_mut(partition_key)
+            .unwrap()
+            .insert(deleted_row.row_key.to_string(), deleted_row.clone());
+    }
+
+    pub fn add_deleted_rows(&mut self, partition_key: &str, deleted_rows: &[Arc<DbRow>]) {
+        let deleted_rows_btree_map = self.check_that_we_are_in_partition_mode(partition_key);
+
+        if !deleted_rows_btree_map.contains_key(partition_key) {
+            deleted_rows_btree_map.insert(partition_key.to_string(), BTreeMap::new());
+        }
+
+        let by_partition = deleted_rows_btree_map.get_mut(partition_key).unwrap();
+
+        for deleted_row in deleted_rows {
+            by_partition.insert(deleted_row.row_key.to_string(), deleted_row.clone());
         }
     }
 

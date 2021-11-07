@@ -61,7 +61,7 @@ pub async fn execute(
 
     if let Some(delete_event_state) = delete_event_state {
         app.events_dispatcher
-            .dispatch(SyncEvent::Delete(delete_event_state))
+            .dispatch(SyncEvent::DeleteRows(delete_event_state))
             .await;
     }
 }

@@ -45,7 +45,7 @@ pub fn into_tcp_contract(event: &SyncEvent) -> TcpContractsToSend {
             };
             TcpContractsToSend::Single(result)
         }
-        SyncEvent::Delete(data) => {
+        SyncEvent::DeleteRows(data) => {
             let mut result = Vec::new();
 
             if let Some(deleted_partitions) = &data.deleted_partitions {

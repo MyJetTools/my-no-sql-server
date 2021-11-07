@@ -12,7 +12,7 @@ pub enum SyncEvent {
 
     UpdateRows(UpdateRowsSyncData),
 
-    Delete(DeleteRowsEventSyncData),
+    DeleteRows(DeleteRowsEventSyncData),
 
     DeleteTable(DeleteTableSyncData),
 }
@@ -24,7 +24,7 @@ impl SyncEvent {
             SyncEvent::InitTable(data) => data.table_data.table_name.as_ref(),
             SyncEvent::InitPartitions(data) => data.table_data.table_name.as_ref(),
             SyncEvent::UpdateRows(data) => data.table_data.table_name.as_ref(),
-            SyncEvent::Delete(data) => data.table_data.table_name.as_ref(),
+            SyncEvent::DeleteRows(data) => data.table_data.table_name.as_ref(),
             SyncEvent::DeleteTable(data) => data.table_data.table_name.as_ref(),
         }
     }

@@ -55,7 +55,7 @@ pub async fn execute(
                             .await;
                     }
                 }
-                SyncEvent::Delete(data) => {
+                SyncEvent::DeleteRows(data) => {
                     if data.table_data.persist {
                         if let Some(deleted_partitions) = &data.deleted_partitions {
                             updates_to_persist_by_table

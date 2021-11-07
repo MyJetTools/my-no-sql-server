@@ -1,6 +1,10 @@
+use std::sync::Arc;
+
 use hyper::{Body, Response};
 use my_http_utils::{HttpFailResult, WebContentType};
 use serde::Serialize;
+
+use crate::db::DbRow;
 
 #[derive(Clone)]
 pub enum HttpOkResult {
@@ -17,6 +21,8 @@ pub enum HttpOkResult {
     Text {
         text: String,
     },
+    DbRow(Arc<DbRow>),
+    Empty,
 }
 
 impl HttpOkResult {
@@ -33,6 +39,13 @@ impl HttpOkResult {
             content_type: Some(WebContentType::Text),
             content: number.to_string().into_bytes(),
         })
+    }
+
+    pub fn as_db_row(db_row: Option<Arc<DbRow>>) -> Self {
+        match db_row {
+            Some(db_row) => Self::DbRow(db_row),
+            None => Self::Empty,
+        }
     }
 }
 
@@ -70,6 +83,20 @@ impl Into<Response<Body>> for HttpOkResult {
                 .status(200)
                 .body(Body::from(compile_html(title, body)))
                 .unwrap(),
+            HttpOkResult::DbRow(db_row) => {
+                return Response::builder()
+                    .header("Content-Type", WebContentType::Json.to_string())
+                    .status(200)
+                    .body(Body::from(db_row.data.clone()))
+                    .unwrap();
+            }
+            HttpOkResult::Empty => {
+                return Response::builder()
+                    .header("Content-Type", WebContentType::Json.to_string())
+                    .status(202)
+                    .body(Body::empty())
+                    .unwrap();
+            }
         };
     }
 }

@@ -9,7 +9,7 @@ use std::result::Result;
 use super::super::consts;
 use crate::http::http_ctx::HttpContext;
 
-pub async fn post(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult, HttpFailResult> {
+pub async fn put(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult, HttpFailResult> {
     let query = ctx.get_query_string()?;
 
     let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;

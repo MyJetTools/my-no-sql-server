@@ -5,6 +5,7 @@ pub mod clean_table;
 pub mod clean_table_and_bulk_insert;
 mod db_actions;
 pub mod delete_partitions;
+pub mod delete_row;
 pub mod insert;
 pub mod insert_or_replace;
 pub mod replace;

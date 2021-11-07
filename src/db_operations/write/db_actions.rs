@@ -1,11 +1,17 @@
-use std::{collections::BTreeMap, sync::Arc};
+use std::sync::Arc;
 
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
     app::AppContext,
     db::{DbPartition, DbRow, DbTableData},
+    db_sync::states::DeleteRowsEventSyncData,
 };
+
+pub struct RemoveRowResult {
+    pub removed_row: Arc<DbRow>,
+    pub partition_is_empty: bool,
+}
 
 #[inline]
 pub async fn remove_db_row(
@@ -14,16 +20,44 @@ pub async fn remove_db_row(
     db_partition: &mut DbPartition,
     row_key: &str,
     now: DateTimeAsMicroseconds,
-) -> Option<Arc<DbRow>> {
+) -> Option<RemoveRowResult> {
     let removed_row = db_partition.remove_row(row_key, now);
 
-    if let Some(removed_row) = &removed_row {
+    if let Some(removed_row) = removed_row {
         app.rows_with_expiration
             .removed(table_name, removed_row.as_ref())
             .await;
+
+        return Some(RemoveRowResult {
+            partition_is_empty: db_partition.is_empty(),
+            removed_row,
+        });
     }
 
-    removed_row
+    None
+}
+
+pub fn handle_after_delete_row(
+    table_data: &mut DbTableData,
+    partition_key: &str,
+    remove_row_result: &RemoveRowResult,
+    sync_data: Option<&mut DeleteRowsEventSyncData>,
+) {
+    if !remove_row_result.partition_is_empty {
+        return;
+    }
+
+    let removed_partition = table_data.partitions.remove(partition_key);
+
+    if removed_partition.is_none() {
+        return;
+    }
+
+    let removed_partition = removed_partition.unwrap();
+
+    if let Some(sync_data) = sync_data {
+        sync_data.new_deleted_partition(partition_key.to_string(), removed_partition);
+    }
 }
 
 #[inline]
@@ -102,9 +136,6 @@ pub async fn clean_table(
     app: &AppContext,
     db_table_data: &mut DbTableData,
 ) -> Option<Vec<DbPartition>> {
-    let mut old_partitions = BTreeMap::new();
-    std::mem::swap(&mut old_partitions, &mut db_table_data.partitions);
-
     let partitions: Vec<String> = db_table_data
         .partitions
         .keys()

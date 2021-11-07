@@ -151,4 +151,8 @@ impl DbPartition {
             content: self.rows.values().map(|itm| itm.clone()).collect(),
         }
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.rows.len() == 0
+    }
 }

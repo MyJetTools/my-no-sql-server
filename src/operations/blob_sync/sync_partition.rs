@@ -61,7 +61,7 @@ pub async fn sync_single_partition(
     if let Some(db_partition_snapshot) = partition_snapshot {
         if let Some(blob_date_time) = blob_date_time {
             if db_partition_snapshot.last_write_moment.unix_microseconds
-                != blob_date_time.unix_microseconds
+                > blob_date_time.unix_microseconds
             {
                 crate::blob_operations::save_partition::with_retries(
                     app,
@@ -71,14 +71,6 @@ pub async fn sync_single_partition(
                     db_partition_snapshot,
                 )
                 .await;
-            } else {
-                crate::blob_operations::delete_partition::with_retires(
-                    app,
-                    azure_connection,
-                    table_name,
-                    partition_key,
-                )
-                .await
             }
         } else {
             crate::blob_operations::save_partition::with_retries(
@@ -90,5 +82,13 @@ pub async fn sync_single_partition(
             )
             .await;
         }
+    } else {
+        crate::blob_operations::delete_partition::with_retires(
+            app,
+            azure_connection,
+            table_name,
+            partition_key,
+        )
+        .await
     }
 }

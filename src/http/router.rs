@@ -51,8 +51,8 @@ pub async fn route_requests(
             return tables::create_if_not_exists::post(HttpContext::new(req), app.as_ref()).await;
         }
 
-        (&Method::POST, "/tables/clean") => {
-            return tables::clean::post(HttpContext::new(req), app.as_ref()).await;
+        (&Method::PUT, "/tables/clean") => {
+            return tables::clean::put(HttpContext::new(req), app.as_ref()).await;
         }
 
         (&Method::DELETE, "/tables/delete") => {
@@ -72,19 +72,23 @@ pub async fn route_requests(
         }
 
         (&Method::GET, "/row") => {
-            return row::get_rows(HttpContext::new(req), app.as_ref()).await;
+            return row::get(HttpContext::new(req), app.as_ref()).await;
+        }
+
+        (&Method::DELETE, "/row") => {
+            return row::delete(HttpContext::new(req), app.as_ref()).await;
         }
 
         (&Method::PUT, "/row/replace") => {
-            return row::replace(HttpContext::new(req), app.as_ref()).await;
+            return row::replace::put(HttpContext::new(req), app.as_ref()).await;
         }
 
         (&Method::POST, "/row/insert") => {
-            return row::insert(HttpContext::new(req), app.as_ref()).await;
+            return row::insert::post(HttpContext::new(req), app.as_ref()).await;
         }
 
         (&Method::POST, "/row/insertorreplace") => {
-            return row::insert_or_replace(HttpContext::new(req), app.as_ref()).await;
+            return row::insert_or_replace::post(HttpContext::new(req), app.as_ref()).await;
         }
 
         (&Method::POST, "/rows/singlepartitionmultiplerows") => {
