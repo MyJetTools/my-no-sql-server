@@ -15,5 +15,5 @@ pub async fn get(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult, Htt
 
     let partitions_count = db_table.get_partitions_amount().await;
 
-    return HttpOkResult::create_as_usize(partitions_count);
+    return Ok(HttpOkResult::as_usize(partitions_count));
 }

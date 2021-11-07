@@ -34,11 +34,11 @@ impl HttpOkResult {
         })
     }
 
-    pub fn create_as_usize(number: usize) -> Result<HttpOkResult, HttpFailResult> {
-        Ok(HttpOkResult::Content {
+    pub fn as_usize(number: usize) -> Self {
+        Self::Content {
             content_type: Some(WebContentType::Text),
             content: number.to_string().into_bytes(),
-        })
+        }
     }
 
     pub fn as_db_row(db_row: Option<Arc<DbRow>>) -> Self {

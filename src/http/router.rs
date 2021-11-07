@@ -75,6 +75,10 @@ pub async fn route_requests(
             return row::get(HttpContext::new(req), app.as_ref()).await;
         }
 
+        (&Method::GET, "/count") => {
+            return row::count::get(HttpContext::new(req), app.as_ref()).await;
+        }
+
         (&Method::DELETE, "/row") => {
             return row::delete(HttpContext::new(req), app.as_ref()).await;
         }
