@@ -15,6 +15,7 @@ use super::{
 pub fn deserialize(
     transaction_type: TransactionType,
     content: &[u8],
+    now: &JsonTimeStamp,
 ) -> Result<TransactionalOperationStep, GrpcContractConvertError> {
     match transaction_type {
         TransactionType::CleanTable => {
@@ -47,15 +48,13 @@ pub fn deserialize(
         TransactionType::InsertOrReplaceEntities => {
             let contract = InsertOrReplaceEntitiesTransactionActionGrpcModel::deserialize(content)?;
 
-            let time_stamp = JsonTimeStamp::now();
-
             let mut update_rows_state = UpdateRowsStepState {
                 table_name: contract.table_name,
                 rows_by_partition: BTreeMap::new(),
             };
 
             for entity in contract.entities {
-                let db_row = entity.to_db_row(&time_stamp)?;
+                let db_row = entity.to_db_row(&now)?;
 
                 if update_rows_state
                     .rows_by_partition

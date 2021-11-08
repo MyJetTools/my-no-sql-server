@@ -1,5 +1,6 @@
 use crate::{db_json_entity::DbEntityParseFail, db_operations::DbOperationError};
 
+#[derive(Debug)]
 pub enum TransactionOperationError {
     TransactionNotFound { id: String },
     DbEntityParseFail(DbEntityParseFail),
