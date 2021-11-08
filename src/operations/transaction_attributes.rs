@@ -3,10 +3,7 @@ use crate::{
     db_sync::{DataSynchronizationPeriod, SyncAttributes},
 };
 
-pub fn create_transaction_attributes(
-    app: &AppContext,
-    sync_period: DataSynchronizationPeriod,
-) -> SyncAttributes {
+pub fn create(app: &AppContext, sync_period: DataSynchronizationPeriod) -> SyncAttributes {
     let locations = vec![app.location.to_string()];
     SyncAttributes {
         locations,

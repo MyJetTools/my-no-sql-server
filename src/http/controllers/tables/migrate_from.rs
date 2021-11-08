@@ -4,7 +4,7 @@ use my_http_utils::{HttpFailResult, WebContentType};
 use crate::{
     app::AppContext,
     db_json_entity::{DbJsonEntity, JsonTimeStamp},
-    http::{http_ctx::HttpContext, http_helpers, http_ok::HttpOkResult},
+    http::{http_ctx::HttpContext, http_ok::HttpOkResult},
 };
 
 use super::super::consts;
@@ -31,7 +31,7 @@ pub async fn post(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult, Ht
     let rows_by_partition = DbJsonEntity::parse_as_btreemap(body.as_slice(), &now)?;
 
     let partitions_count = rows_by_partition.len();
-    let attr = http_helpers::create_transaction_attributes(
+    let attr = crate::operations::transaction_attributes::create(
         app,
         crate::db_sync::DataSynchronizationPeriod::Sec5,
     );

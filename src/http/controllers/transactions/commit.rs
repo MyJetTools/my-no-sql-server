@@ -1,7 +1,7 @@
 use crate::{
     app::AppContext,
     db_json_entity::JsonTimeStamp,
-    http::{http_ctx::HttpContext, http_helpers, http_ok::HttpOkResult},
+    http::{http_ctx::HttpContext, http_ok::HttpOkResult},
 };
 
 use my_http_utils::HttpFailResult;
@@ -13,13 +13,12 @@ pub struct StartTransactionResponse {
     transaction_id: String,
 }
 
-
 pub async fn post(app: &AppContext, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
     let query_string = ctx.get_query_string()?;
 
     let transaction_id = query_string.get_query_required_string_parameter("transactionId")?;
 
-    let attr = http_helpers::create_transaction_attributes(
+    let attr = crate::operations::transaction_attributes::create(
         app,
         crate::db_sync::DataSynchronizationPeriod::Sec1,
     );

@@ -2,7 +2,7 @@ use my_http_utils::HttpFailResult;
 
 use crate::db_json_entity::JsonTimeStamp;
 use crate::http::controllers::consts::MyNoSqlQueryString;
-use crate::http::http_helpers;
+
 use crate::{db_operations, http::http_ctx::HttpContext};
 
 use crate::app::AppContext;
@@ -84,7 +84,7 @@ pub async fn delete(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult, 
 
     let db_table = crate::db_operations::read::table::get(app, table_name).await?;
 
-    let attr = http_helpers::create_transaction_attributes(app, sync_period);
+    let attr = crate::operations::transaction_attributes::create(app, sync_period);
     let now = JsonTimeStamp::now();
     let result = db_operations::write::delete_row::execute(
         app,

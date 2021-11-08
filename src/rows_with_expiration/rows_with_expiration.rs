@@ -10,8 +10,10 @@ use crate::db::DbRow;
 
 use super::RowWithExpirationBucket;
 
+type ItemsWithExpiration = BTreeMap<i64, HashMap<String, RowWithExpirationBucket>>;
+
 pub struct RowsWithExpiration {
-    items: Mutex<BTreeMap<i64, HashMap<String, RowWithExpirationBucket>>>,
+    items: Mutex<ItemsWithExpiration>,
 }
 
 impl RowsWithExpiration {
@@ -70,6 +72,57 @@ impl RowsWithExpiration {
             }
         }
     }
+
+    pub async fn remove_up_to(
+        &self,
+        now: DateTimeAsMicroseconds,
+    ) -> Option<HashMap<String, Vec<Arc<DbRow>>>> {
+        let mut write_access = self.items.lock().await;
+
+        let items_to_remove = get_keys_to_remove(&write_access, now).await?;
+
+        let mut result = HashMap::new();
+        for item_to_remove in items_to_remove {
+            let buckets = write_access.remove(&item_to_remove);
+
+            if let Some(buckets) = buckets {
+                for (table_name, bucket) in buckets {
+                    if !result.contains_key(table_name.as_str()) {
+                        result.insert(table_name.to_string(), Vec::new());
+                    }
+
+                    result
+                        .get_mut(table_name.as_str())
+                        .unwrap()
+                        .extend(bucket.db_rows);
+                }
+            }
+        }
+
+        Some(result)
+    }
+}
+
+#[inline]
+async fn get_keys_to_remove(
+    items: &ItemsWithExpiration,
+    now: DateTimeAsMicroseconds,
+) -> Option<Vec<i64>> {
+    let mut result = None;
+
+    for (time_stamp, _) in items {
+        if now.unix_microseconds < *time_stamp {
+            break;
+        }
+
+        if result.is_none() {
+            result = Some(Vec::new());
+        }
+
+        result.as_mut().unwrap().push(*time_stamp);
+    }
+
+    return result;
 }
 
 fn add_internal(

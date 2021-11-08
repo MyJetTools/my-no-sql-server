@@ -65,7 +65,7 @@ pub async fn commit(
                     rows_to_delete.insert(partition_key, row_keys);
                     crate::db_operations::write::bulk_delete::execute(
                         app,
-                        db_table.clone(),
+                        db_table.as_ref(),
                         rows_to_delete,
                         Some(attr.clone()),
                         now,

@@ -4,7 +4,7 @@ use crate::db_json_entity::{DbJsonEntity, JsonTimeStamp};
 use crate::http::http_ctx::HttpContext;
 
 use crate::app::AppContext;
-use crate::http::http_helpers;
+
 use crate::http::http_ok::HttpOkResult;
 
 use super::super::consts::{self, MyNoSqlQueryString};
@@ -18,7 +18,7 @@ pub async fn post(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult, Ht
     let db_table = crate::db_operations::read::table::get(app, table_name).await?;
     let sync_period = query.get_sync_period();
 
-    let attr = http_helpers::create_transaction_attributes(app, sync_period);
+    let attr = crate::operations::transaction_attributes::create(app, sync_period);
 
     let now = JsonTimeStamp::now();
 

@@ -67,6 +67,10 @@ async fn main() {
         transactions_receiver,
     )));
 
+    background_tasks.push(tokio::task::spawn(
+        crate::background::db_rows_expirator::start(app.clone()),
+    ));
+
     tokio::task::spawn(http::http_server::start(
         app.clone(),
         SocketAddr::from(([0, 0, 0, 0], 5123)),

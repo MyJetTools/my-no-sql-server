@@ -2,7 +2,7 @@ use my_http_utils::HttpFailResult;
 
 use crate::{
     app::AppContext,
-    http::{controllers::consts::MyNoSqlQueryString, http_helpers, http_ok::HttpOkResult},
+    http::{controllers::consts::MyNoSqlQueryString, http_ok::HttpOkResult},
 };
 use std::result::Result;
 
@@ -17,7 +17,7 @@ pub async fn put(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult, Htt
 
     let db_table = crate::db_operations::read::table::get(app, table_name).await?;
 
-    let attr = http_helpers::create_transaction_attributes(app, sync_period);
+    let attr = crate::operations::transaction_attributes::create(app, sync_period);
 
     crate::db_operations::write::clean_table::execute(app, db_table, Some(attr)).await;
 

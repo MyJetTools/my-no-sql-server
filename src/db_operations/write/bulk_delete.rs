@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use crate::{
     app::AppContext,
@@ -9,7 +9,7 @@ use crate::{
 
 pub async fn execute(
     app: &AppContext,
-    db_table: Arc<DbTable>,
+    db_table: &DbTable,
     rows_to_delete: HashMap<String, Vec<String>>,
     attr: Option<SyncAttributes>,
     now: &JsonTimeStamp,
@@ -17,7 +17,7 @@ pub async fn execute(
     let mut write_access = db_table.data.write().await;
 
     let mut delete_event_state = if let Some(attr) = attr {
-        Some(DeleteRowsEventSyncData::new(db_table.as_ref(), attr))
+        Some(DeleteRowsEventSyncData::new(db_table, attr))
     } else {
         None
     };

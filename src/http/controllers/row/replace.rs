@@ -6,7 +6,7 @@ use crate::db_json_entity::{DbJsonEntity, JsonTimeStamp};
 use crate::http::http_ctx::HttpContext;
 
 use crate::app::AppContext;
-use crate::http::http_helpers;
+
 use crate::http::http_ok::HttpOkResult;
 
 use super::super::consts::{self, MyNoSqlQueryString};
@@ -35,7 +35,7 @@ pub async fn put(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult, Htt
 
     let db_row = Arc::new(db_json_entity.to_db_row(&now));
 
-    let attr = http_helpers::create_transaction_attributes(app, sync_period);
+    let attr = crate::operations::transaction_attributes::create(app, sync_period);
 
     let removed_row = crate::db_operations::write::replace::execute(
         app,

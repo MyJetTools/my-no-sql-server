@@ -10,6 +10,7 @@ pub enum SystemProcess {
     BlobOperation = 2,
     TableOperation = 3,
     Init = 4,
+    Timer = 5,
 }
 
 impl SystemProcess {
@@ -21,6 +22,7 @@ impl SystemProcess {
         result.push(SystemProcess::BlobOperation);
         result.push(SystemProcess::TableOperation);
         result.push(SystemProcess::Init);
+        result.push(SystemProcess::Timer);
 
         return result;
     }
@@ -43,6 +45,10 @@ impl SystemProcess {
 
         if value == "init" {
             return Some(SystemProcess::Init);
+        }
+
+        if value == "timer" {
+            return Some(SystemProcess::Timer);
         }
 
         return None;
@@ -116,6 +122,7 @@ impl Logs {
             SystemProcess::BlobOperation => {}
             SystemProcess::TableOperation => {}
             SystemProcess::Init => print_to_console(&item),
+            SystemProcess::Timer => {}
         }
 
         let process_id = item.as_ref().process.as_u8();

@@ -2,10 +2,7 @@ use my_http_utils::HttpFailResult;
 
 use crate::{
     app::AppContext,
-    http::{
-        controllers::consts::MyNoSqlQueryString, http_ctx::HttpContext, http_helpers,
-        http_ok::HttpOkResult,
-    },
+    http::{controllers::consts::MyNoSqlQueryString, http_ctx::HttpContext, http_ok::HttpOkResult},
 };
 
 use super::super::consts;
@@ -21,7 +18,7 @@ pub async fn post(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult, Ht
 
     let sync_period = query.get_sync_period();
 
-    let attr = http_helpers::create_transaction_attributes(app, sync_period);
+    let attr = crate::operations::transaction_attributes::create(app, sync_period);
 
     crate::db_operations::write::table::create(
         app,
