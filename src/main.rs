@@ -2,6 +2,7 @@ use app::AppContext;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 
 mod app;
+mod grpc;
 
 mod blob_operations;
 mod db;
@@ -19,6 +20,10 @@ mod background;
 mod persistence;
 mod settings_reader;
 mod utils;
+
+pub mod mynosqlserver_grpc {
+    tonic::include_proto!("mynosqlserver");
+}
 
 #[tokio::main]
 async fn main() {

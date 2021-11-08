@@ -1,0 +1,37 @@
+syntax = "proto3";
+package mynosqlserver;
+
+enum TransactionType {
+    CleanTable = 0;
+    DeletePartitions = 1;
+    DeleteRows = 2;
+    InsertOrReplaceEntities = 3;
+}
+
+enum TransactionOperationResult{
+    Ok = 0;
+    TransactionNotFound =1;
+    TableNotFound = 2;
+}
+
+ message TransactionActionGrpcModel {
+    mynosqlserver.TransactionType TransactionType = 1;
+    bytes Payload = 2;
+}
+
+
+message TransactionPayloadGrpcRequest{
+    optional string TransactionId = 1;
+    repeated mynosqlserver.TransactionActionGrpcModel Actions = 2;
+    bool Commit = 3;
+}
+
+message TransactionGrpcResponse{
+    TransactionOperationResult result =1;
+    string Id = 2;
+}
+
+
+service Writer{
+    rpc PostTransactionOperations(mynosqlserver.TransactionPayloadGrpcRequest) returns (mynosqlserver.TransactionGrpcResponse);
+}

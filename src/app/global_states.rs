@@ -25,8 +25,7 @@ impl GlobalStates {
     }
 
     pub fn is_shutting_down(&self) -> bool {
-        self
-            .shutting_down
+        self.shutting_down
             .load(std::sync::atomic::Ordering::Relaxed)
     }
 
