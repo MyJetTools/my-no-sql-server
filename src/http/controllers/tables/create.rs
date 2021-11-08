@@ -32,5 +32,5 @@ pub async fn post(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult, Ht
     )
     .await?;
 
-    return Ok(HttpOkResult::Ok);
+    return Ok(HttpOkResult::Empty);
 }

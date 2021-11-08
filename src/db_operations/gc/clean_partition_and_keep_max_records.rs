@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::{
     app::AppContext,
     db::DbTable,
@@ -8,7 +6,7 @@ use crate::{
 
 pub async fn execute(
     app: &AppContext,
-    db_table: Arc<DbTable>,
+    db_table: &DbTable,
     partition_key: &str,
     max_rows_amount: usize,
     attr: Option<SyncAttributes>,
@@ -27,7 +25,7 @@ pub async fn execute(
 
     if let Some(gced_rows) = gced_rows_result {
         if let Some(attr) = attr {
-            let mut sync_data = DeleteRowsEventSyncData::new(db_table.as_ref(), attr);
+            let mut sync_data = DeleteRowsEventSyncData::new(db_table, attr);
 
             sync_data.add_deleted_rows(partition_key, &gced_rows);
 

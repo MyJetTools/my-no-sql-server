@@ -21,5 +21,5 @@ pub async fn put(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult, Htt
 
     crate::db_operations::write::clean_table::execute(app, db_table, Some(attr)).await;
 
-    return Ok(HttpOkResult::Ok);
+    return Ok(HttpOkResult::Empty);
 }

@@ -1,4 +1,4 @@
-use rust_extensions::date_time::AtomicDateTimeAsMicroseconds;
+use rust_extensions::date_time::{AtomicDateTimeAsMicroseconds, DateTimeAsMicroseconds};
 
 use crate::{
     db::DbRow, db_json_entity::JsonTimeStamp, json::JsonArrayBuilder, utils::SortedDictionary,
@@ -158,5 +158,16 @@ impl DbPartition {
 
     pub fn is_empty(&self) -> bool {
         self.rows.len() == 0
+    }
+
+    pub fn get_last_access(&self) -> DateTimeAsMicroseconds {
+        let last_read_access = self.last_read_access.as_date_time();
+        let last_write_access = self.last_write_moment.as_date_time();
+
+        if last_read_access.unix_microseconds > last_write_access.unix_microseconds {
+            return last_read_access;
+        }
+
+        return last_write_access;
     }
 }

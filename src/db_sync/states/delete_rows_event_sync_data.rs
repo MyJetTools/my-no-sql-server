@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, sync::Arc};
 
 use crate::{
-    db::{DbPartition, DbRow, DbTable},
+    db::{DbRow, DbTable},
     db_sync::SyncAttributes,
 };
 
@@ -10,7 +10,7 @@ use super::SyncTableData;
 pub struct DeleteRowsEventSyncData {
     pub table_data: SyncTableData,
     pub attr: SyncAttributes,
-    pub deleted_partitions: Option<BTreeMap<String, DbPartition>>,
+    pub deleted_partitions: Option<BTreeMap<String, u8>>,
     pub deleted_rows: Option<BTreeMap<String, BTreeMap<String, Arc<DbRow>>>>,
 }
 
@@ -68,7 +68,7 @@ impl DeleteRowsEventSyncData {
         }
     }
 
-    pub fn new_deleted_partition(&mut self, partition_key: String, partition: DbPartition) {
+    pub fn new_deleted_partition(&mut self, partition_key: String) {
         if let Some(deleted_rows) = &mut self.deleted_rows {
             deleted_rows.remove(partition_key.as_str());
         }
@@ -80,6 +80,6 @@ impl DeleteRowsEventSyncData {
         self.deleted_partitions
             .as_mut()
             .unwrap()
-            .insert(partition_key, partition);
+            .insert(partition_key, 0);
     }
 }

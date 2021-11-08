@@ -16,47 +16,36 @@ pub struct RemoveRowResult {
 pub async fn remove_db_row(
     app: &AppContext,
     table_name: &str,
+    partition_key: &str,
     db_partition: &mut DbPartition,
     row_key: &str,
     now: &JsonTimeStamp,
+    sync_data: Option<&mut DeleteRowsEventSyncData>,
 ) -> Option<RemoveRowResult> {
     let removed_row = db_partition.remove_row(row_key, now);
 
-    if let Some(removed_row) = removed_row {
-        app.rows_with_expiration
-            .removed(table_name, removed_row.as_ref())
-            .await;
-
-        return Some(RemoveRowResult {
-            partition_is_empty: db_partition.is_empty(),
-            removed_row,
-        });
+    if removed_row.is_none() {
+        return None;
     }
 
-    None
-}
+    let removed_row = removed_row.unwrap();
 
-pub fn handle_after_delete_row(
-    table_data: &mut DbTableData,
-    partition_key: &str,
-    remove_row_result: &RemoveRowResult,
-    sync_data: Option<&mut DeleteRowsEventSyncData>,
-) {
-    if !remove_row_result.partition_is_empty {
-        return;
-    }
-
-    let removed_partition = table_data.partitions.remove(partition_key);
-
-    if removed_partition.is_none() {
-        return;
-    }
-
-    let removed_partition = removed_partition.unwrap();
+    app.rows_with_expiration
+        .removed(table_name, removed_row.as_ref())
+        .await;
 
     if let Some(sync_data) = sync_data {
-        sync_data.new_deleted_partition(partition_key.to_string(), removed_partition);
+        if db_partition.is_empty() {
+            sync_data.new_deleted_partition(partition_key.to_string());
+        } else {
+            sync_data.add_deleted_row(partition_key, removed_row.clone())
+        }
     }
+
+    return Some(RemoveRowResult {
+        partition_is_empty: db_partition.is_empty(),
+        removed_row,
+    });
 }
 
 #[inline]

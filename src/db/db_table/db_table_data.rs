@@ -49,7 +49,7 @@ impl DbTableData {
         let mut partitions_to_gc = BTreeMap::new();
 
         for (partition_key, partition) in &self.partitions {
-            let mut last_read_access = partition.last_read_access.get_unix_microseconds();
+            let mut last_read_access = partition.get_last_access().unix_microseconds;
 
             while partitions_to_gc.contains_key(&last_read_access) {
                 last_read_access += 1;

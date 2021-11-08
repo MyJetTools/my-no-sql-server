@@ -25,5 +25,5 @@ pub async fn delete(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult, 
 
     crate::db_operations::write::table::delete(app, table_name, Some(attr)).await?;
 
-    return Ok(HttpOkResult::Ok);
+    return Ok(HttpOkResult::Empty);
 }

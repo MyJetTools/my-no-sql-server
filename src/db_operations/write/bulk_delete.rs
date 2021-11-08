@@ -49,9 +49,9 @@ pub async fn execute(
         if partition.rows_count() == 0 {
             let deleted_partition = write_access.partitions.remove(partition_key.as_str());
 
-            if let Some(deleted_partition) = deleted_partition {
+            if deleted_partition.is_some() {
                 if let Some(delete_event_state) = &mut delete_event_state {
-                    delete_event_state.new_deleted_partition(partition_key, deleted_partition)
+                    delete_event_state.new_deleted_partition(partition_key)
                 }
             }
         }

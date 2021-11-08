@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::{
     app::AppContext,
     db::DbTable,
-    db_sync::{states::DeleteRowsEventSyncData, SyncAttributes, SyncEvent},
+    db_sync::{states::InitPartitionsSyncData, SyncAttributes, SyncEvent},
 };
 
 pub async fn execute(
@@ -14,8 +14,8 @@ pub async fn execute(
 ) {
     let mut table_write_access = db_table.data.write().await;
 
-    let mut sync = if let Some(attr) = attr {
-        Some(DeleteRowsEventSyncData::new(db_table.as_ref(), attr))
+    let mut sync_data = if let Some(attr) = attr {
+        Some(InitPartitionsSyncData::new(db_table.as_ref(), attr))
     } else {
         None
     };
@@ -23,16 +23,16 @@ pub async fn execute(
     for partition_key in partition_keys {
         let remove_partition_result = table_write_access.partitions.remove(&partition_key);
 
-        if let Some(removed_partition) = remove_partition_result {
-            if let Some(state) = &mut sync {
-                state.new_deleted_partition(partition_key, removed_partition);
+        if remove_partition_result.is_some() {
+            if let Some(sync_data) = &mut sync_data {
+                sync_data.add(partition_key, None);
             }
         }
     }
 
-    if let Some(state) = sync {
+    if let Some(sync_data) = sync_data {
         app.events_dispatcher
-            .dispatch(SyncEvent::DeleteRows(state))
+            .dispatch(SyncEvent::InitPartitions(sync_data))
             .await
     }
 }

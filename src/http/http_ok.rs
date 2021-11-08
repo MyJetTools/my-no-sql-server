@@ -8,8 +8,6 @@ use crate::db::DbRow;
 
 #[derive(Clone)]
 pub enum HttpOkResult {
-    Ok,
-
     Html {
         title: String,
         body: String,
@@ -52,11 +50,6 @@ impl HttpOkResult {
 impl Into<Response<Body>> for HttpOkResult {
     fn into(self) -> Response<Body> {
         return match self {
-            HttpOkResult::Ok => Response::builder()
-                .header("Content-Type", WebContentType::Text.to_string())
-                .status(200)
-                .body(Body::from("OK"))
-                .unwrap(),
             HttpOkResult::Content {
                 content_type,
                 content,

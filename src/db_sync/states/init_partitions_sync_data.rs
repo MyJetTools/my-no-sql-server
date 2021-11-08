@@ -7,13 +7,13 @@ use crate::{
 
 use super::SyncTableData;
 
-pub struct UpdatePartitionsSyncData {
+pub struct InitPartitionsSyncData {
     pub table_data: SyncTableData,
     pub attr: SyncAttributes,
     pub partitions_to_update: BTreeMap<String, Option<DbPartitionSnapshot>>,
 }
 
-impl UpdatePartitionsSyncData {
+impl InitPartitionsSyncData {
     pub fn new(table: &DbTable, attr: SyncAttributes) -> Self {
         Self {
             table_data: SyncTableData::new(table),

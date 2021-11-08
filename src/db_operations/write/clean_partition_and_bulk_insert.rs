@@ -5,7 +5,7 @@ use crate::{
     db::{DbRow, DbTable},
     db_json_entity::JsonTimeStamp,
     db_operations::DbOperationError,
-    db_sync::{states::UpdatePartitionsSyncData, SyncAttributes, SyncEvent},
+    db_sync::{states::InitPartitionsSyncData, SyncAttributes, SyncEvent},
 };
 
 pub async fn execute(
@@ -19,7 +19,7 @@ pub async fn execute(
     let mut write_access = db_table.data.write().await;
 
     let mut update_partitions_state = if let Some(attr) = attr {
-        Some(UpdatePartitionsSyncData::new(db_table.as_ref(), attr))
+        Some(InitPartitionsSyncData::new(db_table.as_ref(), attr))
     } else {
         None
     };

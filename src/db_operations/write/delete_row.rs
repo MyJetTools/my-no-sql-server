@@ -17,6 +17,12 @@ pub async fn execute(
 ) -> Option<Arc<DbRow>> {
     let mut table_write_access = db_table.data.write().await;
 
+    let mut sync_data = if let Some(attr) = attr {
+        Some(DeleteRowsEventSyncData::new(db_table.as_ref(), attr))
+    } else {
+        None
+    };
+
     let remove_row_result = {
         let db_partition = table_write_access.partitions.get_mut(partition_key);
 
@@ -29,9 +35,11 @@ pub async fn execute(
         let remove_result = super::db_actions::remove_db_row(
             app,
             db_table.name.as_str(),
+            partition_key,
             db_partition,
             row_key,
             now,
+            sync_data.as_mut(),
         )
         .await;
 
@@ -42,20 +50,9 @@ pub async fn execute(
         remove_result.unwrap()
     };
 
-    let mut sync_data = if let Some(attr) = attr {
-        let mut sync_data = DeleteRowsEventSyncData::new(db_table.as_ref(), attr);
-        sync_data.add_deleted_row(partition_key, remove_row_result.removed_row.clone());
-        Some(sync_data)
-    } else {
-        None
-    };
-
-    super::db_actions::handle_after_delete_row(
-        &mut table_write_access,
-        partition_key,
-        &remove_row_result,
-        sync_data.as_mut(),
-    );
+    if remove_row_result.partition_is_empty {
+        table_write_access.partitions.remove(partition_key);
+    }
 
     if let Some(sync_data) = sync_data {
         app.events_dispatcher

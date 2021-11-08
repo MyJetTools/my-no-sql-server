@@ -91,59 +91,64 @@ pub async fn route_requests(
             return row::insert::post(HttpContext::new(req), app.as_ref()).await;
         }
 
+        (&Method::DELETE, "/row/cleanandkeeplastrecords") => {
+            return gc::clean_and_keep_max_records::post(HttpContext::new(req), app.as_ref()).await;
+        }
+
         (&Method::POST, "/row/insertorreplace") => {
             return row::insert_or_replace::post(HttpContext::new(req), app.as_ref()).await;
         }
 
         (&Method::POST, "/rows/singlepartitionmultiplerows") => {
-            return rows::get_single_partition_multiple_rows(HttpContext::new(req), app.as_ref())
-                .await;
+            return rows::get_single_partition_multiple_rows::post(
+                HttpContext::new(req),
+                app.as_ref(),
+            )
+            .await;
         }
 
         (&Method::GET, "/rows/highestrowandbelow") => {
-            return rows::get_highest_row_and_below(HttpContext::new(req), app.as_ref()).await;
+            return rows::get_highest_row_and_below::get(HttpContext::new(req), app.as_ref()).await;
         }
 
         (&Method::POST, "/bulk/insertorreplace") => {
-            return bulk::insert_or_replace(HttpContext::new(req), app.as_ref()).await;
+            return bulk::insert_or_replace::post(HttpContext::new(req), app.as_ref()).await;
         }
 
         (&Method::POST, "/bulk/cleanandbulkinsert") => {
-            return bulk::clean_and_bulk_insert(HttpContext::new(req), app.as_ref()).await;
+            return bulk::clean_and_bulk_insert::post(HttpContext::new(req), app.as_ref()).await;
         }
 
         (&Method::POST, "/bulk/delete") => {
-            return bulk::bulk_delete(HttpContext::new(req), app.as_ref()).await;
+            return bulk::bulk_delete::post(HttpContext::new(req), app.as_ref()).await;
         }
 
         (&Method::POST, "/garbagecollector/cleanandkeepmaxpartitions") => {
-            return gc::clean_and_keep_max_partitions_amount(HttpContext::new(req), app.as_ref())
-                .await;
+            return gc::clean_and_keep_max_partitions_amount::post(
+                HttpContext::new(req),
+                app.as_ref(),
+            )
+            .await;
         }
 
         (&Method::POST, "/garbagecollector/cleanandkeepmaxrecords") => {
-            return gc::clean_and_keep_max_records(HttpContext::new(req), app.as_ref()).await;
-        }
-
-        (&Method::POST, "/garbagecollector/gc") => {
-            return gc::clean_and_keep_max_partitions_amount(HttpContext::new(req), app.as_ref())
-                .await;
+            return gc::clean_and_keep_max_records::post(HttpContext::new(req), app.as_ref()).await;
         }
 
         (&Method::POST, "/transaction/start") => {
-            return transactions::start(app.as_ref()).await;
+            return transactions::start::post(app.as_ref()).await;
         }
 
         (&Method::POST, "/transaction/append") => {
-            return transactions::append(app.as_ref(), HttpContext::new(req)).await;
+            return transactions::append::post(app.as_ref(), HttpContext::new(req)).await;
         }
 
         (&Method::POST, "/transaction/commit") => {
-            return transactions::commit(app.as_ref(), HttpContext::new(req)).await;
+            return transactions::commit::post(app.as_ref(), HttpContext::new(req)).await;
         }
 
         (&Method::POST, "/transaction/cancel") => {
-            return transactions::cancel(app.as_ref(), HttpContext::new(req)).await;
+            return transactions::cancel::post(app.as_ref(), HttpContext::new(req)).await;
         }
 
         _ => {}

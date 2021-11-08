@@ -1,8 +1,8 @@
-use std::sync::Arc;
+use std::collections::HashMap;
 
 use my_http_utils::HttpFailResult;
 
-use crate::db_json_entity::{DbJsonEntity, JsonTimeStamp};
+use crate::db_json_entity::JsonTimeStamp;
 use crate::http::http_ctx::HttpContext;
 
 use crate::app::AppContext;
@@ -15,35 +15,26 @@ pub async fn post(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult, Ht
     let query = ctx.get_query_string()?;
     let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;
 
-    let sync_period = query.get_sync_period();
-
     let body = ctx.get_body().await;
 
     let db_table = crate::db_operations::read::table::get(app, table_name).await?;
-    let db_json_entity = DbJsonEntity::parse(&body)?;
-
-    crate::db_operations::write::insert::validate_before(
-        db_table.as_ref(),
-        db_json_entity.partition_key,
-        db_json_entity.row_key,
-    )
-    .await?;
+    let sync_period = query.get_sync_period();
 
     let attr = http_helpers::create_transaction_attributes(app, sync_period);
 
+    let rows_to_delete: HashMap<String, Vec<String>> =
+        serde_json::from_slice(body.as_slice()).unwrap();
+
     let now = JsonTimeStamp::now();
 
-    let db_row = Arc::new(db_json_entity.to_db_row(&now));
-
-    crate::db_operations::write::insert::execute(
+    crate::db_operations::write::bulk_delete::execute(
         app,
-        db_table.as_ref(),
-        db_json_entity.partition_key,
-        db_row,
+        db_table,
+        rows_to_delete,
         Some(attr),
         &now,
     )
-    .await?;
+    .await;
 
     Ok(HttpOkResult::Empty)
 }

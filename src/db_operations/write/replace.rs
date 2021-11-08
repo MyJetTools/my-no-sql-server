@@ -79,9 +79,11 @@ pub async fn execute(
     let remove_row_result = super::db_actions::remove_db_row(
         app,
         db_table.name.as_str(),
+        partition_key,
         db_partition,
         db_row.row_key.as_str(),
         now,
+        None,
     )
     .await;
 
