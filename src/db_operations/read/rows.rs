@@ -17,7 +17,7 @@ pub async fn get_all_table_rows(
 
     let result = table_data.iterate_all_rows();
 
-    ReadOperationResult::RowsArray(super::read_filter::filter_it(result, limit, skip))
+    ReadOperationResult::RowsArray(super::read_filter::filter_it(result, limit, skip, now))
 }
 
 pub async fn get_all_rows_by_partition_key(
@@ -42,6 +42,7 @@ pub async fn get_all_rows_by_partition_key(
                 partition.rows.values(),
                 limit,
                 skip,
+                now,
             ))
         }
         None => ReadOperationResult::EmptyArray,
@@ -74,6 +75,7 @@ pub async fn get_all_rows_by_row_key(
         result.into_iter(),
         limit,
         skip,
+        now,
     ));
 }
 

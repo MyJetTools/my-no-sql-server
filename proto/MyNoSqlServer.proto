@@ -1,4 +1,5 @@
 syntax = "proto3";
+import "google/protobuf/empty.proto";
 package mynosqlserver;
 
 enum TransactionType {
@@ -31,7 +32,50 @@ message TransactionGrpcResponse{
     string Id = 2;
 }
 
+message CreateTableIfNotExistsGrpcRequest{
+    string TableName = 1;
+    bool PersistTable = 2;
+}
+
+message SetTableAttributesGrpcRequest{
+    string TableName = 1;
+    optional int32 MaxPartitionsAmount = 2;
+}
+
+message GetEntitiesGrpcRequest{
+    string TableName = 1;
+    optional string PartitionKey = 2;
+    optional string RowKey = 3;
+    optional int32 Skip = 4;
+    optional int32 Limit = 5;
+}
+
+message TableEntityTransportGrpcContract{
+    int32 ContentType = 1;
+    bytes Content = 2;
+}
+
+message GetDbRowGrpcResponse{
+    int32 ResponseCode = 1;
+    optional mynosqlserver.TableEntityTransportGrpcContract Entity = 2;
+}
+
+message GetEntityGrpcRequest{
+    string TableName = 1;
+    string PartitionKey = 2;
+    string RowKey = 3;
+}
+
+message CancelTransactionGrpcRequest{
+    string Id = 1;
+}
+
 
 service Writer{
+    rpc CreateTableIfNotExists(mynosqlserver.CreateTableIfNotExistsGrpcRequest) returns (google.protobuf.Empty);
+    rpc SetTableAttributes(mynosqlserver.SetTableAttributesGrpcRequest) returns (google.protobuf.Empty);
+    rpc GetRows(mynosqlserver.GetEntitiesGrpcRequest) returns (stream TableEntityTransportGrpcContract);
+    rpc GetRow(mynosqlserver.GetEntityGrpcRequest) returns (GetDbRowGrpcResponse);
     rpc PostTransactionOperations(mynosqlserver.TransactionPayloadGrpcRequest) returns (mynosqlserver.TransactionGrpcResponse);
+    rpc CancelTransaction(mynosqlserver.CancelTransactionGrpcRequest) returns (google.protobuf.Empty);
 }

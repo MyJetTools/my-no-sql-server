@@ -96,7 +96,6 @@ pub async fn create_if_not_exist(
     set_table_attrubutes(
         app,
         db_table.clone(),
-        true,
         persist_table,
         max_partitions_amount,
         attr,
@@ -109,7 +108,7 @@ pub async fn create_if_not_exist(
 pub async fn set_table_attrubutes(
     app: &AppContext,
     db_table: Arc<DbTable>,
-    table_is_just_created: bool,
+
     persist: bool,
     max_partitions_amount: Option<usize>,
     attr: Option<SyncAttributes>,
@@ -128,7 +127,6 @@ pub async fn set_table_attrubutes(
                             persist,
                         },
                         attr,
-                        table_is_just_created,
                         persist,
                         max_partitions_amount,
                     },

@@ -86,6 +86,8 @@ async fn main() {
         SocketAddr::from(([0, 0, 0, 0], 5125)),
     ));
 
+    tokio::task::spawn(crate::grpc::server::start(app.clone(), 5124));
+
     signal_hook::flag::register(
         signal_hook::consts::SIGTERM,
         app.states.shutting_down.clone(),

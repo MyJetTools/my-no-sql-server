@@ -38,6 +38,7 @@ uuid = { version = "*", features = ["serde", "v4"] }
 prometheus = "*"
 signal-hook = "*"
 async-trait = "*"
+tokio-stream = "*"
 
 [build-dependencies]
 tonic-build = { version = "0.5.0", features = ["prost"] }

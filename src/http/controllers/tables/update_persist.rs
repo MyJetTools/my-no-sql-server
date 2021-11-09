@@ -26,7 +26,6 @@ pub async fn post(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult, Ht
     crate::db_operations::write::table::set_table_attrubutes(
         app,
         db_table,
-        false,
         persist,
         max_partitions_amount,
         Some(attr),

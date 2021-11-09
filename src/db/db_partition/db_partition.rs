@@ -87,6 +87,11 @@ impl DbPartition {
         Some(result.as_ref())
     }
 
+    pub fn get_row_and_clone(&self, row_key: &str) -> Option<Arc<DbRow>> {
+        let result = self.rows.get(row_key)?;
+        Some(result.clone())
+    }
+
     pub fn gc_rows(&mut self, max_rows_amount: usize) -> Option<Vec<Arc<DbRow>>> {
         if self.rows.len() == 0 {
             return None;
