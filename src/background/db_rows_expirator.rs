@@ -10,6 +10,7 @@ pub async fn start(app: Arc<AppContext>) {
 
     while !app.states.is_shutting_down() {
         for _ in 0..10 {
+            tokio::time::sleep(duration).await;
             if app.states.is_shutting_down() {
                 break;
             }
