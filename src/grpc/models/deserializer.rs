@@ -1,5 +1,3 @@
-use std::{collections::BTreeMap, sync::Arc};
-
 use crate::{
     db_json_entity::JsonTimeStamp,
     db_transactions::steps::{TransactionalOperationStep, UpdateRowsStepState},
@@ -48,29 +46,12 @@ pub fn deserialize(
         TransactionType::InsertOrReplaceEntities => {
             let contract = InsertOrReplaceEntitiesTransactionActionGrpcModel::deserialize(content)?;
 
-            let mut update_rows_state = UpdateRowsStepState {
+            let rows_by_partition = contract.to_db_rows(now)?;
+
+            let update_rows_state = UpdateRowsStepState {
                 table_name: contract.table_name,
-                rows_by_partition: BTreeMap::new(),
+                rows_by_partition,
             };
-
-            for entity in contract.entities {
-                let db_row = entity.to_db_row(&now)?;
-
-                if update_rows_state
-                    .rows_by_partition
-                    .contains_key(&db_row.partition_key)
-                {
-                    update_rows_state
-                        .rows_by_partition
-                        .insert(db_row.partition_key.to_string(), Vec::new());
-
-                    update_rows_state
-                        .rows_by_partition
-                        .get_mut(&db_row.partition_key)
-                        .unwrap()
-                        .push(Arc::new(db_row));
-                }
-            }
 
             let result = TransactionalOperationStep::UpdateRows(update_rows_state);
 

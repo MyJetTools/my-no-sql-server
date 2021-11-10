@@ -95,6 +95,21 @@ impl<'s> DbJsonEntity<'s> {
         );
     }
 
+    pub fn parse_as_vec(
+        src: &'s [u8],
+        time_stamp: &JsonTimeStamp,
+    ) -> Result<Vec<Arc<DbRow>>, DbEntityParseFail> {
+        let mut result = Vec::new();
+
+        for json in src.split_array_json_to_objects() {
+            let db_entity = DbJsonEntity::parse(json)?;
+            let db_row = db_entity.to_db_row(time_stamp);
+
+            result.push(Arc::new(db_row));
+        }
+        return Ok(result);
+    }
+
     pub fn parse_as_btreemap(
         src: &'s [u8],
         time_stamp: &JsonTimeStamp,

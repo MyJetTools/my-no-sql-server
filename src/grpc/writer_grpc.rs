@@ -193,10 +193,11 @@ impl Writer for MyNoSqlServerWriterGrpcSerice {
         Ok(tonic::Response::new(result))
     }
 
-    async fn post_transaction_operations(
+    async fn post_transaction_actions(
         &self,
         request: tonic::Request<TransactionPayloadGrpcRequest>,
     ) -> Result<tonic::Response<TransactionGrpcResponse>, tonic::Status> {
+        println!("PostTransaction");
         let request = request.into_inner();
 
         let transaction_id = if let Some(transaction_id) = &request.transaction_id {
@@ -242,6 +243,8 @@ impl Writer for MyNoSqlServerWriterGrpcSerice {
             result: 0,
             id: transaction_id,
         };
+
+        println!("PostTransaction Done");
         return Ok(tonic::Response::new(result));
     }
 
@@ -249,6 +252,7 @@ impl Writer for MyNoSqlServerWriterGrpcSerice {
         &self,
         request: tonic::Request<CancelTransactionGrpcRequest>,
     ) -> Result<tonic::Response<()>, tonic::Status> {
+        println!("CancelTransaction");
         let request = request.into_inner();
 
         self.app.active_transactions.remove(&request.id).await;

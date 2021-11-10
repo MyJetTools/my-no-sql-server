@@ -76,6 +76,6 @@ service Writer{
     rpc SetTableAttributes(mynosqlserver.SetTableAttributesGrpcRequest) returns (google.protobuf.Empty);
     rpc GetRows(mynosqlserver.GetEntitiesGrpcRequest) returns (stream TableEntityTransportGrpcContract);
     rpc GetRow(mynosqlserver.GetEntityGrpcRequest) returns (GetDbRowGrpcResponse);
-    rpc PostTransactionOperations(mynosqlserver.TransactionPayloadGrpcRequest) returns (mynosqlserver.TransactionGrpcResponse);
+    rpc PostTransactionActions(mynosqlserver.TransactionPayloadGrpcRequest) returns (mynosqlserver.TransactionGrpcResponse);
     rpc CancelTransaction(mynosqlserver.CancelTransactionGrpcRequest) returns (google.protobuf.Empty);
 }

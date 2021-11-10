@@ -51,7 +51,7 @@ fn generate_id(items: &HashMap<String, TransactionalOperations>) -> String {
     loop {
         let id = uuid::Uuid::new_v4().to_string();
 
-        if items.contains_key(&id) {
+        if !items.contains_key(&id) {
             return id;
         }
     }

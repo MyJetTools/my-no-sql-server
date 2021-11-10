@@ -2,6 +2,7 @@ use crate::{
     db::DbRow,
     db_json_entity::{DbJsonEntity, JsonTimeStamp},
 };
+use std::sync::Arc;
 
 use super::GrpcContractConvertError;
 
@@ -21,7 +22,10 @@ pub struct TableEntityTransportGrpcContract {
 }
 
 impl TableEntityTransportGrpcContract {
-    pub fn to_db_row(&self, time_stamp: &JsonTimeStamp) -> Result<DbRow, GrpcContractConvertError> {
+    pub fn to_db_rows(
+        &self,
+        time_stamp: &JsonTimeStamp,
+    ) -> Result<Vec<Arc<DbRow>>, GrpcContractConvertError> {
         let result = GrpcContentType::from_i32(self.content_type).unwrap();
 
         match result {
@@ -34,9 +38,12 @@ impl TableEntityTransportGrpcContract {
         }
     }
 
-    fn parse_as_json(&self, time_stamp: &JsonTimeStamp) -> Result<DbRow, GrpcContractConvertError> {
-        let db_entity = DbJsonEntity::parse(self.content.as_ref())?;
+    fn parse_as_json(
+        &self,
+        time_stamp: &JsonTimeStamp,
+    ) -> Result<Vec<Arc<DbRow>>, GrpcContractConvertError> {
+        let result = DbJsonEntity::parse_as_vec(self.content.as_ref(), time_stamp)?;
 
-        Ok(db_entity.to_db_row(time_stamp))
+        Ok(result)
     }
 }
