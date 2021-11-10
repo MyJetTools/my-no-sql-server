@@ -4,7 +4,7 @@ on:
     tags: "*"
 
 env:
-  IMAGE_NAME: myjettools/my-nosql
+  IMAGE_NAME: myjettools/my-nosql-server
 
 
 jobs:
