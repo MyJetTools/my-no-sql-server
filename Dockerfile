@@ -1,3 +1,3 @@
 FROM rust
 COPY . . 
-ENTRYPOINT ["./target/release/my-nosql-server"]
+ENTRYPOINT ["./target/release/my-no-sql-server"]
