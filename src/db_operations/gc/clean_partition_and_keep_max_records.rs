@@ -11,9 +11,9 @@ pub async fn execute(
     max_rows_amount: usize,
     attr: Option<SyncAttributes>,
 ) {
-    let mut write_access = db_table.data.write().await;
+    let mut table_data = db_table.data.write().await;
 
-    let partition = write_access.partitions.get_mut(partition_key);
+    let partition = table_data.get_partition_mut(partition_key);
 
     if partition.is_none() {
         return;
@@ -25,7 +25,7 @@ pub async fn execute(
 
     if let Some(gced_rows) = gced_rows_result {
         if let Some(attr) = attr {
-            let mut sync_data = DeleteRowsEventSyncData::new(db_table, attr);
+            let mut sync_data = DeleteRowsEventSyncData::new(&table_data, attr);
 
             sync_data.add_deleted_rows(partition_key, &gced_rows);
 

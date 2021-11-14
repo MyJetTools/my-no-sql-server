@@ -23,6 +23,10 @@ impl EventsDispatcher {
     }
 
     pub async fn dispatch(&self, event: SyncEvent) {
+        if !event.has_elements_to_dispatch() {
+            return;
+        }
+
         {
             let table_name = event.get_table_name();
             let mut write_access = self.events.lock().await;

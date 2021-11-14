@@ -23,7 +23,7 @@ pub async fn validate_before(
 
     let read_access = db_table.data.read().await;
 
-    let db_partition = read_access.partitions.get(partition_key);
+    let db_partition = read_access.get_partition(partition_key);
 
     if db_partition.is_none() {
         return Err(DbOperationError::RecordNotFound);
@@ -50,18 +50,18 @@ pub async fn execute(
     attr: Option<SyncAttributes>,
     entity_timestamp: &str,
     now: &JsonTimeStamp,
-) -> Result<Option<Arc<DbRow>>, DbOperationError> {
-    let mut write_access = db_table.data.write().await;
+) -> Result<Arc<DbRow>, DbOperationError> {
+    let mut table_data = db_table.data.write().await;
 
-    let db_partition = write_access.partitions.get_mut(partition_key);
+    let removed_row = {
+        let db_partition = table_data.get_partition_mut(partition_key);
 
-    if db_partition.is_none() {
-        return Err(DbOperationError::RecordNotFound);
-    }
+        if db_partition.is_none() {
+            return Err(DbOperationError::RecordNotFound);
+        }
 
-    let db_partition = db_partition.unwrap();
+        let db_partition = db_partition.unwrap();
 
-    {
         let current_db_row = db_partition.get_row(db_row.row_key.as_str());
 
         match current_db_row {
@@ -74,44 +74,26 @@ pub async fn execute(
                 return Err(DbOperationError::RecordNotFound);
             }
         }
-    }
+        let (removed_row, _) = table_data
+            .remove_row(partition_key, &db_row.row_key, false, now)
+            .unwrap();
 
-    let remove_row_result = super::db_actions::remove_db_row(
-        app,
-        db_table.name.as_str(),
-        partition_key,
-        db_partition,
-        db_row.row_key.as_str(),
-        now,
-        None,
-    )
-    .await;
+        removed_row
+    };
 
-    super::db_actions::insert_db_row(
-        app,
-        db_table.name.as_str(),
-        db_partition,
-        db_row.clone(),
-        now,
-    )
-    .await;
+    table_data.insert_row(&db_row, now);
 
     if let Some(attr) = attr {
-        let mut update_rows_state = UpdateRowsSyncData::new(db_table, attr);
+        let mut update_rows_state = UpdateRowsSyncData::new(&table_data, attr);
 
-        update_rows_state.add_row(partition_key, db_row);
+        update_rows_state.add_row(db_row);
 
         app.events_dispatcher
             .dispatch(SyncEvent::UpdateRows(update_rows_state))
             .await
     }
 
-    let result = match remove_row_result {
-        Some(remove_row_result) => Some(remove_row_result.removed_row),
-        None => None,
-    };
-
-    Ok(result)
+    Ok(removed_row)
 }
 
 #[derive(Deserialize, Serialize)]

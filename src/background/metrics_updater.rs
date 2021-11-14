@@ -15,15 +15,13 @@ pub async fn start(app: Arc<AppContext>) {
     loop {
         tokio::time::sleep(delay).await;
 
-        let tables = app.db.tables.read().await;
+        let tables = app.db.get_tables().await;
 
-        for db_table in tables.values() {
+        for db_table in tables {
+            let table_metrics = db_table.get_metrics().await;
+
             app.metrics
-                .update_table_partitions_amount(
-                    db_table.name.as_str(),
-                    db_table.get_partitions_amount().await,
-                )
-                .await;
+                .update_table_metrics(db_table.name.as_str(), &table_metrics);
         }
     }
 }

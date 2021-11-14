@@ -19,7 +19,7 @@ pub async fn get(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult, Htt
     if let Some(partition_key) = partition_key {
         let table_access = db_table.data.read().await;
 
-        let partition = table_access.partitions.get(partition_key);
+        let partition = table_access.get_partition(partition_key);
 
         if let Some(partition) = partition {
             return Ok(HttpOkResult::as_usize(partition.rows_count()));
@@ -32,7 +32,7 @@ pub async fn get(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult, Htt
 
     let mut result = 0;
 
-    for partition in table_access.partitions.values() {
+    for partition in table_access.get_partitions() {
         result += partition.rows_count();
     }
     return Ok(HttpOkResult::as_usize(result));

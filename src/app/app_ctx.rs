@@ -8,14 +8,11 @@ use crate::{
     persistence::{
         blob_content_cache::BlobContentCache, updates_to_persist::UpdatesToPersistByTable,
     },
-    rows_with_expiration::RowsWithExpiration,
     settings_reader::SettingsModel,
     tcp::SessionsList,
 };
 
-use super::{
-    global_states::GlobalStates, logs::Logs, metrics::PrometheusMetrics, EventsDispatcher,
-};
+use super::{global_states::GlobalStates, logs::Logs, EventsDispatcher, PrometheusMetrics};
 
 pub const APP_VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
@@ -43,8 +40,6 @@ pub struct AppContext {
     pub data_readers: SessionsList,
 
     pub updates_to_persist_by_table: UpdatesToPersistByTable,
-
-    pub rows_with_expiration: RowsWithExpiration,
 }
 
 impl AppContext {
@@ -65,7 +60,6 @@ impl AppContext {
             blob_content_cache: BlobContentCache::new(),
             data_readers: SessionsList::new(),
             updates_to_persist_by_table: UpdatesToPersistByTable::new(),
-            rows_with_expiration: RowsWithExpiration::new(),
         }
     }
 }

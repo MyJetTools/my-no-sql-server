@@ -33,18 +33,12 @@ pub async fn start(app: Arc<AppContext>) {
 async fn interation(app: Arc<AppContext>) {
     let now = JsonTimeStamp::now();
 
-    let removed = app.rows_with_expiration.remove_up_to(now.date_time).await;
+    let db_tables = app.db.get_tables().await;
 
-    if removed.is_none() {
-        return;
-    }
+    for db_table in db_tables {
+        let removed_db_rows = db_table.get_expired_rows(now.date_time).await;
 
-    let removed = removed.unwrap();
-
-    for (table_name, rows_to_delete) in removed {
-        let db_table = app.db.get_table(table_name.as_str()).await;
-
-        if let Some(db_table) = db_table {
+        if let Some(removed_db_rows) = removed_db_rows {
             let attr = crate::operations::transaction_attributes::create(
                 app.as_ref(),
                 crate::db_sync::DataSynchronizationPeriod::Sec5,
@@ -53,7 +47,7 @@ async fn interation(app: Arc<AppContext>) {
             crate::db_operations::write::bulk_delete::execute(
                 app.as_ref(),
                 db_table.as_ref(),
-                as_hash_map(rows_to_delete),
+                as_hash_map(removed_db_rows),
                 Some(attr),
                 &now,
             )

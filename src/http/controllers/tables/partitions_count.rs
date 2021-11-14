@@ -13,7 +13,7 @@ pub async fn get(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult, Htt
 
     let db_table = crate::db_operations::read::table::get(app, table_name).await?;
 
-    let partitions_count = db_table.get_partitions_amount().await;
+    let partitions_amount = db_table.get_partitions_amount().await;
 
-    return Ok(HttpOkResult::as_usize(partitions_count));
+    return Ok(HttpOkResult::as_usize(partitions_amount));
 }

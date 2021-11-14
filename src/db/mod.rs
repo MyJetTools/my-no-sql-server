@@ -1,6 +1,8 @@
-pub use db_instance::{CreateTableResult, DbInstance};
+pub use db_instance::DbInstance;
 
-pub use db_table::{DbTable, DbTableAttributes, DbTableData, DbTableDataIterator, DbTableSnapshot};
+pub use db_table::{
+    DbTable, DbTableAttributes, DbTableData, DbTableDataIterator, DbTableMetrics, DbTableSnapshot,
+};
 
 pub use db_partition::{DbPartition, DbPartitionSnapshot};
 

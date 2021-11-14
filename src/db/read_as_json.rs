@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, sync::Arc};
 
 use crate::{
-    db::{DbPartition, DbRow, DbTableData},
+    db::{DbPartition, DbRow},
     json::JsonArrayBuilder,
 };
 
@@ -15,18 +15,6 @@ impl DbEntityAsJsonArray for [&DbRow] {
 
         for db_row in self {
             json_array_builder.append_json_object(&db_row.data)
-        }
-
-        return json_array_builder.build();
-    }
-}
-
-impl DbEntityAsJsonArray for DbTableData {
-    fn as_json_array(&self) -> Vec<u8> {
-        let mut json_array_builder = JsonArrayBuilder::new();
-
-        for (_, db_partition) in &self.partitions {
-            db_partition.fill_with_json_data(&mut json_array_builder);
         }
 
         return json_array_builder.build();

@@ -2,11 +2,11 @@ use std::sync::Arc;
 
 use crate::db::DbRow;
 
-pub struct RowWithExpirationBucket {
+pub struct RowsWithExpirationBucket {
     pub db_rows: Vec<Arc<DbRow>>,
 }
 
-impl RowWithExpirationBucket {
+impl RowsWithExpirationBucket {
     pub fn new(db_row: Arc<DbRow>) -> Self {
         Self {
             db_rows: vec![db_row],

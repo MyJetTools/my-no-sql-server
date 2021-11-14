@@ -1,4 +1,4 @@
-use crate::db::DbTable;
+use crate::db::DbTableData;
 
 pub struct SyncTableData {
     pub table_name: String,
@@ -6,10 +6,10 @@ pub struct SyncTableData {
 }
 
 impl SyncTableData {
-    pub fn new(db_table: &DbTable) -> Self {
+    pub fn new(table_data: &DbTableData) -> Self {
         Self {
-            table_name: db_table.name.to_string(),
-            persist: db_table.get_persist(),
+            table_name: table_data.name.to_string(),
+            persist: table_data.attributes.persist,
         }
     }
 }

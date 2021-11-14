@@ -15,7 +15,7 @@ pub async fn validate_before(
 ) -> Result<(), DbOperationError> {
     let read_access = db_table.data.read().await;
 
-    let partition = read_access.partitions.get(partition_key);
+    let partition = read_access.get_partition(partition_key);
 
     if partition.is_none() {
         return Ok(());
@@ -33,25 +33,22 @@ pub async fn validate_before(
 pub async fn execute(
     app: &AppContext,
     db_table: &DbTable,
-    partition_key: &str,
     db_row: Arc<DbRow>,
     attr: Option<SyncAttributes>,
     now: &JsonTimeStamp,
 ) -> Result<(), DbOperationError> {
-    let mut table_write_access = db_table.data.write().await;
+    let mut table_data = db_table.data.write().await;
 
-    let db_partition = table_write_access.get_or_create_partition(partition_key);
-
-    let inserted = db_partition.insert(db_row.clone(), Some(now));
+    let inserted = table_data.insert_row(&db_row, now);
 
     if !inserted {
         return Err(DbOperationError::RecordAlreadyExists);
     }
 
     if let Some(attr) = attr {
-        let mut update_rows_state = UpdateRowsSyncData::new(db_table, attr);
+        let mut update_rows_state = UpdateRowsSyncData::new(&table_data, attr);
 
-        update_rows_state.add_row(partition_key, db_row);
+        update_rows_state.add_row(db_row);
 
         app.events_dispatcher
             .dispatch(SyncEvent::UpdateRows(update_rows_state))

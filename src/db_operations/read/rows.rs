@@ -32,7 +32,7 @@ pub async fn get_all_rows_by_partition_key(
 
     table_data.last_read_time.update(now);
 
-    let get_partition_result = table_data.partitions.get(partition_key);
+    let get_partition_result = table_data.get_partition(partition_key);
 
     match get_partition_result {
         Some(partition) => {
@@ -63,7 +63,7 @@ pub async fn get_all_rows_by_row_key(
 
     let mut result = Vec::new();
 
-    for partition in table_data.partitions.values() {
+    for partition in table_data.get_partitions() {
         let get_row_result = partition.rows.get(row_key);
 
         if let Some(db_row) = get_row_result {
@@ -86,7 +86,7 @@ pub async fn get_row(table: &DbTable, partition_key: &str, row_key: &str) -> Rea
 
     table_data.last_read_time.update(now);
 
-    let partition = table_data.partitions.get(partition_key);
+    let partition = table_data.get_partition(partition_key);
 
     if partition.is_none() {
         return ReadOperationResult::EmptyArray;
@@ -116,7 +116,7 @@ pub async fn get_single_partition_multiple_rows(
     let now = DateTimeAsMicroseconds::now();
     let read_access = table.data.read().await;
 
-    let db_partition = read_access.partitions.get(partition_key);
+    let db_partition = read_access.get_partition(partition_key);
 
     if db_partition.is_none() {
         return ReadOperationResult::EmptyArray;

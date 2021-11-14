@@ -28,4 +28,17 @@ impl SyncEvent {
             SyncEvent::DeleteTable(data) => data.table_data.table_name.as_ref(),
         }
     }
+
+    pub fn has_elements_to_dispatch(&self) -> bool {
+        match self {
+            SyncEvent::UpdateTableAttributes(_) => true,
+            SyncEvent::InitTable(_) => true,
+            SyncEvent::InitPartitions(data) => data.partitions_to_update.len() > 0,
+            SyncEvent::UpdateRows(data) => data.updated_rows_by_partition.len() > 0,
+            SyncEvent::DeleteRows(data) => {
+                data.deleted_partitions.is_some() || data.deleted_rows.is_some()
+            }
+            SyncEvent::DeleteTable(_) => true,
+        }
+    }
 }

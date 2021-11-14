@@ -17,7 +17,7 @@ pub async fn execute(
 
     let read_access = db_table.data.read().await;
 
-    let db_partition = read_access.partitions.get(partition_key);
+    let db_partition = read_access.get_partition(partition_key);
 
     if db_partition.is_none() {
         return ReadOperationResult::EmptyArray;

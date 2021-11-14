@@ -15,14 +15,7 @@ pub struct DbTableSnapshot {
 
 impl DbTableSnapshot {
     pub fn new(table_data: &DbTableData) -> Self {
-        let mut data = BTreeMap::new();
-
-        for (partition_key, partition) in &table_data.partitions {
-            data.insert(
-                partition_key.to_string(),
-                partition.get_db_partition_snapshot(),
-            );
-        }
+        let data = table_data.get_snapshot_as_partitions();
 
         Self {
             attr: table_data.attributes.clone(),

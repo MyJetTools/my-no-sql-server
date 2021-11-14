@@ -2,7 +2,7 @@ use std::{collections::VecDeque, sync::Arc};
 
 use crate::db::{DbPartition, DbRow};
 
-use super::DbTableData;
+use super::db_table_data::TPartitions;
 
 pub struct DbTableDataIterator<'s> {
     partitions: VecDeque<&'s DbPartition>,
@@ -10,10 +10,10 @@ pub struct DbTableDataIterator<'s> {
 }
 
 impl<'s> DbTableDataIterator<'s> {
-    pub fn new(table_data: &'s DbTableData) -> Self {
+    pub fn new(src_partitions: &'s TPartitions) -> Self {
         let mut partitions = VecDeque::new();
 
-        for partition in table_data.partitions.values() {
+        for partition in src_partitions.values() {
             partitions.push_front(partition);
         }
 

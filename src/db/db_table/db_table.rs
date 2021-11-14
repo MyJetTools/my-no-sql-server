@@ -1,9 +1,12 @@
-use std::{collections::HashMap, sync::atomic::AtomicBool};
+use std::{collections::BTreeMap, sync::Arc};
 
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 use tokio::sync::RwLock;
 
-use crate::{db::DbPartitionSnapshot, json::JsonArrayBuilder};
+use crate::{
+    db::{DbPartitionSnapshot, DbRow},
+    json::JsonArrayBuilder,
+};
 
 use super::{db_table_attributes::DbTableAttributes, db_table_data::DbTableData};
 
@@ -11,29 +14,40 @@ pub struct DbTable {
     pub name: String,
     pub created: DateTimeAsMicroseconds,
     pub data: RwLock<DbTableData>,
-    persist: AtomicBool,
+}
+
+pub struct DbTableMetrics {
+    pub table_size: usize,
+    pub partitions_amount: usize,
 }
 
 impl DbTable {
     pub fn new(data: DbTableData, created: DateTimeAsMicroseconds) -> Self {
-        let persist = AtomicBool::new(data.attributes.persist);
         DbTable {
             created,
             name: data.name.to_string(),
             data: RwLock::new(data),
-            persist,
         }
     }
 
-    pub async fn get_partitions_amount(&self) -> usize {
+    pub async fn get_metrics(&self) -> DbTableMetrics {
         let read_access = self.data.read().await;
-        return read_access.partitions.len();
+
+        return DbTableMetrics {
+            table_size: read_access.table_size,
+            partitions_amount: read_access.get_partitions_amount(),
+        };
     }
 
     pub async fn get_attributes(&self) -> DbTableAttributes {
         let read_access = self.data.read().await;
 
         return read_access.attributes.clone();
+    }
+
+    pub async fn get_partitions_amount(&self) -> usize {
+        let read_access = self.data.read().await;
+        return read_access.get_partitions_amount();
     }
 
     pub async fn set_table_attributes(
@@ -50,44 +64,38 @@ impl DbTable {
 
         write_access.attributes.persist = persist_table;
         write_access.attributes.max_partitions_amount = max_partitions_amount;
-        self.persist
-            .store(persist_table, std::sync::atomic::Ordering::SeqCst);
 
         return true;
     }
 
-    pub fn get_persist(&self) -> bool {
-        return self.persist.load(std::sync::atomic::Ordering::Relaxed);
+    pub async fn get_persist(&self) -> bool {
+        let table_data = self.data.read().await;
+        return table_data.attributes.persist;
     }
 
     pub async fn as_json(&self) -> Vec<u8> {
         let mut result = JsonArrayBuilder::new();
         let read_access = self.data.read().await;
 
-        for db_partition in read_access.partitions.values() {
-            db_partition.fill_with_json_data(&mut result);
+        for db_row in read_access.iterate_all_rows() {
+            result.append_json_object(&db_row.data);
         }
 
         result.build()
     }
 
-    pub async fn get_snapshot_as_partitions(&self) -> HashMap<String, DbPartitionSnapshot> {
-        let mut result = HashMap::new();
+    pub async fn get_snapshot_as_partitions(&self) -> BTreeMap<String, DbPartitionSnapshot> {
         let read_access = self.data.read().await;
-
-        for (partition_key, db_partition) in &read_access.partitions {
-            let partition_snapshot = db_partition.get_db_partition_snapshot();
-            result.insert(partition_key.to_string(), partition_snapshot);
-        }
-
-        result
+        read_access.get_snapshot_as_partitions()
     }
 
     pub async fn get_partition_snapshot(&self, partition_key: &str) -> Option<DbPartitionSnapshot> {
         let read_access = self.data.read().await;
+        read_access.get_partition_snapshot(partition_key)
+    }
 
-        let partition = read_access.partitions.get(partition_key)?;
-
-        return Some(partition.get_db_partition_snapshot());
+    pub async fn get_expired_rows(&self, now: DateTimeAsMicroseconds) -> Option<Vec<Arc<DbRow>>> {
+        let mut write_access = self.data.write().await;
+        write_access.get_expired_rows_up_to(now)
     }
 }

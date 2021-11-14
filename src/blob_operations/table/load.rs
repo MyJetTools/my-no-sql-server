@@ -72,10 +72,10 @@ pub async fn load(
                     db_entity.to_db_row(&time_stamp)
                 };
 
-                db_partition.insert(Arc::new(db_row), None);
+                db_partition.insert(Arc::new(db_row));
             }
 
-            db_table_data.partitions.insert(partition_key, db_partition);
+            db_table_data.init_partition(partition_key, db_partition);
         }
     }
 

@@ -1,4 +1,4 @@
-use crate::{db::DbTable, db_sync::SyncAttributes};
+use crate::{db::DbTableData, db_sync::SyncAttributes};
 
 use super::SyncTableData;
 
@@ -8,9 +8,9 @@ pub struct DeleteTableSyncData {
 }
 
 impl DeleteTableSyncData {
-    pub fn new(db_table: &DbTable, attr: SyncAttributes) -> Self {
+    pub fn new(db_table_data: &DbTableData, attr: SyncAttributes) -> Self {
         Self {
-            table_data: SyncTableData::new(db_table),
+            table_data: SyncTableData::new(db_table_data),
             attr,
         }
     }

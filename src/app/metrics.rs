@@ -1,61 +1,41 @@
-use std::collections::HashMap;
+use prometheus::{Encoder, IntGaugeVec, Opts, Registry, TextEncoder};
 
-use prometheus::{Encoder, Gauge, Opts, Registry, TextEncoder};
-use tokio::sync::RwLock;
+use crate::db::DbTableMetrics;
 
 pub struct PrometheusMetrics {
     registry: Registry,
-
-    gauges: RwLock<HashMap<String, Gauge>>,
+    partitions_amount: IntGaugeVec,
+    table_size: IntGaugeVec,
 }
 
+const TABLE_NAME: &str = "table_name";
 impl PrometheusMetrics {
     pub fn new() -> Self {
+        let registry = Registry::new();
+        let partitions_amount = create_partititions_amount_gauge();
+        let table_size = create_table_size_gauge();
+
+        registry
+            .register(Box::new(partitions_amount.clone()))
+            .unwrap();
+
+        registry.register(Box::new(table_size.clone())).unwrap();
+
         return Self {
-            registry: Registry::new(),
-            gauges: RwLock::new(HashMap::new()),
+            registry,
+            partitions_amount,
+            table_size,
         };
     }
 
-    async fn update_table_partitions_if_exists_amount(
-        &self,
-        table_name: &str,
-        value: usize,
-    ) -> bool {
-        let read_access = self.gauges.read().await;
+    pub fn update_table_metrics(&self, table_name: &str, table_metrics: &DbTableMetrics) {
+        let value = table_metrics.partitions_amount as i64;
+        self.partitions_amount
+            .with_label_values(&[table_name])
+            .set(value);
 
-        if read_access.contains_key(table_name) {
-            let gauge = read_access.get(table_name).unwrap();
-            gauge.set(value as f64);
-            return true;
-        }
-
-        return false;
-    }
-
-    pub async fn update_table_partitions_amount(&self, table_name: &str, value: usize) {
-        let table_name = table_name.replace('-', "_");
-        if self
-            .update_table_partitions_if_exists_amount(table_name.as_str(), value)
-            .await
-        {
-            return;
-        }
-
-        let mut write_access = self.gauges.write().await;
-
-        if !write_access.contains_key(table_name.as_str()) {
-            let gauge_opts = Opts::new(
-                format!("{}_table_partitions_amount", table_name),
-                format!("{} partitions amount", table_name),
-            );
-            let gauge = Gauge::with_opts(gauge_opts).unwrap();
-            self.registry.register(Box::new(gauge.clone())).unwrap();
-            write_access.insert(table_name.to_string(), gauge);
-        }
-
-        let gauge = write_access.get(table_name.as_str()).unwrap();
-        gauge.set(value as f64);
+        let value = table_metrics.table_size as i64;
+        self.table_size.with_label_values(&[table_name]).set(value);
     }
 
     pub fn build(&self) -> String {
@@ -66,4 +46,21 @@ impl PrometheusMetrics {
 
         return String::from_utf8(buffer).unwrap();
     }
+}
+
+fn create_partititions_amount_gauge() -> IntGaugeVec {
+    let gauge_opts = Opts::new(
+        format!("table_partitions_amount"),
+        format!("table partitions amount"),
+    );
+
+    let lables = &[TABLE_NAME];
+    IntGaugeVec::new(gauge_opts, lables).unwrap()
+}
+
+fn create_table_size_gauge() -> IntGaugeVec {
+    let gauge_opts = Opts::new(format!("table_size"), format!("table size"));
+
+    let lables = &[TABLE_NAME];
+    IntGaugeVec::new(gauge_opts, lables).unwrap()
 }

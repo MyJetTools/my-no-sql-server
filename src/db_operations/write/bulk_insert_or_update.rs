@@ -14,34 +14,16 @@ pub async fn execute(
     attr: Option<SyncAttributes>,
     now: &JsonTimeStamp,
 ) {
-    let mut table_write_access = db_table.data.write().await;
+    let mut table_data = db_table.data.write().await;
 
     let mut update_rows_state = if let Some(attr) = attr {
-        Some(UpdateRowsSyncData::new(db_table.as_ref(), attr))
+        Some(UpdateRowsSyncData::new(&table_data, attr))
     } else {
         None
     };
 
     for (partition_key, db_rows) in rows_by_partition {
-        let db_partition = table_write_access.get_or_create_partition(partition_key.as_str());
-
-        super::db_actions::bulk_remove_db_rows(
-            app,
-            db_table.name.as_str(),
-            db_partition,
-            db_rows.iter().map(|itm| &itm.row_key),
-            now,
-        )
-        .await;
-
-        super::db_actions::bulk_insert_db_rows(
-            app,
-            db_table.name.as_str(),
-            db_partition,
-            db_rows.as_slice(),
-            now,
-        )
-        .await;
+        table_data.bulk_insert_or_replace(&partition_key, &db_rows, now);
 
         if let Some(state) = &mut update_rows_state {
             state.add_rows(partition_key.as_str(), db_rows);

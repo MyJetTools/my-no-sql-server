@@ -40,7 +40,7 @@ pub async fn get_as_partition_key_and_row_key(
 ) -> Option<Arc<DbRow>> {
     let read_access = table.data.read().await;
 
-    let db_partition = read_access.partitions.get(partition_key)?;
+    let db_partition = read_access.get_partition(partition_key)?;
 
     let db_row = db_partition.get_row_and_clone(row_key)?;
 
@@ -59,7 +59,7 @@ async fn get_as_partition_key_only(
 ) -> Option<Vec<Arc<DbRow>>> {
     let read_access = table.data.read().await;
 
-    let db_partition = read_access.partitions.get(partition_key)?;
+    let db_partition = read_access.get_partition(partition_key)?;
 
     let db_row_filter = DbRowsFilter::new(db_partition.rows.values(), limit, skip);
 
@@ -90,7 +90,7 @@ async fn get_as_row_key_only(
 
     let mut data_by_row = Vec::new();
 
-    for partition in read_access.partitions.values() {
+    for partition in read_access.get_partitions() {
         let get_row_result = partition.rows.get(row_key);
 
         if let Some(db_row) = get_row_result {

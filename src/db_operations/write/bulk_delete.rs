@@ -14,52 +14,35 @@ pub async fn execute(
     attr: Option<SyncAttributes>,
     now: &JsonTimeStamp,
 ) {
-    let mut write_access = db_table.data.write().await;
+    let mut table_data = db_table.data.write().await;
 
-    let mut delete_event_state = if let Some(attr) = attr {
-        Some(DeleteRowsEventSyncData::new(db_table, attr))
+    let mut sync_data = if let Some(attr) = attr {
+        Some(DeleteRowsEventSyncData::new(&table_data, attr))
     } else {
         None
     };
 
     for (partition_key, row_keys) in rows_to_delete {
-        let partition = write_access.partitions.get_mut(partition_key.as_str());
-
-        if partition.is_none() {
-            continue;
-        }
-
-        let partition = partition.unwrap();
-
-        let remove_result = super::db_actions::bulk_remove_db_rows(
-            app,
-            db_table.name.as_str(),
-            partition,
-            row_keys.iter(),
+        let removed_rows_result = table_data.bulk_remove_rows(
+            partition_key.as_str(),
+            row_keys.iter().map(|itm| itm.as_str()),
+            true,
             now,
-        )
-        .await;
-
-        if let Some(delete_event_state) = &mut delete_event_state {
-            if let Some(removed_rows) = remove_result {
-                delete_event_state.add_deleted_rows(partition_key.as_str(), &removed_rows);
-            }
-        }
-
-        if partition.rows_count() == 0 {
-            let deleted_partition = write_access.partitions.remove(partition_key.as_str());
-
-            if deleted_partition.is_some() {
-                if let Some(delete_event_state) = &mut delete_event_state {
-                    delete_event_state.new_deleted_partition(partition_key)
+        );
+        if let Some(sync_data) = &mut sync_data {
+            if let Some(removed_rows_result) = removed_rows_result {
+                if removed_rows_result.1 {
+                    sync_data.add_deleted_rows(partition_key.as_str(), &removed_rows_result.0);
+                } else {
+                    sync_data.add_deleted_rows(partition_key.as_str(), &removed_rows_result.0);
                 }
             }
         }
     }
 
-    if let Some(delete_event_state) = delete_event_state {
+    if let Some(sync_data) = sync_data {
         app.events_dispatcher
-            .dispatch(SyncEvent::DeleteRows(delete_event_state))
+            .dispatch(SyncEvent::DeleteRows(sync_data))
             .await;
     }
 }

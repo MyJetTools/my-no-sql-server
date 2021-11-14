@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, sync::Arc};
 
 use crate::{
-    db::{DbRow, DbTable},
+    db::{DbRow, DbTableData},
     db_sync::SyncAttributes,
 };
 
@@ -15,9 +15,9 @@ pub struct DeleteRowsEventSyncData {
 }
 
 impl DeleteRowsEventSyncData {
-    pub fn new(table: &DbTable, attr: SyncAttributes) -> Self {
+    pub fn new(table_data: &DbTableData, attr: SyncAttributes) -> Self {
         Self {
-            table_data: SyncTableData::new(table),
+            table_data: SyncTableData::new(table_data),
             attr,
             deleted_partitions: None,
             deleted_rows: None,

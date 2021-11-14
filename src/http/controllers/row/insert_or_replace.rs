@@ -32,7 +32,6 @@ pub async fn post(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult, Ht
     let removed_db_row = crate::db_operations::write::insert_or_replace::execute(
         app,
         db_table,
-        db_json_entity.partition_key,
         db_row,
         Some(attr),
         &now,

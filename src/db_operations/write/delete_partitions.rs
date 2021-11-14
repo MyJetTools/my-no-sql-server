@@ -15,13 +15,13 @@ pub async fn execute(
     let mut table_write_access = db_table.data.write().await;
 
     let mut sync_data = if let Some(attr) = attr {
-        Some(InitPartitionsSyncData::new(db_table.as_ref(), attr))
+        Some(InitPartitionsSyncData::new(&table_write_access, attr))
     } else {
         None
     };
 
     for partition_key in partition_keys {
-        let remove_partition_result = table_write_access.partitions.remove(&partition_key);
+        let remove_partition_result = table_write_access.remove_partition(&partition_key);
 
         if remove_partition_result.is_some() {
             if let Some(sync_data) = &mut sync_data {

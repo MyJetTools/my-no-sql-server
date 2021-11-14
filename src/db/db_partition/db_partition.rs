@@ -1,8 +1,6 @@
 use rust_extensions::date_time::{AtomicDateTimeAsMicroseconds, DateTimeAsMicroseconds};
 
-use crate::{
-    db::DbRow, db_json_entity::JsonTimeStamp, json::JsonArrayBuilder, utils::SortedDictionary,
-};
+use crate::{db::DbRow, json::JsonArrayBuilder, utils::SortedDictionary};
 use std::{collections::BTreeMap, sync::Arc};
 
 use super::DbPartitionSnapshot;
@@ -26,60 +24,9 @@ impl DbPartition {
         return self.rows.len();
     }
 
-    pub fn insert(
-        &mut self,
-        db_row: Arc<DbRow>,
-        update_write_access: Option<&JsonTimeStamp>,
-    ) -> bool {
-        if self.rows.contains_key(db_row.row_key.as_str()) {
-            return false;
-        }
-
-        self.rows.insert(db_row.row_key.to_string(), db_row);
-
-        if let Some(write_access_time) = update_write_access {
-            self.last_write_moment.update(write_access_time.date_time);
-        }
-
-        return true;
-    }
-
-    pub fn bulk_insert(
-        &mut self,
-        db_rows: &[Arc<DbRow>],
-        update_write_access: Option<&JsonTimeStamp>,
-    ) {
-        for db_row in db_rows {
-            self.rows.insert(db_row.row_key.to_string(), db_row.clone());
-        }
-
-        if let Some(write_access_time) = update_write_access {
-            self.last_write_moment.update(write_access_time.date_time);
-        }
-    }
-
-    pub fn insert_or_replace(
-        &mut self,
-        db_row: Arc<DbRow>,
-        update_write_access: Option<&JsonTimeStamp>,
-    ) -> Option<Arc<DbRow>> {
-        let result = self.rows.insert(db_row.row_key.to_string(), db_row);
-
-        if let Some(write_access_time) = update_write_access {
-            self.last_write_moment.update(write_access_time.date_time);
-        }
-
-        result
-    }
-
-    pub fn remove_row(&mut self, row_key: &str, now: &JsonTimeStamp) -> Option<Arc<DbRow>> {
-        let result = self.rows.remove(row_key);
-
-        if result.is_some() {
-            self.last_write_moment.update(now.date_time);
-        }
-
-        return result;
+    #[inline]
+    pub fn insert(&mut self, db_row: Arc<DbRow>) -> Option<Arc<DbRow>> {
+        self.rows.insert(db_row.row_key.to_string(), db_row)
     }
 
     pub fn get_row(&self, row_key: &str) -> Option<&DbRow> {

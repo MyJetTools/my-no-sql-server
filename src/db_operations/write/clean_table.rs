@@ -2,27 +2,21 @@ use std::sync::Arc;
 
 use crate::{
     app::AppContext,
-    db::{DbTable, DbTableSnapshot},
+    db::DbTable,
     db_sync::{states::InitTableEventSyncData, SyncAttributes, SyncEvent},
 };
 
 pub async fn execute(app: &AppContext, db_table: Arc<DbTable>, attr: Option<SyncAttributes>) {
-    let mut table_write_access = db_table.data.write().await;
+    let mut table_data = db_table.data.write().await;
 
-    if table_write_access.partitions.len() == 0 {
-        return;
-    }
+    let removed_partitions = table_data.clean_table();
 
-    let removed = super::db_actions::clean_table(app, &mut table_write_access).await;
-
-    if removed.is_some() {
+    if removed_partitions.is_some() {
         if let Some(attr) = attr {
-            let mut init_state = InitTableEventSyncData::new(db_table.as_ref(), attr);
-
-            init_state.add_table_snapshot(DbTableSnapshot::new(&table_write_access));
+            let sync_data = InitTableEventSyncData::new(&table_data, attr);
 
             app.events_dispatcher
-                .dispatch(SyncEvent::InitTable(init_state))
+                .dispatch(SyncEvent::InitTable(sync_data))
                 .await
         }
     }

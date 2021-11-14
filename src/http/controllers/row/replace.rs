@@ -48,5 +48,5 @@ pub async fn put(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult, Htt
     )
     .await?;
 
-    Ok(HttpOkResult::as_db_row(removed_row))
+    Ok(HttpOkResult::as_db_row(Some(removed_row)))
 }

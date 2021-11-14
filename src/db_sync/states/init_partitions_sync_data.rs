@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::{
-    db::{DbPartitionSnapshot, DbTable},
+    db::{DbPartitionSnapshot, DbTableData},
     db_sync::SyncAttributes,
 };
 
@@ -14,11 +14,29 @@ pub struct InitPartitionsSyncData {
 }
 
 impl InitPartitionsSyncData {
-    pub fn new(table: &DbTable, attr: SyncAttributes) -> Self {
+    pub fn new(table_data: &DbTableData, attr: SyncAttributes) -> Self {
         Self {
-            table_data: SyncTableData::new(table),
+            table_data: SyncTableData::new(table_data),
             attr,
             partitions_to_update: BTreeMap::new(),
+        }
+    }
+
+    pub fn new_as_update_partition(
+        table_data: &DbTableData,
+        partition_key: &str,
+        attr: SyncAttributes,
+    ) -> Self {
+        let mut partitions_to_update = BTreeMap::new();
+
+        let partition_snapshot = table_data.get_partition_snapshot(partition_key);
+
+        partitions_to_update.insert(partition_key.to_string(), partition_snapshot);
+
+        Self {
+            table_data: SyncTableData::new(table_data),
+            attr,
+            partitions_to_update,
         }
     }
 

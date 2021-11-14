@@ -18,16 +18,16 @@ pub async fn execute(
         return;
     }
 
+    let mut table_data = db_table.data.write().await;
+
     let sync = if let Some(attr) = attr {
-        Some(InitPartitionsSyncData::new(db_table.as_ref(), attr))
+        Some(InitPartitionsSyncData::new(&table_data, attr))
     } else {
         None
     };
 
-    let mut write_access = db_table.data.write().await;
-
     let gced_partitions_result =
-        write_access.gc_and_keep_max_partitions_amount(max_partitions_amount);
+        table_data.gc_and_keep_max_partitions_amount(max_partitions_amount);
 
     if let Some(gced_partitions) = gced_partitions_result {
         if let Some(mut state) = sync {

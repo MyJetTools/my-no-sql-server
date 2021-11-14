@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, sync::Arc};
 
 use crate::{
-    db::{DbRow, DbTable},
+    db::{DbRow, DbTableData},
     db_sync::SyncAttributes,
 };
 
@@ -14,22 +14,25 @@ pub struct UpdateRowsSyncData {
 }
 
 impl UpdateRowsSyncData {
-    pub fn new(table: &DbTable, attr: SyncAttributes) -> Self {
+    pub fn new(table_data: &DbTableData, attr: SyncAttributes) -> Self {
         Self {
-            table_data: SyncTableData::new(table),
+            table_data: SyncTableData::new(table_data),
             attr,
             updated_rows_by_partition: BTreeMap::new(),
         }
     }
 
-    pub fn add_row(&mut self, partition_key: &str, db_row: Arc<DbRow>) {
-        if !self.updated_rows_by_partition.contains_key(partition_key) {
+    pub fn add_row(&mut self, db_row: Arc<DbRow>) {
+        if !self
+            .updated_rows_by_partition
+            .contains_key(&db_row.partition_key)
+        {
             self.updated_rows_by_partition
-                .insert(partition_key.to_string(), Vec::new());
+                .insert(db_row.partition_key.to_string(), Vec::new());
         }
 
         self.updated_rows_by_partition
-            .get_mut(partition_key)
+            .get_mut(&db_row.partition_key)
             .as_mut()
             .unwrap()
             .push(db_row);

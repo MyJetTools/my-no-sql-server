@@ -1,15 +1,9 @@
-use rust_extensions::date_time::DateTimeAsMicroseconds;
 use tokio::sync::RwLock;
 
-use super::{DbTable, DbTableAttributes, DbTableData};
+use super::DbTable;
 use std::{collections::HashMap, sync::Arc};
 pub struct DbInstance {
     pub tables: RwLock<HashMap<String, Arc<DbTable>>>,
-}
-
-pub enum CreateTableResult {
-    JustCreated(Arc<DbTable>),
-    AlreadyHadTable(Arc<DbTable>),
 }
 
 impl DbInstance {
@@ -52,6 +46,7 @@ impl DbInstance {
         return write_access.remove(table_name);
     }
 
+    /*
     pub async fn get_or_create_table(
         &self,
         name: &str,
@@ -80,4 +75,5 @@ impl DbInstance {
 
         return CreateTableResult::JustCreated(new_table);
     }
+     */
 }

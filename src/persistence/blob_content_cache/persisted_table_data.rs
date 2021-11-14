@@ -18,18 +18,9 @@ impl PersistedTableData {
     }
 
     pub fn init(table_data: &DbTableData) -> Self {
-        let mut partitions = HashMap::new();
-
-        for (partition_key, db_partition) in &table_data.partitions {
-            partitions.insert(
-                partition_key.to_string(),
-                db_partition.last_write_moment.as_date_time(),
-            );
-        }
-
         Self {
             attr: table_data.attributes.clone(),
-            partitions,
+            partitions: table_data.get_partitions_last_write_moment(),
         }
     }
 }

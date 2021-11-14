@@ -35,15 +35,8 @@ pub async fn post(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult, Ht
 
     let db_row = Arc::new(db_json_entity.to_db_row(&now));
 
-    crate::db_operations::write::insert::execute(
-        app,
-        db_table.as_ref(),
-        db_json_entity.partition_key,
-        db_row,
-        Some(attr),
-        &now,
-    )
-    .await?;
+    crate::db_operations::write::insert::execute(app, db_table.as_ref(), db_row, Some(attr), &now)
+        .await?;
 
     Ok(HttpOkResult::Empty)
 }
