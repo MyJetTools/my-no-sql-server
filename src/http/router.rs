@@ -1,5 +1,6 @@
 use hyper::{Body, Method, Request};
 use my_http_utils::{HttpFailResult, WebContentType};
+use rust_extensions::StopWatch;
 
 use crate::app::AppContext;
 use crate::http::http_ctx::HttpContext;
@@ -20,165 +21,192 @@ pub async fn route_requests(
             content_type: WebContentType::Text,
             content: "App is being shutting down".to_string().into_bytes(),
             status_code: 301,
+            metric_it: false,
         });
     }
 
     let path = req.uri().path().to_lowercase();
 
-    match (req.method(), path.as_str()) {
+    let mut sw = StopWatch::new();
+    sw.start();
+    let http_result = handle_route(req, &path, app.as_ref()).await;
+    sw.pause();
+
+    match &http_result {
+        Ok(ok_result) => {
+            app.http_metrics
+                .add(
+                    &path,
+                    ok_result.get_status_code(),
+                    sw.duration().as_micros() as i64,
+                )
+                .await;
+        }
+        Err(err) => {
+            if err.metric_it {
+                app.http_metrics
+                    .add(&path, err.status_code, sw.duration().as_micros() as i64)
+                    .await;
+            };
+        }
+    }
+
+    http_result
+}
+
+async fn handle_route(
+    req: Request<Body>,
+    path: &str,
+    app: &AppContext,
+) -> Result<HttpOkResult, HttpFailResult> {
+    match (req.method(), path) {
         (&Method::GET, "/api/isalive") => {
             return api::is_alive();
         }
         (&Method::GET, "/api/status") => {
-            return status::get(app.as_ref()).await;
+            return status::get(app).await;
         }
         (&Method::GET, "/metrics") => {
-            return metrics::get(app.as_ref());
+            return metrics::get(app);
         }
         (&Method::GET, "/logs") => {
-            return logs::get(app.as_ref()).await;
+            return logs::get(app).await;
         }
 
         (&Method::GET, "/tables/list") => {
-            return tables::list_of_tables::get(app.as_ref()).await;
+            return tables::list_of_tables::get(app).await;
         }
 
         (&Method::POST, "/tables/create") => {
-            return tables::create::post(HttpContext::new(req), app.as_ref()).await;
+            return tables::create::post(HttpContext::new(req), app).await;
         }
 
         (&Method::POST, "/tables/createifnotexists") => {
-            return tables::create_if_not_exists::post(HttpContext::new(req), app.as_ref()).await;
+            return tables::create_if_not_exists::post(HttpContext::new(req), app).await;
         }
 
         (&Method::PUT, "/tables/clean") => {
-            return tables::clean::put(HttpContext::new(req), app.as_ref()).await;
+            return tables::clean::put(HttpContext::new(req), app).await;
         }
 
         (&Method::DELETE, "/tables/delete") => {
-            return tables::delete::delete(HttpContext::new(req), app.as_ref()).await;
+            return tables::delete::delete(HttpContext::new(req), app).await;
         }
 
         (&Method::POST, "/tables/updatepersist") => {
-            return tables::update_persist::post(HttpContext::new(req), app.as_ref()).await;
+            return tables::update_persist::post(HttpContext::new(req), app).await;
         }
 
         (&Method::GET, "/tables/partitionscount") => {
-            return tables::partitions_count::get(HttpContext::new(req), app.as_ref()).await;
+            return tables::partitions_count::get(HttpContext::new(req), app).await;
         }
 
         (&Method::POST, "/tables/migratefrom") => {
-            return tables::migrate_from::post(HttpContext::new(req), app.as_ref()).await;
+            return tables::migrate_from::post(HttpContext::new(req), app).await;
         }
 
         (&Method::GET, "/row") => {
-            return row::get(HttpContext::new(req), app.as_ref()).await;
+            return row::get(HttpContext::new(req), app).await;
         }
 
         (&Method::GET, "/count") => {
-            return row::count::get(HttpContext::new(req), app.as_ref()).await;
+            return row::count::get(HttpContext::new(req), app).await;
         }
 
         (&Method::DELETE, "/row") => {
-            return row::delete(HttpContext::new(req), app.as_ref()).await;
+            return row::delete(HttpContext::new(req), app).await;
         }
 
         (&Method::PUT, "/row/replace") => {
-            return row::replace::put(HttpContext::new(req), app.as_ref()).await;
+            return row::replace::put(HttpContext::new(req), app).await;
         }
 
         (&Method::POST, "/row/insert") => {
-            return row::insert::post(HttpContext::new(req), app.as_ref()).await;
+            return row::insert::post(HttpContext::new(req), app).await;
         }
 
         (&Method::DELETE, "/row/cleanandkeeplastrecords") => {
-            return gc::clean_and_keep_max_records::post(HttpContext::new(req), app.as_ref()).await;
+            return gc::clean_and_keep_max_records::post(HttpContext::new(req), app).await;
         }
 
         (&Method::POST, "/row/insertorreplace") => {
-            return row::insert_or_replace::post(HttpContext::new(req), app.as_ref()).await;
+            return row::insert_or_replace::post(HttpContext::new(req), app).await;
         }
 
         (&Method::POST, "/rows/singlepartitionmultiplerows") => {
-            return rows::get_single_partition_multiple_rows::post(
-                HttpContext::new(req),
-                app.as_ref(),
-            )
-            .await;
+            return rows::get_single_partition_multiple_rows::post(HttpContext::new(req), app)
+                .await;
         }
 
         (&Method::GET, "/rows/highestrowandbelow") => {
-            return rows::get_highest_row_and_below::get(HttpContext::new(req), app.as_ref()).await;
+            return rows::get_highest_row_and_below::get(HttpContext::new(req), app).await;
         }
 
         (&Method::POST, "/bulk/insertorreplace") => {
-            return bulk::insert_or_replace::post(HttpContext::new(req), app.as_ref()).await;
+            return bulk::insert_or_replace::post(HttpContext::new(req), app).await;
         }
 
         (&Method::POST, "/bulk/cleanandbulkinsert") => {
-            return bulk::clean_and_bulk_insert::post(HttpContext::new(req), app.as_ref()).await;
+            return bulk::clean_and_bulk_insert::post(HttpContext::new(req), app).await;
         }
 
         (&Method::POST, "/bulk/delete") => {
-            return bulk::bulk_delete::post(HttpContext::new(req), app.as_ref()).await;
+            return bulk::bulk_delete::post(HttpContext::new(req), app).await;
         }
 
         (&Method::POST, "/garbagecollector/cleanandkeepmaxpartitions") => {
-            return gc::clean_and_keep_max_partitions_amount::post(
-                HttpContext::new(req),
-                app.as_ref(),
-            )
-            .await;
+            return gc::clean_and_keep_max_partitions_amount::post(HttpContext::new(req), app)
+                .await;
         }
 
         (&Method::POST, "/garbagecollector/cleanandkeepmaxrecords") => {
-            return gc::clean_and_keep_max_records::post(HttpContext::new(req), app.as_ref()).await;
+            return gc::clean_and_keep_max_records::post(HttpContext::new(req), app).await;
         }
 
         (&Method::POST, "/transaction/start") => {
-            return transactions::start::post(app.as_ref()).await;
+            return transactions::start::post(app).await;
         }
 
         (&Method::POST, "/transaction/append") => {
-            return transactions::append::post(app.as_ref(), HttpContext::new(req)).await;
+            return transactions::append::post(app, HttpContext::new(req)).await;
         }
 
         (&Method::POST, "/transaction/commit") => {
-            return transactions::commit::post(app.as_ref(), HttpContext::new(req)).await;
+            return transactions::commit::post(app, HttpContext::new(req)).await;
         }
 
         (&Method::POST, "/transaction/cancel") => {
-            return transactions::cancel::post(app.as_ref(), HttpContext::new(req)).await;
+            return transactions::cancel::post(app, HttpContext::new(req)).await;
         }
 
         _ => {}
     };
 
     if path.starts_with("/logs/table") {
-        return logs::get_by_table(app.as_ref(), &path).await;
+        return logs::get_by_table(app, &path).await;
     }
 
     if path.starts_with("/logs/process") {
-        return logs::get_by_process(app.as_ref(), &path).await;
+        return logs::get_by_process(app, &path).await;
     }
 
     if path == "/" {
-        return Ok(get_index_page_content(app.as_ref()));
+        return Ok(get_index_page_content(app));
     }
 
     if path.starts_with("/swagger") {
-        return swagger::handle_request(path.as_str(), HttpContext::new(req)).await;
+        return swagger::handle_request(path, HttpContext::new(req)).await;
     }
 
     if path.starts_with("/css") {
-        return static_files::serve_path(path.as_str()).await;
+        return static_files::serve_path(path).await;
     }
 
     if path.starts_with("/js") {
-        return static_files::serve_path(path.as_str()).await;
+        return static_files::serve_path(path).await;
     }
 
-    return Err(HttpFailResult::as_not_found("Not Found".to_string()));
+    return Err(HttpFailResult::as_not_found("Not Found".to_string(), false));
 }
 
 fn get_index_page_content(app: &AppContext) -> HttpOkResult {

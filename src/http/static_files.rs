@@ -15,10 +15,13 @@ pub async fn serve_path(path_and_file: &str) -> Result<HttpOkResult, HttpFailRes
             Ok(ok_result)
         }
         Err(err) => {
-            let err = HttpFailResult::as_not_found(format!(
-                "Error handing file: {:?}. Filename: {}.",
-                err, path_and_file
-            ));
+            let err = HttpFailResult::as_not_found(
+                format!(
+                    "Error handing file: {:?}. Filename: {}.",
+                    err, path_and_file
+                ),
+                false,
+            );
 
             Err(err)
         }

@@ -45,10 +45,24 @@ impl HttpOkResult {
             None => Self::Empty,
         }
     }
+
+    pub fn get_status_code(&self) -> u16 {
+        match self {
+            HttpOkResult::Html { title: _, body: _ } => 200,
+            HttpOkResult::Content {
+                content_type: _,
+                content: _,
+            } => 200,
+            HttpOkResult::Text { text: _ } => 200,
+            HttpOkResult::DbRow(_) => 200,
+            HttpOkResult::Empty => 202,
+        }
+    }
 }
 
 impl Into<Response<Body>> for HttpOkResult {
     fn into(self) -> Response<Body> {
+        let status_code = self.get_status_code();
         return match self {
             HttpOkResult::Content {
                 content_type,
@@ -57,7 +71,7 @@ impl Into<Response<Body>> for HttpOkResult {
                 if let Some(content_type) = content_type {
                     return Response::builder()
                         .header("Content-Type", content_type.to_string())
-                        .status(200)
+                        .status(status_code)
                         .body(Body::from(content))
                         .unwrap();
                 } else {
@@ -67,26 +81,26 @@ impl Into<Response<Body>> for HttpOkResult {
             }
             HttpOkResult::Text { text } => Response::builder()
                 .header("Content-Type", WebContentType::Text.to_string())
-                .status(200)
+                .status(status_code)
                 .body(Body::from(text))
                 .unwrap(),
 
             HttpOkResult::Html { title, body } => Response::builder()
                 .header("Content-Type", "text/html")
-                .status(200)
+                .status(status_code)
                 .body(Body::from(compile_html(title, body)))
                 .unwrap(),
             HttpOkResult::DbRow(db_row) => {
                 return Response::builder()
                     .header("Content-Type", WebContentType::Json.to_string())
-                    .status(200)
+                    .status(status_code)
                     .body(Body::from(db_row.data.clone()))
                     .unwrap();
             }
             HttpOkResult::Empty => {
                 return Response::builder()
                     .header("Content-Type", WebContentType::Json.to_string())
-                    .status(202)
+                    .status(status_code)
                     .body(Body::empty())
                     .unwrap();
             }
