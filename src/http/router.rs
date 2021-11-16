@@ -27,6 +27,7 @@ pub async fn route_requests(
 
     let path = req.uri().path().to_lowercase();
 
+    let method = req.method().clone();
     let mut sw = StopWatch::new();
     sw.start();
     let http_result = handle_route(req, &path, app.as_ref()).await;
@@ -36,7 +37,7 @@ pub async fn route_requests(
         Ok(ok_result) => {
             app.http_metrics
                 .add(
-                    &path,
+                    format!("{}:{}", method, path),
                     ok_result.get_status_code(),
                     sw.duration().as_micros() as i64,
                 )
@@ -45,7 +46,11 @@ pub async fn route_requests(
         Err(err) => {
             if err.metric_it {
                 app.http_metrics
-                    .add(&path, err.status_code, sw.duration().as_micros() as i64)
+                    .add(
+                        format!("{}:{}", method, path),
+                        err.status_code,
+                        sw.duration().as_micros() as i64,
+                    )
                     .await;
             };
         }
@@ -71,6 +76,10 @@ async fn handle_route(
         }
         (&Method::GET, "/logs") => {
             return logs::get(app).await;
+        }
+
+        (&Method::GET, "/performance/byurl") => {
+            return super::controllers::performance::by_url::get(app).await;
         }
 
         (&Method::GET, "/tables/list") => {

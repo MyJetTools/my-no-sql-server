@@ -1,10 +1,12 @@
 use std::collections::VecDeque;
 
+#[derive(Clone)]
 pub struct MetricItem {
     pub status_code: u8,
     pub microseconds: i64,
 }
 
+#[derive(Clone)]
 pub struct HttpMetricsByUrl {
     pub items: VecDeque<MetricItem>,
 }

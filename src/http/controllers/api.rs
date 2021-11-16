@@ -5,6 +5,14 @@ use serde::{Deserialize, Serialize};
 
 use crate::http::http_ok::HttpOkResult;
 
+#[derive(Serialize, Deserialize, Debug)]
+struct ApiModel {
+    name: String,
+    time: u64,
+    version: String,
+    env_info: Option<String>,
+}
+
 pub fn is_alive() -> Result<HttpOkResult, HttpFailResult> {
     let version = env!("CARGO_PKG_VERSION");
 
@@ -27,12 +35,4 @@ pub fn is_alive() -> Result<HttpOkResult, HttpFailResult> {
     };
 
     return HttpOkResult::create_json_response(model);
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct ApiModel {
-    name: String,
-    time: u64,
-    version: String,
-    env_info: Option<String>,
 }
