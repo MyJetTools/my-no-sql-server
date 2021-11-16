@@ -19,7 +19,7 @@ pub async fn init_tables(app: &AppContext, connection: &AzureConnection) {
             .await;
         let mut sw = StopWatch::new();
         sw.start();
-        let table_data = crate::blob_operations::table::load(app, &connection, table_name)
+        let table_data = crate::blob_operations::table::load(&connection, table_name)
             .await
             .unwrap();
 
