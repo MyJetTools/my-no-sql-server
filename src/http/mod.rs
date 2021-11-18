@@ -3,7 +3,6 @@ pub mod http_ctx;
 mod http_ok;
 pub mod http_server;
 mod mappers;
-pub mod metrics;
 mod router;
 mod static_files;
 mod swagger;

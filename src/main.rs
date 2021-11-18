@@ -3,6 +3,7 @@ use std::{net::SocketAddr, sync::Arc, time::Duration};
 
 mod app;
 mod grpc;
+mod telemetry;
 
 mod blob_operations;
 mod db;
@@ -30,12 +31,25 @@ async fn main() {
     let (transactions_sender, transactions_receiver) = tokio::sync::mpsc::unbounded_channel();
     let settings = settings_reader::read_settings().await;
 
-    let app = AppContext::new(&settings, Some(transactions_sender));
+    let mut app = AppContext::new(&settings, Some(transactions_sender));
+
+    let mut background_tasks = Vec::new();
+
+    let app_insights = if let Ok(app_insights_key) = std::env::var("APPINSIGHTS_INSTRUMENTATIONKEY")
+    {
+        println!("Application insights are plugged");
+        let events_reseriver = app.telemetry_writer.get_telemetry_reader();
+        Some(crate::telemetry::telemetry_reader::start(
+            app_insights_key,
+            events_reseriver,
+        ))
+    } else {
+        None
+    };
+
     let app = Arc::new(app);
 
     let connection = settings.get_azure_connection();
-
-    let mut background_tasks = Vec::new();
 
     if let Some(connection) = connection {
         crate::operations::data_initializer::init_tables(app.as_ref(), &connection).await;
@@ -93,6 +107,10 @@ async fn main() {
         app.states.shutting_down.clone(),
     )
     .unwrap();
+
+    if let Some(app_insights) = app_insights {
+        app_insights.await;
+    }
 
     shut_down_task(app).await;
 

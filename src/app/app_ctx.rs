@@ -5,12 +5,12 @@ use tokio::sync::mpsc::UnboundedSender;
 use crate::{
     db::DbInstance,
     db_transactions::ActiveTransactions,
-    http::metrics::HttpMetrics,
     persistence::{
         blob_content_cache::BlobContentCache, updates_to_persist::UpdatesToPersistByTable,
     },
     settings_reader::SettingsModel,
     tcp::SessionsList,
+    telemetry::TelemetryWriter,
 };
 
 use super::{global_states::GlobalStates, logs::Logs, EventsDispatcher, PrometheusMetrics};
@@ -42,7 +42,7 @@ pub struct AppContext {
 
     pub updates_to_persist_by_table: UpdatesToPersistByTable,
 
-    pub http_metrics: HttpMetrics,
+    pub telemetry_writer: TelemetryWriter,
 }
 
 impl AppContext {
@@ -63,7 +63,7 @@ impl AppContext {
             blob_content_cache: BlobContentCache::new(),
             data_readers: SessionsList::new(),
             updates_to_persist_by_table: UpdatesToPersistByTable::new(),
-            http_metrics: HttpMetrics::new(),
+            telemetry_writer: TelemetryWriter::new(),
         }
     }
 }
