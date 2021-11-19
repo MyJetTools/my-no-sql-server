@@ -1,10 +1,14 @@
 use std::time::Duration;
 
-use my_azure_storage_sdk::AzureConnection;
+use my_azure_storage_sdk::AzureConnectionWithTelemetry;
 
-use crate::app::AppContext;
+use crate::{app::AppContext, telemetry::TelemetryWriter};
 
-pub async fn with_retries(app: &AppContext, azure_connection: &AzureConnection, table_name: &str) {
+pub async fn with_retries(
+    app: &AppContext,
+    azure_connection: &AzureConnectionWithTelemetry<TelemetryWriter>,
+    table_name: &str,
+) {
     let mut attempt_no = 0;
     loop {
         let result = super::table::delete(azure_connection, table_name).await;

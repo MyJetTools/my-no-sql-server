@@ -1,7 +1,11 @@
-use my_azure_storage_sdk::{AzureConnection, AzureStorageError, BlockBlobApi};
+use my_azure_storage_sdk::{
+    block_blob::BlockBlobApi, AzureConnectionWithTelemetry, AzureStorageError,
+};
+
+use crate::telemetry::TelemetryWriter;
 
 pub async fn save(
-    azure_connection: &AzureConnection,
+    azure_connection: &AzureConnectionWithTelemetry<TelemetryWriter>,
     table_name: &str,
     partition_key: &str,
     content: Vec<u8>,

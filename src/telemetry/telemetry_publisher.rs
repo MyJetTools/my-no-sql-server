@@ -44,19 +44,14 @@ pub async fn start(
                 client.track(telemetry);
             }
             TelemetryEvent::HttpDependencyEvent {
-                name,
-                url,
+                host,
+                protocol,
+                resource,
                 duration,
-                method,
                 success,
             } => {
-                let telemetry = RemoteDependencyTelemetry::new(
-                    name,
-                    "HTTP",
-                    duration,
-                    format!("{} {}", method, url),
-                    success,
-                );
+                let telemetry =
+                    RemoteDependencyTelemetry::new(resource, protocol, duration, host, success);
                 client.track(telemetry);
             }
         }

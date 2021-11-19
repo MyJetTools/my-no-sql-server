@@ -1,12 +1,12 @@
 use std::time::Duration;
 
-use my_azure_storage_sdk::{AzureConnection, AzureStorageError};
+use my_azure_storage_sdk::{AzureConnectionWithTelemetry, AzureStorageError};
 
-use crate::{app::AppContext, db::DbTableAttributes};
+use crate::{app::AppContext, db::DbTableAttributes, telemetry::TelemetryWriter};
 
 pub async fn with_retries(
     app: &AppContext,
-    azure_connection: &AzureConnection,
+    azure_connection: &AzureConnectionWithTelemetry<TelemetryWriter>,
     table_name: &str,
     attr: &DbTableAttributes,
 ) {
@@ -49,7 +49,7 @@ pub async fn with_retries(
 }
 
 async fn create_table(
-    azure_connection: &AzureConnection,
+    azure_connection: &AzureConnectionWithTelemetry<TelemetryWriter>,
     table_name: &str,
     attr: &DbTableAttributes,
 ) -> Result<(), AzureStorageError> {

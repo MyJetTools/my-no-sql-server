@@ -1,11 +1,16 @@
 use std::{sync::Arc, time::Duration};
 
-use my_azure_storage_sdk::AzureConnection;
+use my_azure_storage_sdk::AzureConnectionWithTelemetry;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-use crate::{app::AppContext, persistence::updates_to_persist::TableUpdatesState};
+use crate::{
+    app::AppContext, persistence::updates_to_persist::TableUpdatesState, telemetry::TelemetryWriter,
+};
 
-pub async fn start(app: Arc<AppContext>, azure_connection: AzureConnection) {
+pub async fn start(
+    app: Arc<AppContext>,
+    azure_connection: AzureConnectionWithTelemetry<TelemetryWriter>,
+) {
     let one_sec = Duration::from_secs(1);
     while !app.states.is_initialized() {
         tokio::time::sleep(one_sec).await;
@@ -26,7 +31,10 @@ pub async fn start(app: Arc<AppContext>, azure_connection: AzureConnection) {
     }
 }
 
-async fn iteration(app: Arc<AppContext>, azure_connection: Arc<AzureConnection>) {
+async fn iteration(
+    app: Arc<AppContext>,
+    azure_connection: Arc<AzureConnectionWithTelemetry<TelemetryWriter>>,
+) {
     let now = DateTimeAsMicroseconds::now();
 
     let is_shutting_down = app.states.is_shutting_down();

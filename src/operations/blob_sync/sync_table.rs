@@ -1,11 +1,11 @@
-use my_azure_storage_sdk::AzureConnection;
+use my_azure_storage_sdk::AzureConnectionWithTelemetry;
 
-use crate::{app::AppContext, db::DbTable};
+use crate::{app::AppContext, db::DbTable, telemetry::TelemetryWriter};
 
 pub async fn sync_everythin(
     app: &AppContext,
     db_table: &DbTable,
-    azure_connection: &AzureConnection,
+    azure_connection: &AzureConnectionWithTelemetry<TelemetryWriter>,
 ) {
     let table_in_blob = app
         .blob_content_cache
@@ -51,7 +51,7 @@ pub async fn sync_everythin(
 pub async fn from_no_table_in_blob(
     app: &AppContext,
     db_table: &DbTable,
-    azure_connection: &AzureConnection,
+    azure_connection: &AzureConnectionWithTelemetry<TelemetryWriter>,
 ) {
     let attr = db_table.get_attributes().await;
     crate::blob_operations::create_table::with_retries(

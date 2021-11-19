@@ -1,6 +1,8 @@
 use app::AppContext;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 
+use crate::telemetry::TelemetryWriter;
+
 mod app;
 mod grpc;
 mod telemetry;
@@ -31,25 +33,37 @@ async fn main() {
     let (transactions_sender, transactions_receiver) = tokio::sync::mpsc::unbounded_channel();
     let settings = settings_reader::read_settings().await;
 
-    let mut app = AppContext::new(&settings, Some(transactions_sender));
-
     let mut background_tasks = Vec::new();
 
-    let app_insights = if let Ok(app_insights_key) = std::env::var("APPINSIGHTS_INSTRUMENTATIONKEY")
-    {
-        println!("Application insights are plugged");
-        let events_reseriver = app.telemetry_writer.get_telemetry_reader();
-        Some(crate::telemetry::telemetry_publisher::start(
-            app_insights_key,
-            events_reseriver,
-        ))
-    } else {
-        None
-    };
+    let mut connection = settings.get_azure_connection();
+
+    let (telemetry_writer, app_insights) =
+        if let Ok(app_insights_key) = std::env::var("APPINSIGHTS_INSTRUMENTATIONKEY") {
+            let mut telemetry_writer = TelemetryWriter::new();
+
+            let events_reseriver = telemetry_writer.get_telemetry_reader();
+
+            let telemetry_writer = Arc::new(telemetry_writer);
+
+            println!("Application insights are plugged");
+
+            if let Some(connection) = connection.as_mut() {
+                connection.telemetry = Some(telemetry_writer.clone());
+            }
+
+            let publisher =
+                crate::telemetry::telemetry_publisher::start(app_insights_key, events_reseriver);
+
+            (telemetry_writer, Some(publisher))
+        } else {
+            let telemetry_writer = TelemetryWriter::new();
+
+            (Arc::new(telemetry_writer), None)
+        };
+
+    let app = AppContext::new(&settings, Some(transactions_sender), telemetry_writer);
 
     let app = Arc::new(app);
-
-    let connection = settings.get_azure_connection();
 
     if let Some(connection) = connection {
         crate::operations::data_initializer::init_tables(app.as_ref(), &connection).await;

@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
-use my_azure_storage_sdk::{AzureConnection, AzureStorageError, BlobApi};
+use my_azure_storage_sdk::AzureConnectionWithTelemetry;
+use my_azure_storage_sdk::{blob::BlobApi, AzureStorageError};
 
-use my_azure_storage_sdk::BlobContainersApi;
+use my_azure_storage_sdk::blob_container::BlobContainersApi;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
-use rust_extensions::StopWatch;
 
-use crate::app::AppContext;
+use crate::telemetry::TelemetryWriter;
 use crate::{
     db::{DbPartition, DbTableAttributes, DbTableData},
     db_json_entity::{DbJsonEntity, JsonTimeStamp},
@@ -16,8 +16,7 @@ use crate::{
 use super::metadata::{TableMetadataFileContract, METADATA_BLOB_NAME};
 
 pub async fn load(
-    app: &AppContext,
-    azure_connection: &AzureConnection,
+    azure_connection: &AzureConnectionWithTelemetry<TelemetryWriter>,
     table_name: &str,
 ) -> Result<DbTableData, AzureStorageError> {
     let blobs = azure_connection.get_list_of_blobs(table_name).await?;
@@ -31,25 +30,9 @@ pub async fn load(
     let mut db_table_data = DbTableData::new(table_name.to_string(), attributes);
 
     for blob_name in blobs {
-        let mut sw = StopWatch::new();
-        sw.start();
         let raw = azure_connection
             .download_blob(table_name, blob_name.as_str())
             .await?;
-
-        sw.pause();
-
-        let uri = format!("http://azureblob.com/get/{}", table_name)
-            .parse()
-            .unwrap();
-
-        app.telemetry_writer.write_dependency_request_duration(
-            "AZUREBLOB".to_string(),
-            uri,
-            hyper::Method::GET,
-            sw.duration(),
-            true,
-        );
 
         if blob_name == METADATA_BLOB_NAME {
             let table_metadata = TableMetadataFileContract::parse(raw.as_slice());

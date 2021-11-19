@@ -42,11 +42,15 @@ pub struct AppContext {
 
     pub updates_to_persist_by_table: UpdatesToPersistByTable,
 
-    pub telemetry_writer: TelemetryWriter,
+    pub telemetry_writer: Arc<TelemetryWriter>,
 }
 
 impl AppContext {
-    pub fn new(settings: &SettingsModel, sender: Option<UnboundedSender<()>>) -> Self {
+    pub fn new(
+        settings: &SettingsModel,
+        sender: Option<UnboundedSender<()>>,
+        telemetry_writer: Arc<TelemetryWriter>,
+    ) -> Self {
         AppContext {
             db: DbInstance::new(),
             persist_to_blob: settings.persist_to_blob(),
@@ -63,7 +67,7 @@ impl AppContext {
             blob_content_cache: BlobContentCache::new(),
             data_readers: SessionsList::new(),
             updates_to_persist_by_table: UpdatesToPersistByTable::new(),
-            telemetry_writer: TelemetryWriter::new(),
+            telemetry_writer,
         }
     }
 }
