@@ -9,4 +9,11 @@ pub enum TelemetryEvent {
         duration: Duration,
         method: hyper::Method,
     },
+    HttpDependencyEvent {
+        name: String,
+        url: Uri,
+        duration: Duration,
+        method: hyper::Method,
+        success: bool,
+    },
 }

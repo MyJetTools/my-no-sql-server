@@ -39,4 +39,27 @@ impl TelemetryWriter {
             }
         }
     }
+
+    pub fn write_dependency_request_duration(
+        &self,
+        name: String,
+        url: Uri,
+        method: hyper::Method,
+        duration: Duration,
+        success: bool,
+    ) {
+        if let Some(publisher) = &self.publisher {
+            let result = publisher.send(TelemetryEvent::HttpDependencyEvent {
+                name,
+                url,
+                duration,
+                method,
+                success,
+            });
+
+            if let Err(err) = result {
+                println!("Can not send telemetry event: {}", err)
+            }
+        }
+    }
 }

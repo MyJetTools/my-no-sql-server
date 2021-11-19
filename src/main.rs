@@ -39,7 +39,7 @@ async fn main() {
     {
         println!("Application insights are plugged");
         let events_reseriver = app.telemetry_writer.get_telemetry_reader();
-        Some(crate::telemetry::telemetry_reader::start(
+        Some(crate::telemetry::telemetry_publisher::start(
             app_insights_key,
             events_reseriver,
         ))

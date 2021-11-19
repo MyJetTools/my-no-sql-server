@@ -1,6 +1,9 @@
 use std::time::Duration;
 
-use appinsights::{telemetry::RequestTelemetry, TelemetryClient, TelemetryConfig};
+use appinsights::{
+    telemetry::{RemoteDependencyTelemetry, RequestTelemetry},
+    TelemetryClient, TelemetryConfig,
+};
 use tokio::sync::mpsc::UnboundedReceiver;
 
 use super::TelemetryEvent;
@@ -38,6 +41,22 @@ pub async fn start(
                 let telemetry =
                     RequestTelemetry::new(method, url, duration, status_code.to_string());
 
+                client.track(telemetry);
+            }
+            TelemetryEvent::HttpDependencyEvent {
+                name,
+                url,
+                duration,
+                method,
+                success,
+            } => {
+                let telemetry = RemoteDependencyTelemetry::new(
+                    name,
+                    "HTTP",
+                    duration,
+                    format!("{} {}", method, url),
+                    success,
+                );
                 client.track(telemetry);
             }
         }
