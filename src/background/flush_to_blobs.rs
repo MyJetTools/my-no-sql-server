@@ -1,15 +1,14 @@
 use std::{sync::Arc, time::Duration};
 
+use my_app_insights::AppInsightsTelemetry;
 use my_azure_storage_sdk::AzureConnectionWithTelemetry;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-use crate::{
-    app::AppContext, persistence::updates_to_persist::TableUpdatesState, telemetry::TelemetryWriter,
-};
+use crate::{app::AppContext, persistence::updates_to_persist::TableUpdatesState};
 
 pub async fn start(
     app: Arc<AppContext>,
-    azure_connection: AzureConnectionWithTelemetry<TelemetryWriter>,
+    azure_connection: AzureConnectionWithTelemetry<AppInsightsTelemetry>,
 ) {
     let one_sec = Duration::from_secs(1);
     while !app.states.is_initialized() {
@@ -33,7 +32,7 @@ pub async fn start(
 
 async fn iteration(
     app: Arc<AppContext>,
-    azure_connection: Arc<AzureConnectionWithTelemetry<TelemetryWriter>>,
+    azure_connection: Arc<AzureConnectionWithTelemetry<AppInsightsTelemetry>>,
 ) {
     let now = DateTimeAsMicroseconds::now();
 

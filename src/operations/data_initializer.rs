@@ -1,11 +1,13 @@
 use my_azure_storage_sdk::AzureConnectionWithTelemetry;
 use rust_extensions::{date_time::DateTimeAsMicroseconds, StopWatch};
 
-use crate::{app::AppContext, telemetry::TelemetryWriter};
+use crate::app::AppContext;
+
+use my_app_insights::AppInsightsTelemetry;
 
 pub async fn init_tables(
     app: &AppContext,
-    connection: &AzureConnectionWithTelemetry<TelemetryWriter>,
+    connection: &AzureConnectionWithTelemetry<AppInsightsTelemetry>,
 ) {
     let tables = crate::blob_operations::table::get_list(connection)
         .await

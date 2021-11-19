@@ -1,9 +1,9 @@
+use my_app_insights::AppInsightsTelemetry;
 use my_azure_storage_sdk::AzureConnectionWithTelemetry;
 use serde::{Deserialize, Serialize};
 use std::env;
 use tokio::{fs::File, io::AsyncReadExt};
 
-use crate::telemetry::TelemetryWriter;
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SettingsModel {
     #[serde(rename = "PersistenceDest")]
@@ -24,7 +24,9 @@ impl SettingsModel {
         return !self.persistence_dest.starts_with("http");
     }
 
-    pub fn get_azure_connection(&self) -> Option<AzureConnectionWithTelemetry<TelemetryWriter>> {
+    pub fn get_azure_connection(
+        &self,
+    ) -> Option<AzureConnectionWithTelemetry<AppInsightsTelemetry>> {
         if !self.persist_to_blob() {
             return None;
         }

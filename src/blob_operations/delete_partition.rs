@@ -2,14 +2,13 @@ use std::time::Duration;
 
 use my_azure_storage_sdk::AzureConnectionWithTelemetry;
 
-use crate::{
-    app::{logs::SystemProcess, AppContext},
-    telemetry::TelemetryWriter,
-};
+use crate::app::{logs::SystemProcess, AppContext};
+
+use my_app_insights::AppInsightsTelemetry;
 
 pub async fn with_retires(
     app: &AppContext,
-    azure_connection: &AzureConnectionWithTelemetry<TelemetryWriter>,
+    azure_connection: &AzureConnectionWithTelemetry<AppInsightsTelemetry>,
     table_name: &str,
     partition_key: &str,
 ) {

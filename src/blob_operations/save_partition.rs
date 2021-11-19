@@ -6,12 +6,13 @@ use rust_extensions::StopWatch;
 use crate::{
     app::{logs::SystemProcess, AppContext},
     db::{read_as_json::DbEntityAsJsonArray, DbPartitionSnapshot},
-    telemetry::TelemetryWriter,
 };
+
+use my_app_insights::AppInsightsTelemetry;
 
 pub async fn with_retries(
     app: &AppContext,
-    azure_connection: &AzureConnectionWithTelemetry<TelemetryWriter>,
+    azure_connection: &AzureConnectionWithTelemetry<AppInsightsTelemetry>,
     table_name: &str,
     partition_key: &str,
     snapshot: DbPartitionSnapshot,

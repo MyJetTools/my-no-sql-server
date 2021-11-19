@@ -2,10 +2,10 @@ use my_azure_storage_sdk::blob_container::BlobContainersApi;
 use my_azure_storage_sdk::AzureConnectionWithTelemetry;
 use my_azure_storage_sdk::AzureStorageError;
 
-use crate::telemetry::TelemetryWriter;
+use my_app_insights::AppInsightsTelemetry;
 
 pub async fn create_if_not_exists(
-    azure_connection: &AzureConnectionWithTelemetry<TelemetryWriter>,
+    azure_connection: &AzureConnectionWithTelemetry<AppInsightsTelemetry>,
     table_name: &str,
 ) -> Result<(), AzureStorageError> {
     azure_connection

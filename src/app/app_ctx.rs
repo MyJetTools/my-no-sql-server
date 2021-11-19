@@ -10,7 +10,6 @@ use crate::{
     },
     settings_reader::SettingsModel,
     tcp::SessionsList,
-    telemetry::TelemetryWriter,
 };
 
 use super::{global_states::GlobalStates, logs::Logs, EventsDispatcher, PrometheusMetrics};
@@ -41,16 +40,10 @@ pub struct AppContext {
     pub data_readers: SessionsList,
 
     pub updates_to_persist_by_table: UpdatesToPersistByTable,
-
-    pub telemetry_writer: Arc<TelemetryWriter>,
 }
 
 impl AppContext {
-    pub fn new(
-        settings: &SettingsModel,
-        sender: Option<UnboundedSender<()>>,
-        telemetry_writer: Arc<TelemetryWriter>,
-    ) -> Self {
+    pub fn new(settings: &SettingsModel, sender: Option<UnboundedSender<()>>) -> Self {
         AppContext {
             db: DbInstance::new(),
             persist_to_blob: settings.persist_to_blob(),
@@ -67,7 +60,6 @@ impl AppContext {
             blob_content_cache: BlobContentCache::new(),
             data_readers: SessionsList::new(),
             updates_to_persist_by_table: UpdatesToPersistByTable::new(),
-            telemetry_writer,
         }
     }
 }

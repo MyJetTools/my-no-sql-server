@@ -1,11 +1,8 @@
 use app::AppContext;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 
-use crate::telemetry::TelemetryWriter;
-
 mod app;
 mod grpc;
-mod telemetry;
 
 mod blob_operations;
 mod db;
@@ -24,6 +21,8 @@ mod persistence;
 mod settings_reader;
 mod utils;
 
+use my_app_insights::AppInsightsTelemetry;
+
 pub mod mynosqlserver_grpc {
     tonic::include_proto!("mynosqlserver");
 }
@@ -37,31 +36,13 @@ async fn main() {
 
     let mut connection = settings.get_azure_connection();
 
-    let (telemetry_writer, app_insights) =
-        if let Ok(app_insights_key) = std::env::var("APPINSIGHTS_INSTRUMENTATIONKEY") {
-            let mut telemetry_writer = TelemetryWriter::new();
+    let telemetry_writer = Arc::new(AppInsightsTelemetry::new());
 
-            let events_reseriver = telemetry_writer.get_telemetry_reader();
+    if let Some(connection) = connection.as_mut() {
+        connection.telemetry = Some(telemetry_writer.clone());
+    }
 
-            let telemetry_writer = Arc::new(telemetry_writer);
-
-            println!("Application insights are plugged");
-
-            if let Some(connection) = connection.as_mut() {
-                connection.telemetry = Some(telemetry_writer.clone());
-            }
-
-            let publisher =
-                crate::telemetry::telemetry_publisher::start(app_insights_key, events_reseriver);
-
-            (telemetry_writer, Some(publisher))
-        } else {
-            let telemetry_writer = TelemetryWriter::new();
-
-            (Arc::new(telemetry_writer), None)
-        };
-
-    let app = AppContext::new(&settings, Some(transactions_sender), telemetry_writer);
+    let app = AppContext::new(&settings, Some(transactions_sender));
 
     let app = Arc::new(app);
 
@@ -106,6 +87,7 @@ async fn main() {
 
     tokio::task::spawn(http::http_server::start(
         app.clone(),
+        telemetry_writer.clone(),
         SocketAddr::from(([0, 0, 0, 0], 5123)),
     ));
 
@@ -122,9 +104,9 @@ async fn main() {
     )
     .unwrap();
 
-    if let Some(app_insights) = app_insights {
-        app_insights.await;
-    }
+    telemetry_writer
+        .start(app.states.shutting_down.clone())
+        .await;
 
     shut_down_task(app).await;
 

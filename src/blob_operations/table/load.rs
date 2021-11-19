@@ -6,17 +6,17 @@ use my_azure_storage_sdk::{blob::BlobApi, AzureStorageError};
 use my_azure_storage_sdk::blob_container::BlobContainersApi;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-use crate::telemetry::TelemetryWriter;
 use crate::{
     db::{DbPartition, DbTableAttributes, DbTableData},
     db_json_entity::{DbJsonEntity, JsonTimeStamp},
     json::array_parser::ArrayToJsonObjectsSplitter,
 };
+use my_app_insights::AppInsightsTelemetry;
 
 use super::metadata::{TableMetadataFileContract, METADATA_BLOB_NAME};
 
 pub async fn load(
-    azure_connection: &AzureConnectionWithTelemetry<TelemetryWriter>,
+    azure_connection: &AzureConnectionWithTelemetry<AppInsightsTelemetry>,
     table_name: &str,
 ) -> Result<DbTableData, AzureStorageError> {
     let blobs = azure_connection.get_list_of_blobs(table_name).await?;

@@ -2,12 +2,14 @@ use my_azure_storage_sdk::{
     block_blob::BlockBlobApi, AzureConnectionWithTelemetry, AzureStorageError,
 };
 
-use crate::{db::DbTableAttributes, telemetry::TelemetryWriter};
+use crate::db::DbTableAttributes;
+
+use my_app_insights::AppInsightsTelemetry;
 
 use super::metadata::TableMetadataFileContract;
 
 pub async fn save_attributes(
-    azure_connection: &AzureConnectionWithTelemetry<TelemetryWriter>,
+    azure_connection: &AzureConnectionWithTelemetry<AppInsightsTelemetry>,
     table_name: &str,
     attributes: &DbTableAttributes,
 ) -> Result<(), AzureStorageError> {

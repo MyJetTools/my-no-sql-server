@@ -1,9 +1,9 @@
 use my_azure_storage_sdk::{blob::BlobApi, AzureConnectionWithTelemetry, AzureStorageError};
 
-use crate::telemetry::TelemetryWriter;
+use my_app_insights::AppInsightsTelemetry;
 
 pub async fn delete(
-    azure_connection: &AzureConnectionWithTelemetry<TelemetryWriter>,
+    azure_connection: &AzureConnectionWithTelemetry<AppInsightsTelemetry>,
     table_name: &str,
     partition_key: &str,
 ) -> Result<(), AzureStorageError> {

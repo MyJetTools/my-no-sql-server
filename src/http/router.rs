@@ -4,6 +4,8 @@ use rust_extensions::StopWatch;
 
 use crate::app::AppContext;
 use crate::http::http_ctx::HttpContext;
+
+use my_app_insights::AppInsightsTelemetry;
 use std::sync::Arc;
 
 use super::{
@@ -15,6 +17,7 @@ use super::{
 pub async fn route_requests(
     req: Request<Body>,
     app: Arc<AppContext>,
+    telemetry_writer: Arc<AppInsightsTelemetry>,
 ) -> Result<HttpOkResult, HttpFailResult> {
     if app.states.is_shutting_down() {
         return Err(HttpFailResult {
@@ -37,7 +40,7 @@ pub async fn route_requests(
 
     match &http_result {
         Ok(ok_result) => {
-            app.telemetry_writer.write_http_request_duration(
+            telemetry_writer.write_http_request_duration(
                 uri,
                 method,
                 ok_result.get_status_code(),
@@ -46,7 +49,7 @@ pub async fn route_requests(
         }
         Err(err) => {
             if err.metric_it {
-                app.telemetry_writer.write_http_request_duration(
+                telemetry_writer.write_http_request_duration(
                     uri,
                     method,
                     err.status_code,

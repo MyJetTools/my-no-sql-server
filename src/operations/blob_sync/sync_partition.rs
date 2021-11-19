@@ -5,13 +5,14 @@ use crate::{
     app::AppContext,
     db::{DbPartitionSnapshot, DbTable},
     persistence::blob_content_cache::BlobPartitionUpdateTimeResult,
-    telemetry::TelemetryWriter,
 };
+
+use my_app_insights::AppInsightsTelemetry;
 
 pub async fn execute(
     app: &AppContext,
     db_table: &DbTable,
-    azure_connection: &AzureConnectionWithTelemetry<TelemetryWriter>,
+    azure_connection: &AzureConnectionWithTelemetry<AppInsightsTelemetry>,
     partition_key: &str,
 ) {
     let get_blob_content_cache = app
@@ -55,7 +56,7 @@ pub async fn sync_single_partition(
     app: &AppContext,
     table_name: &str,
     partition_key: &str,
-    azure_connection: &AzureConnectionWithTelemetry<TelemetryWriter>,
+    azure_connection: &AzureConnectionWithTelemetry<AppInsightsTelemetry>,
     partition_snapshot: Option<DbPartitionSnapshot>,
     blob_date_time: Option<DateTimeAsMicroseconds>,
 ) {

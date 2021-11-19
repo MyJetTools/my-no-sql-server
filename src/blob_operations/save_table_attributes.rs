@@ -5,12 +5,13 @@ use my_azure_storage_sdk::AzureConnectionWithTelemetry;
 use crate::{
     app::{logs::SystemProcess, AppContext},
     db::DbTableAttributes,
-    telemetry::TelemetryWriter,
 };
+
+use my_app_insights::AppInsightsTelemetry;
 
 pub async fn with_retries(
     app: &AppContext,
-    azure_connection: &AzureConnectionWithTelemetry<TelemetryWriter>,
+    azure_connection: &AzureConnectionWithTelemetry<AppInsightsTelemetry>,
     table_name: &str,
     attr: &DbTableAttributes,
 ) {
