@@ -3,7 +3,7 @@ use hyper::{
     Body, Request, Response, Server,
 };
 
-use std::net::SocketAddr;
+use std::{net::SocketAddr, time::Duration};
 
 use crate::app::AppContext;
 
@@ -15,6 +15,12 @@ pub async fn start(
     telemetry_writer: Arc<AppInsightsTelemetry>,
     addr: SocketAddr,
 ) {
+    let sleep_duration = Duration::from_secs(1);
+
+    while !app.states.is_initialized() {
+        tokio::time::sleep(sleep_duration).await
+    }
+
     app.logs
         .add_info(
             None,

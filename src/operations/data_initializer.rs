@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use my_azure_storage_sdk::AzureConnectionWithTelemetry;
 use rust_extensions::{date_time::DateTimeAsMicroseconds, StopWatch};
 
@@ -6,10 +8,17 @@ use crate::app::AppContext;
 use my_app_insights::AppInsightsTelemetry;
 
 pub async fn init_tables(
-    app: &AppContext,
-    connection: &AzureConnectionWithTelemetry<AppInsightsTelemetry>,
+    app: Arc<AppContext>,
+    connection: Arc<AzureConnectionWithTelemetry<AppInsightsTelemetry>>,
 ) {
-    let tables = crate::blob_operations::table::get_list(connection)
+    tokio::spawn(init_tables_spawned(app, connection));
+}
+
+async fn init_tables_spawned(
+    app: Arc<AppContext>,
+    connection: Arc<AzureConnectionWithTelemetry<AppInsightsTelemetry>>,
+) {
+    let tables = crate::blob_operations::table::get_list(connection.as_ref())
         .await
         .unwrap();
 
@@ -29,7 +38,7 @@ pub async fn init_tables(
             .unwrap();
 
         let now = DateTimeAsMicroseconds::now();
-        crate::db_operations::write::table::init(app, table_data, now).await;
+        crate::db_operations::write::table::init(app.as_ref(), table_data, now).await;
 
         sw.pause();
 

@@ -34,24 +34,26 @@ async fn main() {
 
     let mut background_tasks = Vec::new();
 
-    let mut connection = settings.get_azure_connection();
-
     let telemetry_writer = Arc::new(AppInsightsTelemetry::new());
 
-    if let Some(connection) = connection.as_mut() {
+    let connection = if let Some(mut connection) = settings.get_azure_connection() {
         connection.telemetry = Some(telemetry_writer.clone());
-    }
+
+        Some(Arc::new(connection))
+    } else {
+        None
+    };
 
     let app = AppContext::new(&settings, Some(transactions_sender));
 
     let app = Arc::new(app);
 
-    if let Some(connection) = connection {
-        crate::operations::data_initializer::init_tables(app.as_ref(), &connection).await;
+    if let Some(connection) = &connection {
+        crate::operations::data_initializer::init_tables(app.clone(), connection.clone()).await;
 
         let handler = tokio::task::spawn(crate::background::flush_to_blobs::start(
             app.clone(),
-            connection,
+            connection.clone(),
         ));
 
         background_tasks.push(handler);

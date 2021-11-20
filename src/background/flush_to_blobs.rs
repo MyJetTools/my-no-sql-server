@@ -8,7 +8,7 @@ use crate::{app::AppContext, persistence::updates_to_persist::TableUpdatesState}
 
 pub async fn start(
     app: Arc<AppContext>,
-    azure_connection: AzureConnectionWithTelemetry<AppInsightsTelemetry>,
+    azure_connection: Arc<AzureConnectionWithTelemetry<AppInsightsTelemetry>>,
 ) {
     let one_sec = Duration::from_secs(1);
     while !app.states.is_initialized() {
@@ -17,10 +17,8 @@ pub async fn start(
 
     println!("Persistence loop is started");
 
-    let connection = Arc::new(azure_connection);
-
     loop {
-        let result = tokio::spawn(iteration(app.clone(), connection.clone())).await;
+        let result = tokio::spawn(iteration(app.clone(), azure_connection.clone())).await;
 
         if let Err(err) = result {
             println!("flush_to_blobs_err: {:?}", err);
