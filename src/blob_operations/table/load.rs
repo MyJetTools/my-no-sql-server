@@ -46,6 +46,7 @@ pub async fn load(
             let mut db_partition = DbPartition::new();
 
             for db_entity_json in raw.as_slice().split_array_json_to_objects() {
+                let db_entity_json = db_entity_json.unwrap();
                 let db_entity = DbJsonEntity::parse(db_entity_json);
 
                 if let Err(err) = db_entity {

@@ -19,6 +19,7 @@ pub fn parse_transactions(
 ) -> Result<Vec<TransactionalOperationStep>, TransactionOperationError> {
     let mut result = Vec::new();
     for json_object in payload.split_array_json_to_objects() {
+        let json_object = json_object.unwrap();
         let type_model: JsonBaseTransaction = serde_json::from_slice(json_object)?;
 
         if type_model.transaction_type == JSON_TRANSACTION_CLEAN_TABLE {

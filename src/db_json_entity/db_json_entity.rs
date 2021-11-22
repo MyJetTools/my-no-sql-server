@@ -4,7 +4,7 @@ use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
     db::DbRow,
-    json::{array_parser::ArrayToJsonObjectsSplitter, JsonFirstLineParser},
+    json::{array_parser::ArrayToJsonObjectsSplitter, JsonFirstLineReader},
 };
 
 use super::{date_time_injector::TimeStampValuePosition, utils::JsonTimeStamp, DbEntityParseFail};
@@ -26,7 +26,7 @@ impl<'s> DbJsonEntity<'s> {
         let mut time_stamp = None;
         let mut timestamp_value_position = None;
 
-        for line in JsonFirstLineParser::new(raw) {
+        for line in JsonFirstLineReader::new(raw) {
             let line = line?;
 
             let name = line.get_name()?;
@@ -102,7 +102,7 @@ impl<'s> DbJsonEntity<'s> {
         let mut result = Vec::new();
 
         for json in src.split_array_json_to_objects() {
-            let db_entity = DbJsonEntity::parse(json)?;
+            let db_entity = DbJsonEntity::parse(json?)?;
             let db_row = db_entity.to_db_row(time_stamp);
 
             result.push(Arc::new(db_row));
@@ -117,7 +117,7 @@ impl<'s> DbJsonEntity<'s> {
         let mut result = BTreeMap::new();
 
         for json in src.split_array_json_to_objects() {
-            let db_entity = DbJsonEntity::parse(json)?;
+            let db_entity = DbJsonEntity::parse(json?)?;
             let db_row = db_entity.to_db_row(time_stamp);
             if !result.contains_key(db_entity.partition_key) {
                 result.insert(db_entity.partition_key.to_string(), Vec::new());

@@ -1,17 +1,3 @@
-pub enum ExpectedToken {
-    OpenBracket,
-    OpenKey,
-    CloseKey,
-    DoubleColumn,
-    OpenValue,
-    CloseStringValue,
-    CloseNumberOrBoolOrNullValue,
-    CloseObject,
-    CloseArray,
-    Comma,
-    EndOfFile,
-}
-
 pub fn is_space(c: u8) -> bool {
     c <= 32
 }
@@ -35,4 +21,12 @@ pub fn is_start_of_digit(c: u8) -> bool {
     }
 
     return false;
+}
+
+pub fn is_digit(c: u8) -> bool {
+    return c >= '0' as u8 && c <= '9' as u8;
+}
+
+pub fn is_latin_letter(c: u8) -> bool {
+    return (c >= 'a' as u8 && c <= 'z' as u8) || (c >= 'A' as u8 && c <= 'Z' as u8);
 }
