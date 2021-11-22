@@ -39,5 +39,5 @@ impl ReadingNonStringValueState {
 }
 
 fn is_non_string_value_char(b: u8) -> bool {
-    return super::utils::is_digit(b) || super::utils::is_latin_letter(b);
+    return super::utils::is_digit(b) || super::utils::is_latin_letter(b) || b == '.' as u8;
 }
