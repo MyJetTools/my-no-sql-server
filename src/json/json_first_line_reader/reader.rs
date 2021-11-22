@@ -105,7 +105,7 @@ mod tests {
 
     #[test]
     pub fn test_simple_parse() {
-        let src_data = "{\"name1\":\"123\", \"name2\":true,       \"name3\":null}";
+        let src_data = "{\"name1\":\"123\", \"name2\":true,       \"name3\":null, \"name4\":0.12}";
 
         let mut parser = JsonFirstLineReader::new(src_data.as_bytes());
 
@@ -123,6 +123,11 @@ mod tests {
 
         assert_eq!("\"name3\"", item.get_raw_name().unwrap());
         assert_eq!("null", item.get_raw_value().unwrap());
+
+        let item = parser.next().unwrap().unwrap();
+
+        assert_eq!("\"name4\"", item.get_raw_name().unwrap());
+        assert_eq!("0.12", item.get_raw_value().unwrap());
 
         let item = parser.next();
 
