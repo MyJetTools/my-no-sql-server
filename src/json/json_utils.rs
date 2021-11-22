@@ -28,7 +28,7 @@ pub fn read_json_object(raw: &[u8], start_pos: usize) -> Result<usize, JsonParse
 
         match b {
             consts::DOUBLE_QUOTE => {
-                let read_string_result = read_string(raw, pos + 1);
+                let read_string_result = read_string(raw, pos);
 
                 match read_string_result {
                     Some(end_string_pos) => {

@@ -162,11 +162,43 @@ mod tests {
             );
         }
     }
+    #[test]
+    pub fn parse_empty_array() {
+        let json = r###"[]"###;
+
+        let mut i = 0;
+        for sub_json in json.as_bytes().split_array_json_to_objects() {
+            let sub_json = sub_json.unwrap();
+
+            println!("{}", sub_json.len());
+            i += 1;
+        }
+
+        assert_eq!(0, i);
+    }
 
     #[test]
     pub fn parse_some_reallife_data() {
         println!("{:?}", std::env::current_dir().unwrap());
         let mut src_file = File::open("./test/test-case.json").unwrap();
+
+        let mut line = Vec::new();
+        src_file.read_to_end(&mut line).unwrap();
+
+        for db_entity_json in line.as_slice().split_array_json_to_objects() {
+            let db_entity_json = db_entity_json.unwrap();
+
+            let db_json = DbJsonEntity::parse(db_entity_json).unwrap();
+
+            let json_timestamp = JsonTimeStamp::now();
+            db_json.to_db_row(&json_timestamp);
+        }
+    }
+
+    #[test]
+    pub fn parse_some_reallife_data_case_2() {
+        println!("{:?}", std::env::current_dir().unwrap());
+        let mut src_file = File::open("./test/test_case_2.json").unwrap();
 
         let mut line = Vec::new();
         src_file.read_to_end(&mut line).unwrap();
