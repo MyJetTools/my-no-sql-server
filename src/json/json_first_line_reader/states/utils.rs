@@ -26,6 +26,7 @@ pub fn is_start_of_digit(c: u8) -> bool {
 pub fn is_number(c: u8) -> bool {
     return (c >= '0' as u8 && c <= '9' as u8)
         || c == '-' as u8
+        || c == '+' as u8
         || c == '.' as u8
         || c == 'E' as u8;
 }
