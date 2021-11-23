@@ -115,23 +115,21 @@ impl<'s> DbJsonEntity<'s> {
         time_stamp: &JsonTimeStamp,
     ) -> Result<BTreeMap<String, Vec<Arc<DbRow>>>, DbEntityParseFail> {
         let mut result = BTreeMap::new();
-        let mut i = 0;
 
         for json in src.split_array_json_to_objects() {
-            i += 1;
             let db_entity = DbJsonEntity::parse(json?)?;
             let db_row = db_entity.to_db_row(time_stamp);
+
             if !result.contains_key(db_entity.partition_key) {
                 result.insert(db_entity.partition_key.to_string(), Vec::new());
-
-                result
-                    .get_mut(db_entity.partition_key)
-                    .unwrap()
-                    .push(Arc::new(db_row))
             }
+
+            result
+                .get_mut(db_entity.partition_key)
+                .unwrap()
+                .push(Arc::new(db_row));
         }
 
-        println!("Inserting or replacing {} entities", i);
         return Ok(result);
     }
 }
