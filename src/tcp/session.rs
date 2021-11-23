@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use my_no_sql_tcp_shared::TcpContract;
-use rust_extensions::date_time::DateTimeAsMicroseconds;
+use rust_extensions::date_time::{AtomicDateTimeAsMicroseconds, DateTimeAsMicroseconds};
 use tokio::{
     io::{AsyncWriteExt, WriteHalf},
     net::TcpStream,
@@ -74,6 +74,7 @@ pub struct ReaderSession {
     pub metrics: SessionMetrics,
     data: Mutex<ReaderSessionData>,
     pub logs: Arc<Logs>,
+    pub last_incoming_package: AtomicDateTimeAsMicroseconds,
 }
 
 impl ReaderSession {
@@ -84,6 +85,7 @@ impl ReaderSession {
             data: Mutex::new(ReaderSessionData::new(write_socket, ip.to_string())),
             logs,
             metrics: SessionMetrics::new(id, ip),
+            last_incoming_package: AtomicDateTimeAsMicroseconds::now(),
         }
     }
 

@@ -1,4 +1,5 @@
 mod connection;
+mod dead_connections_detector;
 pub mod error;
 mod session;
 mod session_metrics;

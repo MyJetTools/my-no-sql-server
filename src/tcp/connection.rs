@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use my_no_sql_tcp_shared::TcpContract;
+use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::app::AppContext;
 
@@ -11,6 +12,8 @@ pub async fn handle_incoming_payload(
     tcp_contract: TcpContract,
     session: Arc<ReaderSession>,
 ) -> Result<(), ReadSocketError> {
+    let now = DateTimeAsMicroseconds::now();
+    session.last_incoming_package.update(now);
     match tcp_contract {
         TcpContract::Ping => {
             crate::operations::sessions::send_package(session.as_ref(), &TcpContract::Pong).await?;

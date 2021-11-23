@@ -30,6 +30,8 @@ pub async fn start(app: Arc<AppContext>, addr: SocketAddr) {
 
     let listener = TcpListener::bind(addr).await.unwrap();
 
+    tokio::spawn(super::dead_connections_detector::start(app.clone()));
+
     let mut socket_id: ConnectionId = 0;
 
     while !app.states.is_shutting_down() {
