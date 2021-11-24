@@ -41,7 +41,7 @@ pub async fn load(
 
         tasks.push(handle);
 
-        if tasks.len() == 2 {
+        if tasks.len() == 4 {
             init_to_db_table(&mut db_table_data, &mut tasks).await;
         }
     }
