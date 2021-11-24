@@ -28,7 +28,7 @@ pub async fn subscribe(app: &AppContext, session: &ReaderSession, table_name: &s
 
     if table.is_none() {
         println!(
-            "{} is subscribing to the table {} whic is not exists",
+            "{} is subscribing to the table {} which does not exist",
             session.get_name().await,
             table_name
         );

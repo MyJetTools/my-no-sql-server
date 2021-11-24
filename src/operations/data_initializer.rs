@@ -22,7 +22,7 @@ async fn init_tables_spawned(
         .await
         .unwrap();
 
-    for table_name in &tables {
+    for table_name in tables {
         app.logs
             .add_info(
                 Some(table_name.to_string()),
@@ -33,7 +33,7 @@ async fn init_tables_spawned(
             .await;
         let mut sw = StopWatch::new();
         sw.start();
-        let table_data = crate::blob_operations::table::load(&connection, table_name)
+        let table_data = crate::blob_operations::table::load(connection.clone(), &table_name)
             .await
             .unwrap();
 
