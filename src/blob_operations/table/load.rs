@@ -5,6 +5,7 @@ use my_azure_storage_sdk::{blob::BlobApi, AzureStorageError};
 
 use my_azure_storage_sdk::blob_container::BlobContainersApi;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
+use tokio::task::JoinHandle;
 
 use crate::{
     db::{DbPartition, DbTableAttributes, DbTableData},
@@ -41,27 +42,35 @@ pub async fn load(
         tasks.push(handle);
 
         if tasks.len() == 2 {
-            for task in tasks.drain(..) {
-                let result = task.await.unwrap();
-
-                match result {
-                    LoadBlobResult::Metadata(meta_data) => {
-                        db_table_data.attributes.max_partitions_amount =
-                            meta_data.max_partitions_amount;
-                        db_table_data.attributes.persist = meta_data.persist;
-                    }
-                    LoadBlobResult::DbPartition {
-                        partition_key,
-                        db_partition,
-                    } => {
-                        db_table_data.init_partition(partition_key, db_partition);
-                    }
-                }
-            }
+            init_to_db_table(&mut db_table_data, &mut tasks).await;
         }
     }
 
+    init_to_db_table(&mut db_table_data, &mut tasks).await;
+
     return Ok(db_table_data);
+}
+
+async fn init_to_db_table(
+    db_table_data: &mut DbTableData,
+    tasks: &mut Vec<JoinHandle<LoadBlobResult>>,
+) {
+    for task in tasks.drain(..) {
+        let result = task.await.unwrap();
+
+        match result {
+            LoadBlobResult::Metadata(meta_data) => {
+                db_table_data.attributes.max_partitions_amount = meta_data.max_partitions_amount;
+                db_table_data.attributes.persist = meta_data.persist;
+            }
+            LoadBlobResult::DbPartition {
+                partition_key,
+                db_partition,
+            } => {
+                db_table_data.init_partition(partition_key, db_partition);
+            }
+        }
+    }
 }
 
 pub enum LoadBlobResult {
