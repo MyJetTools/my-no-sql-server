@@ -4,7 +4,7 @@ use hyper::{Body, Response};
 use my_http_utils::{HttpFailResult, WebContentType};
 use serde::Serialize;
 
-use crate::db::DbRow;
+use crate::{db::DbRow, json::JsonArrayBuilder};
 
 #[derive(Clone)]
 pub enum HttpOkResult {
@@ -20,6 +20,7 @@ pub enum HttpOkResult {
         text: String,
     },
     DbRow(Arc<DbRow>),
+    DbRows(Vec<Arc<DbRow>>),
     Empty,
 }
 
@@ -56,6 +57,7 @@ impl HttpOkResult {
             HttpOkResult::Text { text: _ } => 200,
             HttpOkResult::DbRow(_) => 200,
             HttpOkResult::Empty => 202,
+            HttpOkResult::DbRows(_) => 200,
         }
     }
 }
@@ -102,6 +104,19 @@ impl Into<Response<Body>> for HttpOkResult {
                     .header("Content-Type", WebContentType::Json.to_string())
                     .status(status_code)
                     .body(Body::empty())
+                    .unwrap();
+            }
+            HttpOkResult::DbRows(db_rows) => {
+                let mut json_result = JsonArrayBuilder::new();
+
+                for db_row in db_rows {
+                    json_result.append_json_object(&db_row.data);
+                }
+
+                return Response::builder()
+                    .header("Content-Type", WebContentType::Json.to_string())
+                    .status(status_code)
+                    .body(Body::from(json_result.build()))
                     .unwrap();
             }
         };

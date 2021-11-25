@@ -1,4 +1,7 @@
-use std::{collections::BTreeMap, sync::Arc};
+use std::{
+    collections::{BTreeMap, VecDeque},
+    sync::Arc,
+};
 
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 use tokio::sync::RwLock;
@@ -97,5 +100,17 @@ impl DbTable {
     pub async fn get_expired_rows(&self, now: DateTimeAsMicroseconds) -> Option<Vec<Arc<DbRow>>> {
         let mut write_access = self.data.write().await;
         write_access.get_expired_rows_up_to(now)
+    }
+
+    pub async fn get_all_as_vec_dequeue(&self) -> VecDeque<Arc<DbRow>> {
+        let read_access = self.data.read().await;
+
+        let mut result = VecDeque::new();
+
+        for db_row in read_access.iterate_all_rows() {
+            result.push_back(db_row.clone());
+        }
+
+        result
     }
 }

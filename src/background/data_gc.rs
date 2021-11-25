@@ -1,5 +1,7 @@
 use std::{sync::Arc, time::Duration};
 
+use rust_extensions::date_time::DateTimeAsMicroseconds;
+
 use crate::{
     app::{logs::SystemProcess, AppContext},
     db_sync::{DataSynchronizationPeriod, SyncAttributes},
@@ -23,8 +25,14 @@ pub async fn start(app: Arc<AppContext>) {
         sync_period: DataSynchronizationPeriod::Sec1,
     };
 
+    let multipart_timeout = Duration::from_secs(60);
+
     loop {
         tokio::time::sleep(delay).await;
+
+        let now = DateTimeAsMicroseconds::now();
+
+        app.multipart_list.gc(now, multipart_timeout).await;
 
         let tables = app.db.get_tables().await;
 

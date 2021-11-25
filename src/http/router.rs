@@ -9,7 +9,9 @@ use my_app_insights::AppInsightsTelemetry;
 use std::sync::Arc;
 
 use super::{
-    controllers::{api, bulk, gc, logs, metrics, row, rows, status, tables, transactions},
+    controllers::{
+        api, bulk, gc, logs, metrics, multipart, row, rows, status, tables, transactions,
+    },
     http_ok::HttpOkResult,
     static_files, swagger,
 };
@@ -185,6 +187,14 @@ async fn handle_route(
 
         (&Method::POST, "/transaction/cancel") => {
             return transactions::cancel::post(app, HttpContext::new(req)).await;
+        }
+
+        (&Method::GET, "/multipart/first") => {
+            return multipart::first::get(app, HttpContext::new(req)).await;
+        }
+
+        (&Method::GET, "/multipart/next") => {
+            return multipart::next::get(app, HttpContext::new(req)).await;
         }
 
         _ => {}

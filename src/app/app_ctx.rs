@@ -4,6 +4,7 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
     db::DbInstance,
+    db_operations::multipart::MultipartList,
     db_transactions::ActiveTransactions,
     persistence::{
         blob_content_cache::BlobContentCache, updates_to_persist::UpdatesToPersistByTable,
@@ -39,6 +40,8 @@ pub struct AppContext {
     pub blob_content_cache: BlobContentCache,
     pub data_readers: SessionsList,
 
+    pub multipart_list: MultipartList,
+
     pub updates_to_persist_by_table: UpdatesToPersistByTable,
 }
 
@@ -60,6 +63,7 @@ impl AppContext {
             blob_content_cache: BlobContentCache::new(),
             data_readers: SessionsList::new(),
             updates_to_persist_by_table: UpdatesToPersistByTable::new(),
+            multipart_list: MultipartList::new(),
         }
     }
 }

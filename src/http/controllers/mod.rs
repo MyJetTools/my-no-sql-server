@@ -4,6 +4,7 @@ mod consts;
 pub mod gc;
 pub mod logs;
 pub mod metrics;
+pub mod multipart;
 pub mod row;
 pub mod rows;
 pub mod status;
