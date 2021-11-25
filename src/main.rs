@@ -87,6 +87,10 @@ async fn main() {
         crate::background::db_rows_expirator::start(app.clone()),
     ));
 
+    background_tasks.push(tokio::task::spawn(
+        crate::background::gc::gc_partitions::start(app.clone()),
+    ));
+
     tokio::task::spawn(http::http_server::start(
         app.clone(),
         telemetry_writer.clone(),

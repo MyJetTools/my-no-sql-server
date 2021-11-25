@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use my_azure_storage_sdk::AzureConnectionWithTelemetry;
-use rust_extensions::{date_time::DateTimeAsMicroseconds, StopWatch};
+use rust_extensions::StopWatch;
 
 use crate::app::AppContext;
 
@@ -33,12 +33,12 @@ async fn init_tables_spawned(
             .await;
         let mut sw = StopWatch::new();
         sw.start();
-        let table_data = crate::blob_operations::table::load(connection.clone(), &table_name)
-            .await
-            .unwrap();
+        let (table_data, attr) =
+            crate::blob_operations::table::load(connection.clone(), &table_name)
+                .await
+                .unwrap();
 
-        let now = DateTimeAsMicroseconds::now();
-        crate::db_operations::write::table::init(app.as_ref(), table_data, now).await;
+        crate::db_operations::write::table::init(app.as_ref(), table_data, attr).await;
 
         sw.pause();
 

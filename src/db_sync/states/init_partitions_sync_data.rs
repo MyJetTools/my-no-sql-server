@@ -14,9 +14,9 @@ pub struct InitPartitionsSyncData {
 }
 
 impl InitPartitionsSyncData {
-    pub fn new(table_data: &DbTableData, attr: SyncAttributes) -> Self {
+    pub fn new(table_data: &DbTableData, attr: SyncAttributes, persist: bool) -> Self {
         Self {
-            table_data: SyncTableData::new(table_data),
+            table_data: SyncTableData::new(table_data, persist),
             attr,
             partitions_to_update: BTreeMap::new(),
         }
@@ -26,6 +26,7 @@ impl InitPartitionsSyncData {
         table_data: &DbTableData,
         partition_key: &str,
         attr: SyncAttributes,
+        persist: bool,
     ) -> Self {
         let mut partitions_to_update = BTreeMap::new();
 
@@ -34,7 +35,7 @@ impl InitPartitionsSyncData {
         partitions_to_update.insert(partition_key.to_string(), partition_snapshot);
 
         Self {
-            table_data: SyncTableData::new(table_data),
+            table_data: SyncTableData::new(table_data, persist),
             attr,
             partitions_to_update,
         }

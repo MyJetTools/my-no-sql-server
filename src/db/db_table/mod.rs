@@ -5,7 +5,7 @@ mod db_table_data_iterator;
 mod db_table_snapshot;
 
 pub use db_table::{DbTable, DbTableMetrics};
-pub use db_table_attributes::DbTableAttributes;
+pub use db_table_attributes::{DbTableAttributes, DbTableAttributesSnapshot};
 
 pub use db_table_data::DbTableData;
 pub use db_table_data_iterator::DbTableDataIterator;

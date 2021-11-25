@@ -7,8 +7,9 @@ use my_azure_storage_sdk::blob_container::BlobContainersApi;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 use tokio::task::JoinHandle;
 
+use crate::db::DbTableAttributesSnapshot;
 use crate::{
-    db::{DbPartition, DbTableAttributes, DbTableData},
+    db::{DbPartition, DbTableData},
     db_json_entity::{DbJsonEntity, JsonTimeStamp},
     json::array_parser::ArrayToJsonObjectsSplitter,
 };
@@ -19,18 +20,20 @@ use super::metadata::{TableMetadataFileContract, METADATA_BLOB_NAME};
 pub async fn load(
     azure_connection: Arc<AzureConnectionWithTelemetry<AppInsightsTelemetry>>,
     table_name: &str,
-) -> Result<DbTableData, AzureStorageError> {
+) -> Result<(DbTableData, DbTableAttributesSnapshot), AzureStorageError> {
     let blobs = azure_connection.get_list_of_blobs(&table_name).await?;
 
-    let attributes = DbTableAttributes {
-        max_partitions_amount: None,
-        persist: true,
-        created: DateTimeAsMicroseconds::now(),
-    };
+    let now = DateTimeAsMicroseconds::now();
 
-    let mut db_table_data = DbTableData::new(table_name.to_string(), attributes);
+    let mut db_table_data = DbTableData::new(table_name.to_string(), now);
 
     let mut tasks = Vec::new();
+
+    let mut db_table_attirbutes = DbTableAttributesSnapshot {
+        created: DateTimeAsMicroseconds::now(),
+        persist: true,
+        max_partitions_amount: None,
+    };
 
     for blob_name in blobs {
         let handle = tokio::spawn(load_blob(
@@ -42,17 +45,18 @@ pub async fn load(
         tasks.push(handle);
 
         if tasks.len() == 8 {
-            init_to_db_table(&mut db_table_data, &mut tasks).await;
+            init_to_db_table(&mut db_table_data, &mut db_table_attirbutes, &mut tasks).await;
         }
     }
 
-    init_to_db_table(&mut db_table_data, &mut tasks).await;
+    init_to_db_table(&mut db_table_data, &mut db_table_attirbutes, &mut tasks).await;
 
-    return Ok(db_table_data);
+    return Ok((db_table_data, db_table_attirbutes));
 }
 
 async fn init_to_db_table(
     db_table_data: &mut DbTableData,
+    table_attributes: &mut DbTableAttributesSnapshot,
     tasks: &mut Vec<JoinHandle<LoadBlobResult>>,
 ) {
     for task in tasks.drain(..) {
@@ -60,8 +64,8 @@ async fn init_to_db_table(
 
         match result {
             LoadBlobResult::Metadata(meta_data) => {
-                db_table_data.attributes.max_partitions_amount = meta_data.max_partitions_amount;
-                db_table_data.attributes.persist = meta_data.persist;
+                table_attributes.max_partitions_amount = meta_data.max_partitions_amount;
+                table_attributes.persist = meta_data.persist;
             }
             LoadBlobResult::DbPartition {
                 partition_key,

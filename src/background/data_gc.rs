@@ -37,13 +37,13 @@ pub async fn start(app: Arc<AppContext>) {
         let tables = app.db.get_tables().await;
 
         for db_table in tables {
-            let attr = db_table.get_attributes().await;
+            let max_partitions_amount = db_table.attributes.get_max_partitions_amount();
 
-            if attr.max_partitions_amount.is_none() {
+            if max_partitions_amount.is_none() {
                 continue;
             }
 
-            let max_partitions_amount = attr.max_partitions_amount.unwrap();
+            let max_partitions_amount = max_partitions_amount.unwrap();
 
             crate::db_operations::gc::keep_max_partitions_amount::execute(
                 app.as_ref(),

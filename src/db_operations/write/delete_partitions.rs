@@ -15,7 +15,11 @@ pub async fn execute(
     let mut table_write_access = db_table.data.write().await;
 
     let mut sync_data = if let Some(attr) = attr {
-        Some(InitPartitionsSyncData::new(&table_write_access, attr))
+        Some(InitPartitionsSyncData::new(
+            &table_write_access,
+            attr,
+            db_table.attributes.get_persist(),
+        ))
     } else {
         None
     };

@@ -25,7 +25,8 @@ pub async fn execute(
 
     if let Some(gced_rows) = gced_rows_result {
         if let Some(attr) = attr {
-            let mut sync_data = DeleteRowsEventSyncData::new(&table_data, attr);
+            let mut sync_data =
+                DeleteRowsEventSyncData::new(&table_data, db_table.attributes.get_persist(), attr);
 
             sync_data.add_deleted_rows(partition_key, &gced_rows);
 

@@ -15,9 +15,9 @@ pub struct DeleteRowsEventSyncData {
 }
 
 impl DeleteRowsEventSyncData {
-    pub fn new(table_data: &DbTableData, attr: SyncAttributes) -> Self {
+    pub fn new(table_data: &DbTableData, persist: bool, attr: SyncAttributes) -> Self {
         Self {
-            table_data: SyncTableData::new(table_data),
+            table_data: SyncTableData::new(table_data, persist),
             attr,
             deleted_partitions: None,
             deleted_rows: None,

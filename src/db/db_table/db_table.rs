@@ -11,12 +11,14 @@ use crate::{
     json::JsonArrayBuilder,
 };
 
-use super::{db_table_attributes::DbTableAttributes, db_table_data::DbTableData};
+use super::{
+    db_table_attributes::DbTableAttributes, db_table_data::DbTableData, DbTableAttributesSnapshot,
+};
 
 pub struct DbTable {
     pub name: String,
-    pub created: DateTimeAsMicroseconds,
     pub data: RwLock<DbTableData>,
+    pub attributes: DbTableAttributes,
 }
 
 pub struct DbTableMetrics {
@@ -25,9 +27,9 @@ pub struct DbTableMetrics {
 }
 
 impl DbTable {
-    pub fn new(data: DbTableData, created: DateTimeAsMicroseconds) -> Self {
+    pub fn new(data: DbTableData, attributes: DbTableAttributesSnapshot) -> Self {
         DbTable {
-            created,
+            attributes: attributes.into(),
             name: data.name.to_string(),
             data: RwLock::new(data),
         }
@@ -42,38 +44,9 @@ impl DbTable {
         };
     }
 
-    pub async fn get_attributes(&self) -> DbTableAttributes {
-        let read_access = self.data.read().await;
-
-        return read_access.attributes.clone();
-    }
-
     pub async fn get_partitions_amount(&self) -> usize {
         let read_access = self.data.read().await;
         return read_access.get_partitions_amount();
-    }
-
-    pub async fn set_table_attributes(
-        &self,
-        persist_table: bool,
-        max_partitions_amount: Option<usize>,
-    ) -> bool {
-        let mut write_access = self.data.write().await;
-        if write_access.attributes.persist == persist_table
-            && write_access.attributes.max_partitions_amount == max_partitions_amount
-        {
-            return false;
-        }
-
-        write_access.attributes.persist = persist_table;
-        write_access.attributes.max_partitions_amount = max_partitions_amount;
-
-        return true;
-    }
-
-    pub async fn get_persist(&self) -> bool {
-        let table_data = self.data.read().await;
-        return table_data.attributes.persist;
     }
 
     pub async fn as_json(&self) -> Vec<u8> {

@@ -2,14 +2,14 @@ use std::time::Duration;
 
 use my_azure_storage_sdk::{AzureConnectionWithTelemetry, AzureStorageError};
 
-use crate::{app::AppContext, db::DbTableAttributes};
+use crate::{app::AppContext, db::DbTableAttributesSnapshot};
 use my_app_insights::AppInsightsTelemetry;
 
 pub async fn with_retries(
     app: &AppContext,
     azure_connection: &AzureConnectionWithTelemetry<AppInsightsTelemetry>,
     table_name: &str,
-    attr: &DbTableAttributes,
+    attr: &DbTableAttributesSnapshot,
 ) {
     let mut attempt_no = 0;
     loop {
@@ -52,7 +52,7 @@ pub async fn with_retries(
 async fn create_table(
     azure_connection: &AzureConnectionWithTelemetry<AppInsightsTelemetry>,
     table_name: &str,
-    attr: &DbTableAttributes,
+    attr: &DbTableAttributesSnapshot,
 ) -> Result<(), AzureStorageError> {
     super::table::create_if_not_exists(azure_connection, table_name).await?;
     super::table::save_attributes(azure_connection, table_name, attr).await?;

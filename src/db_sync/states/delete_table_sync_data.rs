@@ -8,9 +8,9 @@ pub struct DeleteTableSyncData {
 }
 
 impl DeleteTableSyncData {
-    pub fn new(db_table_data: &DbTableData, attr: SyncAttributes) -> Self {
+    pub fn new(db_table_data: &DbTableData, attr: SyncAttributes, persist: bool) -> Self {
         Self {
-            table_data: SyncTableData::new(db_table_data),
+            table_data: SyncTableData::new(db_table_data, persist),
             attr,
         }
     }

@@ -24,7 +24,8 @@ pub async fn execute(
     }
 
     if let Some(attr) = attr {
-        let sync_data = InitTableEventSyncData::new(&table_data, attr);
+        let sync_data =
+            InitTableEventSyncData::new(&table_data, db_table.attributes.get_snapshot(), attr);
 
         app.events_dispatcher
             .dispatch(SyncEvent::InitTable(sync_data))

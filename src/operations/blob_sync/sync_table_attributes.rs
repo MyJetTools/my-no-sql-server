@@ -9,7 +9,7 @@ pub async fn execute(
     db_table: &DbTable,
     azure_connection: &AzureConnectionWithTelemetry<AppInsightsTelemetry>,
 ) {
-    let attr = db_table.get_attributes().await;
+    let attr = db_table.attributes.get_snapshot();
     crate::blob_operations::save_table_attributes::with_retries(
         app,
         azure_connection,

@@ -25,8 +25,12 @@ pub async fn execute(
     }
 
     if let Some(attr) = attr {
-        let state =
-            InitPartitionsSyncData::new_as_update_partition(&table_data, partition_key, attr);
+        let state = InitPartitionsSyncData::new_as_update_partition(
+            &table_data,
+            partition_key,
+            attr,
+            db_table.attributes.get_persist(),
+        );
 
         app.events_dispatcher
             .dispatch(SyncEvent::InitPartitions(state))

@@ -21,7 +21,11 @@ pub async fn execute(
     let mut table_data = db_table.data.write().await;
 
     let sync = if let Some(attr) = attr {
-        Some(InitPartitionsSyncData::new(&table_data, attr))
+        Some(InitPartitionsSyncData::new(
+            &table_data,
+            attr,
+            db_table.attributes.get_persist(),
+        ))
     } else {
         None
     };

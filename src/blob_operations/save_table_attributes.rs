@@ -4,7 +4,7 @@ use my_azure_storage_sdk::AzureConnectionWithTelemetry;
 
 use crate::{
     app::{logs::SystemProcess, AppContext},
-    db::DbTableAttributes,
+    db::DbTableAttributesSnapshot,
 };
 
 use my_app_insights::AppInsightsTelemetry;
@@ -13,7 +13,7 @@ pub async fn with_retries(
     app: &AppContext,
     azure_connection: &AzureConnectionWithTelemetry<AppInsightsTelemetry>,
     table_name: &str,
-    attr: &DbTableAttributes,
+    attr: &DbTableAttributesSnapshot,
 ) {
     let mut attempt_no = 0;
     loop {

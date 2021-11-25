@@ -46,6 +46,23 @@ impl DbInstance {
         return write_access.remove(table_name);
     }
 
+    pub async fn get_tables_which_partitions_restrictions(&self) -> Option<Vec<Arc<DbTable>>> {
+        let mut result = None;
+        let read_access = self.tables.read().await;
+
+        for table in read_access.values() {
+            if table.attributes.get_max_partitions_amount().is_some() {
+                if result.is_none() {
+                    result = Some(Vec::new());
+                }
+
+                result.as_mut().unwrap().push(table.clone());
+            }
+        }
+
+        result
+    }
+
     /*
     pub async fn get_or_create_table(
         &self,

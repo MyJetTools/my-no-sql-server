@@ -1,5 +1,5 @@
 use crate::{
-    db::{DbTableData, DbTableSnapshot},
+    db::{DbTableAttributesSnapshot, DbTableData, DbTableSnapshot},
     db_sync::SyncAttributes,
 };
 
@@ -12,11 +12,15 @@ pub struct InitTableEventSyncData {
 }
 
 impl InitTableEventSyncData {
-    pub fn new(table_data: &DbTableData, attrs: SyncAttributes) -> Self {
+    pub fn new(
+        table_data: &DbTableData,
+        table_attrs: DbTableAttributesSnapshot,
+        attrs: SyncAttributes,
+    ) -> Self {
         Self {
-            table_data: SyncTableData::new(table_data),
+            table_data: SyncTableData::new(table_data, table_attrs.persist),
             attrs,
-            table_snapshot: DbTableSnapshot::new(table_data),
+            table_snapshot: DbTableSnapshot::new(table_data, table_attrs),
         }
     }
 

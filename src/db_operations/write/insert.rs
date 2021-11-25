@@ -46,7 +46,8 @@ pub async fn execute(
     }
 
     if let Some(attr) = attr {
-        let mut update_rows_state = UpdateRowsSyncData::new(&table_data, attr);
+        let mut update_rows_state =
+            UpdateRowsSyncData::new(&table_data, db_table.attributes.get_persist(), attr);
 
         update_rows_state.add_row(db_row);
 

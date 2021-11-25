@@ -18,11 +18,10 @@ pub async fn get(app: &AppContext) -> Result<HttpOkResult, HttpFailResult> {
     let mut response: Vec<TableJsonResult> = vec![];
 
     for db_table in &tables {
-        let attr = db_table.get_attributes().await;
         response.push(TableJsonResult {
             name: db_table.name.to_string(),
-            persist: attr.persist,
-            max_partitions_amount: attr.max_partitions_amount,
+            persist: db_table.attributes.get_persist(),
+            max_partitions_amount: db_table.attributes.get_max_partitions_amount(),
         });
     }
 

@@ -55,7 +55,7 @@ pub async fn from_no_table_in_blob(
     db_table: &DbTable,
     azure_connection: &AzureConnectionWithTelemetry<AppInsightsTelemetry>,
 ) {
-    let attr = db_table.get_attributes().await;
+    let attr = db_table.attributes.get_snapshot();
     crate::blob_operations::create_table::with_retries(
         app,
         azure_connection,

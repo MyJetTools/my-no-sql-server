@@ -11,14 +11,14 @@ use crate::{
     rows_with_expiration::RowsWithExpiration,
 };
 
-use super::{db_table_attributes::DbTableAttributes, DbTableDataIterator};
+use super::DbTableDataIterator;
 
 pub type TPartitions = BTreeMap<String, DbPartition>;
 
 pub struct DbTableData {
     pub name: String,
     partitions: TPartitions,
-    pub attributes: DbTableAttributes,
+
     pub created: DateTimeAsMicroseconds,
     pub last_update_time: AtomicDateTimeAsMicroseconds,
     pub last_read_time: AtomicDateTimeAsMicroseconds,
@@ -28,12 +28,10 @@ pub struct DbTableData {
 }
 
 impl DbTableData {
-    pub fn new(name: String, attributes: DbTableAttributes) -> Self {
-        let created = attributes.created;
+    pub fn new(name: String, created: DateTimeAsMicroseconds) -> Self {
         Self {
             name,
             partitions: BTreeMap::new(),
-            attributes,
             last_update_time: AtomicDateTimeAsMicroseconds::new(created.unix_microseconds),
             created,
             last_read_time: AtomicDateTimeAsMicroseconds::new(created.unix_microseconds),

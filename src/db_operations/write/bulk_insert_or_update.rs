@@ -17,7 +17,11 @@ pub async fn execute(
     let mut table_data = db_table.data.write().await;
 
     let mut update_rows_state = if let Some(attr) = attr {
-        Some(UpdateRowsSyncData::new(&table_data, attr))
+        Some(UpdateRowsSyncData::new(
+            &table_data,
+            db_table.attributes.get_persist(),
+            attr,
+        ))
     } else {
         None
     };

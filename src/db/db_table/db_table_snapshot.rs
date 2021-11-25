@@ -4,21 +4,21 @@ use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{db::DbPartitionSnapshot, json::JsonArrayBuilder};
 
-use super::{db_table_attributes::DbTableAttributes, DbTableData};
+use super::{db_table_attributes::DbTableAttributesSnapshot, DbTableData};
 
 pub struct DbTableSnapshot {
-    pub attr: DbTableAttributes,
+    pub attr: DbTableAttributesSnapshot,
     pub created: DateTimeAsMicroseconds,
     pub last_update: DateTimeAsMicroseconds,
     pub data: BTreeMap<String, DbPartitionSnapshot>,
 }
 
 impl DbTableSnapshot {
-    pub fn new(table_data: &DbTableData) -> Self {
+    pub fn new(table_data: &DbTableData, attr: DbTableAttributesSnapshot) -> Self {
         let data = table_data.get_snapshot_as_partitions();
 
         Self {
-            attr: table_data.attributes.clone(),
+            attr,
             created: table_data.created,
             last_update: table_data.last_update_time.as_date_time(),
             data,

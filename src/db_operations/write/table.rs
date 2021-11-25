@@ -4,7 +4,7 @@ use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
     app::AppContext,
-    db::{DbTable, DbTableData},
+    db::{DbTable, DbTableAttributesSnapshot, DbTableData},
     db_operations::DbOperationError,
     db_sync::{
         states::{
@@ -31,7 +31,11 @@ pub async fn create(
         CreateTableResult::JustCreated(db_table) => {
             if let Some(attr) = attr {
                 let table_data = db_table.data.read().await;
-                let state = InitTableEventSyncData::new(&table_data, attr);
+                let state = InitTableEventSyncData::new(
+                    &table_data,
+                    db_table.attributes.get_snapshot(),
+                    attr,
+                );
                 app.events_dispatcher
                     .dispatch(SyncEvent::InitTable(state))
                     .await;
@@ -61,7 +65,11 @@ async fn get_or_create(
         CreateTableResult::JustCreated(db_table) => {
             if let Some(attr) = attr {
                 let table_data = db_table.data.read().await;
-                let state = InitTableEventSyncData::new(&table_data, attr);
+                let state = InitTableEventSyncData::new(
+                    &table_data,
+                    db_table.attributes.get_snapshot(),
+                    attr,
+                );
                 app.events_dispatcher
                     .dispatch(SyncEvent::InitTable(state))
                     .await;
@@ -111,9 +119,7 @@ pub async fn set_table_attrubutes(
     max_partitions_amount: Option<usize>,
     attr: Option<SyncAttributes>,
 ) {
-    let result = db_table
-        .set_table_attributes(persist, max_partitions_amount)
-        .await;
+    let result = db_table.attributes.update(persist, max_partitions_amount);
 
     if result {
         if let Some(attr) = attr {
@@ -153,6 +159,7 @@ pub async fn delete(
             .dispatch(SyncEvent::DeleteTable(DeleteTableSyncData::new(
                 &table_data,
                 attr,
+                db_table.attributes.get_persist(),
             )))
             .await;
     }
@@ -160,10 +167,16 @@ pub async fn delete(
     Ok(())
 }
 
-pub async fn init(app: &AppContext, table_data: DbTableData, now: DateTimeAsMicroseconds) {
-    app.blob_content_cache.init(&table_data).await;
+pub async fn init(
+    app: &AppContext,
+    table_data: DbTableData,
+    attributes: DbTableAttributesSnapshot,
+) {
+    app.blob_content_cache
+        .init(&table_data, attributes.clone())
+        .await;
 
-    let db_table = DbTable::new(table_data, now);
+    let db_table = DbTable::new(table_data, attributes);
     let mut tables_write_access = app.db.tables.write().await;
 
     tables_write_access.insert(db_table.name.to_string(), Arc::new(db_table));
@@ -187,15 +200,15 @@ async fn get_or_create_table(
         return CreateTableResult::AlreadyHadTable(table.clone());
     }
 
-    let table_attributes = crate::db::DbTableAttributes {
+    let table_attributes = DbTableAttributesSnapshot {
         persist,
         max_partitions_amount,
         created: now,
     };
 
-    let db_table_data = DbTableData::new(table_name.to_string(), table_attributes);
+    let db_table_data = DbTableData::new(table_name.to_string(), DateTimeAsMicroseconds::now());
 
-    let new_table = DbTable::new(db_table_data, DateTimeAsMicroseconds::now());
+    let new_table = DbTable::new(db_table_data, table_attributes);
 
     let new_table = Arc::new(new_table);
     write_access.insert(table_name.to_string(), new_table.clone());

@@ -2,7 +2,7 @@ use my_azure_storage_sdk::{
     block_blob::BlockBlobApi, AzureConnectionWithTelemetry, AzureStorageError,
 };
 
-use crate::db::DbTableAttributes;
+use crate::db::DbTableAttributesSnapshot;
 
 use my_app_insights::AppInsightsTelemetry;
 
@@ -11,7 +11,7 @@ use super::metadata::TableMetadataFileContract;
 pub async fn save_attributes(
     azure_connection: &AzureConnectionWithTelemetry<AppInsightsTelemetry>,
     table_name: &str,
-    attributes: &DbTableAttributes,
+    attributes: &DbTableAttributesSnapshot,
 ) -> Result<(), AzureStorageError> {
     let contract = TableMetadataFileContract {
         persist: attributes.persist,

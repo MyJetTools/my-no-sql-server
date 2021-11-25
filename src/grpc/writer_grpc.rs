@@ -58,7 +58,7 @@ impl Writer for MyNoSqlServerWriterGrpcSerice {
                 .await
                 .unwrap();
 
-        let persist = db_table.get_persist().await;
+        let persist = db_table.attributes.get_persist();
 
         let attr = crate::operations::transaction_attributes::create(
             self.app.as_ref(),
