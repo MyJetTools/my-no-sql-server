@@ -12,7 +12,7 @@ use crate::http::http_ctx::HttpContext;
 pub async fn delete(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult, HttpFailResult> {
     let query = ctx.get_query_string()?;
 
-    let api_key = query.get_query_required_string_parameter(consts::API_KEY)?;
+    let api_key = ctx.get_required_header(consts::API_KEY)?;
 
     if api_key != app.table_api_key.as_str() {
         return Err(HttpFailResult::as_unauthorized(None));

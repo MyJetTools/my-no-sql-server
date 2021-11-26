@@ -10,6 +10,18 @@ impl HttpContext {
         Self { req }
     }
 
+    pub fn get_required_header(&self, header_name: &str) -> Result<&str, HttpFailResult> {
+        for (name, value) in self.req.headers() {
+            if name.as_str() == header_name {
+                return Ok(value.to_str().unwrap());
+            }
+        }
+
+        return Err(HttpFailResult::as_query_parameter_required(
+            format!("Header: {}", header_name).as_str(),
+        ));
+    }
+
     pub fn get_query_string(&self) -> Result<QueryString, HttpFailResult> {
         let query = self.req.uri().query();
         match query {
