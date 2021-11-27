@@ -20,6 +20,7 @@ use super::metadata::{TableMetadataFileContract, METADATA_BLOB_NAME};
 pub async fn load(
     azure_connection: Arc<AzureConnectionWithTelemetry<AppInsightsTelemetry>>,
     table_name: &str,
+    init_threads_amount: usize,
 ) -> Result<(DbTableData, DbTableAttributesSnapshot), AzureStorageError> {
     let blobs = azure_connection.get_list_of_blobs(&table_name).await?;
 
@@ -44,7 +45,7 @@ pub async fn load(
 
         tasks.push(handle);
 
-        if tasks.len() == 8 {
+        if tasks.len() == init_threads_amount {
             init_to_db_table(&mut db_table_data, &mut db_table_attirbutes, &mut tasks).await;
         }
     }

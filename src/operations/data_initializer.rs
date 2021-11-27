@@ -10,13 +10,15 @@ use my_app_insights::AppInsightsTelemetry;
 pub async fn init_tables(
     app: Arc<AppContext>,
     connection: Arc<AzureConnectionWithTelemetry<AppInsightsTelemetry>>,
+    init_threads_amount: usize,
 ) {
-    tokio::spawn(init_tables_spawned(app, connection));
+    tokio::spawn(init_tables_spawned(app, connection, init_threads_amount));
 }
 
 async fn init_tables_spawned(
     app: Arc<AppContext>,
     connection: Arc<AzureConnectionWithTelemetry<AppInsightsTelemetry>>,
+    init_threads_amount: usize,
 ) {
     let tables = crate::blob_operations::table::get_list(connection.as_ref())
         .await
@@ -33,10 +35,13 @@ async fn init_tables_spawned(
             .await;
         let mut sw = StopWatch::new();
         sw.start();
-        let (table_data, attr) =
-            crate::blob_operations::table::load(connection.clone(), &table_name)
-                .await
-                .unwrap();
+        let (table_data, attr) = crate::blob_operations::table::load(
+            connection.clone(),
+            &table_name,
+            init_threads_amount,
+        )
+        .await
+        .unwrap();
 
         crate::db_operations::write::table::init(app.as_ref(), table_data, attr).await;
 

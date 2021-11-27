@@ -49,7 +49,12 @@ async fn main() {
     let app = Arc::new(app);
 
     if let Some(connection) = &connection {
-        crate::operations::data_initializer::init_tables(app.clone(), connection.clone()).await;
+        crate::operations::data_initializer::init_tables(
+            app.clone(),
+            connection.clone(),
+            settings.init_threads_amount,
+        )
+        .await;
 
         let handler = tokio::task::spawn(crate::background::flush_to_blobs::start(
             app.clone(),

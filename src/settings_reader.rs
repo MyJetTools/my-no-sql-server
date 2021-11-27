@@ -17,6 +17,9 @@ pub struct SettingsModel {
 
     #[serde(rename = "TableApiKey")]
     pub table_api_key: String,
+
+    #[serde(rename = "InitThreadsAmount")]
+    pub init_threads_amount: usize,
 }
 
 impl SettingsModel {
