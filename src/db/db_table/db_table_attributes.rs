@@ -88,6 +88,10 @@ impl Into<DbTableAttributes> for DbTableAttributesSnapshot {
 
 fn max_partitions_into_atomic(src: Option<usize>) -> i32 {
     if let Some(max_partitions_amount) = src {
+        if max_partitions_amount == 0 {
+            return -1;
+        }
+
         return max_partitions_amount as i32;
     }
     return -1;

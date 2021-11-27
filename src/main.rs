@@ -59,13 +59,6 @@ async fn main() {
         background_tasks.push(handler);
     }
 
-    //background_tasks.push(tokio::task::spawn(tcp_server::start(app.clone(), "*.5125")));
-
-    //   background_tasks.push(tokio::task::spawn(data_readers_broadcast::start(
-    //        app.clone(),
-    //        data_readers_reciever,
-    //    )));
-
     background_tasks.push(tokio::task::spawn(
         crate::background::metrics_updater::start(app.clone()),
     ));
