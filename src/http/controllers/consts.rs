@@ -2,7 +2,6 @@ use my_http_utils::QueryString;
 
 use crate::db_sync::DataSynchronizationPeriod;
 
-pub const API_KEY: &str = "apiKey";
 pub const PARAM_TABLE_NAME: &str = "tableName";
 pub const PARAM_LIMIT: &str = "limit";
 pub const PARAM_SKIP: &str = "skip";
