@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use my_azure_storage_sdk::AzureConnectionWithTelemetry;
+use my_azure_storage_sdk::AzureStorageConnectionWithTelemetry;
 
 use crate::app::AppContext;
 
@@ -8,7 +8,7 @@ use my_app_insights::AppInsightsTelemetry;
 
 pub async fn with_retries(
     app: &AppContext,
-    azure_connection: &AzureConnectionWithTelemetry<AppInsightsTelemetry>,
+    azure_connection: &AzureStorageConnectionWithTelemetry<AppInsightsTelemetry>,
     table_name: &str,
 ) {
     let mut attempt_no = 0;

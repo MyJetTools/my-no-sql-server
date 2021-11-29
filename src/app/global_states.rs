@@ -3,7 +3,6 @@ use std::sync::{atomic::AtomicBool, Arc};
 pub struct GlobalStates {
     initialized: AtomicBool,
     pub shutting_down: Arc<AtomicBool>,
-    pub shutted_down: AtomicBool,
 }
 
 impl GlobalStates {
@@ -11,7 +10,6 @@ impl GlobalStates {
         Self {
             initialized: AtomicBool::new(false),
             shutting_down: Arc::new(AtomicBool::new(false)),
-            shutted_down: AtomicBool::new(false),
         }
     }
 
@@ -27,14 +25,5 @@ impl GlobalStates {
     pub fn is_shutting_down(&self) -> bool {
         self.shutting_down
             .load(std::sync::atomic::Ordering::Relaxed)
-    }
-
-    pub fn set_shutted_down(&self) {
-        self.shutted_down
-            .store(true, std::sync::atomic::Ordering::SeqCst);
-    }
-
-    pub fn app_is_shutted_down(&self) -> bool {
-        self.shutted_down.load(std::sync::atomic::Ordering::Relaxed)
     }
 }

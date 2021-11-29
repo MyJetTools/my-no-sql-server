@@ -1,12 +1,12 @@
 use my_azure_storage_sdk::blob::BlobApi;
 use my_azure_storage_sdk::blob_container::BlobContainersApi;
 
-use my_azure_storage_sdk::{AzureConnectionWithTelemetry, AzureStorageError};
+use my_azure_storage_sdk::{AzureStorageConnectionWithTelemetry, AzureStorageError};
 
 use my_app_insights::AppInsightsTelemetry;
 
 pub async fn delete(
-    azure_connection: &AzureConnectionWithTelemetry<AppInsightsTelemetry>,
+    azure_connection: &AzureStorageConnectionWithTelemetry<AppInsightsTelemetry>,
     table_name: &str,
 ) -> Result<(), AzureStorageError> {
     let blobs = azure_connection.get_list_of_blobs(table_name).await;

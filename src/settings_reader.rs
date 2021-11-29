@@ -1,5 +1,5 @@
 use my_app_insights::AppInsightsTelemetry;
-use my_azure_storage_sdk::AzureConnectionWithTelemetry;
+use my_azure_storage_sdk::AzureStorageConnectionWithTelemetry;
 use serde::{Deserialize, Serialize};
 use std::env;
 use tokio::{fs::File, io::AsyncReadExt};
@@ -29,12 +29,14 @@ impl SettingsModel {
 
     pub fn get_azure_connection(
         &self,
-    ) -> Option<AzureConnectionWithTelemetry<AppInsightsTelemetry>> {
+    ) -> Option<AzureStorageConnectionWithTelemetry<AppInsightsTelemetry>> {
         if !self.persist_to_blob() {
             return None;
         }
-        let result =
-            AzureConnectionWithTelemetry::from_conn_string(self.persistence_dest.as_str(), None);
+        let result = AzureStorageConnectionWithTelemetry::from_conn_string(
+            self.persistence_dest.as_str(),
+            None,
+        );
         return Some(result);
     }
 }

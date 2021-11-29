@@ -130,6 +130,4 @@ async fn shut_down_task(app: Arc<AppContext>) {
     tokio::time::sleep(duration).await;
 
     crate::operations::shutdown::execute(app.as_ref()).await;
-
-    app.states.set_shutted_down();
 }

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use my_azure_storage_sdk::AzureConnectionWithTelemetry;
+use my_azure_storage_sdk::AzureStorageConnectionWithTelemetry;
 use my_azure_storage_sdk::{blob::BlobApi, AzureStorageError};
 
 use my_azure_storage_sdk::blob_container::BlobContainersApi;
@@ -18,7 +18,7 @@ use my_app_insights::AppInsightsTelemetry;
 use super::metadata::{TableMetadataFileContract, METADATA_BLOB_NAME};
 
 pub async fn load(
-    azure_connection: Arc<AzureConnectionWithTelemetry<AppInsightsTelemetry>>,
+    azure_connection: Arc<AzureStorageConnectionWithTelemetry<AppInsightsTelemetry>>,
     table_name: &str,
     init_threads_amount: usize,
 ) -> Result<(DbTableData, DbTableAttributesSnapshot), AzureStorageError> {
@@ -87,7 +87,7 @@ pub enum LoadBlobResult {
 }
 
 async fn load_blob(
-    azure_connection: Arc<AzureConnectionWithTelemetry<AppInsightsTelemetry>>,
+    azure_connection: Arc<AzureStorageConnectionWithTelemetry<AppInsightsTelemetry>>,
     table_name: String,
     blob_name: String,
 ) -> LoadBlobResult {

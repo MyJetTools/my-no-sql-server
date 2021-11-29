@@ -1,4 +1,4 @@
-use my_azure_storage_sdk::AzureConnectionWithTelemetry;
+use my_azure_storage_sdk::AzureStorageConnectionWithTelemetry;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
@@ -12,7 +12,7 @@ use my_app_insights::AppInsightsTelemetry;
 pub async fn execute(
     app: &AppContext,
     db_table: &DbTable,
-    azure_connection: &AzureConnectionWithTelemetry<AppInsightsTelemetry>,
+    azure_connection: &AzureStorageConnectionWithTelemetry<AppInsightsTelemetry>,
     partition_key: &str,
 ) {
     let get_blob_content_cache = app
@@ -56,7 +56,7 @@ pub async fn sync_single_partition(
     app: &AppContext,
     table_name: &str,
     partition_key: &str,
-    azure_connection: &AzureConnectionWithTelemetry<AppInsightsTelemetry>,
+    azure_connection: &AzureStorageConnectionWithTelemetry<AppInsightsTelemetry>,
     partition_snapshot: Option<DbPartitionSnapshot>,
     blob_date_time: Option<DateTimeAsMicroseconds>,
 ) {
