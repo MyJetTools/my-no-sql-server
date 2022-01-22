@@ -1,6 +1,6 @@
-use my_http_utils::WebContentType;
+use my_http_server::{HttpOkResult, WebContentType};
 
-use crate::{db_operations::read::ReadOperationResult, http::http_ok::HttpOkResult};
+use crate::db_operations::read::ReadOperationResult;
 
 impl Into<HttpOkResult> for ReadOperationResult {
     fn into(self) -> HttpOkResult {

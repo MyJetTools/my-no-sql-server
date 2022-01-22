@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use rust_extensions::ApplicationStates;
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
@@ -65,5 +66,15 @@ impl AppContext {
             updates_to_persist_by_table: UpdatesToPersistByTable::new(),
             multipart_list: MultipartList::new(),
         }
+    }
+}
+
+impl ApplicationStates for AppContext {
+    fn is_initialized(&self) -> bool {
+        self.states.is_initialized()
+    }
+
+    fn is_shutting_down(&self) -> bool {
+        self.states.is_shutting_down()
     }
 }

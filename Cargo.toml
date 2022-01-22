@@ -11,26 +11,25 @@ my-azure-storage-sdk = { branch = "main", git = "https://github.com/MyJetTools/m
 flurl = { branch = "main", git = "https://github.com/MyJetTools/fl-url" }
 my-no-sql-tcp-shared = { branch = "main", git = "https://github.com/MyJetTools/my-no-sql-tcp-shared.git" }
 rust-extensions = { branch = "main", git = "https://github.com/MyJetTools/rust-extensions.git" }
-my-http-utils = { branch = "main", git = "https://github.com/MyJetTools/my-http-utils.git" }
 my-telemetry = { branch = "main", git = "https://github.com/MyJetTools/my-telemetry.git" }
 my-app-insights = { branch = "main", git = "https://github.com/MyJetTools/my-app-insights.git" }
+my-http-server = { branch = "0.1.1", git = "https://github.com/MyJetTools/my-http-server.git" }
 
-
-hyper-tls = "0.5.0"
-tonic = { version = "0.6.1", features = ["tls", "tls-roots", "prost"] }
-anyhow = "1.0.40"
-tokio = { version = "1.5.0", features = ["full"] }
-hyper = { version = "0.14", features = ["full"] }
-prost = "0.9.0"
+hyper-tls = "*"
+tonic = { version = "*", features = ["tls", "tls-roots", "prost"] }
+anyhow = "*"
+tokio = { version = "*", features = ["full"] }
+hyper = { version = "*", features = ["full"] }
+prost = "*"
 serde = { version = "*", features = ["derive"] }
 tokio-util = "*"
 futures = "*"
-chrono = "0.4.19"
-futures-util = { version = "0.3", default-features = false }
-futures-core = { version = "0.3", default-features = false }
-futures-channel = "0.3"
-serde_json = "1.0"
-serde_derive = "1.0"
+chrono = "*"
+futures-util = { version = "*", default-features = false }
+futures-core = { version = "*", default-features = false }
+futures-channel = "*"
+serde_json = "*"
+serde_derive = "*"
 quick-xml = "*"
 lazy_static = "*"
 hmac = "*"
@@ -43,6 +42,7 @@ signal-hook = "*"
 async-trait = "*"
 tokio-stream = "*"
 appinsights = "*"
+my-http-macros = { path = "./my-http-macros" }
 
 [build-dependencies]
-tonic-build = { version = "0.6.0", features = ["prost"] }
+tonic-build = { version = "*", features = ["prost"] }

@@ -22,7 +22,7 @@ pub async fn start(app: Arc<AppContext>, port: u16) -> Result<()> {
 
     println!("Listening to {:?} as grpc endpoint", addr);
     Server::builder()
-        .add_service(WriterServer::new(service.clone()))
+        .add_service(WriterServer::new(service))
         .serve(addr)
         .await
         .context("Server error")

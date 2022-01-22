@@ -1,12 +1,4 @@
 pub mod api;
-pub mod bulk;
-mod consts;
-pub mod gc;
-pub mod logs;
-pub mod metrics;
-pub mod multipart;
-pub mod row;
-pub mod rows;
-pub mod status;
+pub mod builder;
 pub mod tables;
 pub mod transactions;

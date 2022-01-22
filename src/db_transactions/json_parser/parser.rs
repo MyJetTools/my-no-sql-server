@@ -1,12 +1,13 @@
 use crate::{
     db_operations::transactions::TransactionOperationError,
     db_transactions::steps::TransactionalOperationStep,
+    http::controllers::transactions::models::JsonBaseTransaction,
     json::array_parser::ArrayToJsonObjectsSplitter,
 };
 
 use super::models::{
     CleanTableTransactionJsonModel, DeletePartitionsTransactionJsonModel,
-    DeleteRowsTransactionJsonModel, InsertOrUpdateTransactionJsonModel, JsonBaseTransaction,
+    DeleteRowsTransactionJsonModel, InsertOrUpdateTransactionJsonModel,
 };
 
 const JSON_TRANSACTION_CLEAN_TABLE: &str = "CleanTable";

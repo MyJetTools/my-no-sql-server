@@ -2,7 +2,7 @@ use crate::{
     db_json_entity::DbEntityParseFail, db_operations::DbOperationError, json::JsonParseError,
 };
 
-use my_http_utils::{HttpFailResult, WebContentType};
+use my_http_server::{HttpFailResult, WebContentType};
 use serde::{Deserialize, Serialize};
 
 const TABLE_ALREADY_EXISTS_ERR: i16 = -1;
@@ -31,7 +31,7 @@ impl From<DbOperationError> for HttpFailResult {
                     content_type: WebContentType::Json,
                     status_code: 400,
                     content,
-                    metric_it: true,
+                    write_telemetry: true,
                 }
             }
             DbOperationError::TableNotFound(table_name) => {
@@ -45,20 +45,20 @@ impl From<DbOperationError> for HttpFailResult {
                     content_type: WebContentType::Json,
                     status_code: 400,
                     content,
-                    metric_it: true,
+                    write_telemetry: true,
                 }
             }
             DbOperationError::RecordNotFound => HttpFailResult {
                 content_type: WebContentType::Json,
                 status_code: 404,
                 content: format!("Record not found").into_bytes(),
-                metric_it: false,
+                write_telemetry: false,
             },
             DbOperationError::OptimisticConcurencyUpdateFails => HttpFailResult {
                 content_type: WebContentType::Json,
                 status_code: 409,
                 content: format!("Record is changed").into_bytes(),
-                metric_it: false,
+                write_telemetry: false,
             },
             DbOperationError::RecordAlreadyExists => {
                 let err_model = HttpErrorModel {
@@ -71,7 +71,7 @@ impl From<DbOperationError> for HttpFailResult {
                     content_type: WebContentType::Json,
                     status_code: 400,
                     content,
-                    metric_it: false,
+                    write_telemetry: false,
                 }
             }
             DbOperationError::TimeStampFieldRequires => {
@@ -85,7 +85,7 @@ impl From<DbOperationError> for HttpFailResult {
                     content_type: WebContentType::Text,
                     status_code: 400,
                     content,
-                    metric_it: true,
+                    write_telemetry: true,
                 }
             }
         }
@@ -105,7 +105,7 @@ impl From<JsonParseError> for HttpFailResult {
             content_type: WebContentType::Json,
             status_code: 400,
             content,
-            metric_it: true,
+            write_telemetry: true,
         }
     }
 }
@@ -125,7 +125,7 @@ impl From<DbEntityParseFail> for HttpFailResult {
                     content_type: WebContentType::Json,
                     status_code: 400,
                     content,
-                    metric_it: true,
+                    write_telemetry: true,
                 }
             }
             DbEntityParseFail::FieldRowKeyIsRequired => {
@@ -140,7 +140,7 @@ impl From<DbEntityParseFail> for HttpFailResult {
                     content_type: WebContentType::Json,
                     status_code: 400,
                     content,
-                    metric_it: true,
+                    write_telemetry: true,
                 }
             }
 

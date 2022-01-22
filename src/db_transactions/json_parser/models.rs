@@ -8,12 +8,6 @@ use crate::{
 };
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct JsonBaseTransaction {
-    #[serde(rename = "type")]
-    pub transaction_type: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
 pub struct CleanTableTransactionJsonModel {
     #[serde(rename = "tableName")]
     pub table_name: String,

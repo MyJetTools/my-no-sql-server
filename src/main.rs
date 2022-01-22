@@ -1,8 +1,10 @@
 use app::AppContext;
+use my_http_server::{middlewares::swagger::SwaggerMiddleware, MyHttpServer};
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 
 mod app;
 mod grpc;
+mod parser;
 
 mod blob_operations;
 mod db;
@@ -89,16 +91,25 @@ async fn main() {
         crate::background::gc::gc_partitions::start(app.clone()),
     ));
 
-    tokio::task::spawn(http::http_server::start(
-        app.clone(),
-        telemetry_writer.clone(),
-        SocketAddr::from(([0, 0, 0, 0], 5123)),
-    ));
+    let mut http_server = MyHttpServer::new(SocketAddr::from(([0, 0, 0, 0], 5123)));
+
+    let controllers = Arc::new(crate::http::controllers::builder::build(app.clone()));
+
+    let swagger_middleware = SwaggerMiddleware::new(
+        controllers.clone(),
+        "MyNoSqlServer".to_string(),
+        crate::app::APP_VERSION.to_string(),
+    );
+
+    http_server.add_middleware(Arc::new(swagger_middleware));
+    http_server.add_middleware(controllers);
 
     tokio::task::spawn(tcp::tcp_server::start(
         app.clone(),
         SocketAddr::from(([0, 0, 0, 0], 5125)),
     ));
+
+    http_server.start(app.clone());
 
     tokio::task::spawn(crate::grpc::server::start(app.clone(), 5124));
 
