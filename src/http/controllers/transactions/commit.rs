@@ -23,8 +23,8 @@ impl CommitTransactionAction {
 
 #[async_trait]
 impl PostAction for CommitTransactionAction {
-    fn get_additional_types(&self) -> Option<Vec<HttpObjectStructure>> {
-        None
+    fn get_route(&self) -> &str {
+        "/Transactions/Commit"
     }
 
     fn get_description(&self) -> Option<HttpActionDescription> {

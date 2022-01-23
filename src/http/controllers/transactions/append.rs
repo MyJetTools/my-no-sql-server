@@ -3,10 +3,7 @@ use std::sync::Arc;
 use crate::{app::AppContext, http::contracts::response};
 use async_trait::async_trait;
 use my_http_server::{
-    middlewares::controllers::{
-        actions::PostAction,
-        documentation::{data_types::HttpObjectStructure, HttpActionDescription},
-    },
+    middlewares::controllers::{actions::PostAction, documentation::HttpActionDescription},
     HttpContext, HttpFailResult, HttpOkResult,
 };
 
@@ -24,8 +21,8 @@ impl AppendTransactionAction {
 
 #[async_trait]
 impl PostAction for AppendTransactionAction {
-    fn get_additional_types(&self) -> Option<Vec<HttpObjectStructure>> {
-        None
+    fn get_route(&self) -> &str {
+        "/Transactions/Append"
     }
 
     fn get_description(&self) -> Option<HttpActionDescription> {

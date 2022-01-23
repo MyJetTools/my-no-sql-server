@@ -1,25 +1,62 @@
-use crate::{
-    app::AppContext,
-    http::{controllers::consts, http_ctx::HttpContext, http_ok::HttpOkResult},
-};
-use my_http_utils::HttpFailResult;
-use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct NewMultipartResponse {
-    #[serde(rename = "snapshotId")]
-    pub snapshot_id: String,
+use my_http_server::{
+    middlewares::controllers::{
+        actions::PostAction,
+        documentation::{out_results::IntoHttpResult, HttpActionDescription},
+    },
+    HttpContext, HttpFailResult, HttpOkResult,
+};
+
+use crate::app::AppContext;
+
+use super::models::{NewMultipartInputContract, NewMultipartResponse};
+
+pub struct FirstMultipartController {
+    app: Arc<AppContext>,
 }
 
-pub async fn get(app: &AppContext, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
-    let query = ctx.get_query_string()?;
-    let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;
+impl FirstMultipartController {
+    pub fn new(app: Arc<AppContext>) -> Self {
+        Self { app }
+    }
+}
 
-    let result = crate::db_operations::read::multipart::start_read_all(app, table_name).await?;
+#[async_trait::async_trait]
+impl PostAction for FirstMultipartController {
+    fn get_route(&self) -> &str {
+        "/Multipart/First"
+    }
 
-    let response = NewMultipartResponse {
-        snapshot_id: format!("{}", result),
-    };
+    fn get_description(&self) -> Option<HttpActionDescription> {
+        HttpActionDescription {
+            controller_name: super::consts::CONTROLLER_NAME,
+            description: "Monitoring API",
 
-    return HttpOkResult::create_json_response(response);
+            input_params: Some(NewMultipartInputContract::get_input_params()),
+            results: vec![
+                NewMultipartResponse::get_http_data_structure().into_http_result_object(
+                    200,
+                    false,
+                    "New multipart is started",
+                ),
+            ],
+        }
+        .into()
+    }
+    async fn handle_request(&self, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+        let input_data = NewMultipartInputContract::parse_http_input(ctx).await?;
+
+        let result = crate::db_operations::read::multipart::start_read_all(
+            self.app.as_ref(),
+            input_data.table_name.as_ref(),
+        )
+        .await?;
+
+        let response = NewMultipartResponse {
+            snapshot_id: format!("{}", result),
+        };
+
+        return HttpOkResult::create_json_response(response).into();
+    }
 }

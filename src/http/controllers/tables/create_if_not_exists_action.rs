@@ -29,8 +29,8 @@ impl CreateIfNotExistsAction {
 
 #[async_trait]
 impl PostAction for CreateIfNotExistsAction {
-    fn get_additional_types(&self) -> Option<Vec<HttpObjectStructure>> {
-        None
+    fn get_route(&self) -> &str {
+        "/Tables/CreateIfNotExists"
     }
 
     fn get_description(&self) -> Option<HttpActionDescription> {

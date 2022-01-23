@@ -34,8 +34,8 @@ impl MigrationAction {
 }
 #[async_trait]
 impl PostAction for MigrationAction {
-    fn get_additional_types(&self) -> Option<Vec<HttpObjectStructure>> {
-        None
+    fn get_route(&self) -> &str {
+        "/Tables/MigrateFrom"
     }
 
     fn get_description(&self) -> Option<HttpActionDescription> {

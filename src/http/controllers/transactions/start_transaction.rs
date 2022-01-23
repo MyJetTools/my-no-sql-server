@@ -25,8 +25,8 @@ impl StartTransactionAction {
 
 #[async_trait]
 impl PostAction for StartTransactionAction {
-    fn get_additional_types(&self) -> Option<Vec<HttpObjectStructure>> {
-        None
+    fn get_route(&self) -> &str {
+        "/Transactions/Start"
     }
 
     fn get_description(&self) -> Option<HttpActionDescription> {

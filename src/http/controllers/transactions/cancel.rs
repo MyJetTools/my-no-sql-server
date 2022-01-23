@@ -24,8 +24,8 @@ impl CancelTransactionAction {
 
 #[async_trait::async_trait]
 impl PostAction for CancelTransactionAction {
-    fn get_additional_types(&self) -> Option<Vec<HttpObjectStructure>> {
-        None
+    fn get_route(&self) -> &str {
+        "/Transactions/Cancel"
     }
 
     fn get_description(&self) -> Option<HttpActionDescription> {

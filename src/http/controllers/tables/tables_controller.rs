@@ -32,8 +32,8 @@ impl TablesController {
 
 #[async_trait]
 impl GetAction for TablesController {
-    fn get_additional_types(&self) -> Option<Vec<HttpObjectStructure>> {
-        None
+    fn get_route(&self) -> &str {
+        "/Tables/List"
     }
 
     fn get_description(&self) -> Option<HttpActionDescription> {
@@ -67,8 +67,8 @@ impl GetAction for TablesController {
 
 #[async_trait]
 impl PostAction for TablesController {
-    fn get_additional_types(&self) -> Option<Vec<HttpObjectStructure>> {
-        None
+    fn get_route(&self) -> &str {
+        "/Tables/Create"
     }
 
     fn get_description(&self) -> Option<HttpActionDescription> {
@@ -118,8 +118,8 @@ impl PostAction for TablesController {
 }
 #[async_trait]
 impl PutAction for TablesController {
-    fn get_additional_types(&self) -> Option<Vec<HttpObjectStructure>> {
-        None
+    fn get_route(&self) -> &str {
+        "/Tables/Clean"
     }
 
     fn get_description(&self) -> Option<HttpActionDescription> {
@@ -162,8 +162,8 @@ impl PutAction for TablesController {
 
 #[async_trait]
 impl DeleteAction for TablesController {
-    fn get_additional_types(&self) -> Option<Vec<HttpObjectStructure>> {
-        None
+    fn get_route(&self) -> &str {
+        "/Tables/Delete"
     }
 
     fn get_description(&self) -> Option<HttpActionDescription> {

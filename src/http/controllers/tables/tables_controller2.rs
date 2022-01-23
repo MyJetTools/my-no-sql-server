@@ -27,8 +27,8 @@ impl TablesController2 {
 
 #[async_trait]
 impl GetAction for TablesController2 {
-    fn get_additional_types(&self) -> Option<Vec<HttpObjectStructure>> {
-        None
+    fn get_route(&self) -> &str {
+        "/Tables/PartitionsCount"
     }
 
     fn get_description(&self) -> Option<HttpActionDescription> {
@@ -68,8 +68,8 @@ impl GetAction for TablesController2 {
 
 #[async_trait]
 impl PostAction for TablesController2 {
-    fn get_additional_types(&self) -> Option<Vec<HttpObjectStructure>> {
-        None
+    fn get_route(&self) -> &str {
+        "/Tables/UpdatePersist"
     }
 
     fn get_description(&self) -> Option<HttpActionDescription> {
