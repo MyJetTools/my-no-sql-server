@@ -39,7 +39,8 @@ impl PostAction for StartTransactionAction {
                 http_code: 200,
                 nullable: true,
                 description: "Issued transaction".to_string(),
-                data_type: StartTransactionResponse::get_doc(),
+                data_type: StartTransactionResponse::get_http_data_structure()
+                    .into_http_data_type_object(),
             }],
         }
         .into()

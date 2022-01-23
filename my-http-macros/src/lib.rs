@@ -3,9 +3,10 @@ use proc_macro::TokenStream;
 
 use syn;
 
+mod consts;
 mod enum_doc;
+mod http_object_structure;
 mod input_models;
-mod output_models;
 mod reflection;
 mod types;
 
@@ -19,10 +20,10 @@ pub fn my_http_input_doc_derive(input: TokenStream) -> TokenStream {
     crate::input_models::attr::impl_input_types(&ast)
 }
 
-#[proc_macro_derive(MyHttpDocument)]
+#[proc_macro_derive(MyHttpObjectStructure)]
 pub fn my_http_input_process_derive(input: TokenStream) -> TokenStream {
     let ast = syn::parse(input).unwrap();
-    crate::output_models::attr::impl_output_types(&ast)
+    crate::http_object_structure::attr::impl_output_types(&ast)
 }
 
 #[proc_macro_derive(MyHttpStringEnum, attributes(http_enum_case))]

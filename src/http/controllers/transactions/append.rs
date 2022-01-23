@@ -33,7 +33,7 @@ impl PostAction for AppendTransactionAction {
             controller_name: super::consts::CONTROLLER_NAME,
             description: "Append actions to transaction",
 
-            input_params: Some(ProcessTransactionInputModel::get_doc()),
+            input_params: Some(ProcessTransactionInputModel::get_input_params()),
             results: vec![
                 response::empty("Actions are added suscessfully"),
                 super::models::transaction_not_found_response_doc(),

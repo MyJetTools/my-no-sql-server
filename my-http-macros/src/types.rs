@@ -52,9 +52,13 @@ pub fn compile_http_field_with_object(
         "{http_field_type}::new(\"{name}\", {data_type}, {required}, {default})",
         http_field_type = HTTP_FIELD_TYPE,
         name = name,
-        data_type = format!("{}::get_doc()", body_type),
+        data_type = format!(
+            "{}::{fn_name}().into_http_data_type_object()",
+            body_type,
+            fn_name = crate::consts::FN_GET_HTTP_DATA_STRUCTURE
+        ),
         required = required,
-        default = default
+        default = default,
     )
 }
 
@@ -63,61 +67,65 @@ fn compile_data_type(pt: &PropertyType, inside_option: bool) -> String {
         return compile_data_type(&pt.get_generic(), true);
     }
 
-    if pt.raw == "String" {
+    if pt.type_name == "String" {
         return format!("{}::as_string()", HTTP_DATA_TYPE);
     }
 
-    if pt.raw == "u8" {
+    if pt.type_name == "u8" {
         return format!("{}::as_integer()", HTTP_DATA_TYPE);
     }
 
-    if pt.raw == "i8" {
+    if pt.type_name == "i8" {
         return format!("{}::as_integer()", HTTP_DATA_TYPE);
     }
 
-    if pt.raw == "u16" {
+    if pt.type_name == "u16" {
         return format!("{}::as_integer()", HTTP_DATA_TYPE);
     }
 
-    if pt.raw == "i16" {
+    if pt.type_name == "i16" {
         return format!("{}::as_integer()", HTTP_DATA_TYPE);
     }
 
-    if pt.raw == "u32" {
+    if pt.type_name == "u32" {
         return format!("{}::as_integer()", HTTP_DATA_TYPE);
     }
 
-    if pt.raw == "i32" {
+    if pt.type_name == "i32" {
         return format!("{}::as_integer()", HTTP_DATA_TYPE);
     }
 
-    if pt.raw == "u64" {
+    if pt.type_name == "u64" {
         return format!("{}::as_long()", HTTP_DATA_TYPE);
     }
 
-    if pt.raw == "i64" {
+    if pt.type_name == "i64" {
         return format!("{}::as_long()", HTTP_DATA_TYPE);
     }
 
-    if pt.raw == "usize" {
+    if pt.type_name == "usize" {
         return format!("{}::as_long()", HTTP_DATA_TYPE);
     }
 
-    if pt.raw == "bool" {
+    if pt.type_name == "bool" {
         return format!("{}::as_bool()", HTTP_DATA_TYPE);
     }
 
-    if pt.raw == "isize" {
+    if pt.type_name == "isize" {
         return format!("{}::as_long()", HTTP_DATA_TYPE);
     }
 
-    if pt.raw == "Vec" {
+    if pt.type_name == "Vec" {
         return format!("{}::None", HTTP_DATA_TYPE);
     }
 
     if inside_option {
-        panic!("Not supported type: Option<{}>", pt.raw);
+        panic!("Not supported type: Option<{}>", pt.type_name);
     } else {
-        return format!("{}::get_doc()", pt.raw);
+        return format!(
+            "{}::{}().into_http_data_type_object()",
+            pt.type_name,
+            func_name = crate::consts::FN_GET_HTTP_DATA_STRUCTURE
+        );
     }
 }

@@ -17,7 +17,7 @@ pub fn impl_input_types(ast: &syn::DeriveInput) -> TokenStream {
 
     let code = format!(
         r###"impl {struct_name}{{
-            pub fn get_doc()->Vec<{http_input_parameter}>{{
+            pub fn get_input_params()->Vec<{http_input_parameter}>{{
                 {doc}
             }}
             pub async fn parse_http_input(ctx:my_http_server::HttpContext)->Result<Self, my_http_server::HttpFailResult>{{
@@ -27,7 +27,7 @@ pub fn impl_input_types(ast: &syn::DeriveInput) -> TokenStream {
         struct_name = struct_name,
         doc = doc,
         http_input_parameter = crate::types::HTTP_INPUT_PARAMETER_TYPE,
-        model_reader = model_reader
+        model_reader = model_reader,
     );
 
     code.parse().unwrap()

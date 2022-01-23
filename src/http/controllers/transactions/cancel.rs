@@ -33,7 +33,7 @@ impl PostAction for CancelTransactionAction {
             controller_name: super::consts::CONTROLLER_NAME,
             description: "Cancel transaction",
 
-            input_params: Some(ProcessTransactionInputModel::get_doc()),
+            input_params: Some(ProcessTransactionInputModel::get_input_params()),
             results: vec![
                 response::empty("Transaction is canceled"),
                 super::models::transaction_not_found_response_doc(),

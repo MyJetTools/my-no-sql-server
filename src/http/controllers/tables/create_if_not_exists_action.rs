@@ -15,6 +15,8 @@ use my_http_server::{
     HttpContext, HttpFailResult, HttpOkResult,
 };
 
+use super::models::TableContract;
+
 pub struct CreateIfNotExistsAction {
     app: Arc<AppContext>,
 }
@@ -45,7 +47,7 @@ impl PostAction for CreateIfNotExistsAction {
                 http_code: 200,
                 nullable: true,
                 description: "Table structure".to_string(),
-                data_type: super::models::table_name_doc(),
+                data_type: TableContract::get_http_data_structure().into_http_data_type_object(),
             }],
         }
         .into()
@@ -64,7 +66,7 @@ impl PostAction for CreateIfNotExistsAction {
         let attr =
             crate::operations::transaction_attributes::create(self.app.as_ref(), sync_period);
 
-        crate::db_operations::write::table::create_if_not_exist(
+        let table = crate::db_operations::write::table::create_if_not_exist(
             self.app.as_ref(),
             table_name,
             persist_table,
@@ -73,6 +75,8 @@ impl PostAction for CreateIfNotExistsAction {
         )
         .await;
 
-        return Ok(HttpOkResult::Empty);
+        let response: TableContract = table.as_ref().into();
+
+        return HttpOkResult::create_json_response(response).into();
     }
 }

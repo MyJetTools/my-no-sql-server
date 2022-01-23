@@ -5,7 +5,7 @@ use my_http_server::{
     middlewares::controllers::{
         actions::{DeleteAction, GetAction, PostAction, PutAction},
         documentation::{
-            data_types::{ArrayElement, HttpDataType, HttpField, HttpObjectStructure},
+            data_types::{HttpDataType, HttpObjectStructure},
             out_results::HttpResult,
             HttpActionDescription,
         },
@@ -15,10 +15,9 @@ use my_http_server::{
 
 use crate::{app::AppContext, http::contracts::http_ctx_extensions::StandardParamsReader};
 
-use super::models::TableJsonResult;
 use super::{
     super::super::contracts::{input_params::*, input_params_doc, response},
-    models::CreateTableCotnract,
+    models::{CreateTableCotnract, TableContract},
 };
 
 pub struct TablesController {
@@ -47,19 +46,7 @@ impl GetAction for TablesController {
                 http_code: 200,
                 nullable: true,
                 description: "List of tables structure".to_string(),
-                data_type: HttpDataType::ArrayOf(ArrayElement::Object(HttpObjectStructure {
-                    struct_id: "IsAliveResponse".to_string(),
-                    fields: vec![
-                        HttpField::new("name", HttpDataType::as_string(), true, None),
-                        HttpField::new("persist", HttpDataType::as_bool(), true, None),
-                        HttpField::new(
-                            "maxPartitionsAmount",
-                            HttpDataType::as_integer(),
-                            false,
-                            None,
-                        ),
-                    ],
-                })),
+                data_type: TableContract::get_http_data_structure().into_http_data_type_array(),
             }],
         }
         .into()
@@ -68,14 +55,10 @@ impl GetAction for TablesController {
     async fn handle_request(&self, _ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
         let tables = self.app.db.get_tables().await;
 
-        let mut response: Vec<TableJsonResult> = vec![];
+        let mut response: Vec<TableContract> = vec![];
 
         for db_table in &tables {
-            response.push(TableJsonResult {
-                name: db_table.name.to_string(),
-                persist: db_table.attributes.get_persist(),
-                max_partitions_amount: db_table.attributes.get_max_partitions_amount(),
-            });
+            response.push(db_table.as_ref().into());
         }
 
         return HttpOkResult::create_json_response(response).into();
@@ -93,7 +76,7 @@ impl PostAction for TablesController {
             controller_name: super::consts::CONTROLLER_NAME,
             description: "Create Table",
 
-            input_params: Some(CreateTableCotnract::get_doc()),
+            input_params: Some(CreateTableCotnract::get_input_params()),
             results: vec![
                 HttpResult {
                     http_code: 202,

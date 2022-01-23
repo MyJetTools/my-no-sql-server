@@ -1,5 +1,5 @@
 pub struct PropertyType {
-    pub raw: String,
+    pub type_name: String,
 
     pub tp: syn::TypePath,
 }
@@ -13,7 +13,7 @@ impl PropertyType {
         };
 
         Self {
-            raw: get_http_type(field),
+            type_name: get_http_type(field),
             tp,
         }
     }
@@ -26,7 +26,7 @@ impl PropertyType {
                         if let syn::Type::Path(tp) = ty {
                             for path in &tp.path.segments {
                                 return PropertyType {
-                                    raw: path.ident.to_string(),
+                                    type_name: path.ident.to_string(),
                                     tp: tp.clone(),
                                 };
                             }
@@ -36,15 +36,28 @@ impl PropertyType {
             }
         }
 
-        panic!("Can not get generic from the type {}", self.raw);
+        panic!("Can not get generic from the type {}", self.type_name);
+    }
+
+    pub fn is_system_type(&self) -> bool {
+        return self.type_name == "String"
+            || self.type_name == "i8"
+            || self.type_name == "u8"
+            || self.type_name == "i16"
+            || self.type_name == "u16"
+            || self.type_name == "i32"
+            || self.type_name == "u32"
+            || self.type_name == "i64"
+            || self.type_name == "u64"
+            || self.type_name == "bool";
     }
 
     pub fn is_string(&self) -> bool {
-        self.raw == "String"
+        self.type_name == "String"
     }
 
     pub fn is_option(&self) -> bool {
-        self.raw == "Option"
+        self.type_name == "Option"
     }
 }
 

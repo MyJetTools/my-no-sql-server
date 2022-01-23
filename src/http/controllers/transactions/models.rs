@@ -13,13 +13,13 @@ pub struct ProcessTransactionInputModel {
     pub body: Vec<u8>,
 }
 
-#[derive(Serialize, Deserialize, Debug, MyHttpDocument)]
+#[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
 pub struct JsonBaseTransaction {
     #[serde(rename = "type")]
     pub transaction_type: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, MyHttpDocument)]
+#[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
 pub struct StartTransactionResponse {
     #[serde(rename = "transactionId")]
     pub transaction_id: String,

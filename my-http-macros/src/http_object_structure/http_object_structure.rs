@@ -2,7 +2,7 @@ use crate::reflection::StructProperty;
 
 use super::out_json::OutputJson;
 
-pub fn get_output_json_doc(name: &str, fields: Vec<StructProperty>) -> String {
+pub fn generate(name: &str, fields: Vec<StructProperty>) -> String {
     let json = OutputJson::new(fields);
 
     let mut result = String::new();
@@ -20,5 +20,5 @@ pub fn get_output_json_doc(name: &str, fields: Vec<StructProperty>) -> String {
     }
     result.push_str("],}");
 
-    format!("{}::Object({})", crate::types::HTTP_DATA_TYPE, result)
+    result
 }
