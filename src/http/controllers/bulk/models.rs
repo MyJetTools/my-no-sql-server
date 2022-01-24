@@ -16,7 +16,7 @@ pub struct BulkDeleteInputContract {
 }
 
 #[derive(MyHttpInput)]
-pub struct CleanAndBulkInsertContract {
+pub struct CleanAndBulkInsertInputContract {
     #[http_query(name = "tableName"; description = "Name of a table")]
     pub table_name: String,
 
@@ -33,7 +33,7 @@ pub struct CleanAndBulkInsertContract {
 }
 
 #[derive(MyHttpInput)]
-pub struct BulkInsertOrReplaceContract {
+pub struct BulkInsertOrReplaceInputContract {
     #[http_query(name = "tableName"; description = "Name of a table")]
     pub table_name: String,
 

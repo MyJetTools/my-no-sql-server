@@ -164,13 +164,14 @@ fn option_to_default(expr: &str, default: &str, ty: &PropertyType) -> String {
     format!(
         r###"
         if let Some(value) = {expr}{{
-            {ty}::from_str(value)?
+            {ty}::{fn_parse_str}(value)?
         }}else{{
-            {ty}::from_str("{default}")?
+            {ty}::{fn_parse_str}("{default}")?
         }}
     "###,
         expr = expr,
         default = default,
-        ty = ty.type_name
+        ty = ty.type_name,
+        fn_parse_str = crate::consts::FN_PARSE_STR
     )
 }

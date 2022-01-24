@@ -155,14 +155,16 @@ async fn handle_route(
         (&Method::POST, "/bulk/insertorreplace") => {
             return bulk::insert_or_replace::post(HttpContext::new(req), app).await;
         }
-
+  /*
         (&Method::POST, "/bulk/cleanandbulkinsert") => {
             return bulk::clean_and_bulk_insert::post(HttpContext::new(req), app).await;
         }
 
+      
         (&Method::POST, "/bulk/delete") => {
             return bulk::bulk_delete::post(HttpContext::new(req), app).await;
         }
+         */
 
         (&Method::POST, "/garbagecollector/cleanandkeepmaxpartitions") => {
             return gc::clean_and_keep_max_partitions_amount::post(HttpContext::new(req), app)

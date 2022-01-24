@@ -1,54 +1,90 @@
-use my_http_utils::HttpFailResult;
+use std::sync::Arc;
+
+use my_http_server::middlewares::controllers::actions::PostAction;
+use my_http_server::middlewares::controllers::documentation::data_types::HttpDataType;
+use my_http_server::middlewares::controllers::documentation::out_results::HttpResult;
+use my_http_server::middlewares::controllers::documentation::HttpActionDescription;
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
 
 use crate::db_json_entity::{DbJsonEntity, JsonTimeStamp};
-use crate::http::http_ctx::HttpContext;
 
 use crate::app::AppContext;
 
-use crate::http::http_ok::HttpOkResult;
+use super::models::CleanAndBulkInsertInputContract;
 
-use super::super::consts::{self, MyNoSqlQueryString};
+pub struct CleanAndBulkInsertControllerAction {
+    app: Arc<AppContext>,
+}
 
-pub async fn post(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult, HttpFailResult> {
-    let query = ctx.get_query_string()?;
-    let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;
+impl CleanAndBulkInsertControllerAction {
+    pub fn new(app: Arc<AppContext>) -> Self {
+        Self { app }
+    }
+}
 
-    let partition_key_param =
-        query.get_query_optional_string_parameter(consts::PARAM_PARTITION_KEY);
-
-    let body = ctx.get_body().await;
-
-    let db_table = crate::db_operations::read::table::get(app, table_name).await?;
-    let sync_period = query.get_sync_period();
-
-    let attr = crate::operations::transaction_attributes::create(app, sync_period);
-    let now = JsonTimeStamp::now();
-
-    let rows_by_partition = DbJsonEntity::parse_as_btreemap(body.as_slice(), &now)?;
-
-    match partition_key_param {
-        Some(partition_key) => {
-            crate::db_operations::write::clean_partition_and_bulk_insert::execute(
-                app,
-                db_table,
-                partition_key,
-                rows_by_partition,
-                Some(attr),
-                &now,
-            )
-            .await?;
-        }
-        None => {
-            crate::db_operations::write::clean_table_and_bulk_insert::execute(
-                app,
-                db_table,
-                rows_by_partition,
-                Some(attr),
-                &now,
-            )
-            .await?;
-        }
+#[async_trait::async_trait]
+impl PostAction for CleanAndBulkInsertControllerAction {
+    fn get_route(&self) -> &str {
+        "/Bulk/CleanAndBulkInsert"
     }
 
-    return Ok(HttpOkResult::Empty);
+    fn get_description(&self) -> Option<HttpActionDescription> {
+        HttpActionDescription {
+            controller_name: super::consts::CONTROLLER_NAME,
+            description: "Cleans partition and does bulk insert operation transactionally",
+
+            input_params: CleanAndBulkInsertInputContract::get_input_params().into(),
+            results: vec![HttpResult {
+                http_code: 202,
+                nullable: true,
+                description: "Successful operation".to_string(),
+                data_type: HttpDataType::None,
+            }],
+        }
+        .into()
+    }
+
+    async fn handle_request(&self, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+        let input_data = CleanAndBulkInsertInputContract::parse_http_input(ctx).await?;
+
+        let db_table = crate::db_operations::read::table::get(
+            self.app.as_ref(),
+            input_data.table_name.as_str(),
+        )
+        .await?;
+
+        let attr = crate::operations::transaction_attributes::create(
+            self.app.as_ref(),
+            input_data.sync_period,
+        );
+        let now = JsonTimeStamp::now();
+
+        let rows_by_partition = DbJsonEntity::parse_as_btreemap(input_data.body.as_slice(), &now)?;
+
+        match &input_data.partition_key {
+            Some(partition_key) => {
+                crate::db_operations::write::clean_partition_and_bulk_insert::execute(
+                    self.app.as_ref(),
+                    db_table,
+                    partition_key,
+                    rows_by_partition,
+                    Some(attr),
+                    &now,
+                )
+                .await?;
+            }
+            None => {
+                crate::db_operations::write::clean_table_and_bulk_insert::execute(
+                    self.app.as_ref(),
+                    db_table,
+                    rows_by_partition,
+                    Some(attr),
+                    &now,
+                )
+                .await?;
+            }
+        }
+
+        return HttpOkResult::Empty.into();
+    }
 }

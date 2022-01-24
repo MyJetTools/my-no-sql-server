@@ -59,5 +59,18 @@ pub fn build(app: Arc<AppContext>) -> ControllersMiddleware {
     )));
 
     result.register_get_action(Arc::new(super::status::StatusController::new(app.clone())));
+
+    result.register_post_action(Arc::new(super::bulk::BulkDeleteControllerAction::new(
+        app.clone(),
+    )));
+
+    result.register_post_action(Arc::new(
+        super::bulk::CleanAndBulkInsertControllerAction::new(app.clone()),
+    ));
+
+    result.register_post_action(Arc::new(
+        super::bulk::BlukInsertOrReplaceControllerAction::new(app.clone()),
+    ));
+
     result
 }

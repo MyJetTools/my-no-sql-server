@@ -1,39 +1,77 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
-use my_http_utils::HttpFailResult;
+use my_http_server::middlewares::controllers::actions::PostAction;
+use my_http_server::middlewares::controllers::documentation::data_types::HttpDataType;
+use my_http_server::middlewares::controllers::documentation::out_results::HttpResult;
+use my_http_server::middlewares::controllers::documentation::HttpActionDescription;
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
 
 use crate::db_json_entity::JsonTimeStamp;
-use crate::http::http_ctx::HttpContext;
 
 use crate::app::AppContext;
-use crate::http::http_ok::HttpOkResult;
 
-use super::super::consts::{self, MyNoSqlQueryString};
+use super::models::BulkDeleteInputContract;
 
-pub async fn post(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult, HttpFailResult> {
-    let query = ctx.get_query_string()?;
-    let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;
+pub struct BulkDeleteControllerAction {
+    app: Arc<AppContext>,
+}
 
-    let body = ctx.get_body().await;
+impl BulkDeleteControllerAction {
+    pub fn new(app: Arc<AppContext>) -> Self {
+        Self { app }
+    }
+}
 
-    let db_table = crate::db_operations::read::table::get(app, table_name).await?;
-    let sync_period = query.get_sync_period();
+#[async_trait::async_trait]
+impl PostAction for BulkDeleteControllerAction {
+    fn get_route(&self) -> &str {
+        "/Bulk/Delete"
+    }
 
-    let attr = crate::operations::transaction_attributes::create(app, sync_period);
+    fn get_description(&self) -> Option<HttpActionDescription> {
+        HttpActionDescription {
+            controller_name: super::consts::CONTROLLER_NAME,
+            description: "Bulk delete operation",
 
-    let rows_to_delete: HashMap<String, Vec<String>> =
-        serde_json::from_slice(body.as_slice()).unwrap();
+            input_params: BulkDeleteInputContract::get_input_params().into(),
+            results: vec![HttpResult {
+                http_code: 202,
+                nullable: true,
+                description: "Successful operation".to_string(),
+                data_type: HttpDataType::None,
+            }],
+        }
+        .into()
+    }
 
-    let now = JsonTimeStamp::now();
+    async fn handle_request(&self, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+        let input_data = BulkDeleteInputContract::parse_http_input(ctx).await?;
 
-    crate::db_operations::write::bulk_delete::execute(
-        app,
-        db_table.as_ref(),
-        rows_to_delete,
-        Some(attr),
-        &now,
-    )
-    .await;
+        let db_table = crate::db_operations::read::table::get(
+            self.app.as_ref(),
+            input_data.table_name.as_str(),
+        )
+        .await?;
 
-    Ok(HttpOkResult::Empty)
+        let attr = crate::operations::transaction_attributes::create(
+            self.app.as_ref(),
+            input_data.sync_period,
+        );
+
+        let rows_to_delete: HashMap<String, Vec<String>> =
+            serde_json::from_slice(input_data.body.as_slice()).unwrap();
+
+        let now = JsonTimeStamp::now();
+
+        crate::db_operations::write::bulk_delete::execute(
+            self.app.as_ref(),
+            db_table.as_ref(),
+            rows_to_delete,
+            Some(attr),
+            &now,
+        )
+        .await;
+
+        HttpOkResult::Empty.into()
+    }
 }
