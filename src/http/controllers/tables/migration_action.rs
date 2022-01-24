@@ -3,12 +3,7 @@ use flurl::FlUrl;
 use my_http_server::{
     middlewares::controllers::{
         actions::PostAction,
-        documentation::{
-            data_types::{HttpDataType, HttpField, HttpObjectStructure},
-            in_parameters::{HttpInputParameter, HttpParameterInputSource},
-            out_results::HttpResult,
-            HttpActionDescription,
-        },
+        documentation::{data_types::HttpDataType, out_results::HttpResult, HttpActionDescription},
     },
     HttpContext, HttpFailResult, HttpOkResult, WebContentType,
 };
@@ -20,8 +15,7 @@ use crate::{
     http::contracts::input_params,
 };
 
-const PARAM_REMOTE_URL: &str = "remoteUrl";
-const PARAM_REMOTE_TABLE_NAME: &str = "remoteTableName";
+use super::models::TableMigrationInputContract;
 
 pub struct MigrationAction {
     app: Arc<AppContext>,
@@ -43,39 +37,7 @@ impl PostAction for MigrationAction {
             controller_name: super::consts::CONTROLLER_NAME,
             description: "Migrate records from the other table of other instance",
 
-            input_params: vec![
-                HttpInputParameter {
-                    field: HttpField::new(PARAM_REMOTE_URL, HttpDataType::as_string(), true, None),
-                    description: "Url of the remote MyNoSqlServer we are going to copy data from"
-                        .to_string(),
-                    source: HttpParameterInputSource::Query,
-                },
-                HttpInputParameter {
-                    field: HttpField::new(
-                        PARAM_REMOTE_TABLE_NAME,
-                        HttpDataType::as_string(),
-                        true,
-                        None,
-                    ),
-                    description:
-                        "Table name of the remote MyNoSqlServer we are going to copy data from"
-                            .to_string(),
-                    source: HttpParameterInputSource::Query,
-                },
-                HttpInputParameter {
-                    field: HttpField::new(
-                        input_params::PARAM_TABLE_NAME,
-                        HttpDataType::as_string(),
-                        true,
-                        None,
-                    ),
-                    description:
-                        "Table name of the current MyNoSqlServer we are going to copy data to"
-                            .to_string(),
-                    source: HttpParameterInputSource::Query,
-                },
-            ]
-            .into(),
+            input_params: TableMigrationInputContract::get_input_params().into(),
             results: vec![HttpResult {
                 http_code: 200,
                 nullable: true,
@@ -87,18 +49,20 @@ impl PostAction for MigrationAction {
     }
 
     async fn handle_request(&self, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
-        let query = ctx.get_query_string()?;
+        let input_data = TableMigrationInputContract::parse_http_input(ctx).await?;
 
-        let remote_url = query.get_required_string_parameter(PARAM_REMOTE_URL)?;
-        let remote_table_name = query.get_required_string_parameter(PARAM_REMOTE_TABLE_NAME)?;
-        let table_name = query.get_required_string_parameter(input_params::PARAM_TABLE_NAME)?;
+        let db_table = crate::db_operations::read::table::get(
+            self.app.as_ref(),
+            input_data.table_name.as_str(),
+        )
+        .await?;
 
-        let db_table =
-            crate::db_operations::read::table::get(self.app.as_ref(), table_name).await?;
-
-        let response = FlUrl::new(remote_url)
+        let response = FlUrl::new(input_data.remote_url.as_str())
             .append_path_segment("Row")
-            .append_query_param(input_params::PARAM_TABLE_NAME, remote_table_name)
+            .append_query_param(
+                input_params::PARAM_TABLE_NAME,
+                input_data.remote_table_name.as_str(),
+            )
             .get()
             .await
             .unwrap();

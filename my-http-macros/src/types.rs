@@ -30,7 +30,7 @@ pub fn compile_http_field(
         "{http_field_type}::new(\"{name}\", {data_type}, {required}, {default})",
         http_field_type = HTTP_FIELD_TYPE,
         name = name,
-        data_type = compile_data_type(pt, false),
+        data_type = compile_data_type(pt, TypeIsWrappedTo::None),
         required = required,
         default = default
     )
@@ -62,9 +62,19 @@ pub fn compile_http_field_with_object(
     )
 }
 
-fn compile_data_type(pt: &PropertyType, inside_option: bool) -> String {
+enum TypeIsWrappedTo {
+    None,
+    Option,
+    Vec,
+}
+
+fn compile_data_type(pt: &PropertyType, type_is_wrapped_to: TypeIsWrappedTo) -> String {
     if pt.is_option() {
-        return compile_data_type(&pt.get_generic(), true);
+        return compile_data_type(&pt.get_generic(), TypeIsWrappedTo::Option);
+    }
+
+    if pt.is_vec() {
+        return compile_data_type(&pt.get_generic(), TypeIsWrappedTo::Vec);
     }
 
     if pt.type_name == "String" {
@@ -119,13 +129,23 @@ fn compile_data_type(pt: &PropertyType, inside_option: bool) -> String {
         return format!("{}::None", HTTP_DATA_TYPE);
     }
 
-    if inside_option {
-        panic!("Not supported type: Option<{}>", pt.type_name);
-    } else {
-        return format!(
-            "{}::{}().into_http_data_type_object()",
-            pt.type_name,
-            func_name = crate::consts::FN_GET_HTTP_DATA_STRUCTURE
-        );
+    match type_is_wrapped_to {
+        TypeIsWrappedTo::None => {
+            return format!(
+                "{}::{}().into_http_data_type_object()",
+                pt.type_name,
+                func_name = crate::consts::FN_GET_HTTP_DATA_STRUCTURE
+            )
+        }
+        TypeIsWrappedTo::Option => {
+            panic!("Not supported type: Option<{}>", pt.type_name)
+        }
+        TypeIsWrappedTo::Vec => {
+            return format!(
+                "{}::{}().into_http_data_type_array()",
+                pt.type_name,
+                func_name = crate::consts::FN_GET_HTTP_DATA_STRUCTURE
+            )
+        }
     }
 }

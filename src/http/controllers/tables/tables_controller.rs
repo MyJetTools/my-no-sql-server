@@ -4,11 +4,7 @@ use std::sync::Arc;
 use my_http_server::{
     middlewares::controllers::{
         actions::{DeleteAction, GetAction, PostAction, PutAction},
-        documentation::{
-            data_types::{HttpDataType, HttpObjectStructure},
-            out_results::HttpResult,
-            HttpActionDescription,
-        },
+        documentation::{data_types::HttpDataType, out_results::HttpResult, HttpActionDescription},
     },
     HttpContext, HttpFailResult, HttpOkResult,
 };
@@ -76,7 +72,7 @@ impl PostAction for TablesController {
             controller_name: super::consts::CONTROLLER_NAME,
             description: "Create Table",
 
-            input_params: Some(CreateTableCotnract::get_input_params()),
+            input_params: CreateTableCotnract::get_input_params().into(),
             results: vec![
                 HttpResult {
                     http_code: 202,

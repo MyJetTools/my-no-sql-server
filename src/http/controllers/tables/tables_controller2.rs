@@ -2,11 +2,7 @@ use async_trait::async_trait;
 use my_http_server::{
     middlewares::controllers::{
         actions::{GetAction, PostAction},
-        documentation::{
-            data_types::{HttpDataType, HttpObjectStructure},
-            out_results::HttpResult,
-            HttpActionDescription,
-        },
+        documentation::{data_types::HttpDataType, out_results::HttpResult, HttpActionDescription},
     },
     HttpContext, HttpFailResult, HttpOkResult,
 };

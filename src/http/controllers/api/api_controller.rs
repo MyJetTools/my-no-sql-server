@@ -4,10 +4,7 @@ use rust_extensions::date_time::DateTimeAsMicroseconds;
 use my_http_server::{
     middlewares::controllers::{
         actions::GetAction,
-        documentation::{
-            out_results::{HttpResult, IntoHttpResult},
-            HttpActionDescription,
-        },
+        documentation::{out_results::IntoHttpResult, HttpActionDescription},
     },
     HttpContext, HttpFailResult, HttpOkResult,
 };
@@ -21,6 +18,7 @@ impl ApiController {
         Self {}
     }
 }
+
 #[async_trait]
 impl GetAction for ApiController {
     fn get_route(&self) -> &str {
