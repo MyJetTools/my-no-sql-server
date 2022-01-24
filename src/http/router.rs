@@ -151,11 +151,11 @@ async fn handle_route(
         (&Method::GET, "/rows/highestrowandbelow") => {
             return rows::get_highest_row_and_below::get(HttpContext::new(req), app).await;
         }
-
+  /*
         (&Method::POST, "/bulk/insertorreplace") => {
             return bulk::insert_or_replace::post(HttpContext::new(req), app).await;
         }
-  /*
+
         (&Method::POST, "/bulk/cleanandbulkinsert") => {
             return bulk::clean_and_bulk_insert::post(HttpContext::new(req), app).await;
         }
@@ -164,17 +164,17 @@ async fn handle_route(
         (&Method::POST, "/bulk/delete") => {
             return bulk::bulk_delete::post(HttpContext::new(req), app).await;
         }
-         */
+
 
         (&Method::POST, "/garbagecollector/cleanandkeepmaxpartitions") => {
             return gc::clean_and_keep_max_partitions_amount::post(HttpContext::new(req), app)
                 .await;
         }
-
+ 
         (&Method::POST, "/garbagecollector/cleanandkeepmaxrecords") => {
             return gc::clean_and_keep_max_records::post(HttpContext::new(req), app).await;
         }
-
+        */
         (&Method::POST, "/transaction/start") => {
             return transactions::start::post(app).await;
         }

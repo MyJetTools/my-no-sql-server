@@ -72,5 +72,13 @@ pub fn build(app: Arc<AppContext>) -> ControllersMiddleware {
         super::bulk::BlukInsertOrReplaceControllerAction::new(app.clone()),
     ));
 
+    result.register_post_action(Arc::new(super::gc::CleanAndKeepMaxPartitionsAmount::new(
+        app.clone(),
+    )));
+
+    result.register_post_action(Arc::new(
+        super::gc::CleanPartitionAndKepMaxRecordsControllerAction::new(app.clone()),
+    ));
+
     result
 }

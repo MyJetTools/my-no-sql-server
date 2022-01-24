@@ -1,2 +1,7 @@
-pub mod clean_and_keep_max_partitions_amount;
-pub mod clean_and_keep_max_records;
+mod clean_and_keep_max_partitions_amount;
+mod clean_and_keep_max_records;
+mod consts;
+mod models;
+
+pub use clean_and_keep_max_partitions_amount::CleanAndKeepMaxPartitionsAmount;
+pub use clean_and_keep_max_records::CleanPartitionAndKepMaxRecordsControllerAction;

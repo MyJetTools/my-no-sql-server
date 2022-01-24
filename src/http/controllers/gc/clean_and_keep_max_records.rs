@@ -1,34 +1,73 @@
-use my_http_utils::HttpFailResult;
+use std::sync::Arc;
 
-use crate::{
-    app::AppContext,
-    http::{http_ctx::HttpContext, http_ok::HttpOkResult},
+use my_http_server::{
+    middlewares::controllers::{
+        actions::PostAction,
+        documentation::{data_types::HttpDataType, out_results::HttpResult, HttpActionDescription},
+    },
+    HttpContext, HttpFailResult, HttpOkResult,
 };
 
-use super::super::consts::{self, MyNoSqlQueryString};
+use crate::app::AppContext;
 
-pub async fn post(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult, HttpFailResult> {
-    let query = ctx.get_query_string()?;
-    let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;
+use super::models::CleanPartitionAndKeepMaxRowsAmountInputContract;
 
-    let partition_key = query.get_query_required_string_parameter(consts::PARAM_PARTITION_KEY)?;
-    //TODO- check if amount is not zero
-    let amount = query.get_query_required_parameter::<usize>("amount")?;
+pub struct CleanPartitionAndKepMaxRecordsControllerAction {
+    app: Arc<AppContext>,
+}
 
-    let sync_period = query.get_sync_period();
+impl CleanPartitionAndKepMaxRecordsControllerAction {
+    pub fn new(app: Arc<AppContext>) -> Self {
+        Self { app }
+    }
+}
 
-    let db_table = crate::db_operations::read::table::get(app, table_name).await?;
+#[async_trait::async_trait]
+impl PostAction for CleanPartitionAndKepMaxRecordsControllerAction {
+    fn get_route(&self) -> &str {
+        "/GarbageCollector/CleanAndKeepMaxRecords"
+    }
 
-    let attr = crate::operations::transaction_attributes::create(app, sync_period);
+    fn get_description(&self) -> Option<HttpActionDescription> {
+        HttpActionDescription {
+            controller_name: super::consts::CONTROLLER_NAME,
+            description: "After operation some rows are going to be deleted to make sure we keep maximum rows amount required",
 
-    crate::db_operations::gc::clean_partition_and_keep_max_records::execute(
-        app,
-        db_table.as_ref(),
-        partition_key,
-        amount,
-        Some(attr),
-    )
-    .await;
+            input_params: CleanPartitionAndKeepMaxRowsAmountInputContract::get_input_params().into(),
+            results: vec![HttpResult {
+                http_code: 202,
+                nullable: true,
+                description: "Successful operation".to_string(),
+                data_type: HttpDataType::None,
+            }],
+        }
+        .into()
+    }
 
-    Ok(HttpOkResult::Empty)
+    async fn handle_request(&self, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+        let http_input =
+            CleanPartitionAndKeepMaxRowsAmountInputContract::parse_http_input(ctx).await?;
+
+        let db_table = crate::db_operations::read::table::get(
+            self.app.as_ref(),
+            http_input.table_name.as_str(),
+        )
+        .await?;
+
+        let attr = crate::operations::transaction_attributes::create(
+            self.app.as_ref(),
+            http_input.sync_period,
+        );
+
+        crate::db_operations::gc::clean_partition_and_keep_max_records::execute(
+            self.app.as_ref(),
+            db_table.as_ref(),
+            http_input.partition_key.as_str(),
+            http_input.max_amount,
+            Some(attr),
+        )
+        .await;
+
+        HttpOkResult::Empty.into()
+    }
 }
