@@ -7,13 +7,15 @@ use crate::{
     db_sync::{states::UpdateRowsSyncData, SyncAttributes, SyncEvent},
 };
 
+use super::WriteOperationResult;
+
 pub async fn execute(
     app: &AppContext,
     db_table: Arc<DbTable>,
     db_row: Arc<DbRow>,
     attr: Option<SyncAttributes>,
     now: &JsonTimeStamp,
-) -> Option<Arc<DbRow>> {
+) -> WriteOperationResult {
     let mut table_data = db_table.data.write().await;
 
     let result = table_data.insert_or_replace_row(&db_row, now);
@@ -28,5 +30,8 @@ pub async fn execute(
             .await;
     }
 
-    result
+    match result {
+        Some(db_row) => WriteOperationResult::SingleRow(db_row),
+        None => WriteOperationResult::Empty,
+    }
 }

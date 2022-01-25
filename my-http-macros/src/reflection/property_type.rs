@@ -82,7 +82,7 @@ fn get_http_type(field: &syn::Field) -> String {
         syn::Type::Infer(_) => panic!("Infer type is not supported"),
         syn::Type::Macro(_) => panic!("Macro type is not supported"),
         syn::Type::Verbatim(_) => panic!("Verbatim type is not supported"),
-        // syn::Type::__TestExhaustive(_) => panic!("__TestExhaustive type is not supported"),
+        syn::Type::__TestExhaustive(_) => panic!("__TestExhaustive type is not supported"),
     }
 }
 

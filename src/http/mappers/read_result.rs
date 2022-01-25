@@ -1,8 +1,6 @@
-use std::sync::Arc;
-
 use my_http_server::{HttpOkResult, WebContentType};
 
-use crate::{db::DbRow, db_operations::read::ReadOperationResult, json::JsonArrayBuilder};
+use crate::db_operations::read::ReadOperationResult;
 
 impl Into<HttpOkResult> for ReadOperationResult {
     fn into(self) -> HttpOkResult {

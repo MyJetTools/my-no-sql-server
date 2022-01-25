@@ -8,9 +8,9 @@ use my_http_server::{
     HttpContext, HttpFailResult, HttpOkResult,
 };
 
-use crate::app::AppContext;
+use crate::{app::AppContext, http::controllers::row_controller::models::BaseDbRowContract};
 
-use super::models::{BaseDbRow, NextMultipartRequestInputContract};
+use super::models::NextMultipartRequestInputContract;
 
 pub struct NextMultipartController {
     app: Arc<AppContext>,
@@ -34,11 +34,13 @@ impl PostAction for NextMultipartController {
             description: "Monitoring API",
 
             input_params: Some(NextMultipartRequestInputContract::get_input_params()),
-            results: vec![BaseDbRow::get_http_data_structure().into_http_result_array(
-                200,
-                false,
-                "New multipart is started",
-            )],
+            results: vec![
+                BaseDbRowContract::get_http_data_structure().into_http_result_array(
+                    200,
+                    false,
+                    "Chunk of entities",
+                ),
+            ],
         }
         .into()
     }

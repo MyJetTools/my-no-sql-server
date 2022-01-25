@@ -14,7 +14,7 @@ impl MyAttribute {
         for attr in src {
             for segment in attr.path.segments.iter() {
                 let attr_id = segment.ident.to_string();
-                let attr_data = attr.tts.to_string();
+                let attr_data = attr.tokens.to_string();
                 let attr_data = if attr_data == "" {
                     None
                 } else {

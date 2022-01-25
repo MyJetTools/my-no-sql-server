@@ -21,17 +21,3 @@ pub struct NextMultipartRequestInputContract {
     #[http_query(name = "maxRecordsCount"; description = "Chunk size")]
     pub max_records_count: usize,
 }
-
-#[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
-pub struct BaseDbRow {
-    #[serde(rename = "partitionKey")]
-    pub partition_key: String,
-
-    #[serde(rename = "rowKey")]
-    pub row_key: String,
-
-    #[serde(rename = "timeStamp")]
-    pub time_stamp: String,
-
-    pub expires: Option<String>,
-}

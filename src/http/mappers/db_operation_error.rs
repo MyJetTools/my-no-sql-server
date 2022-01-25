@@ -1,49 +1,39 @@
 use crate::{
-    db_json_entity::DbEntityParseFail, db_operations::DbOperationError, json::JsonParseError,
+    db_json_entity::DbEntityParseFail, db_operations::DbOperationError, http::docs::rejects,
+    json::JsonParseError,
 };
 
 use my_http_server::{HttpFailResult, WebContentType};
-use serde::{Deserialize, Serialize};
 
-const TABLE_ALREADY_EXISTS_ERR: i16 = -1;
-const TABLE_NOT_FOUND_ERR: i16 = -2;
-const RECORD_ALREADY_EXISTS_ERR: i16 = -3;
-const REQUIERED_ENTITY_FIELD_IS_MISSING_ERR: i16 = -4;
-const JSON_PARSE_ERR: i16 = -5;
-
-#[derive(Serialize, Deserialize, Debug)]
-struct HttpErrorModel {
-    pub code: i16,
-    pub message: String,
-}
+use super::{OperationFailHttpContract, OperationFailReason};
 
 impl From<DbOperationError> for HttpFailResult {
     fn from(src: DbOperationError) -> Self {
         match src {
             DbOperationError::TableAlreadyExists => {
-                let err_model = HttpErrorModel {
-                    code: TABLE_ALREADY_EXISTS_ERR,
+                let err_model = OperationFailHttpContract {
+                    reason: OperationFailReason::TableAlreadyExists,
                     message: format!("Table already exists"),
                 };
                 let content = serde_json::to_vec(&err_model).unwrap();
 
                 HttpFailResult {
                     content_type: WebContentType::Json,
-                    status_code: 400,
+                    status_code: rejects::OPERATION_FAIL_HTTP_STATUS_CODE,
                     content,
                     write_telemetry: true,
                 }
             }
             DbOperationError::TableNotFound(table_name) => {
-                let err_model = HttpErrorModel {
-                    code: TABLE_NOT_FOUND_ERR,
+                let err_model = OperationFailHttpContract {
+                    reason: OperationFailReason::TableNotFound,
                     message: format!("Table '{}' not found", table_name),
                 };
                 let content = serde_json::to_vec(&err_model).unwrap();
 
                 HttpFailResult {
                     content_type: WebContentType::Json,
-                    status_code: 400,
+                    status_code: rejects::OPERATION_FAIL_HTTP_STATUS_CODE,
                     content,
                     write_telemetry: true,
                 }
@@ -61,29 +51,29 @@ impl From<DbOperationError> for HttpFailResult {
                 write_telemetry: false,
             },
             DbOperationError::RecordAlreadyExists => {
-                let err_model = HttpErrorModel {
-                    code: RECORD_ALREADY_EXISTS_ERR,
+                let err_model = OperationFailHttpContract {
+                    reason: OperationFailReason::RecordAlreadyExists,
                     message: format!("Record already exists"),
                 };
                 let content = serde_json::to_vec(&err_model).unwrap();
 
                 HttpFailResult {
                     content_type: WebContentType::Json,
-                    status_code: 400,
+                    status_code: rejects::OPERATION_FAIL_HTTP_STATUS_CODE,
                     content,
                     write_telemetry: false,
                 }
             }
             DbOperationError::TimeStampFieldRequires => {
-                let err_model = HttpErrorModel {
-                    code: REQUIERED_ENTITY_FIELD_IS_MISSING_ERR,
+                let err_model = OperationFailHttpContract {
+                    reason: OperationFailReason::RequieredEntityFieldIsMissing,
                     message: format!("Timestamp field requires"),
                 };
 
                 let content = serde_json::to_vec(&err_model).unwrap();
                 HttpFailResult {
                     content_type: WebContentType::Text,
-                    status_code: 400,
+                    status_code: rejects::OPERATION_FAIL_HTTP_STATUS_CODE,
                     content,
                     write_telemetry: true,
                 }
@@ -94,8 +84,8 @@ impl From<DbOperationError> for HttpFailResult {
 
 impl From<JsonParseError> for HttpFailResult {
     fn from(value: JsonParseError) -> Self {
-        let err_model = HttpErrorModel {
-            code: JSON_PARSE_ERR,
+        let err_model = OperationFailHttpContract {
+            reason: OperationFailReason::JsonParseFail,
             message: value.to_string(),
         };
 
@@ -103,7 +93,7 @@ impl From<JsonParseError> for HttpFailResult {
 
         Self {
             content_type: WebContentType::Json,
-            status_code: 400,
+            status_code: rejects::OPERATION_FAIL_HTTP_STATUS_CODE,
             content,
             write_telemetry: true,
         }
@@ -114,8 +104,8 @@ impl From<DbEntityParseFail> for HttpFailResult {
     fn from(src: DbEntityParseFail) -> Self {
         match src {
             DbEntityParseFail::FieldPartitionKeyIsRequired => {
-                let err_model = HttpErrorModel {
-                    code: REQUIERED_ENTITY_FIELD_IS_MISSING_ERR,
+                let err_model = OperationFailHttpContract {
+                    reason: OperationFailReason::RequieredEntityFieldIsMissing,
                     message: format!("PartitionKey field is required"),
                 };
 
@@ -123,14 +113,14 @@ impl From<DbEntityParseFail> for HttpFailResult {
 
                 Self {
                     content_type: WebContentType::Json,
-                    status_code: 400,
+                    status_code: rejects::OPERATION_FAIL_HTTP_STATUS_CODE,
                     content,
                     write_telemetry: true,
                 }
             }
             DbEntityParseFail::FieldRowKeyIsRequired => {
-                let err_model = HttpErrorModel {
-                    code: REQUIERED_ENTITY_FIELD_IS_MISSING_ERR,
+                let err_model = OperationFailHttpContract {
+                    reason: OperationFailReason::RequieredEntityFieldIsMissing,
                     message: format!("RowKey field is required"),
                 };
 
@@ -138,7 +128,7 @@ impl From<DbEntityParseFail> for HttpFailResult {
 
                 Self {
                     content_type: WebContentType::Json,
-                    status_code: 400,
+                    status_code: rejects::OPERATION_FAIL_HTTP_STATUS_CODE,
                     content,
                     write_telemetry: true,
                 }

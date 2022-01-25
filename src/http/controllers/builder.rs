@@ -80,5 +80,17 @@ pub fn build(app: Arc<AppContext>) -> ControllersMiddleware {
         super::gc::CleanPartitionAndKepMaxRecordsControllerAction::new(app.clone()),
     ));
 
+    result.register_post_action(Arc::new(super::row_controller::InsertRowAction::new(
+        app.clone(),
+    )));
+
+    result.register_post_action(Arc::new(super::row_controller::InsertOrReplaceAction::new(
+        app.clone(),
+    )));
+
+    result.register_get_action(Arc::new(super::row_controller::RowCountAction::new(
+        app.clone(),
+    )));
+
     result
 }

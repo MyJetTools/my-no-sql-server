@@ -3,6 +3,7 @@ pub mod builder;
 pub mod bulk;
 pub mod gc;
 pub mod multipart;
+pub mod row_controller;
 pub mod status;
 pub mod tables;
 pub mod transactions;

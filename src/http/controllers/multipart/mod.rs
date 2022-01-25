@@ -1,6 +1,6 @@
 mod consts;
 mod first;
-mod models;
+pub mod models;
 mod next;
 
 pub use first::FirstMultipartController;
