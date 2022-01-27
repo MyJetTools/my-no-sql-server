@@ -92,5 +92,23 @@ pub fn build(app: Arc<AppContext>) -> ControllersMiddleware {
         app.clone(),
     )));
 
+    result.register_get_action(Arc::new(super::row_controller::RowAction::new(app.clone())));
+
+    result.register_put_action(Arc::new(super::row_controller::RowAction::new(app.clone())));
+
+    result.register_delete_action(Arc::new(super::row_controller::RowAction::new(app.clone())));
+
+    result.register_get_action(Arc::new(
+        super::rows_controller::GetHighestRowAndBelowAction::new(app.clone()),
+    ));
+
+    result.register_get_action(Arc::new(
+        super::rows_controller::GetHighestRowAndBelowAction::new(app.clone()),
+    ));
+
+    result.register_post_action(Arc::new(
+        super::rows_controller::GetSinglePartitionMultipleRowsAction::new(app.clone()),
+    ));
+
     result
 }

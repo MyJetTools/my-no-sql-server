@@ -1,100 +1,232 @@
-use my_http_utils::HttpFailResult;
+use std::sync::Arc;
 
-use crate::db_json_entity::JsonTimeStamp;
-use crate::http::controllers::consts::MyNoSqlQueryString;
+use my_http_server::middlewares::controllers::actions::{DeleteAction, GetAction, PutAction};
+use my_http_server::middlewares::controllers::documentation::out_results::HttpResult;
+use my_http_server::middlewares::controllers::documentation::HttpActionDescription;
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
 
-use crate::{db_operations, http::http_ctx::HttpContext};
+use crate::db_json_entity::{DbJsonEntity, JsonTimeStamp};
+
+use crate::db_operations;
 
 use crate::app::AppContext;
-use crate::http::http_ok::HttpOkResult;
 
-use super::super::consts::{self};
+use super::models::{
+    BaseDbRowContract, DeleteRowInputModel, GetRowInputModel, ReplaceInputContract,
+};
 
-pub async fn get(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult, HttpFailResult> {
-    let query = ctx.get_query_string()?;
-    let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;
+pub struct RowAction {
+    app: Arc<AppContext>,
+}
 
-    let partition_key = query.get_query_optional_string_parameter(consts::PARAM_PARTITION_KEY);
-    let row_key = query.get_query_optional_string_parameter(consts::PARAM_ROW_KEY);
+impl RowAction {
+    pub fn new(app: Arc<AppContext>) -> Self {
+        Self { app }
+    }
+}
 
-    let db_table = crate::db_operations::read::table::get(app, table_name).await?;
+#[async_trait::async_trait]
+impl GetAction for RowAction {
+    fn get_route(&self) -> &str {
+        "/Row"
+    }
 
-    if let Some(partition_key) = partition_key {
-        if let Some(row_key) = row_key {
-            let result = crate::db_operations::read::rows::get_row(
-                db_table.as_ref(),
-                partition_key,
-                row_key,
-            )
-            .await;
+    fn get_description(&self) -> Option<HttpActionDescription> {
+        HttpActionDescription {
+            controller_name: super::consts::CONTROLLER_NAME,
+            description: "Get Entities",
 
-            return Ok(result.into());
-        } else {
-            let limit = query.get_query_optional_parameter::<usize>(consts::PARAM_LIMIT);
-            let skip = query.get_query_optional_parameter::<usize>(consts::PARAM_SKIP);
-
-            let result = crate::db_operations::read::rows::get_all_rows_by_partition_key(
-                db_table.as_ref(),
-                partition_key,
-                limit,
-                skip,
-            )
-            .await;
-
-            return Ok(result.into());
+            input_params: GetRowInputModel::get_input_params().into(),
+            results: vec![
+                HttpResult {
+                    http_code: 200,
+                    nullable: false,
+                    description: "Rows".to_string(),
+                    data_type: BaseDbRowContract::get_http_data_structure()
+                        .into_http_data_type_array(),
+                },
+                crate::http::docs::rejects::op_with_table_is_failed(),
+            ],
         }
-    } else {
-        if let Some(row_key) = row_key {
-            let limit = query.get_query_optional_parameter::<usize>(consts::PARAM_LIMIT);
-            let skip = query.get_query_optional_parameter::<usize>(consts::PARAM_SKIP);
+        .into()
+    }
 
-            let result = crate::db_operations::read::rows::get_all_rows_by_row_key(
-                db_table.as_ref(),
-                row_key,
-                limit,
-                skip,
-            )
-            .await;
+    async fn handle_request(&self, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+        let http_input = GetRowInputModel::parse_http_input(ctx).await?;
 
-            return Ok(result.into());
+        let db_table = crate::db_operations::read::table::get(
+            self.app.as_ref(),
+            http_input.table_name.as_ref(),
+        )
+        .await?;
+
+        if let Some(partition_key) = http_input.partition_key.as_ref() {
+            if let Some(row_key) = http_input.row_key.as_ref() {
+                let result = crate::db_operations::read::rows::get_row(
+                    db_table.as_ref(),
+                    partition_key,
+                    row_key,
+                )
+                .await;
+
+                return Ok(result.into());
+            } else {
+                let result = crate::db_operations::read::rows::get_all_rows_by_partition_key(
+                    db_table.as_ref(),
+                    partition_key,
+                    http_input.limit,
+                    http_input.skip,
+                )
+                .await;
+
+                return Ok(result.into());
+            }
         } else {
-            let limit = query.get_query_optional_parameter::<usize>(consts::PARAM_LIMIT);
-            let skip = query.get_query_optional_parameter::<usize>(consts::PARAM_SKIP);
+            if let Some(row_key) = http_input.row_key.as_ref() {
+                let result = crate::db_operations::read::rows::get_all_rows_by_row_key(
+                    db_table.as_ref(),
+                    row_key,
+                    http_input.limit,
+                    http_input.skip,
+                )
+                .await;
 
-            let result = crate::db_operations::read::rows::get_all_table_rows(
-                db_table.as_ref(),
-                limit,
-                skip,
-            )
-            .await;
+                return Ok(result.into());
+            } else {
+                let result = crate::db_operations::read::rows::get_all_table_rows(
+                    db_table.as_ref(),
+                    http_input.limit,
+                    http_input.skip,
+                )
+                .await;
 
-            return Ok(result.into());
+                return Ok(result.into());
+            }
         }
     }
 }
 
-pub async fn delete(ctx: HttpContext, app: &AppContext) -> Result<HttpOkResult, HttpFailResult> {
-    let query = ctx.get_query_string()?;
-    let table_name = query.get_query_required_string_parameter(consts::PARAM_TABLE_NAME)?;
+#[async_trait::async_trait]
+impl DeleteAction for RowAction {
+    fn get_route(&self) -> &str {
+        "/Row"
+    }
 
-    let partition_key = query.get_query_required_string_parameter(consts::PARAM_PARTITION_KEY)?;
-    let row_key = query.get_query_required_string_parameter(consts::PARAM_ROW_KEY)?;
+    fn get_description(&self) -> Option<HttpActionDescription> {
+        HttpActionDescription {
+            controller_name: super::consts::CONTROLLER_NAME,
+            description: "Delete Entitiy",
 
-    let sync_period = query.get_sync_period();
+            input_params: DeleteRowInputModel::get_input_params().into(),
+            results: vec![
+                HttpResult {
+                    http_code: 200,
+                    nullable: false,
+                    description: "Deleted row".to_string(),
+                    data_type: BaseDbRowContract::get_http_data_structure()
+                        .into_http_data_type_object(),
+                },
+                crate::http::docs::rejects::op_with_table_is_failed(),
+            ],
+        }
+        .into()
+    }
 
-    let db_table = crate::db_operations::read::table::get(app, table_name).await?;
+    async fn handle_request(&self, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+        let http_input = DeleteRowInputModel::parse_http_input(ctx).await?;
 
-    let attr = crate::operations::transaction_attributes::create(app, sync_period);
-    let now = JsonTimeStamp::now();
-    let result = db_operations::write::delete_row::execute(
-        app,
-        db_table,
-        partition_key,
-        row_key,
-        Some(attr),
-        &now,
-    )
-    .await;
+        let db_table = crate::db_operations::read::table::get(
+            self.app.as_ref(),
+            http_input.table_name.as_ref(),
+        )
+        .await?;
 
-    Ok(HttpOkResult::as_db_row(result))
+        let attr = crate::operations::transaction_attributes::create(
+            self.app.as_ref(),
+            http_input.sync_period,
+        );
+        let now = JsonTimeStamp::now();
+        let result: HttpOkResult = db_operations::write::delete_row::execute(
+            self.app.as_ref(),
+            db_table,
+            http_input.partition_key.as_ref(),
+            http_input.row_key.as_ref(),
+            Some(attr),
+            &now,
+        )
+        .await
+        .into();
+
+        result.into()
+    }
+}
+
+#[async_trait::async_trait]
+impl PutAction for RowAction {
+    fn get_route(&self) -> &str {
+        "/Row/Replace"
+    }
+
+    fn get_description(&self) -> Option<HttpActionDescription> {
+        HttpActionDescription {
+            controller_name: super::consts::CONTROLLER_NAME,
+            description: "Replace Entitiy",
+
+            input_params: DeleteRowInputModel::get_input_params().into(),
+            results: vec![
+                HttpResult {
+                    http_code: 200,
+                    nullable: false,
+                    description: "Replaced row".to_string(),
+                    data_type: BaseDbRowContract::get_http_data_structure()
+                        .into_http_data_type_object(),
+                },
+                crate::http::docs::rejects::op_with_table_is_failed(),
+            ],
+        }
+        .into()
+    }
+
+    async fn handle_request(&self, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+        let input_data = ReplaceInputContract::parse_http_input(ctx).await?;
+
+        let db_table = crate::db_operations::read::table::get(
+            self.app.as_ref(),
+            input_data.table_name.as_ref(),
+        )
+        .await?;
+
+        let now = JsonTimeStamp::now();
+
+        let db_json_entity = DbJsonEntity::parse(input_data.body.as_ref())?;
+
+        crate::db_operations::write::replace::validate_before(
+            db_table.as_ref(),
+            db_json_entity.partition_key,
+            db_json_entity.row_key,
+            db_json_entity.time_stamp,
+        )
+        .await?;
+
+        let db_row = Arc::new(db_json_entity.to_db_row(&now));
+
+        let attr = crate::operations::transaction_attributes::create(
+            self.app.as_ref(),
+            input_data.sync_period,
+        );
+
+        let result: HttpOkResult = crate::db_operations::write::replace::execute(
+            self.app.as_ref(),
+            db_table.as_ref(),
+            db_json_entity.partition_key,
+            db_row,
+            Some(attr),
+            db_json_entity.time_stamp.unwrap(),
+            &now,
+        )
+        .await?
+        .into();
+
+        result.into()
+    }
 }

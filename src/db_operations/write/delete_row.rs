@@ -2,10 +2,12 @@ use std::sync::Arc;
 
 use crate::{
     app::AppContext,
-    db::{DbRow, DbTable},
+    db::DbTable,
     db_json_entity::JsonTimeStamp,
     db_sync::{states::DeleteRowsEventSyncData, SyncAttributes, SyncEvent},
 };
+
+use super::WriteOperationResult;
 
 pub async fn execute(
     app: &AppContext,
@@ -14,7 +16,7 @@ pub async fn execute(
     row_key: &str,
     attr: Option<SyncAttributes>,
     now: &JsonTimeStamp,
-) -> Option<Arc<DbRow>> {
+) -> WriteOperationResult {
     let mut table_data = db_table.data.write().await;
 
     let sync_data = if let Some(attr) = attr {
@@ -27,8 +29,13 @@ pub async fn execute(
         None
     };
 
-    let (removed_row, partition_is_empty) =
-        table_data.remove_row(partition_key, row_key, true, now)?;
+    let remove_row_result = table_data.remove_row(partition_key, row_key, true, now);
+
+    if remove_row_result.is_none() {
+        return WriteOperationResult::Empty;
+    }
+
+    let (removed_row, partition_is_empty) = remove_row_result.unwrap();
 
     if let Some(mut sync_data) = sync_data {
         if partition_is_empty {
@@ -42,5 +49,5 @@ pub async fn execute(
             .await
     }
 
-    return Some(removed_row);
+    WriteOperationResult::SingleRow(removed_row).into()
 }

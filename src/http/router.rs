@@ -82,7 +82,7 @@ async fn handle_route(
         (&Method::GET, "/logs") => {
             return logs::get(app).await;
         }
-
+      /*
         (&Method::GET, "/tables/list") => {
             return tables::list_of_tables::get(app).await;
         }
@@ -119,29 +119,30 @@ async fn handle_route(
             return row::get(HttpContext::new(req), app).await;
         }
 
-        /*
+  
         (&Method::GET, "/count") => {
             return row::count::get(HttpContext::new(req), app).await;
         }
- */
+
         (&Method::DELETE, "/row") => {
             return row::delete(HttpContext::new(req), app).await;
         }
+  
 
         (&Method::PUT, "/row/replace") => {
             return row::replace::put(HttpContext::new(req), app).await;
         }
-
+       */
         /*
         (&Method::POST, "/row/insert") => {
             return row::insert::post(HttpContext::new(req), app).await;
         }
- */
+
 
         (&Method::DELETE, "/row/cleanandkeeplastrecords") => {
             return gc::clean_and_keep_max_records::post(HttpContext::new(req), app).await;
         }
-
+ */
         /*
         (&Method::POST, "/row/insertorreplace") => {
             return row::insert_or_replace::post(HttpContext::new(req), app).await;

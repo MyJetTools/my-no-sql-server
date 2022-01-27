@@ -1,6 +1,4 @@
-use std::sync::Arc;
-
-use crate::{app::AppContext, db::DbRow, db_operations::DbOperationError, json::JsonArrayBuilder};
+use crate::{app::AppContext, db_operations::DbOperationError, json::JsonArrayBuilder};
 
 use super::ReadOperationResult;
 

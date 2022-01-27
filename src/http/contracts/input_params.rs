@@ -2,8 +2,6 @@ use my_http_server::{HttpFailResult, QueryString};
 
 use crate::db_sync::DataSynchronizationPeriod;
 
-pub const PARAM_LIMIT: &str = "limit";
-pub const PARAM_SKIP: &str = "skip";
 pub const PARAM_PARTITION_KEY: &str = "partitionKey";
 pub const PARAM_ROW_KEY: &str = "rowKey";
 pub const PARAM_TABLE_NAME: &str = "tableName";

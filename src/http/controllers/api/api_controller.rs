@@ -42,7 +42,7 @@ impl GetAction for ApiController {
         .into()
     }
 
-    async fn handle_request(&self, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+    async fn handle_request(&self, _ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
         let version = env!("CARGO_PKG_VERSION");
 
         let env_info = match std::env::var("ENV_INFO") {

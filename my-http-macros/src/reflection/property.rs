@@ -23,7 +23,7 @@ impl StructProperty {
         };
 
         for field in &fields.named {
-            let mut attrs = MyAttribute::new(&field.attrs);
+            let attrs = MyAttribute::new(&field.attrs);
 
             result.push(Self {
                 name: field.ident.as_ref().unwrap().to_string(),

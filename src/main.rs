@@ -4,7 +4,6 @@ use std::{net::SocketAddr, sync::Arc, time::Duration};
 
 mod app;
 mod grpc;
-mod parser;
 
 mod blob_operations;
 mod db;

@@ -24,22 +24,6 @@ pub fn max_partitions_amount() -> HttpInputParameter {
     }
 }
 
-pub fn persist_table() -> HttpInputParameter {
-    HttpInputParameter {
-        field: HttpField::new(
-            super::input_params::PARAM_PERSIST_TABLE,
-            HttpDataType::as_bool(),
-            false,
-            None,
-        ),
-        description: format!(
-            "Should we persist table. If it's null - default value is {}",
-            super::input_params::PERISTS_TABLE_DEFAULT
-        ),
-        source: HttpParameterInputSource::Query,
-    }
-}
-
 pub fn sync_period() -> HttpInputParameter {
     HttpInputParameter {
         field: HttpField::new("syncPeriod", HttpDataType::as_string(), true, None),

@@ -10,6 +10,8 @@ use crate::{
 
 use serde::{Deserialize, Serialize};
 
+use super::WriteOperationResult;
+
 #[inline]
 pub async fn validate_before(
     db_table: &DbTable,
@@ -50,10 +52,10 @@ pub async fn execute(
     attr: Option<SyncAttributes>,
     entity_timestamp: &str,
     now: &JsonTimeStamp,
-) -> Result<Arc<DbRow>, DbOperationError> {
+) -> Result<WriteOperationResult, DbOperationError> {
     let mut table_data = db_table.data.write().await;
 
-    let removed_row = {
+    let remove_result = {
         let db_partition = table_data.get_partition_mut(partition_key);
 
         if db_partition.is_none() {
@@ -74,11 +76,13 @@ pub async fn execute(
                 return Err(DbOperationError::RecordNotFound);
             }
         }
-        let (removed_row, _) = table_data
-            .remove_row(partition_key, &db_row.row_key, false, now)
-            .unwrap();
+        let remived_result = table_data.remove_row(partition_key, &db_row.row_key, false, now);
 
-        removed_row
+        if remived_result.is_none() {
+            None
+        } else {
+            Some(remived_result.unwrap().0)
+        }
     };
 
     table_data.insert_row(&db_row, now);
@@ -94,7 +98,10 @@ pub async fn execute(
             .await
     }
 
-    Ok(removed_row)
+    match remove_result {
+        Some(db_row) => Ok(WriteOperationResult::SingleRow(db_row)),
+        None => Ok(WriteOperationResult::Empty),
+    }
 }
 
 #[derive(Deserialize, Serialize)]
