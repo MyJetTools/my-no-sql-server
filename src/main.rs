@@ -1,5 +1,8 @@
 use app::AppContext;
-use my_http_server::{middlewares::swagger::SwaggerMiddleware, MyHttpServer};
+use my_http_server::{
+    middlewares::{swagger::SwaggerMiddleware, StaticFilesMiddleware},
+    MyHttpServer,
+};
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 
 mod app;
@@ -102,6 +105,8 @@ async fn main() {
 
     http_server.add_middleware(Arc::new(swagger_middleware));
     http_server.add_middleware(controllers);
+
+    http_server.add_middleware(Arc::new(StaticFilesMiddleware::new(None)));
 
     tokio::task::spawn(tcp::tcp_server::start(
         app.clone(),

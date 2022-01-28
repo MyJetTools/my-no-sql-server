@@ -110,5 +110,25 @@ pub fn build(app: Arc<AppContext>) -> ControllersMiddleware {
         super::rows_controller::GetSinglePartitionMultipleRowsAction::new(app.clone()),
     ));
 
+    result.register_get_action(Arc::new(super::logs_controller::LogsByTableAction::new(
+        app.clone(),
+    )));
+
+    result.register_get_action(Arc::new(super::logs_controller::LogsByProcessAction::new(
+        app.clone(),
+    )));
+
+    result.register_get_action(Arc::new(super::logs_controller::HomeAction::new(
+        app.clone(),
+    )));
+
+    result.register_get_action(Arc::new(super::home_controller::IndexAction::new(
+        app.clone(),
+    )));
+
+    result.register_get_action(Arc::new(super::prometheus_controller::MetricsAction::new(
+        app.clone(),
+    )));
+
     result
 }
