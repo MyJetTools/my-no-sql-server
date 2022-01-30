@@ -9,6 +9,7 @@ use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
 use crate::db_json_entity::JsonTimeStamp;
 
 use crate::app::AppContext;
+use crate::db_sync::EventSource;
 
 use super::models::BulkDeleteInputContract;
 
@@ -53,10 +54,7 @@ impl PostAction for BulkDeleteControllerAction {
         )
         .await?;
 
-        let attr = crate::operations::transaction_attributes::create(
-            self.app.as_ref(),
-            input_data.sync_period,
-        );
+        let event_src = EventSource::as_client_request(self.app.as_ref(), input_data.sync_period);
 
         let rows_to_delete: HashMap<String, Vec<String>> =
             serde_json::from_slice(input_data.body.as_slice()).unwrap();
@@ -67,7 +65,7 @@ impl PostAction for BulkDeleteControllerAction {
             self.app.as_ref(),
             db_table.as_ref(),
             rows_to_delete,
-            Some(attr),
+            Some(event_src),
             &now,
         )
         .await;

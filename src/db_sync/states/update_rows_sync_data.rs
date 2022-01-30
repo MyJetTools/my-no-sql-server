@@ -2,22 +2,22 @@ use std::{collections::BTreeMap, sync::Arc};
 
 use crate::{
     db::{DbRow, DbTableData},
-    db_sync::SyncAttributes,
+    db_sync::EventSource,
 };
 
 use super::SyncTableData;
 
 pub struct UpdateRowsSyncData {
     pub table_data: SyncTableData,
-    pub attr: SyncAttributes,
+    pub event_src: EventSource,
     pub updated_rows_by_partition: BTreeMap<String, Vec<Arc<DbRow>>>,
 }
 
 impl UpdateRowsSyncData {
-    pub fn new(table_data: &DbTableData, persist: bool, attr: SyncAttributes) -> Self {
+    pub fn new(table_data: &DbTableData, persist: bool, event_src: EventSource) -> Self {
         Self {
             table_data: SyncTableData::new(table_data, persist),
-            attr,
+            event_src,
             updated_rows_by_partition: BTreeMap::new(),
         }
     }

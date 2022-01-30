@@ -1,4 +1,6 @@
-use crate::{app::AppContext, db_json_entity::JsonTimeStamp, http::contracts::response};
+use crate::{
+    app::AppContext, db_json_entity::JsonTimeStamp, db_sync::EventSource, http::contracts::response,
+};
 use async_trait::async_trait;
 use my_http_server::{
     middlewares::controllers::{actions::PostAction, documentation::HttpActionDescription},
@@ -42,7 +44,7 @@ impl PostAction for CommitTransactionAction {
         let input_model: ProcessTransactionInputModel =
             ProcessTransactionInputModel::parse_http_input(ctx).await?;
 
-        let attr = crate::operations::transaction_attributes::create(
+        let even_src = EventSource::as_client_request(
             self.app.as_ref(),
             crate::db_sync::DataSynchronizationPeriod::Sec1,
         );
@@ -52,7 +54,7 @@ impl PostAction for CommitTransactionAction {
         crate::db_operations::transactions::commit(
             self.app.as_ref(),
             input_model.transaction_id.as_ref(),
-            attr,
+            even_src,
             &now,
         )
         .await?;

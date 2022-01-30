@@ -1,6 +1,6 @@
 use std::{sync::Arc, time::Duration};
 
-use crate::{app::AppContext, db_sync::DataSynchronizationPeriod};
+use crate::{app::AppContext, db_sync::EventSource};
 
 pub async fn start(app: Arc<AppContext>) {
     let duration = Duration::from_secs(1);
@@ -36,11 +36,6 @@ async fn gc_partitions_iteration(app: Arc<AppContext>) {
     let tables_with_partition_limit = app.db.get_tables_which_partitions_restrictions().await;
 
     if let Some(tables_with_partition_limit) = tables_with_partition_limit {
-        let attr = crate::operations::transaction_attributes::create(
-            app.as_ref(),
-            DataSynchronizationPeriod::Sec5,
-        );
-
         for db_table in tables_with_partition_limit {
             let max_partitions_amount = db_table.attributes.get_max_partitions_amount();
 
@@ -49,7 +44,7 @@ async fn gc_partitions_iteration(app: Arc<AppContext>) {
                     app.as_ref(),
                     db_table,
                     max_partitions_amount,
-                    Some(attr.clone()),
+                    Some(EventSource::as_gc()),
                 )
                 .await;
             }

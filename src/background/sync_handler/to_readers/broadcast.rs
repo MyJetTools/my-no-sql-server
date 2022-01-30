@@ -1,4 +1,8 @@
-use crate::app::{AppContext, NextEventsToHandle};
+use crate::{
+    app::{AppContext, NextEventsToHandle},
+    data_readers::{tcp_connection::TcpPayloadToSend, DataReaderConnection},
+    db_sync::SyncEvent,
+};
 
 pub async fn broadcast(app: &AppContext, next_events: &NextEventsToHandle) {
     let connections = app
@@ -11,26 +15,31 @@ pub async fn broadcast(app: &AppContext, next_events: &NextEventsToHandle) {
     }
     let connections = connections.unwrap();
 
-    for event in &next_events.events {
-        match super::mappers::into_tcp_contract(event) {
-            super::mappers::TcpContractsToSend::None => {}
-            super::mappers::TcpContractsToSend::Single(tcp_contract) => {
-                for session in &connections {
-                    crate::operations::sessions::send_package_and_forget(
-                        session.as_ref(),
-                        &tcp_contract,
-                    )
-                    .await;
+    for sync_event in &next_events.events {
+        if let SyncEvent::TableFirstInit(data) = sync_event {
+            match &data.data_reader.connection {
+                DataReaderConnection::Tcp(tcp_info) => {
+                    if let Some(payload_to_send) = TcpPayloadToSend::parse_from(sync_event).await {
+                        tcp_info.send(&payload_to_send).await;
+                    }
                 }
             }
-            super::mappers::TcpContractsToSend::Multiple(contracts) => {
-                for tcp_contract in contracts {
-                    for session in &connections {
-                        crate::operations::sessions::send_package_and_forget(
-                            session.as_ref(),
-                            &tcp_contract,
-                        )
-                        .await;
+
+            continue;
+        }
+
+        let mut tcp_contracts: Option<TcpPayloadToSend> = None;
+
+        for session in &connections {
+            match &session.connection {
+                DataReaderConnection::Tcp(info) => {
+                    if let Some(to_send) = &tcp_contracts {
+                        info.send(to_send).await;
+                    } else {
+                        if let Some(to_send) = TcpPayloadToSend::parse_from(sync_event).await {
+                            info.send(&to_send).await;
+                            tcp_contracts = Some(to_send);
+                        }
                     }
                 }
             }

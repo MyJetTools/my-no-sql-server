@@ -8,7 +8,7 @@ use my_http_server::{
     HttpContext, HttpFailResult, HttpOkResult,
 };
 
-use crate::app::AppContext;
+use crate::{app::AppContext, db_sync::EventSource};
 
 use super::models::CleanAndKeepMaxPartitionsAmountInputContract;
 
@@ -54,16 +54,13 @@ impl PostAction for CleanAndKeepMaxPartitionsAmount {
         )
         .await?;
 
-        let attr = crate::operations::transaction_attributes::create(
-            self.app.as_ref(),
-            input_data.sync_period,
-        );
+        let event_src = EventSource::as_client_request(self.app.as_ref(), input_data.sync_period);
 
         crate::db_operations::gc::keep_max_partitions_amount::execute(
             self.app.as_ref(),
             db_table,
             input_data.max_partitions_amount,
-            Some(attr),
+            Some(event_src),
         )
         .await;
 

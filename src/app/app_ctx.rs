@@ -4,6 +4,7 @@ use rust_extensions::ApplicationStates;
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
+    data_readers::DataReadersList,
     db::DbInstance,
     db_operations::multipart::MultipartList,
     db_transactions::ActiveTransactions,
@@ -11,7 +12,6 @@ use crate::{
         blob_content_cache::BlobContentCache, updates_to_persist::UpdatesToPersistByTable,
     },
     settings_reader::SettingsModel,
-    tcp::SessionsList,
 };
 
 use super::{global_states::GlobalStates, logs::Logs, EventsDispatcher, PrometheusMetrics};
@@ -39,7 +39,7 @@ pub struct AppContext {
 
     pub events_dispatcher: EventsDispatcher,
     pub blob_content_cache: BlobContentCache,
-    pub data_readers: SessionsList,
+    pub data_readers: DataReadersList,
 
     pub multipart_list: MultipartList,
 
@@ -62,7 +62,7 @@ impl AppContext {
             table_api_key: settings.table_api_key.to_string(),
             events_dispatcher: EventsDispatcher::new(sender),
             blob_content_cache: BlobContentCache::new(),
-            data_readers: SessionsList::new(),
+            data_readers: DataReadersList::new(),
             updates_to_persist_by_table: UpdatesToPersistByTable::new(),
             multipart_list: MultipartList::new(),
         }

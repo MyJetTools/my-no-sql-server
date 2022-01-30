@@ -9,11 +9,12 @@ edition = "2021"
 [dependencies]
 my-azure-storage-sdk = { branch = "main", git = "https://github.com/MyJetTools/my-azure-storage.git" }
 flurl = { branch = "main", git = "https://github.com/MyJetTools/fl-url" }
-my-no-sql-tcp-shared = { branch = "main", git = "https://github.com/MyJetTools/my-no-sql-tcp-shared.git" }
+my-no-sql-tcp-shared = { branch = "0.1.0", git = "https://github.com/MyJetTools/my-no-sql-tcp-shared.git" }
 rust-extensions = { branch = "main", git = "https://github.com/MyJetTools/rust-extensions.git" }
 my-telemetry = { branch = "main", git = "https://github.com/MyJetTools/my-telemetry.git" }
 my-app-insights = { branch = "main", git = "https://github.com/MyJetTools/my-app-insights.git" }
 my-http-server = { branch = "0.1.1", git = "https://github.com/MyJetTools/my-http-server.git" }
+my-tcp-sockets = { branch = "0.1.0", git = "https://github.com/MyJetTools/my-tcp-sockets.git" }
 
 hyper-tls = "*"
 tonic = { version = "*", features = ["tls", "tls-roots", "prost"] }

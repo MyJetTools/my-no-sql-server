@@ -3,21 +3,21 @@ use std::sync::Arc;
 use crate::{
     app::AppContext,
     db::DbTable,
-    db_sync::{states::InitPartitionsSyncData, SyncAttributes, SyncEvent},
+    db_sync::{states::InitPartitionsSyncData, EventSource, SyncEvent},
 };
 
 pub async fn execute(
     app: &AppContext,
     db_table: Arc<DbTable>,
     partition_keys: Vec<String>,
-    attr: Option<SyncAttributes>,
+    event_src: Option<EventSource>,
 ) {
     let mut table_write_access = db_table.data.write().await;
 
-    let mut sync_data = if let Some(attr) = attr {
+    let mut sync_data = if let Some(event_src) = event_src {
         Some(InitPartitionsSyncData::new(
             &table_write_access,
-            attr,
+            event_src,
             db_table.attributes.get_persist(),
         ))
     } else {

@@ -3,7 +3,10 @@ use my_http_server::{
     middlewares::{swagger::SwaggerMiddleware, StaticFilesMiddleware},
     MyHttpServer,
 };
+use my_no_sql_tcp_shared::MyNoSqlReaderTcpSerializer;
+use my_tcp_sockets::TcpServer;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
+use tcp::TcpServerEvents;
 
 mod app;
 mod grpc;
@@ -21,6 +24,7 @@ mod rows_with_expiration;
 mod tcp;
 
 mod background;
+mod data_readers;
 mod persistence;
 mod settings_reader;
 mod utils;
@@ -72,10 +76,6 @@ async fn main() {
         crate::background::metrics_updater::start(app.clone()),
     ));
 
-    background_tasks.push(tokio::task::spawn(
-        crate::background::dead_data_readers_gc::start(app.clone()),
-    ));
-
     background_tasks.push(tokio::task::spawn(crate::background::data_gc::start(
         app.clone(),
     )));
@@ -108,10 +108,18 @@ async fn main() {
 
     http_server.add_middleware(Arc::new(StaticFilesMiddleware::new(None)));
 
-    tokio::task::spawn(tcp::tcp_server::start(
-        app.clone(),
-        SocketAddr::from(([0, 0, 0, 0], 5125)),
-    ));
+    let tcp_server = TcpServer::new(
+        "MyNoSqlReader".to_string(),
+        SocketAddr::from(([0, 0, 0, 0], 6421)),
+    );
+
+    tcp_server
+        .start(
+            app.clone(),
+            Arc::new(MyNoSqlReaderTcpSerializer::new),
+            Arc::new(TcpServerEvents::new(app.clone())),
+        )
+        .await;
 
     http_server.start(app.clone());
 

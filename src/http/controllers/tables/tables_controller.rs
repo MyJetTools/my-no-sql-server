@@ -9,7 +9,10 @@ use my_http_server::{
     HttpContext, HttpFailResult, HttpOkResult,
 };
 
-use crate::{app::AppContext, http::contracts::http_ctx_extensions::StandardParamsReader};
+use crate::{
+    app::AppContext, db_sync::EventSource,
+    http::contracts::http_ctx_extensions::StandardParamsReader,
+};
 
 use super::{
     super::super::contracts::{input_params::*, input_params_doc, response},
@@ -97,15 +100,14 @@ impl PostAction for TablesController {
 
         let sync_period = query.get_sync_period();
 
-        let attr =
-            crate::operations::transaction_attributes::create(self.app.as_ref(), sync_period);
+        let even_src = EventSource::as_client_request(self.app.as_ref(), sync_period);
 
         crate::db_operations::write::table::create(
             self.app.as_ref(),
             table_name,
             persist_table,
             max_partitions_amount,
-            Some(attr),
+            Some(even_src),
         )
         .await?;
 
@@ -146,11 +148,14 @@ impl PutAction for TablesController {
         let db_table =
             crate::db_operations::read::table::get(self.app.as_ref(), table_name).await?;
 
-        let attr =
-            crate::operations::transaction_attributes::create(self.app.as_ref(), sync_period);
+        let event_src = EventSource::as_client_request(self.app.as_ref(), sync_period);
 
-        crate::db_operations::write::clean_table::execute(self.app.as_ref(), db_table, Some(attr))
-            .await;
+        crate::db_operations::write::clean_table::execute(
+            self.app.as_ref(),
+            db_table,
+            Some(event_src),
+        )
+        .await;
 
         return Ok(HttpOkResult::Empty);
     }
@@ -194,10 +199,8 @@ impl DeleteAction for TablesController {
         let table_name = query.get_table_name()?;
         let sync_period = query.get_sync_period();
 
-        let attr =
-            crate::operations::transaction_attributes::create(self.app.as_ref(), sync_period);
-
-        crate::db_operations::write::table::delete(self.app.as_ref(), table_name, Some(attr))
+        let event_src = EventSource::as_client_request(self.app.as_ref(), sync_period);
+        crate::db_operations::write::table::delete(self.app.as_ref(), table_name, Some(event_src))
             .await?;
 
         return Ok(HttpOkResult::Empty);

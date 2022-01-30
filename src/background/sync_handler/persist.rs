@@ -20,7 +20,7 @@ pub async fn execute(
 
     if db_table.is_some() {
         for next_event in &next_events.events {
-            match &next_event {
+            match next_event {
                 SyncEvent::UpdateTableAttributes(_) => {
                     updates_to_persist_by_table
                         .update_table_attributes(next_events.table_name.as_str(), sync_moment)
@@ -81,6 +81,9 @@ pub async fn execute(
                     updates_to_persist_by_table
                         .flag_table_to_update(next_events.table_name.as_str(), sync_moment)
                         .await;
+                }
+                SyncEvent::TableFirstInit(_) => {
+                    //This is a subscriber event. We skip it at Persist Flow
                 }
             }
         }

@@ -5,14 +5,14 @@ use crate::{
     db::{DbRow, DbTable},
     db_json_entity::JsonTimeStamp,
     db_operations::DbOperationError,
-    db_sync::{states::InitTableEventSyncData, SyncAttributes, SyncEvent},
+    db_sync::{states::InitTableEventSyncData, EventSource, SyncEvent},
 };
 
 pub async fn execute(
     app: &AppContext,
     db_table: Arc<DbTable>,
     entities: BTreeMap<String, Vec<Arc<DbRow>>>,
-    attr: Option<SyncAttributes>,
+    event_src: Option<EventSource>,
     now: &JsonTimeStamp,
 ) -> Result<(), DbOperationError> {
     let mut table_data = db_table.data.write().await;
@@ -23,9 +23,9 @@ pub async fn execute(
         table_data.bulk_insert_or_replace(partition_key.as_str(), &db_rows, now);
     }
 
-    if let Some(attr) = attr {
+    if let Some(event_src) = event_src {
         let sync_data =
-            InitTableEventSyncData::new(&table_data, db_table.attributes.get_snapshot(), attr);
+            InitTableEventSyncData::new(&table_data, db_table.attributes.get_snapshot(), event_src);
 
         app.events_dispatcher
             .dispatch(SyncEvent::InitTable(sync_data))

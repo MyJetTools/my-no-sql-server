@@ -5,7 +5,7 @@ use crate::{
     db::{DbRow, DbTable},
     db_json_entity::JsonTimeStamp,
     db_operations::DbOperationError,
-    db_sync::{states::UpdateRowsSyncData, SyncAttributes, SyncEvent},
+    db_sync::{states::UpdateRowsSyncData, EventSource, SyncEvent},
 };
 
 pub async fn validate_before(
@@ -34,7 +34,7 @@ pub async fn execute(
     app: &AppContext,
     db_table: &DbTable,
     db_row: Arc<DbRow>,
-    attr: Option<SyncAttributes>,
+    event_src: Option<EventSource>,
     now: &JsonTimeStamp,
 ) -> Result<(), DbOperationError> {
     let mut table_data = db_table.data.write().await;
@@ -45,9 +45,9 @@ pub async fn execute(
         return Err(DbOperationError::RecordAlreadyExists);
     }
 
-    if let Some(attr) = attr {
+    if let Some(event_src) = event_src {
         let mut update_rows_state =
-            UpdateRowsSyncData::new(&table_data, db_table.attributes.get_persist(), attr);
+            UpdateRowsSyncData::new(&table_data, db_table.attributes.get_persist(), event_src);
 
         update_rows_state.add_row(db_row);
 

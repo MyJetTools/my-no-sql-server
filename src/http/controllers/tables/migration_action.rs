@@ -12,6 +12,7 @@ use std::sync::Arc;
 use crate::{
     app::AppContext,
     db_json_entity::{DbJsonEntity, JsonTimeStamp},
+    db_sync::EventSource,
     http::contracts::input_params,
 };
 
@@ -73,7 +74,8 @@ impl PostAction for MigrationAction {
         let rows_by_partition = DbJsonEntity::parse_as_btreemap(body.as_slice(), &now)?;
 
         let partitions_count = rows_by_partition.len();
-        let attr = crate::operations::transaction_attributes::create(
+
+        let event_src = EventSource::as_client_request(
             self.app.as_ref(),
             crate::db_sync::DataSynchronizationPeriod::Sec5,
         );
@@ -82,7 +84,7 @@ impl PostAction for MigrationAction {
             self.app.as_ref(),
             db_table,
             rows_by_partition,
-            Some(attr),
+            Some(event_src),
             &now,
         )
         .await;

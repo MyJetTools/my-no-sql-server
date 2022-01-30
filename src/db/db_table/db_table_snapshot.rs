@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 
+use my_no_sql_tcp_shared::TcpContract;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{db::DbPartitionSnapshot, json::JsonArrayBuilder};
@@ -35,5 +36,12 @@ impl DbTableSnapshot {
         }
 
         return result.build();
+    }
+
+    pub fn as_tcp_contract(&self, table_name: String) -> TcpContract {
+        TcpContract::InitTable {
+            table_name,
+            data: self.as_raw_bytes(),
+        }
     }
 }

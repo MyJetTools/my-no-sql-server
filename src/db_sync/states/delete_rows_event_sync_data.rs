@@ -2,23 +2,23 @@ use std::{collections::BTreeMap, sync::Arc};
 
 use crate::{
     db::{DbRow, DbTableData},
-    db_sync::SyncAttributes,
+    db_sync::EventSource,
 };
 
 use super::SyncTableData;
 
 pub struct DeleteRowsEventSyncData {
     pub table_data: SyncTableData,
-    pub attr: SyncAttributes,
+    pub event_src: EventSource,
     pub deleted_partitions: Option<BTreeMap<String, u8>>,
     pub deleted_rows: Option<BTreeMap<String, BTreeMap<String, Arc<DbRow>>>>,
 }
 
 impl DeleteRowsEventSyncData {
-    pub fn new(table_data: &DbTableData, persist: bool, attr: SyncAttributes) -> Self {
+    pub fn new(table_data: &DbTableData, persist: bool, event_src: EventSource) -> Self {
         Self {
             table_data: SyncTableData::new(table_data, persist),
-            attr,
+            event_src,
             deleted_partitions: None,
             deleted_rows: None,
         }

@@ -9,6 +9,7 @@ use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
 use crate::db_json_entity::{DbJsonEntity, JsonTimeStamp};
 
 use crate::app::AppContext;
+use crate::db_sync::EventSource;
 
 use super::models::InsertInputContract;
 
@@ -65,10 +66,7 @@ impl PostAction for InsertRowAction {
         )
         .await?;
 
-        let attr = crate::operations::transaction_attributes::create(
-            self.app.as_ref(),
-            input_data.sync_period,
-        );
+        let event_src = EventSource::as_client_request(self.app.as_ref(), input_data.sync_period);
 
         let now = JsonTimeStamp::now();
 
@@ -78,7 +76,7 @@ impl PostAction for InsertRowAction {
             self.app.as_ref(),
             db_table.as_ref(),
             db_row,
-            Some(attr),
+            Some(event_src),
             &now,
         )
         .await?;

@@ -11,7 +11,7 @@ use crate::{
             DeleteTableSyncData, InitTableEventSyncData, SyncTableData,
             UpdateTableAttributesSyncData,
         },
-        SyncAttributes, SyncEvent,
+        EventSource, SyncEvent,
     },
 };
 
@@ -20,7 +20,7 @@ pub async fn create(
     table_name: &str,
     persist_table: bool,
     max_partitions_amount: Option<usize>,
-    attr: Option<SyncAttributes>,
+    event_src: Option<EventSource>,
 ) -> Result<Arc<DbTable>, DbOperationError> {
     let now = DateTimeAsMicroseconds::now();
 
@@ -29,12 +29,12 @@ pub async fn create(
 
     match create_table_result {
         CreateTableResult::JustCreated(db_table) => {
-            if let Some(attr) = attr {
+            if let Some(event_src) = event_src {
                 let table_data = db_table.data.read().await;
                 let state = InitTableEventSyncData::new(
                     &table_data,
                     db_table.attributes.get_snapshot(),
-                    attr,
+                    event_src,
                 );
                 app.events_dispatcher
                     .dispatch(SyncEvent::InitTable(state))
@@ -54,7 +54,7 @@ async fn get_or_create(
     table_name: &str,
     persist_table: bool,
     max_partitions_amount: Option<usize>,
-    attr: Option<SyncAttributes>,
+    event_src: Option<EventSource>,
 ) -> Arc<DbTable> {
     let now = DateTimeAsMicroseconds::now();
 
@@ -63,12 +63,12 @@ async fn get_or_create(
 
     match create_table_result {
         CreateTableResult::JustCreated(db_table) => {
-            if let Some(attr) = attr {
+            if let Some(event_src) = event_src {
                 let table_data = db_table.data.read().await;
                 let state = InitTableEventSyncData::new(
                     &table_data,
                     db_table.attributes.get_snapshot(),
-                    attr,
+                    event_src,
                 );
                 app.events_dispatcher
                     .dispatch(SyncEvent::InitTable(state))
@@ -88,14 +88,14 @@ pub async fn create_if_not_exist(
     table_name: &str,
     persist_table: bool,
     max_partitions_amount: Option<usize>,
-    attr: Option<SyncAttributes>,
+    event_src: Option<EventSource>,
 ) -> Arc<DbTable> {
     let db_table = get_or_create(
         app,
         table_name,
         persist_table,
         max_partitions_amount,
-        attr.clone(),
+        event_src.clone(),
     )
     .await;
 
@@ -104,7 +104,7 @@ pub async fn create_if_not_exist(
         db_table.clone(),
         persist_table,
         max_partitions_amount,
-        attr,
+        event_src,
     )
     .await;
 
@@ -117,12 +117,12 @@ pub async fn set_table_attrubutes(
 
     persist: bool,
     max_partitions_amount: Option<usize>,
-    attr: Option<SyncAttributes>,
+    event_src: Option<EventSource>,
 ) {
     let result = db_table.attributes.update(persist, max_partitions_amount);
 
     if result {
-        if let Some(attr) = attr {
+        if let Some(event_src) = event_src {
             app.events_dispatcher
                 .dispatch(SyncEvent::UpdateTableAttributes(
                     UpdateTableAttributesSyncData {
@@ -130,7 +130,7 @@ pub async fn set_table_attrubutes(
                             table_name: db_table.name.to_string(),
                             persist,
                         },
-                        attr,
+                        event_src,
                         persist,
                         max_partitions_amount,
                     },
@@ -143,7 +143,7 @@ pub async fn set_table_attrubutes(
 pub async fn delete(
     app: &AppContext,
     table_name: &str,
-    attr: Option<SyncAttributes>,
+    event_src: Option<EventSource>,
 ) -> Result<(), DbOperationError> {
     let result = app.db.delete_table(table_name).await;
 
@@ -153,12 +153,12 @@ pub async fn delete(
 
     let db_table = result.unwrap();
 
-    if let Some(attr) = attr {
+    if let Some(event_src) = event_src {
         let table_data = db_table.data.read().await;
         app.events_dispatcher
             .dispatch(SyncEvent::DeleteTable(DeleteTableSyncData::new(
                 &table_data,
-                attr,
+                event_src,
                 db_table.attributes.get_persist(),
             )))
             .await;

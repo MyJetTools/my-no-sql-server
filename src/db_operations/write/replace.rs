@@ -5,7 +5,7 @@ use crate::{
     db::{DbRow, DbTable},
     db_json_entity::JsonTimeStamp,
     db_operations::DbOperationError,
-    db_sync::{states::UpdateRowsSyncData, SyncAttributes, SyncEvent},
+    db_sync::{states::UpdateRowsSyncData, EventSource, SyncEvent},
 };
 
 use serde::{Deserialize, Serialize};
@@ -49,7 +49,7 @@ pub async fn execute(
     db_table: &DbTable,
     partition_key: &str,
     db_row: Arc<DbRow>,
-    attr: Option<SyncAttributes>,
+    event_src: Option<EventSource>,
     entity_timestamp: &str,
     now: &JsonTimeStamp,
 ) -> Result<WriteOperationResult, DbOperationError> {
@@ -87,9 +87,9 @@ pub async fn execute(
 
     table_data.insert_row(&db_row, now);
 
-    if let Some(attr) = attr {
+    if let Some(event_src) = event_src {
         let mut update_rows_state =
-            UpdateRowsSyncData::new(&table_data, db_table.attributes.get_persist(), attr);
+            UpdateRowsSyncData::new(&table_data, db_table.attributes.get_persist(), event_src);
 
         update_rows_state.add_row(db_row);
 

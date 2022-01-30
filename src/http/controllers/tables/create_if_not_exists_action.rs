@@ -1,5 +1,6 @@
 use crate::{
     app::AppContext,
+    db_sync::EventSource,
     http::contracts::{input_params::MyNoSqlQueryString, input_params_doc},
 };
 use async_trait::async_trait;
@@ -61,15 +62,14 @@ impl PostAction for CreateIfNotExistsAction {
 
         let sync_period = query.get_sync_period();
 
-        let attr =
-            crate::operations::transaction_attributes::create(self.app.as_ref(), sync_period);
+        let even_src = EventSource::as_client_request(self.app.as_ref(), sync_period);
 
         let table = crate::db_operations::write::table::create_if_not_exist(
             self.app.as_ref(),
             table_name,
             persist_table,
             max_partitions_amount,
-            Some(attr),
+            Some(even_src),
         )
         .await;
 

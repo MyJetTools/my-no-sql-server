@@ -4,23 +4,23 @@ use crate::{
     app::AppContext,
     db::{DbRow, DbTable},
     db_json_entity::JsonTimeStamp,
-    db_sync::{states::UpdateRowsSyncData, SyncAttributes, SyncEvent},
+    db_sync::{states::UpdateRowsSyncData, EventSource, SyncEvent},
 };
 
 pub async fn execute(
     app: &AppContext,
     db_table: Arc<DbTable>,
     rows_by_partition: BTreeMap<String, Vec<Arc<DbRow>>>,
-    attr: Option<SyncAttributes>,
+    event_src: Option<EventSource>,
     now: &JsonTimeStamp,
 ) {
     let mut table_data = db_table.data.write().await;
 
-    let mut update_rows_state = if let Some(attr) = attr {
+    let mut update_rows_state = if let Some(event_src) = event_src {
         Some(UpdateRowsSyncData::new(
             &table_data,
             db_table.attributes.get_persist(),
-            attr,
+            event_src,
         ))
     } else {
         None

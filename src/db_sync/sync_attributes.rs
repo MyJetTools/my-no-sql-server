@@ -2,13 +2,7 @@ use std::collections::HashMap;
 
 use my_http_macros::MyHttpStringEnum;
 
-#[derive(Clone, Copy)]
-pub enum EventSource {
-    ClientRequest,
-    GarbageCollector,
-    // Synchronization, //TODO - when we doing nodes support - we restore these
-    // Init
-}
+use crate::app::AppContext;
 
 #[derive(Clone, Copy, MyHttpStringEnum)]
 pub enum DataSynchronizationPeriod {
@@ -43,9 +37,32 @@ impl DataSynchronizationPeriod {
 }
 
 #[derive(Clone)]
-pub struct SyncAttributes {
+pub struct ClientRequestsSourceData {
     pub locations: Vec<String>,
     pub sync_period: DataSynchronizationPeriod,
-    pub event_source: EventSource,
     pub headers: Option<HashMap<String, String>>,
+}
+
+#[derive(Clone)]
+pub enum EventSource {
+    ClientRequest(ClientRequestsSourceData),
+    GarbageCollector,
+}
+
+impl EventSource {
+    pub fn as_gc() -> Self {
+        EventSource::GarbageCollector
+    }
+
+    pub fn as_client_request(app: &AppContext, sync_period: DataSynchronizationPeriod) -> Self {
+        let locations = vec![app.location.to_string()];
+
+        let data = ClientRequestsSourceData {
+            locations,
+            sync_period,
+            headers: None,
+        };
+
+        Self::ClientRequest(data)
+    }
 }

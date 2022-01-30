@@ -8,7 +8,7 @@ use my_http_server::{
 };
 
 use super::super::super::contracts::{input_params::*, input_params_doc, response};
-use crate::app::AppContext;
+use crate::{app::AppContext, db_sync::EventSource};
 use std::{result::Result, sync::Arc};
 
 pub struct TablesController2 {
@@ -103,15 +103,14 @@ impl PostAction for TablesController2 {
         let db_table =
             crate::db_operations::read::table::get(self.app.as_ref(), table_name).await?;
 
-        let attr =
-            crate::operations::transaction_attributes::create(self.app.as_ref(), sync_period);
+        let event_src = EventSource::as_client_request(self.app.as_ref(), sync_period);
 
         crate::db_operations::write::table::set_table_attrubutes(
             self.app.as_ref(),
             db_table,
             persist,
             max_partitions_amount,
-            Some(attr),
+            Some(event_src),
         )
         .await;
 

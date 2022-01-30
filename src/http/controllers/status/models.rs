@@ -19,7 +19,7 @@ pub struct QueuesModel {
 
 #[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
 pub struct ReaderModel {
-    id: u64,
+    id: String,
     pub name: String,
     pub ip: String,
     pub tables: Vec<String>,
@@ -57,21 +57,22 @@ async fn get_readers(app: &AppContext) -> Vec<ReaderModel> {
     let mut result = Vec::new();
     let now = DateTimeAsMicroseconds::now();
 
-    for session in app.data_readers.get_all().await {
-        let metrics = session.metrics.get_metrics().await;
+    for data_reader in app.data_readers.get_all().await {
+        let metrics = data_reader.get_metrics().await;
 
-        result.push(ReaderModel {
-            connected_time: metrics.connected.to_rfc3339(),
-            last_incoming_time: format!("{:?}", now.duration_since(metrics.last_incoming_moment)),
-            id: metrics.session_id,
-            ip: metrics.ip.clone(),
-            name: if let Some(name) = metrics.name {
-                name
-            } else {
-                "???".to_string()
-            },
-            tables: session.get_tables().await,
-        });
+        if let Some(name) = metrics.name {
+            result.push(ReaderModel {
+                connected_time: metrics.connected.to_rfc3339(),
+                last_incoming_time: format!(
+                    "{:?}",
+                    now.duration_since(metrics.last_incoming_moment)
+                ),
+                id: metrics.session_id,
+                ip: metrics.ip,
+                name,
+                tables: metrics.tables,
+            });
+        }
     }
 
     result

@@ -378,12 +378,3 @@ impl DbTableData {
         self.rows_with_expiration.remove(db_row);
     }
 }
-
-#[macro_export]
-macro_rules! handle_after_remove_row {
-    ( $db_row:expr) => {{
-        self.table_size -= $db_row.data.len();
-        self.rows_amount -= 1;
-        self.rows_with_expiration.remove($db_row.as_ref());
-    }};
-}

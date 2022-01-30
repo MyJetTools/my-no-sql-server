@@ -4,23 +4,23 @@ use crate::{
     app::AppContext,
     db::DbTable,
     db_json_entity::JsonTimeStamp,
-    db_sync::{states::DeleteRowsEventSyncData, SyncAttributes, SyncEvent},
+    db_sync::{states::DeleteRowsEventSyncData, EventSource, SyncEvent},
 };
 
 pub async fn execute(
     app: &AppContext,
     db_table: &DbTable,
     rows_to_delete: HashMap<String, Vec<String>>,
-    attr: Option<SyncAttributes>,
+    event_src: Option<EventSource>,
     now: &JsonTimeStamp,
 ) {
     let mut table_data = db_table.data.write().await;
 
-    let mut sync_data = if let Some(attr) = attr {
+    let mut sync_data = if let Some(event_src) = event_src {
         Some(DeleteRowsEventSyncData::new(
             &table_data,
             db_table.attributes.get_persist(),
-            attr,
+            event_src,
         ))
     } else {
         None

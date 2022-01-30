@@ -10,6 +10,7 @@ use crate::db_json_entity::{DbJsonEntity, JsonTimeStamp};
 use crate::db_operations;
 
 use crate::app::AppContext;
+use crate::db_sync::EventSource;
 
 use super::models::{
     BaseDbRowContract, DeleteRowInputModel, GetRowInputModel, ReplaceInputContract,
@@ -141,17 +142,15 @@ impl DeleteAction for RowAction {
         )
         .await?;
 
-        let attr = crate::operations::transaction_attributes::create(
-            self.app.as_ref(),
-            http_input.sync_period,
-        );
+        let event_src = EventSource::as_client_request(self.app.as_ref(), http_input.sync_period);
+
         let now = JsonTimeStamp::now();
         let result: HttpOkResult = db_operations::write::delete_row::execute(
             self.app.as_ref(),
             db_table,
             http_input.partition_key.as_ref(),
             http_input.row_key.as_ref(),
-            Some(attr),
+            Some(event_src),
             &now,
         )
         .await
@@ -210,17 +209,14 @@ impl PutAction for RowAction {
 
         let db_row = Arc::new(db_json_entity.to_db_row(&now));
 
-        let attr = crate::operations::transaction_attributes::create(
-            self.app.as_ref(),
-            input_data.sync_period,
-        );
+        let event_src = EventSource::as_client_request(self.app.as_ref(), input_data.sync_period);
 
         let result: HttpOkResult = crate::db_operations::write::replace::execute(
             self.app.as_ref(),
             db_table.as_ref(),
             db_json_entity.partition_key,
             db_row,
-            Some(attr),
+            Some(event_src),
             db_json_entity.time_stamp.unwrap(),
             &now,
         )

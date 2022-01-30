@@ -1,5 +1,6 @@
 use super::server::MyNoSqlServerWriterGrpcSerice;
 use crate::db_json_entity::JsonTimeStamp;
+use crate::db_sync::EventSource;
 use crate::mynosqlserver_grpc::writer_server::Writer;
 use crate::mynosqlserver_grpc::*;
 use futures_core::Stream;
@@ -30,17 +31,14 @@ impl Writer for MyNoSqlServerWriterGrpcSerice {
     ) -> Result<tonic::Response<()>, tonic::Status> {
         let request = request.into_inner();
 
-        let attr = crate::operations::transaction_attributes::create(
-            self.app.as_ref(),
-            DEFAULT_SYNC_PERIOD,
-        );
+        let event_src = EventSource::as_client_request(self.app.as_ref(), DEFAULT_SYNC_PERIOD);
 
         crate::db_operations::write::table::create_if_not_exist(
             self.app.as_ref(),
             &request.table_name,
             request.persist_table,
             None,
-            Some(attr),
+            Some(event_src),
         )
         .await;
 
@@ -60,10 +58,7 @@ impl Writer for MyNoSqlServerWriterGrpcSerice {
 
         let persist = db_table.attributes.get_persist();
 
-        let attr = crate::operations::transaction_attributes::create(
-            self.app.as_ref(),
-            DEFAULT_SYNC_PERIOD,
-        );
+        let event_src = EventSource::as_client_request(self.app.as_ref(), DEFAULT_SYNC_PERIOD);
 
         let max_partitions_amount =
             if let Some(max_partitions_amount) = request.max_partitions_amount {
@@ -77,7 +72,7 @@ impl Writer for MyNoSqlServerWriterGrpcSerice {
             db_table,
             persist,
             max_partitions_amount,
-            Some(attr),
+            Some(event_src),
         )
         .await;
 
@@ -225,14 +220,11 @@ impl Writer for MyNoSqlServerWriterGrpcSerice {
             .await;
 
         if request.commit {
-            let attr = crate::operations::transaction_attributes::create(
-                self.app.as_ref(),
-                crate::db_sync::DataSynchronizationPeriod::Sec1,
-            );
+            let event_src = EventSource::as_client_request(self.app.as_ref(), DEFAULT_SYNC_PERIOD);
             crate::db_operations::transactions::commit(
                 self.app.as_ref(),
                 &transaction_id,
-                attr,
+                event_src,
                 &now,
             )
             .await

@@ -3,14 +3,14 @@ use std::sync::Arc;
 use crate::{
     app::AppContext,
     db::DbTable,
-    db_sync::{states::InitPartitionsSyncData, SyncAttributes, SyncEvent},
+    db_sync::{states::InitPartitionsSyncData, EventSource, SyncEvent},
 };
 
 pub async fn execute(
     app: &AppContext,
     db_table: Arc<DbTable>,
     max_partitions_amount: usize,
-    attr: Option<SyncAttributes>,
+    event_src: Option<EventSource>,
 ) {
     let partitions_amount = db_table.get_partitions_amount().await;
 
@@ -20,10 +20,10 @@ pub async fn execute(
 
     let mut table_data = db_table.data.write().await;
 
-    let sync = if let Some(attr) = attr {
+    let sync = if let Some(event_src) = event_src {
         Some(InitPartitionsSyncData::new(
             &table_data,
-            attr,
+            event_src,
             db_table.attributes.get_persist(),
         ))
     } else {

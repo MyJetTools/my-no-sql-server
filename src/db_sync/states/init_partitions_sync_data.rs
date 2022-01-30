@@ -2,22 +2,22 @@ use std::collections::BTreeMap;
 
 use crate::{
     db::{DbPartitionSnapshot, DbTableData},
-    db_sync::SyncAttributes,
+    db_sync::EventSource,
 };
 
 use super::SyncTableData;
 
 pub struct InitPartitionsSyncData {
     pub table_data: SyncTableData,
-    pub attr: SyncAttributes,
+    pub event_src: EventSource,
     pub partitions_to_update: BTreeMap<String, Option<DbPartitionSnapshot>>,
 }
 
 impl InitPartitionsSyncData {
-    pub fn new(table_data: &DbTableData, attr: SyncAttributes, persist: bool) -> Self {
+    pub fn new(table_data: &DbTableData, event_src: EventSource, persist: bool) -> Self {
         Self {
             table_data: SyncTableData::new(table_data, persist),
-            attr,
+            event_src,
             partitions_to_update: BTreeMap::new(),
         }
     }
@@ -25,7 +25,7 @@ impl InitPartitionsSyncData {
     pub fn new_as_update_partition(
         table_data: &DbTableData,
         partition_key: &str,
-        attr: SyncAttributes,
+        event_src: EventSource,
         persist: bool,
     ) -> Self {
         let mut partitions_to_update = BTreeMap::new();
@@ -36,7 +36,7 @@ impl InitPartitionsSyncData {
 
         Self {
             table_data: SyncTableData::new(table_data, persist),
-            attr,
+            event_src,
             partitions_to_update,
         }
     }
