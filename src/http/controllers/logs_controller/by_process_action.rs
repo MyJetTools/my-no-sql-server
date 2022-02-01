@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use my_http_server::{
-    middlewares::controllers::{actions::GetAction, documentation::HttpActionDescription},
-    HttpContext, HttpFailResult, HttpOkResult, WebContentType,
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, WebContentType};
+use my_http_server_controllers::controllers::{
+    actions::GetAction, documentation::HttpActionDescription,
 };
 use rust_extensions::StopWatch;
 
@@ -28,8 +28,8 @@ impl GetAction for LogsByProcessAction {
         None
     }
 
-    async fn handle_request(&self, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
-        let process_name = get_process_name(ctx.get_path());
+    async fn handle_request(&self, ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+        let process_name = get_process_name(ctx.request.get_path());
 
         if process_name.is_none() {
             return render_select_process().await.into();

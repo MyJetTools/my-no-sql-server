@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use my_http_server::{
-    middlewares::controllers::{actions::PostAction, documentation::HttpActionDescription},
-    HttpContext, HttpFailResult, HttpOkResult,
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
+use my_http_server_controllers::controllers::{
+    actions::PostAction, documentation::HttpActionDescription,
 };
 
 use crate::{app::AppContext, http::contracts::response};
@@ -39,7 +39,7 @@ impl PostAction for CancelTransactionAction {
         .into()
     }
 
-    async fn handle_request(&self, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+    async fn handle_request(&self, ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
         let input_model: ProcessTransactionInputModel =
             ProcessTransactionInputModel::parse_http_input(ctx).await?;
 

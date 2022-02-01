@@ -1,5 +1,5 @@
 use crate::app::AppContext;
-use my_http_macros::MyHttpObjectStructure;
+use my_http_server_swagger::*;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 use serde::{Deserialize, Serialize};
 

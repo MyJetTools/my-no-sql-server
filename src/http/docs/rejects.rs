@@ -1,4 +1,4 @@
-use my_http_server::middlewares::controllers::documentation::out_results::HttpResult;
+use my_http_server_controllers::controllers::documentation::out_results::HttpResult;
 
 use crate::http::mappers::OperationFailHttpContract;
 

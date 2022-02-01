@@ -1,11 +1,9 @@
 use std::sync::Arc;
 
-use my_http_server::{
-    middlewares::controllers::{
-        actions::GetAction,
-        documentation::{out_results::HttpResult, HttpActionDescription},
-    },
-    HttpContext, HttpFailResult, HttpOkResult,
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
+use my_http_server_controllers::controllers::{
+    actions::GetAction,
+    documentation::{out_results::HttpResult, HttpActionDescription},
 };
 
 use crate::{app::AppContext, http::controllers::row_controller::models::BaseDbRowContract};
@@ -48,7 +46,7 @@ impl GetAction for GetHighestRowAndBelowAction {
         .into()
     }
 
-    async fn handle_request(&self, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+    async fn handle_request(&self, ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
         let input_data = GetHighestRowsAndBelowInputContract::parse_http_input(ctx).await?;
 
         let db_table = crate::db_operations::read::table::get(

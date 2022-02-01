@@ -1,4 +1,4 @@
-use my_http_server::middlewares::controllers::documentation::{
+use my_http_server_controllers::controllers::documentation::{
     data_types::{HttpDataType, HttpField},
     in_parameters::{HttpInputParameter, HttpParameterInputSource},
 };

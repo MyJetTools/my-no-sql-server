@@ -1,12 +1,10 @@
 use std::sync::Arc;
 
 use crate::app::AppContext;
-use my_http_server::{
-    middlewares::controllers::{
-        actions::GetAction,
-        documentation::{out_results::IntoHttpResult, HttpActionDescription},
-    },
-    HttpContext, HttpFailResult, HttpOkResult,
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
+use my_http_server_controllers::controllers::{
+    actions::GetAction,
+    documentation::{out_results::IntoHttpResult, HttpActionDescription},
 };
 
 use super::models::StatusModel;
@@ -44,7 +42,7 @@ impl GetAction for StatusController {
         .into()
     }
 
-    async fn handle_request(&self, _ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+    async fn handle_request(&self, _ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
         let model = StatusModel::new(self.app.as_ref()).await;
         return HttpOkResult::create_json_response(model).into();
     }

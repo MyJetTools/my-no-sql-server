@@ -44,7 +44,8 @@ async fn gc_partitions_iteration(app: Arc<AppContext>) {
                     app.as_ref(),
                     db_table,
                     max_partitions_amount,
-                    Some(EventSource::as_gc()),
+                    EventSource::as_gc(),
+                    crate::app::DEFAULT_PERSIST_PERIOD.get_sync_moment(),
                 )
                 .await;
             }

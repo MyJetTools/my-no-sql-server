@@ -1,7 +1,7 @@
-use my_http_macros::*;
-use my_http_server::middlewares::controllers::documentation::{
+use my_http_server_controllers::controllers::documentation::{
     data_types::HttpDataType, out_results::HttpResult,
 };
+use my_http_server_swagger::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(MyHttpInput)]

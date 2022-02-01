@@ -1,5 +1,6 @@
+use my_http_server_swagger::*;
+
 use crate::db_sync::DataSynchronizationPeriod;
-use my_http_macros::MyHttpInput;
 
 #[derive(MyHttpInput)]
 pub struct BulkDeleteInputContract {

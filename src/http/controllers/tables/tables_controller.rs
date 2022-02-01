@@ -1,13 +1,11 @@
 use async_trait::async_trait;
+use my_http_server_controllers::controllers::{
+    actions::{DeleteAction, GetAction, PostAction, PutAction},
+    documentation::{data_types::HttpDataType, out_results::HttpResult, HttpActionDescription},
+};
 use std::sync::Arc;
 
-use my_http_server::{
-    middlewares::controllers::{
-        actions::{DeleteAction, GetAction, PostAction, PutAction},
-        documentation::{data_types::HttpDataType, out_results::HttpResult, HttpActionDescription},
-    },
-    HttpContext, HttpFailResult, HttpOkResult,
-};
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
 
 use crate::{
     app::AppContext, db_sync::EventSource,
@@ -51,7 +49,7 @@ impl GetAction for TablesController {
         .into()
     }
 
-    async fn handle_request(&self, _ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+    async fn handle_request(&self, _ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
         let tables = self.app.db.get_tables().await;
 
         let mut response: Vec<TableContract> = vec![];
@@ -89,8 +87,8 @@ impl PostAction for TablesController {
         .into()
     }
 
-    async fn handle_request(&self, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
-        let query = ctx.get_query_string()?;
+    async fn handle_request(&self, ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+        let query = ctx.request.get_query_string()?;
 
         let table_name = query.get_table_name()?;
 
@@ -100,14 +98,15 @@ impl PostAction for TablesController {
 
         let sync_period = query.get_sync_period();
 
-        let even_src = EventSource::as_client_request(self.app.as_ref(), sync_period);
+        let even_src = EventSource::as_client_request(self.app.as_ref());
 
         crate::db_operations::write::table::create(
             self.app.as_ref(),
             table_name,
             persist_table,
             max_partitions_amount,
-            Some(even_src),
+            even_src,
+            sync_period.get_sync_moment(),
         )
         .await?;
 
@@ -139,8 +138,8 @@ impl PutAction for TablesController {
         .into()
     }
 
-    async fn handle_request(&self, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
-        let query = ctx.get_query_string()?;
+    async fn handle_request(&self, ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+        let query = ctx.request.get_query_string()?;
 
         let table_name = query.get_table_name()?;
         let sync_period = query.get_sync_period();
@@ -148,12 +147,13 @@ impl PutAction for TablesController {
         let db_table =
             crate::db_operations::read::table::get(self.app.as_ref(), table_name).await?;
 
-        let event_src = EventSource::as_client_request(self.app.as_ref(), sync_period);
+        let event_src = EventSource::as_client_request(self.app.as_ref());
 
         crate::db_operations::write::clean_table::execute(
             self.app.as_ref(),
             db_table,
-            Some(event_src),
+            event_src,
+            sync_period.get_sync_moment(),
         )
         .await;
 
@@ -187,10 +187,10 @@ impl DeleteAction for TablesController {
         .into()
     }
 
-    async fn handle_request(&self, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
-        let query = ctx.get_query_string()?;
+    async fn handle_request(&self, ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+        let query = ctx.request.get_query_string()?;
 
-        let api_key = ctx.get_api_key()?;
+        let api_key = ctx.request.get_api_key()?;
 
         if api_key != self.app.table_api_key.as_str() {
             return Err(HttpFailResult::as_unauthorized(None));
@@ -199,9 +199,14 @@ impl DeleteAction for TablesController {
         let table_name = query.get_table_name()?;
         let sync_period = query.get_sync_period();
 
-        let event_src = EventSource::as_client_request(self.app.as_ref(), sync_period);
-        crate::db_operations::write::table::delete(self.app.as_ref(), table_name, Some(event_src))
-            .await?;
+        let event_src = EventSource::as_client_request(self.app.as_ref());
+        crate::db_operations::write::table::delete(
+            self.app.as_ref(),
+            table_name,
+            event_src,
+            sync_period.get_sync_moment(),
+        )
+        .await?;
 
         return Ok(HttpOkResult::Empty);
     }

@@ -13,7 +13,9 @@ my-no-sql-tcp-shared = { branch = "0.1.0", git = "https://github.com/MyJetTools/
 rust-extensions = { branch = "main", git = "https://github.com/MyJetTools/rust-extensions.git" }
 my-telemetry = { branch = "main", git = "https://github.com/MyJetTools/my-telemetry.git" }
 my-app-insights = { branch = "main", git = "https://github.com/MyJetTools/my-app-insights.git" }
-my-http-server = { branch = "0.1.1", git = "https://github.com/MyJetTools/my-http-server.git" }
+my-http-server = { branch = "0.2.1", git = "https://github.com/MyJetTools/my-http-server.git" }
+my-http-server-controllers = { branch = "main", git = "https://github.com/MyJetTools/my-http-server-controllers.git" }
+my-http-server-swagger = { branch = "main", git = "https://github.com/MyJetTools/my-http-server-swagger.git" }
 my-tcp-sockets = { branch = "0.1.0", git = "https://github.com/MyJetTools/my-tcp-sockets.git" }
 
 hyper-tls = "*"
@@ -43,7 +45,7 @@ signal-hook = "*"
 async-trait = "*"
 tokio-stream = "*"
 appinsights = "*"
-my-http-macros = { path = "./my-http-macros" }
+
 
 [build-dependencies]
 tonic-build = { version = "*", features = ["prost"] }

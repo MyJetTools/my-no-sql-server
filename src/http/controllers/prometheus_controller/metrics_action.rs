@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use my_http_server::{
-    middlewares::controllers::{actions::GetAction, documentation::HttpActionDescription},
-    HttpContext, HttpFailResult, HttpOkResult,
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
+use my_http_server_controllers::controllers::{
+    actions::GetAction, documentation::HttpActionDescription,
 };
 
 use crate::app::AppContext;
@@ -26,7 +26,7 @@ impl GetAction for MetricsAction {
         None
     }
 
-    async fn handle_request(&self, _ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+    async fn handle_request(&self, _ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
         let result = self.app.metrics.build();
 
         HttpOkResult::Content {

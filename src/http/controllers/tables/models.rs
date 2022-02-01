@@ -1,4 +1,4 @@
-use my_http_macros::{MyHttpInput, MyHttpObjectStructure};
+use my_http_server_swagger::*;
 use serde::{Deserialize, Serialize};
 
 use crate::{db::DbTable, db_sync::DataSynchronizationPeriod};

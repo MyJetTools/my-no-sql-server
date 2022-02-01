@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use rust_extensions::date_time::DateTimeAsMicroseconds;
+
 use crate::{
     app::AppContext, db_json_entity::JsonTimeStamp, db_sync::EventSource,
     db_transactions::steps::TransactionalOperationStep,
@@ -12,6 +14,7 @@ pub async fn commit(
     transaction_id: &str,
     event_src: EventSource,
     now: &JsonTimeStamp,
+    persist_moment: DateTimeAsMicroseconds,
 ) -> Result<(), TransactionOperationError> {
     let transaction = app.active_transactions.remove(transaction_id).await;
 
@@ -38,7 +41,8 @@ pub async fn commit(
                     crate::db_operations::write::clean_table::execute(
                         app,
                         db_table.clone(),
-                        Some(event_src.clone()),
+                        event_src.clone(),
+                        persist_moment,
                     )
                     .await;
                 }
@@ -51,7 +55,8 @@ pub async fn commit(
                         app,
                         db_table.clone(),
                         partition_keys,
-                        Some(event_src.clone()),
+                        event_src.clone(),
+                        persist_moment,
                     )
                     .await;
                 }
@@ -67,8 +72,9 @@ pub async fn commit(
                         app,
                         db_table.as_ref(),
                         rows_to_delete,
-                        Some(event_src.clone()),
+                        event_src.clone(),
                         now,
+                        persist_moment,
                     )
                     .await;
                 }
@@ -78,8 +84,9 @@ pub async fn commit(
                         app,
                         db_table.clone(),
                         state.rows_by_partition,
-                        Some(event_src.clone()),
+                        event_src.clone(),
                         now,
+                        persist_moment,
                     )
                     .await;
                 }

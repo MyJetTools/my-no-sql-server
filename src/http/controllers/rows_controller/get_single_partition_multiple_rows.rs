@@ -1,11 +1,9 @@
 use std::sync::Arc;
 
-use my_http_server::{
-    middlewares::controllers::{
-        actions::PostAction,
-        documentation::{out_results::HttpResult, HttpActionDescription},
-    },
-    HttpContext, HttpFailResult, HttpOkResult,
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
+use my_http_server_controllers::controllers::{
+    actions::PostAction,
+    documentation::{out_results::HttpResult, HttpActionDescription},
 };
 
 use crate::{app::AppContext, http::controllers::row_controller::models::BaseDbRowContract};
@@ -49,7 +47,7 @@ impl PostAction for GetSinglePartitionMultipleRowsAction {
         .into()
     }
 
-    async fn handle_request(&self, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+    async fn handle_request(&self, ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
         let input_data =
             GetSinglePartitionMultipleRowsActionInputContract::parse_http_input(ctx).await?;
 

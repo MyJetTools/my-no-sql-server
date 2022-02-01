@@ -1,12 +1,10 @@
 use async_trait::async_trait;
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-use my_http_server::{
-    middlewares::controllers::{
-        actions::GetAction,
-        documentation::{out_results::IntoHttpResult, HttpActionDescription},
-    },
-    HttpContext, HttpFailResult, HttpOkResult,
+use my_http_server_controllers::controllers::{
+    actions::GetAction,
+    documentation::{out_results::IntoHttpResult, HttpActionDescription},
 };
 
 use super::models::IsAliveResponse;
@@ -42,7 +40,7 @@ impl GetAction for ApiController {
         .into()
     }
 
-    async fn handle_request(&self, _ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+    async fn handle_request(&self, _ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
         let version = env!("CARGO_PKG_VERSION");
 
         let env_info = match std::env::var("ENV_INFO") {

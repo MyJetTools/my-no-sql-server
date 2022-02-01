@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use rust_extensions::date_time::DateTimeAsMicroseconds;
+
 use crate::{
     app::AppContext,
     db::DbTable,
@@ -10,7 +12,8 @@ pub async fn execute(
     app: &AppContext,
     db_table: Arc<DbTable>,
     max_partitions_amount: usize,
-    event_src: Option<EventSource>,
+    event_src: EventSource,
+    persist_moment: DateTimeAsMicroseconds,
 ) {
     let partitions_amount = db_table.get_partitions_amount().await;
 
@@ -20,27 +23,21 @@ pub async fn execute(
 
     let mut table_data = db_table.data.write().await;
 
-    let sync = if let Some(event_src) = event_src {
-        Some(InitPartitionsSyncData::new(
-            &table_data,
-            event_src,
-            db_table.attributes.get_persist(),
-        ))
-    } else {
-        None
-    };
+    let mut sync_state =
+        InitPartitionsSyncData::new(&table_data, event_src, db_table.attributes.get_persist());
 
     let gced_partitions_result =
         table_data.gc_and_keep_max_partitions_amount(max_partitions_amount);
 
     if let Some(gced_partitions) = gced_partitions_result {
-        if let Some(mut state) = sync {
-            for (partition_key, _) in gced_partitions {
-                state.add(partition_key, None);
-            }
-            app.events_dispatcher
-                .dispatch(SyncEvent::InitPartitions(state))
-                .await;
+        for (partition_key, _) in gced_partitions {
+            table_data
+                .data_to_persist
+                .mark_partition_to_persist(partition_key.as_ref(), persist_moment);
+
+            sync_state.add(partition_key, None);
         }
+        app.events_dispatcher
+            .dispatch(SyncEvent::InitPartitions(sync_state));
     }
 }

@@ -1,22 +1,19 @@
 use std::sync::Arc;
 
 use rust_extensions::ApplicationStates;
-use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
-    data_readers::DataReadersList,
-    db::DbInstance,
-    db_operations::multipart::MultipartList,
-    db_transactions::ActiveTransactions,
-    persistence::{
-        blob_content_cache::BlobContentCache, updates_to_persist::UpdatesToPersistByTable,
-    },
+    data_readers::DataReadersList, db::DbInstance, db_operations::multipart::MultipartList,
+    db_transactions::ActiveTransactions, persistence::blob_content_cache::BlobContentCache,
     settings_reader::SettingsModel,
 };
 
 use super::{global_states::GlobalStates, logs::Logs, EventsDispatcher, PrometheusMetrics};
 
 pub const APP_VERSION: &'static str = env!("CARGO_PKG_VERSION");
+
+pub const DEFAULT_PERSIST_PERIOD: crate::db_sync::DataSynchronizationPeriod =
+    crate::db_sync::DataSynchronizationPeriod::Sec5;
 
 pub struct AppContext {
     pub db: DbInstance,
@@ -37,17 +34,18 @@ pub struct AppContext {
 
     pub table_api_key: String,
 
-    pub events_dispatcher: EventsDispatcher,
+    pub events_dispatcher: Arc<dyn EventsDispatcher + Send + Sync + 'static>,
     pub blob_content_cache: BlobContentCache,
     pub data_readers: DataReadersList,
 
     pub multipart_list: MultipartList,
-
-    pub updates_to_persist_by_table: UpdatesToPersistByTable,
 }
 
 impl AppContext {
-    pub fn new(settings: &SettingsModel, sender: Option<UnboundedSender<()>>) -> Self {
+    pub fn new(
+        settings: &SettingsModel,
+        events_dispatcher: Arc<dyn EventsDispatcher + Send + Sync + 'static>,
+    ) -> Self {
         AppContext {
             db: DbInstance::new(),
             persist_to_blob: settings.persist_to_blob(),
@@ -60,10 +58,9 @@ impl AppContext {
             location: settings.location.to_string(),
             compress_data: settings.compress_data,
             table_api_key: settings.table_api_key.to_string(),
-            events_dispatcher: EventsDispatcher::new(sender),
+            events_dispatcher,
             blob_content_cache: BlobContentCache::new(),
             data_readers: DataReadersList::new(),
-            updates_to_persist_by_table: UpdatesToPersistByTable::new(),
             multipart_list: MultipartList::new(),
         }
     }

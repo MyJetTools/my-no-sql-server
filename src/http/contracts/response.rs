@@ -1,4 +1,4 @@
-use my_http_server::middlewares::controllers::documentation::{
+use my_http_server_controllers::controllers::documentation::{
     data_types::{HttpDataType, HttpObjectStructure},
     out_results::HttpResult,
 };

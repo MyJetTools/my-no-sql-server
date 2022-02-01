@@ -1,8 +1,6 @@
-use app::AppContext;
-use my_http_server::{
-    middlewares::{swagger::SwaggerMiddleware, StaticFilesMiddleware},
-    MyHttpServer,
-};
+use app::{AppContext, EventsDispatcherProduction};
+use my_http_server::{middlewares::StaticFilesMiddleware, MyHttpServer};
+use my_http_server_controllers::swagger::SwaggerMiddleware;
 use my_no_sql_tcp_shared::MyNoSqlReaderTcpSerializer;
 use my_tcp_sockets::TcpServer;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
@@ -52,7 +50,10 @@ async fn main() {
         None
     };
 
-    let app = AppContext::new(&settings, Some(transactions_sender));
+    let app = AppContext::new(
+        &settings,
+        Arc::new(EventsDispatcherProduction::new(transactions_sender)),
+    );
 
     let app = Arc::new(app);
 
@@ -80,7 +81,7 @@ async fn main() {
         app.clone(),
     )));
 
-    background_tasks.push(tokio::task::spawn(crate::background::sync_handler::start(
+    background_tasks.push(tokio::task::spawn(crate::background::sync::start(
         app.clone(),
         transactions_receiver,
     )));
@@ -89,9 +90,9 @@ async fn main() {
         crate::background::db_rows_expirator::start(app.clone()),
     ));
 
-    background_tasks.push(tokio::task::spawn(
-        crate::background::gc::gc_partitions::start(app.clone()),
-    ));
+    background_tasks.push(tokio::task::spawn(crate::background::gc_partitions::start(
+        app.clone(),
+    )));
 
     let mut http_server = MyHttpServer::new(SocketAddr::from(([0, 0, 0, 0], 5123)));
 

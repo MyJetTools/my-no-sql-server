@@ -1,10 +1,10 @@
 use std::{collections::HashMap, sync::Arc};
 
-use my_http_server::middlewares::controllers::actions::PostAction;
-use my_http_server::middlewares::controllers::documentation::data_types::HttpDataType;
-use my_http_server::middlewares::controllers::documentation::out_results::HttpResult;
-use my_http_server::middlewares::controllers::documentation::HttpActionDescription;
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
+use my_http_server_controllers::controllers::actions::PostAction;
+use my_http_server_controllers::controllers::documentation::data_types::HttpDataType;
+use my_http_server_controllers::controllers::documentation::out_results::HttpResult;
+use my_http_server_controllers::controllers::documentation::HttpActionDescription;
 
 use crate::db_json_entity::JsonTimeStamp;
 
@@ -45,7 +45,7 @@ impl PostAction for BulkDeleteControllerAction {
         .into()
     }
 
-    async fn handle_request(&self, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+    async fn handle_request(&self, ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
         let input_data = BulkDeleteInputContract::parse_http_input(ctx).await?;
 
         let db_table = crate::db_operations::read::table::get(
@@ -54,7 +54,7 @@ impl PostAction for BulkDeleteControllerAction {
         )
         .await?;
 
-        let event_src = EventSource::as_client_request(self.app.as_ref(), input_data.sync_period);
+        let event_src = EventSource::as_client_request(self.app.as_ref());
 
         let rows_to_delete: HashMap<String, Vec<String>> =
             serde_json::from_slice(input_data.body.as_slice()).unwrap();
@@ -65,8 +65,9 @@ impl PostAction for BulkDeleteControllerAction {
             self.app.as_ref(),
             db_table.as_ref(),
             rows_to_delete,
-            Some(event_src),
+            event_src,
             &now,
+            input_data.sync_period.get_sync_moment(),
         )
         .await;
 

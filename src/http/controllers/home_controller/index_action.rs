@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use my_http_server::{
-    middlewares::controllers::{actions::GetAction, documentation::HttpActionDescription},
-    HttpContext, HttpFailResult, HttpOkResult, WebContentType,
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, WebContentType};
+use my_http_server_controllers::controllers::{
+    actions::GetAction, documentation::HttpActionDescription,
 };
 
 use crate::app::AppContext;
@@ -27,7 +27,7 @@ impl GetAction for IndexAction {
         None
     }
 
-    async fn handle_request(&self, _: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+    async fn handle_request(&self, _: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
         let content = format!(
             r###"<html><head><title>{} MyNoSQLServer</title>
             <link href="/css/bootstrap.css" rel="stylesheet" type="text/css" />

@@ -38,11 +38,15 @@ pub async fn start(app: Arc<AppContext>) {
 
             let max_partitions_amount = max_partitions_amount.unwrap();
 
+            let mut persist_moment = now.clone();
+            persist_moment.add_seconds(1);
+
             crate::db_operations::gc::keep_max_partitions_amount::execute(
                 app.as_ref(),
                 db_table,
                 max_partitions_amount,
-                Some(EventSource::as_gc()),
+                EventSource::as_gc(),
+                persist_moment,
             )
             .await;
         }

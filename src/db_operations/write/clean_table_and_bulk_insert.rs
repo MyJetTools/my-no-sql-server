@@ -28,8 +28,7 @@ pub async fn execute(
             InitTableEventSyncData::new(&table_data, db_table.attributes.get_snapshot(), event_src);
 
         app.events_dispatcher
-            .dispatch(SyncEvent::InitTable(sync_data))
-            .await;
+            .dispatch(SyncEvent::InitTable(sync_data));
     }
 
     Ok(())

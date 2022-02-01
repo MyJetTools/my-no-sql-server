@@ -32,8 +32,7 @@ pub async fn subscribe(
         .dispatch(SyncEvent::TableFirstInit(TableFirstInitSyncData {
             db_table,
             data_reader,
-        }))
-        .await;
+        }));
 
     Ok(())
 }

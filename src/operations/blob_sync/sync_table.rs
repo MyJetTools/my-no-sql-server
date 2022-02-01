@@ -4,7 +4,7 @@ use crate::{app::AppContext, db::DbTable};
 
 use my_app_insights::AppInsightsTelemetry;
 
-pub async fn sync_everythin(
+pub async fn sync_everything(
     app: &AppContext,
     db_table: &DbTable,
     azure_connection: &AzureStorageConnectionWithTelemetry<AppInsightsTelemetry>,

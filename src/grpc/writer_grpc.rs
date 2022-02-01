@@ -7,9 +7,6 @@ use futures_core::Stream;
 use std::pin::Pin;
 use tonic::Status;
 
-const DEFAULT_SYNC_PERIOD: crate::db_sync::DataSynchronizationPeriod =
-    crate::db_sync::DataSynchronizationPeriod::Sec5;
-
 const OK_GRPC_RESPONSE: i32 = 0;
 const TABLE_NOT_FOUND_GRPC_RESPONSE: i32 = 1;
 const DB_ROW_NOT_FOUND_GRPC_RESPONSE: i32 = 2;
@@ -31,14 +28,15 @@ impl Writer for MyNoSqlServerWriterGrpcSerice {
     ) -> Result<tonic::Response<()>, tonic::Status> {
         let request = request.into_inner();
 
-        let event_src = EventSource::as_client_request(self.app.as_ref(), DEFAULT_SYNC_PERIOD);
+        let event_src = EventSource::as_client_request(self.app.as_ref());
 
         crate::db_operations::write::table::create_if_not_exist(
             self.app.as_ref(),
             &request.table_name,
             request.persist_table,
             None,
-            Some(event_src),
+            event_src,
+            crate::app::DEFAULT_PERSIST_PERIOD.get_sync_moment(),
         )
         .await;
 
@@ -58,7 +56,7 @@ impl Writer for MyNoSqlServerWriterGrpcSerice {
 
         let persist = db_table.attributes.get_persist();
 
-        let event_src = EventSource::as_client_request(self.app.as_ref(), DEFAULT_SYNC_PERIOD);
+        let event_src = EventSource::as_client_request(self.app.as_ref());
 
         let max_partitions_amount =
             if let Some(max_partitions_amount) = request.max_partitions_amount {
@@ -72,7 +70,7 @@ impl Writer for MyNoSqlServerWriterGrpcSerice {
             db_table,
             persist,
             max_partitions_amount,
-            Some(event_src),
+            event_src,
         )
         .await;
 
@@ -220,12 +218,13 @@ impl Writer for MyNoSqlServerWriterGrpcSerice {
             .await;
 
         if request.commit {
-            let event_src = EventSource::as_client_request(self.app.as_ref(), DEFAULT_SYNC_PERIOD);
+            let event_src = EventSource::as_client_request(self.app.as_ref());
             crate::db_operations::transactions::commit(
                 self.app.as_ref(),
                 &transaction_id,
                 event_src,
                 &now,
+                crate::app::DEFAULT_PERSIST_PERIOD.get_sync_moment(),
             )
             .await
             .unwrap();

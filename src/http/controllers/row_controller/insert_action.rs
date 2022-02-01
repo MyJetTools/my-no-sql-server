@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
-use my_http_server::middlewares::controllers::actions::PostAction;
-use my_http_server::middlewares::controllers::documentation::data_types::HttpDataType;
-use my_http_server::middlewares::controllers::documentation::out_results::HttpResult;
-use my_http_server::middlewares::controllers::documentation::HttpActionDescription;
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
+use my_http_server_controllers::controllers::actions::PostAction;
+use my_http_server_controllers::controllers::documentation::data_types::HttpDataType;
+use my_http_server_controllers::controllers::documentation::out_results::HttpResult;
+use my_http_server_controllers::controllers::documentation::HttpActionDescription;
 
 use crate::db_json_entity::{DbJsonEntity, JsonTimeStamp};
 
@@ -49,7 +49,7 @@ impl PostAction for InsertRowAction {
         .into()
     }
 
-    async fn handle_request(&self, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+    async fn handle_request(&self, ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
         let input_data = InsertInputContract::parse_http_input(ctx).await?;
 
         let db_table = crate::db_operations::read::table::get(
@@ -66,7 +66,7 @@ impl PostAction for InsertRowAction {
         )
         .await?;
 
-        let event_src = EventSource::as_client_request(self.app.as_ref(), input_data.sync_period);
+        let event_src = EventSource::as_client_request(self.app.as_ref());
 
         let now = JsonTimeStamp::now();
 
@@ -76,8 +76,9 @@ impl PostAction for InsertRowAction {
             self.app.as_ref(),
             db_table.as_ref(),
             db_row,
-            Some(event_src),
+            event_src,
             &now,
+            input_data.sync_period.get_sync_moment(),
         )
         .await?;
 

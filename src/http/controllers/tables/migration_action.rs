@@ -1,11 +1,9 @@
 use async_trait::async_trait;
 use flurl::FlUrl;
-use my_http_server::{
-    middlewares::controllers::{
-        actions::PostAction,
-        documentation::{data_types::HttpDataType, out_results::HttpResult, HttpActionDescription},
-    },
-    HttpContext, HttpFailResult, HttpOkResult, WebContentType,
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, WebContentType};
+use my_http_server_controllers::controllers::{
+    actions::PostAction,
+    documentation::{data_types::HttpDataType, out_results::HttpResult, HttpActionDescription},
 };
 use std::sync::Arc;
 
@@ -49,7 +47,7 @@ impl PostAction for MigrationAction {
         .into()
     }
 
-    async fn handle_request(&self, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+    async fn handle_request(&self, ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
         let input_data = TableMigrationInputContract::parse_http_input(ctx).await?;
 
         let db_table = crate::db_operations::read::table::get(
@@ -75,17 +73,15 @@ impl PostAction for MigrationAction {
 
         let partitions_count = rows_by_partition.len();
 
-        let event_src = EventSource::as_client_request(
-            self.app.as_ref(),
-            crate::db_sync::DataSynchronizationPeriod::Sec5,
-        );
+        let event_src = EventSource::as_client_request(self.app.as_ref());
 
         crate::db_operations::write::bulk_insert_or_update::execute(
             self.app.as_ref(),
             db_table,
             rows_by_partition,
-            Some(event_src),
+            event_src,
             &now,
+            crate::db_sync::DataSynchronizationPeriod::Sec5.get_sync_moment(),
         )
         .await;
 

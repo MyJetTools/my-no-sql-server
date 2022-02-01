@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use my_http_server::middlewares::controllers::actions::{DeleteAction, GetAction, PutAction};
-use my_http_server::middlewares::controllers::documentation::out_results::HttpResult;
-use my_http_server::middlewares::controllers::documentation::HttpActionDescription;
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
+use my_http_server_controllers::controllers::actions::{DeleteAction, GetAction, PutAction};
+use my_http_server_controllers::controllers::documentation::out_results::HttpResult;
+use my_http_server_controllers::controllers::documentation::HttpActionDescription;
 
 use crate::db_json_entity::{DbJsonEntity, JsonTimeStamp};
 
@@ -52,7 +52,7 @@ impl GetAction for RowAction {
         .into()
     }
 
-    async fn handle_request(&self, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+    async fn handle_request(&self, ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
         let http_input = GetRowInputModel::parse_http_input(ctx).await?;
 
         let db_table = crate::db_operations::read::table::get(
@@ -133,7 +133,7 @@ impl DeleteAction for RowAction {
         .into()
     }
 
-    async fn handle_request(&self, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+    async fn handle_request(&self, ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
         let http_input = DeleteRowInputModel::parse_http_input(ctx).await?;
 
         let db_table = crate::db_operations::read::table::get(
@@ -142,7 +142,7 @@ impl DeleteAction for RowAction {
         )
         .await?;
 
-        let event_src = EventSource::as_client_request(self.app.as_ref(), http_input.sync_period);
+        let event_src = EventSource::as_client_request(self.app.as_ref());
 
         let now = JsonTimeStamp::now();
         let result: HttpOkResult = db_operations::write::delete_row::execute(
@@ -150,8 +150,9 @@ impl DeleteAction for RowAction {
             db_table,
             http_input.partition_key.as_ref(),
             http_input.row_key.as_ref(),
-            Some(event_src),
+            event_src,
             &now,
+            http_input.sync_period.get_sync_moment(),
         )
         .await
         .into();
@@ -186,7 +187,7 @@ impl PutAction for RowAction {
         .into()
     }
 
-    async fn handle_request(&self, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+    async fn handle_request(&self, ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
         let input_data = ReplaceInputContract::parse_http_input(ctx).await?;
 
         let db_table = crate::db_operations::read::table::get(
@@ -209,16 +210,17 @@ impl PutAction for RowAction {
 
         let db_row = Arc::new(db_json_entity.to_db_row(&now));
 
-        let event_src = EventSource::as_client_request(self.app.as_ref(), input_data.sync_period);
+        let event_src = EventSource::as_client_request(self.app.as_ref());
 
         let result: HttpOkResult = crate::db_operations::write::replace::execute(
             self.app.as_ref(),
             db_table.as_ref(),
             db_json_entity.partition_key,
             db_row,
-            Some(event_src),
+            event_src,
             db_json_entity.time_stamp.unwrap(),
             &now,
+            input_data.sync_period.get_sync_moment(),
         )
         .await?
         .into();

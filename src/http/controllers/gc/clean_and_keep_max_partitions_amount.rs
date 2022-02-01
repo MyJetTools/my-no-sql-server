@@ -1,11 +1,9 @@
 use std::sync::Arc;
 
-use my_http_server::{
-    middlewares::controllers::{
-        actions::PostAction,
-        documentation::{data_types::HttpDataType, out_results::HttpResult, HttpActionDescription},
-    },
-    HttpContext, HttpFailResult, HttpOkResult,
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
+use my_http_server_controllers::controllers::{
+    actions::PostAction,
+    documentation::{data_types::HttpDataType, out_results::HttpResult, HttpActionDescription},
 };
 
 use crate::{app::AppContext, db_sync::EventSource};
@@ -44,23 +42,24 @@ impl PostAction for CleanAndKeepMaxPartitionsAmount {
         .into()
     }
 
-    async fn handle_request(&self, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
-        let input_data =
+    async fn handle_request(&self, ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+        let http_input =
             CleanAndKeepMaxPartitionsAmountInputContract::parse_http_input(ctx).await?;
 
         let db_table = crate::db_operations::read::table::get(
             self.app.as_ref(),
-            input_data.table_name.as_str(),
+            http_input.table_name.as_str(),
         )
         .await?;
 
-        let event_src = EventSource::as_client_request(self.app.as_ref(), input_data.sync_period);
+        let event_src = EventSource::as_client_request(self.app.as_ref());
 
         crate::db_operations::gc::keep_max_partitions_amount::execute(
             self.app.as_ref(),
             db_table,
-            input_data.max_partitions_amount,
-            Some(event_src),
+            http_input.max_partitions_amount,
+            event_src,
+            http_input.sync_period.get_sync_moment(),
         )
         .await;
 

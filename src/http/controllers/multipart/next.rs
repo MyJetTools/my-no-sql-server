@@ -1,11 +1,9 @@
 use std::sync::Arc;
 
-use my_http_server::{
-    middlewares::controllers::{
-        actions::PostAction,
-        documentation::{out_results::IntoHttpResult, HttpActionDescription},
-    },
-    HttpContext, HttpFailResult, HttpOkResult,
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
+use my_http_server_controllers::controllers::{
+    actions::PostAction,
+    documentation::{out_results::IntoHttpResult, HttpActionDescription},
 };
 
 use crate::{app::AppContext, http::controllers::row_controller::models::BaseDbRowContract};
@@ -44,7 +42,7 @@ impl PostAction for NextMultipartController {
         }
         .into()
     }
-    async fn handle_request(&self, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+    async fn handle_request(&self, ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
         let input_data = NextMultipartRequestInputContract::parse_http_input(ctx).await?;
 
         let db_rows = crate::db_operations::read::multipart::get_next(

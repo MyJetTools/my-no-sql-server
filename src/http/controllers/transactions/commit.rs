@@ -2,9 +2,9 @@ use crate::{
     app::AppContext, db_json_entity::JsonTimeStamp, db_sync::EventSource, http::contracts::response,
 };
 use async_trait::async_trait;
-use my_http_server::{
-    middlewares::controllers::{actions::PostAction, documentation::HttpActionDescription},
-    HttpContext, HttpFailResult, HttpOkResult,
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
+use my_http_server_controllers::controllers::{
+    actions::PostAction, documentation::HttpActionDescription,
 };
 use std::sync::Arc;
 
@@ -40,14 +40,11 @@ impl PostAction for CommitTransactionAction {
         .into()
     }
 
-    async fn handle_request(&self, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+    async fn handle_request(&self, ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
         let input_model: ProcessTransactionInputModel =
             ProcessTransactionInputModel::parse_http_input(ctx).await?;
 
-        let even_src = EventSource::as_client_request(
-            self.app.as_ref(),
-            crate::db_sync::DataSynchronizationPeriod::Sec1,
-        );
+        let even_src = EventSource::as_client_request(self.app.as_ref());
 
         let now = JsonTimeStamp::now();
 
@@ -56,6 +53,7 @@ impl PostAction for CommitTransactionAction {
             input_model.transaction_id.as_ref(),
             even_src,
             &now,
+            crate::db_sync::DataSynchronizationPeriod::Sec1.get_sync_moment(),
         )
         .await?;
 

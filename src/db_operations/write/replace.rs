@@ -8,6 +8,7 @@ use crate::{
     db_sync::{states::UpdateRowsSyncData, EventSource, SyncEvent},
 };
 
+use rust_extensions::date_time::DateTimeAsMicroseconds;
 use serde::{Deserialize, Serialize};
 
 use super::WriteOperationResult;
@@ -49,9 +50,10 @@ pub async fn execute(
     db_table: &DbTable,
     partition_key: &str,
     db_row: Arc<DbRow>,
-    event_src: Option<EventSource>,
+    event_src: EventSource,
     entity_timestamp: &str,
     now: &JsonTimeStamp,
+    persist_moment: DateTimeAsMicroseconds,
 ) -> Result<WriteOperationResult, DbOperationError> {
     let mut table_data = db_table.data.write().await;
 
@@ -76,27 +78,28 @@ pub async fn execute(
                 return Err(DbOperationError::RecordNotFound);
             }
         }
-        let remived_result = table_data.remove_row(partition_key, &db_row.row_key, false, now);
+        let removed_result = table_data.remove_row(partition_key, &db_row.row_key, false, now);
 
-        if remived_result.is_none() {
+        if removed_result.is_none() {
             None
         } else {
-            Some(remived_result.unwrap().0)
+            Some(removed_result.unwrap().0)
         }
     };
 
     table_data.insert_row(&db_row, now);
 
-    if let Some(event_src) = event_src {
-        let mut update_rows_state =
-            UpdateRowsSyncData::new(&table_data, db_table.attributes.get_persist(), event_src);
+    table_data
+        .data_to_persist
+        .mark_partition_to_persist(db_row.partition_key.as_str(), persist_moment);
 
-        update_rows_state.add_row(db_row);
+    let mut update_rows_state =
+        UpdateRowsSyncData::new(&table_data, db_table.attributes.get_persist(), event_src);
 
-        app.events_dispatcher
-            .dispatch(SyncEvent::UpdateRows(update_rows_state))
-            .await
-    }
+    update_rows_state.add_row(db_row);
+
+    app.events_dispatcher
+        .dispatch(SyncEvent::UpdateRows(update_rows_state));
 
     match remove_result {
         Some(db_row) => Ok(WriteOperationResult::SingleRow(db_row)),

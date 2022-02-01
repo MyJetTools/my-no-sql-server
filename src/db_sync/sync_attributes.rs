@@ -1,6 +1,7 @@
+use my_http_server_swagger::*;
 use std::collections::HashMap;
 
-use my_http_macros::MyHttpStringEnum;
+use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::app::AppContext;
 
@@ -34,12 +35,27 @@ impl DataSynchronizationPeriod {
             DataSynchronizationPeriod::Asap => "As soon as possible",
         }
     }
+
+    pub fn get_sync_moment(&self) -> DateTimeAsMicroseconds {
+        let mut now = DateTimeAsMicroseconds::now();
+
+        match self {
+            DataSynchronizationPeriod::Immediately => {}
+            DataSynchronizationPeriod::Sec1 => now.add_seconds(1),
+            DataSynchronizationPeriod::Sec5 => now.add_seconds(5),
+            DataSynchronizationPeriod::Sec15 => now.add_seconds(15),
+            DataSynchronizationPeriod::Sec30 => now.add_seconds(30),
+            DataSynchronizationPeriod::Min1 => now.add_minutes(1),
+            DataSynchronizationPeriod::Asap => {}
+        }
+
+        now
+    }
 }
 
 #[derive(Clone)]
 pub struct ClientRequestsSourceData {
     pub locations: Vec<String>,
-    pub sync_period: DataSynchronizationPeriod,
     pub headers: Option<HashMap<String, String>>,
 }
 
@@ -54,12 +70,11 @@ impl EventSource {
         EventSource::GarbageCollector
     }
 
-    pub fn as_client_request(app: &AppContext, sync_period: DataSynchronizationPeriod) -> Self {
+    pub fn as_client_request(app: &AppContext) -> Self {
         let locations = vec![app.location.to_string()];
 
         let data = ClientRequestsSourceData {
             locations,
-            sync_period,
             headers: None,
         };
 

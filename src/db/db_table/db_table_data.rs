@@ -8,6 +8,7 @@ use std::{
 use crate::{
     db::{DbPartition, DbPartitionSnapshot, DbRow},
     db_json_entity::JsonTimeStamp,
+    persistence::DataToPersist,
     rows_with_expiration::RowsWithExpiration,
 };
 
@@ -24,6 +25,7 @@ pub struct DbTableData {
     pub last_read_time: AtomicDateTimeAsMicroseconds,
     pub table_size: usize,
     pub rows_amount: usize,
+    pub data_to_persist: DataToPersist,
     rows_with_expiration: RowsWithExpiration,
 }
 
@@ -38,42 +40,8 @@ impl DbTableData {
             table_size: 0,
             rows_amount: 0,
             rows_with_expiration: RowsWithExpiration::new(),
+            data_to_persist: DataToPersist::new(),
         }
-    }
-
-    pub fn gc_and_keep_max_partitions_amount(
-        &mut self,
-        max_partitions_amount: usize,
-    ) -> Option<HashMap<String, DbPartition>> {
-        if self.partitions.len() <= max_partitions_amount {
-            return None;
-        }
-
-        let mut partitions_to_gc = BTreeMap::new();
-
-        for (partition_key, partition) in &self.partitions {
-            let mut last_read_access = partition.get_last_access().unix_microseconds;
-
-            while partitions_to_gc.contains_key(&last_read_access) {
-                last_read_access += 1;
-            }
-
-            partitions_to_gc.insert(last_read_access, partition_key.to_string());
-        }
-
-        let mut result = HashMap::new();
-
-        for (_, partition_key) in partitions_to_gc {
-            if self.partitions.len() <= max_partitions_amount {
-                break;
-            }
-
-            if let Some(partition) = self.partitions.remove(partition_key.as_str()) {
-                result.insert(partition_key, partition);
-            }
-        }
-
-        Some(result)
     }
 
     pub fn get_partitions_amount(&self) -> usize {
@@ -336,6 +304,41 @@ impl DbTableData {
         }
 
         return Some((removed_rows, partition_is_empty));
+    }
+
+    pub fn gc_and_keep_max_partitions_amount(
+        &mut self,
+        max_partitions_amount: usize,
+    ) -> Option<HashMap<String, DbPartition>> {
+        if self.partitions.len() <= max_partitions_amount {
+            return None;
+        }
+
+        let mut partitions_to_gc = BTreeMap::new();
+
+        for (partition_key, partition) in &self.partitions {
+            let mut last_read_access = partition.get_last_access().unix_microseconds;
+
+            while partitions_to_gc.contains_key(&last_read_access) {
+                last_read_access += 1;
+            }
+
+            partitions_to_gc.insert(last_read_access, partition_key.to_string());
+        }
+
+        let mut result = HashMap::new();
+
+        for (_, partition_key) in partitions_to_gc {
+            if self.partitions.len() <= max_partitions_amount {
+                break;
+            }
+
+            if let Some(partition) = self.partitions.remove(partition_key.as_str()) {
+                result.insert(partition_key, partition);
+            }
+        }
+
+        Some(result)
     }
 
     #[inline]

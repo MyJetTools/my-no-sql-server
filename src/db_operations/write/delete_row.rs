@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use rust_extensions::date_time::DateTimeAsMicroseconds;
+
 use crate::{
     app::AppContext,
     db::DbTable,
@@ -14,20 +16,11 @@ pub async fn execute(
     db_table: Arc<DbTable>,
     partition_key: &str,
     row_key: &str,
-    event_src: Option<EventSource>,
+    event_src: EventSource,
     now: &JsonTimeStamp,
+    persist_moment: DateTimeAsMicroseconds,
 ) -> WriteOperationResult {
     let mut table_data = db_table.data.write().await;
-
-    let sync_data = if let Some(event_src) = event_src {
-        Some(DeleteRowsEventSyncData::new(
-            &table_data,
-            db_table.attributes.get_persist(),
-            event_src,
-        ))
-    } else {
-        None
-    };
 
     let remove_row_result = table_data.remove_row(partition_key, row_key, true, now);
 
@@ -37,17 +30,21 @@ pub async fn execute(
 
     let (removed_row, partition_is_empty) = remove_row_result.unwrap();
 
-    if let Some(mut sync_data) = sync_data {
-        if partition_is_empty {
-            sync_data.new_deleted_partition(partition_key.to_string());
-        } else {
-            sync_data.add_deleted_row(partition_key, removed_row.clone())
-        }
+    let mut sync_data =
+        DeleteRowsEventSyncData::new(&table_data, db_table.attributes.get_persist(), event_src);
 
-        app.events_dispatcher
-            .dispatch(SyncEvent::DeleteRows(sync_data))
-            .await
+    table_data
+        .data_to_persist
+        .mark_partition_to_persist(partition_key, persist_moment);
+
+    if partition_is_empty {
+        sync_data.new_deleted_partition(partition_key.to_string());
+    } else {
+        sync_data.add_deleted_row(partition_key, removed_row.clone())
     }
+
+    app.events_dispatcher
+        .dispatch(SyncEvent::DeleteRows(sync_data));
 
     WriteOperationResult::SingleRow(removed_row).into()
 }

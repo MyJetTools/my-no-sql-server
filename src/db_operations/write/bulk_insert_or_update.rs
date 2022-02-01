@@ -1,5 +1,7 @@
 use std::{collections::BTreeMap, sync::Arc};
 
+use rust_extensions::date_time::DateTimeAsMicroseconds;
+
 use crate::{
     app::AppContext,
     db::{DbRow, DbTable},
@@ -11,32 +13,25 @@ pub async fn execute(
     app: &AppContext,
     db_table: Arc<DbTable>,
     rows_by_partition: BTreeMap<String, Vec<Arc<DbRow>>>,
-    event_src: Option<EventSource>,
+    event_src: EventSource,
     now: &JsonTimeStamp,
+    persist_moment: DateTimeAsMicroseconds,
 ) {
     let mut table_data = db_table.data.write().await;
 
-    let mut update_rows_state = if let Some(event_src) = event_src {
-        Some(UpdateRowsSyncData::new(
-            &table_data,
-            db_table.attributes.get_persist(),
-            event_src,
-        ))
-    } else {
-        None
-    };
+    let mut update_rows_state =
+        UpdateRowsSyncData::new(&table_data, db_table.attributes.get_persist(), event_src);
 
     for (partition_key, db_rows) in rows_by_partition {
         table_data.bulk_insert_or_replace(&partition_key, &db_rows, now);
 
-        if let Some(state) = &mut update_rows_state {
-            state.add_rows(partition_key.as_str(), db_rows);
-        }
+        update_rows_state.add_rows(partition_key.as_str(), db_rows);
+
+        table_data
+            .data_to_persist
+            .mark_partition_to_persist(partition_key.as_str(), persist_moment);
     }
 
-    if let Some(state) = update_rows_state {
-        app.events_dispatcher
-            .dispatch(SyncEvent::UpdateRows(state))
-            .await
-    }
+    app.events_dispatcher
+        .dispatch(SyncEvent::UpdateRows(update_rows_state));
 }

@@ -20,7 +20,8 @@ pub async fn create(
     table_name: &str,
     persist_table: bool,
     max_partitions_amount: Option<usize>,
-    event_src: Option<EventSource>,
+    event_src: EventSource,
+    persist_moment: DateTimeAsMicroseconds,
 ) -> Result<Arc<DbTable>, DbOperationError> {
     let now = DateTimeAsMicroseconds::now();
 
@@ -29,16 +30,20 @@ pub async fn create(
 
     match create_table_result {
         CreateTableResult::JustCreated(db_table) => {
-            if let Some(event_src) = event_src {
-                let table_data = db_table.data.read().await;
+            {
+                let mut table_data = db_table.data.write().await;
+
+                table_data.data_to_persist.mark_persist_attrs();
+                table_data
+                    .data_to_persist
+                    .mark_table_to_persist(persist_moment);
+
                 let state = InitTableEventSyncData::new(
                     &table_data,
                     db_table.attributes.get_snapshot(),
                     event_src,
                 );
-                app.events_dispatcher
-                    .dispatch(SyncEvent::InitTable(state))
-                    .await;
+                app.events_dispatcher.dispatch(SyncEvent::InitTable(state));
             }
 
             return Ok(db_table);
@@ -54,7 +59,8 @@ async fn get_or_create(
     table_name: &str,
     persist_table: bool,
     max_partitions_amount: Option<usize>,
-    event_src: Option<EventSource>,
+    event_src: EventSource,
+    persist_moment: DateTimeAsMicroseconds,
 ) -> Arc<DbTable> {
     let now = DateTimeAsMicroseconds::now();
 
@@ -63,16 +69,21 @@ async fn get_or_create(
 
     match create_table_result {
         CreateTableResult::JustCreated(db_table) => {
-            if let Some(event_src) = event_src {
-                let table_data = db_table.data.read().await;
+            {
+                let mut table_data = db_table.data.write().await;
                 let state = InitTableEventSyncData::new(
                     &table_data,
                     db_table.attributes.get_snapshot(),
                     event_src,
                 );
-                app.events_dispatcher
-                    .dispatch(SyncEvent::InitTable(state))
-                    .await;
+
+                app.events_dispatcher.dispatch(SyncEvent::InitTable(state));
+
+                table_data
+                    .data_to_persist
+                    .mark_table_to_persist(persist_moment);
+
+                table_data.data_to_persist.mark_persist_attrs();
             }
 
             return db_table;
@@ -88,7 +99,8 @@ pub async fn create_if_not_exist(
     table_name: &str,
     persist_table: bool,
     max_partitions_amount: Option<usize>,
-    event_src: Option<EventSource>,
+    event_src: EventSource,
+    persist_moment: DateTimeAsMicroseconds,
 ) -> Arc<DbTable> {
     let db_table = get_or_create(
         app,
@@ -96,6 +108,7 @@ pub async fn create_if_not_exist(
         persist_table,
         max_partitions_amount,
         event_src.clone(),
+        persist_moment,
     )
     .await;
 
@@ -117,33 +130,36 @@ pub async fn set_table_attrubutes(
 
     persist: bool,
     max_partitions_amount: Option<usize>,
-    event_src: Option<EventSource>,
+    event_src: EventSource,
 ) {
     let result = db_table.attributes.update(persist, max_partitions_amount);
 
-    if result {
-        if let Some(event_src) = event_src {
-            app.events_dispatcher
-                .dispatch(SyncEvent::UpdateTableAttributes(
-                    UpdateTableAttributesSyncData {
-                        table_data: SyncTableData {
-                            table_name: db_table.name.to_string(),
-                            persist,
-                        },
-                        event_src,
-                        persist,
-                        max_partitions_amount,
-                    },
-                ))
-                .await;
-        }
+    if !result {
+        return;
     }
+
+    app.events_dispatcher
+        .dispatch(SyncEvent::UpdateTableAttributes(
+            UpdateTableAttributesSyncData {
+                table_data: SyncTableData {
+                    table_name: db_table.name.to_string(),
+                    persist,
+                },
+                event_src,
+                persist,
+                max_partitions_amount,
+            },
+        ));
+
+    let mut table_access = db_table.data.write().await;
+    table_access.data_to_persist.mark_persist_attrs();
 }
 
 pub async fn delete(
     app: &AppContext,
     table_name: &str,
-    event_src: Option<EventSource>,
+    event_src: EventSource,
+    persist_moment: DateTimeAsMicroseconds,
 ) -> Result<(), DbOperationError> {
     let result = app.db.delete_table(table_name).await;
 
@@ -153,16 +169,18 @@ pub async fn delete(
 
     let db_table = result.unwrap();
 
-    if let Some(event_src) = event_src {
-        let table_data = db_table.data.read().await;
-        app.events_dispatcher
-            .dispatch(SyncEvent::DeleteTable(DeleteTableSyncData::new(
-                &table_data,
-                event_src,
-                db_table.attributes.get_persist(),
-            )))
-            .await;
-    }
+    let mut table_data = db_table.data.write().await;
+
+    table_data
+        .data_to_persist
+        .mark_table_to_persist(persist_moment);
+
+    app.events_dispatcher
+        .dispatch(SyncEvent::DeleteTable(DeleteTableSyncData::new(
+            &table_data,
+            event_src,
+            db_table.attributes.get_persist(),
+        )));
 
     Ok(())
 }
