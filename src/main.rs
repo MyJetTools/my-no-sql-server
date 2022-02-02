@@ -108,7 +108,7 @@ async fn main() {
 
     let tcp_server = TcpServer::new(
         "MyNoSqlReader".to_string(),
-        SocketAddr::from(([0, 0, 0, 0], 6421)),
+        SocketAddr::from(([0, 0, 0, 0], 5125)),
     );
 
     tcp_server
