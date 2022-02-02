@@ -19,6 +19,7 @@ impl DataReadersList {
 
     pub async fn add_tcp(&self, tcp_connection: Arc<MyNoSqlTcpConnection>) {
         let id = format!("Tcp-{}", tcp_connection.id);
+        println!("New tcp reader connnected {}", id);
         let connection_info = TcpConnectionInfo::new(tcp_connection);
         let mut write_lock = self.data.write().await;
         write_lock.insert(DataReader::new(
@@ -33,6 +34,7 @@ impl DataReadersList {
     }
 
     pub async fn remove_tcp(&self, tcp_connection: &MyNoSqlTcpConnection) {
+        println!("Tcp reader is disconnnected {}", tcp_connection.id);
         let mut write_lock = self.data.write().await;
         write_lock.remove_tcp(tcp_connection.id);
     }
