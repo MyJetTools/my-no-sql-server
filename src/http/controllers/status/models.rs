@@ -13,11 +13,6 @@ pub struct LocationModel {
 }
 
 #[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
-pub struct QueuesModel {
-    pub persistence: usize,
-}
-
-#[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
 pub struct ReaderModel {
     id: String,
     pub name: String,
@@ -34,15 +29,18 @@ pub struct StatusModel {
     #[serde(rename = "masterNode")]
     pub master_node: Option<String>,
     pub nodes: Vec<NodeModel>,
-    pub queues: QueuesModel,
     pub readers: Vec<ReaderModel>,
     #[serde(rename = "tcpConnections")]
     pub tcp_connections: usize,
+    #[serde(rename = "tablesAmount")]
+    pub tables_amount: usize,
 }
 
 impl StatusModel {
     pub async fn new(app: &AppContext) -> Self {
         let readers = get_readers(app).await;
+        let tables_amount = app.db.get_tables_amount().await;
+
         Self {
             location: LocationModel {
                 id: app.location.to_string(),
@@ -50,9 +48,9 @@ impl StatusModel {
             },
             master_node: None,
             nodes: vec![],
-            queues: QueuesModel { persistence: 0 },
             readers: readers.0,
             tcp_connections: readers.1,
+            tables_amount,
         }
     }
 }

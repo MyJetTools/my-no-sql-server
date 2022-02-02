@@ -6,9 +6,6 @@ use crate::tcp::MyNoSqlTcpConnection;
 
 use super::{tcp_connection::TcpConnectionInfo, DataReader, DataReaderConnection, DataReadersData};
 
-pub struct DataReadersCount {
-    pub tcp: usize,
-}
 pub struct DataReadersList {
     data: RwLock<DataReadersData>,
 }

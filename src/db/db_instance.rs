@@ -23,6 +23,11 @@ impl DbInstance {
             .collect();
     }
 
+    pub async fn get_tables_amount(&self) -> usize {
+        let read_access = self.tables.read().await;
+        read_access.len()
+    }
+
     pub async fn get_tables(&self) -> Vec<Arc<DbTable>> {
         let read_access = self.tables.read().await;
 
