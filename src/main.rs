@@ -1,10 +1,11 @@
 use app::{AppContext, EventsDispatcherProduction};
 use my_http_server::{middlewares::StaticFilesMiddleware, MyHttpServer};
 use my_http_server_controllers::swagger::SwaggerMiddleware;
+use my_logger::MyLogger;
 use my_no_sql_tcp_shared::MyNoSqlReaderTcpSerializer;
 use my_tcp_sockets::TcpServer;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
-use tcp::TcpServerEvents;
+use tcp::{TcpServerEvents, TcpServerLogger};
 
 mod app;
 mod grpc;
@@ -48,6 +49,10 @@ async fn main() {
         &settings,
         Box::new(EventsDispatcherProduction::new(transactions_sender)),
     );
+
+    let tcp_server_logger = TcpServerLogger::new(app.logs.clone());
+
+    let my_logger_for_tcp_server = MyLogger::new(Arc::new(tcp_server_logger));
 
     let app = Arc::new(app);
 
@@ -106,9 +111,10 @@ async fn main() {
 
     http_server.add_middleware(Arc::new(StaticFilesMiddleware::new(None)));
 
-    let tcp_server = TcpServer::new(
+    let tcp_server = TcpServer::new_with_logger(
         "MyNoSqlReader".to_string(),
         SocketAddr::from(([0, 0, 0, 0], 5125)),
+        Arc::new(my_logger_for_tcp_server),
     );
 
     tcp_server

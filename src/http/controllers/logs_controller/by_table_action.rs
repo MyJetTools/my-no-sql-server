@@ -21,7 +21,7 @@ impl LogsByTableAction {
 #[async_trait::async_trait]
 impl GetAction for LogsByTableAction {
     fn get_route(&self) -> &str {
-        "/Logs/ByTable/{table_name}"
+        "/Logs/Table/{table_name}"
     }
 
     fn get_description(&self) -> Option<HttpActionDescription> {

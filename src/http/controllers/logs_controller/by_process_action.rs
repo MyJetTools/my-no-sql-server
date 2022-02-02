@@ -21,7 +21,7 @@ impl LogsByProcessAction {
 #[async_trait::async_trait]
 impl GetAction for LogsByProcessAction {
     fn get_route(&self) -> &str {
-        "/Logs/ByProcess/{process_name}"
+        "/Logs/Process/{process_name}"
     }
 
     fn get_description(&self) -> Option<HttpActionDescription> {
@@ -29,7 +29,7 @@ impl GetAction for LogsByProcessAction {
     }
 
     async fn handle_request(&self, ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
-        let process_name = get_process_name(ctx.request.get_path());
+        let process_name = ctx.request.get_value_from_path_optional("process_name")?;
 
         if process_name.is_none() {
             return render_select_process().await.into();
@@ -69,23 +69,6 @@ impl GetAction for LogsByProcessAction {
             }
         }
     }
-}
-
-fn get_process_name(path: &str) -> Option<&str> {
-    let segments = path.split('/');
-
-    let mut value = "";
-    let mut amount: usize = 0;
-    for segment in segments {
-        value = segment;
-        amount += 1;
-    }
-
-    if amount == 4 {
-        return Some(value);
-    }
-
-    None
 }
 
 async fn render_select_process() -> HttpOkResult {

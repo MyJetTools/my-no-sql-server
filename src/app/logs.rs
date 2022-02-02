@@ -27,6 +27,7 @@ impl SystemProcess {
         return result;
     }
     pub fn parse(value: &str) -> Option<Self> {
+        let value = value.to_ascii_lowercase();
         if value == "system" {
             return Some(SystemProcess::System);
         }

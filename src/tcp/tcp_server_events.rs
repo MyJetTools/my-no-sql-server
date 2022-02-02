@@ -3,7 +3,10 @@ use std::sync::Arc;
 use my_no_sql_tcp_shared::{MyNoSqlReaderTcpSerializer, TcpContract};
 use my_tcp_sockets::{tcp_connection::SocketConnection, ConnectionEvent, SocketEventCallback};
 
-use crate::{app::AppContext, operations::OperationError};
+use crate::{
+    app::{logs::SystemProcess, AppContext},
+    operations::OperationError,
+};
 
 pub type MyNoSqlTcpConnection = SocketConnection<TcpContract, MyNoSqlReaderTcpSerializer>;
 
@@ -28,6 +31,15 @@ impl TcpServerEvents {
             TcpContract::Greeting { name } => {
                 if let Some(data_reader) = self.app.data_readers.get_tcp(connection.as_ref()).await
                 {
+                    self.app
+                        .logs
+                        .add_info(
+                            None,
+                            SystemProcess::TcpSocket,
+                            format!("Connection name update to {}", name),
+                            format!("ID: {}", connection.id),
+                        )
+                        .await;
                     data_reader.set_name(name).await;
                 }
             }
@@ -64,12 +76,28 @@ impl SocketEventCallback<TcpContract, MyNoSqlReaderTcpSerializer> for TcpServerE
     ) {
         match connection_event {
             ConnectionEvent::Connected(connection) => {
-                println!("New tcp connection: {}", connection.id);
+                self.app
+                    .logs
+                    .add_info(
+                        None,
+                        SystemProcess::TcpSocket,
+                        "New tcp connection".to_string(),
+                        format!("ID: {}", connection.id),
+                    )
+                    .await;
 
                 self.app.data_readers.add_tcp(connection).await;
             }
             ConnectionEvent::Disconnected(connection) => {
-                println!("Connection {} is disconnected", connection.id);
+                self.app
+                    .logs
+                    .add_info(
+                        None,
+                        SystemProcess::TcpSocket,
+                        "Disconnect".to_string(),
+                        format!("ID: {}", connection.id),
+                    )
+                    .await;
                 self.app.data_readers.remove_tcp(connection.as_ref()).await;
             }
             ConnectionEvent::Payload {
