@@ -36,10 +36,13 @@ pub struct StatusModel {
     pub nodes: Vec<NodeModel>,
     pub queues: QueuesModel,
     pub readers: Vec<ReaderModel>,
+    #[serde(rename = "tcpConnections")]
+    pub tcp_connections: usize,
 }
 
 impl StatusModel {
     pub async fn new(app: &AppContext) -> Self {
+        let readers = get_readers(app).await;
         Self {
             location: LocationModel {
                 id: app.location.to_string(),
@@ -48,16 +51,23 @@ impl StatusModel {
             master_node: None,
             nodes: vec![],
             queues: QueuesModel { persistence: 0 },
-            readers: get_readers(app).await,
+            readers: readers.0,
+            tcp_connections: readers.1,
         }
     }
 }
 
-async fn get_readers(app: &AppContext) -> Vec<ReaderModel> {
+async fn get_readers(app: &AppContext) -> (Vec<ReaderModel>, usize) {
     let mut result = Vec::new();
     let now = DateTimeAsMicroseconds::now();
 
+    let mut tcp_count = 0;
+
     for data_reader in app.data_readers.get_all().await {
+        match &data_reader.connection {
+            crate::data_readers::DataReaderConnection::Tcp(_) => tcp_count += 1,
+        }
+
         let metrics = data_reader.get_metrics().await;
 
         if let Some(name) = metrics.name {
@@ -75,5 +85,5 @@ async fn get_readers(app: &AppContext) -> Vec<ReaderModel> {
         }
     }
 
-    result
+    (result, tcp_count)
 }
