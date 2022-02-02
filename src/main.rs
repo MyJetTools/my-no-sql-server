@@ -42,17 +42,11 @@ async fn main() {
 
     let telemetry_writer = Arc::new(AppInsightsTelemetry::new());
 
-    let connection = if let Some(mut connection) = settings.get_azure_connection() {
-        connection.telemetry = Some(telemetry_writer.clone());
-
-        Some(Arc::new(connection))
-    } else {
-        None
-    };
+    let connection = settings.get_azure_connection(telemetry_writer.clone());
 
     let app = AppContext::new(
         &settings,
-        Arc::new(EventsDispatcherProduction::new(transactions_sender)),
+        Box::new(EventsDispatcherProduction::new(transactions_sender)),
     );
 
     let app = Arc::new(app);
@@ -96,7 +90,10 @@ async fn main() {
 
     let mut http_server = MyHttpServer::new(SocketAddr::from(([0, 0, 0, 0], 5123)));
 
-    let controllers = Arc::new(crate::http::controllers::builder::build(app.clone()));
+    let controllers = Arc::new(crate::http::controllers::builder::build(
+        app.clone(),
+        connection.clone(),
+    ));
 
     let swagger_middleware = SwaggerMiddleware::new(
         controllers.clone(),

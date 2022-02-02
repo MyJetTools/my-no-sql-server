@@ -34,7 +34,7 @@ pub struct AppContext {
 
     pub table_api_key: String,
 
-    pub events_dispatcher: Arc<dyn EventsDispatcher + Send + Sync + 'static>,
+    pub events_dispatcher: Box<dyn EventsDispatcher + Send + Sync + 'static>,
     pub blob_content_cache: BlobContentCache,
     pub data_readers: DataReadersList,
 
@@ -44,7 +44,7 @@ pub struct AppContext {
 impl AppContext {
     pub fn new(
         settings: &SettingsModel,
-        events_dispatcher: Arc<dyn EventsDispatcher + Send + Sync + 'static>,
+        events_dispatcher: Box<dyn EventsDispatcher + Send + Sync + 'static>,
     ) -> Self {
         AppContext {
             db: DbInstance::new(),

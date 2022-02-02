@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use my_azure_storage_sdk::AzureStorageConnection;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
@@ -156,12 +157,13 @@ pub async fn set_table_attrubutes(
 }
 
 pub async fn delete(
-    app: &AppContext,
-    table_name: &str,
+    app: Arc<AppContext>,
+    table_name: String,
     event_src: EventSource,
     persist_moment: DateTimeAsMicroseconds,
+    azure_connection: Option<Arc<AzureStorageConnection>>,
 ) -> Result<(), DbOperationError> {
-    let result = app.db.delete_table(table_name).await;
+    let result = app.db.delete_table(table_name.as_str()).await;
 
     if result.is_none() {
         return Err(DbOperationError::TableNotFound(table_name.to_string()));
@@ -169,18 +171,28 @@ pub async fn delete(
 
     let db_table = result.unwrap();
 
-    let mut table_data = db_table.data.write().await;
+    {
+        let mut table_data = db_table.data.write().await;
 
-    table_data
-        .data_to_persist
-        .mark_table_to_persist(persist_moment);
+        table_data
+            .data_to_persist
+            .mark_table_to_persist(persist_moment);
 
-    app.events_dispatcher
-        .dispatch(SyncEvent::DeleteTable(DeleteTableSyncData::new(
-            &table_data,
-            event_src,
-            db_table.attributes.get_persist(),
-        )));
+        app.events_dispatcher
+            .dispatch(SyncEvent::DeleteTable(DeleteTableSyncData::new(
+                &table_data,
+                event_src,
+                db_table.attributes.get_persist(),
+            )));
+    }
+
+    if let Some(azure_connection) = azure_connection {
+        tokio::spawn(crate::blob_operations::delete_table::with_retries(
+            app,
+            azure_connection,
+            table_name,
+        ));
+    }
 
     Ok(())
 }

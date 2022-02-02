@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use my_azure_storage_sdk::AzureStorageConnection;
 use my_http_server_controllers::controllers::{
     actions::{DeleteAction, GetAction, PostAction, PutAction},
     documentation::{data_types::HttpDataType, out_results::HttpResult, HttpActionDescription},
@@ -19,11 +20,18 @@ use super::{
 
 pub struct TablesController {
     app: Arc<AppContext>,
+    azure_connection: Option<Arc<AzureStorageConnection>>,
 }
 
 impl TablesController {
-    pub fn new(app: Arc<AppContext>) -> Self {
-        Self { app }
+    pub fn new(
+        app: Arc<AppContext>,
+        azure_connection: Option<Arc<AzureStorageConnection>>,
+    ) -> Self {
+        Self {
+            app,
+            azure_connection,
+        }
     }
 }
 
@@ -200,11 +208,13 @@ impl DeleteAction for TablesController {
         let sync_period = query.get_sync_period();
 
         let event_src = EventSource::as_client_request(self.app.as_ref());
+
         crate::db_operations::write::table::delete(
-            self.app.as_ref(),
-            table_name,
+            self.app.clone(),
+            table_name.to_string(),
             event_src,
             sync_period.get_sync_moment(),
+            self.azure_connection.clone(),
         )
         .await?;
 

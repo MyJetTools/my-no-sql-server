@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use my_azure_storage_sdk::AzureStorageConnectionWithTelemetry;
+use my_azure_storage_sdk::AzureStorageConnection;
 use rust_extensions::StopWatch;
 
 use crate::{
@@ -8,11 +8,9 @@ use crate::{
     db::{read_as_json::DbEntityAsJsonArray, DbPartitionSnapshot},
 };
 
-use my_app_insights::AppInsightsTelemetry;
-
 pub async fn with_retries(
     app: &AppContext,
-    azure_connection: &AzureStorageConnectionWithTelemetry<AppInsightsTelemetry>,
+    azure_connection: &AzureStorageConnection,
     table_name: &str,
     partition_key: &str,
     snapshot: DbPartitionSnapshot,

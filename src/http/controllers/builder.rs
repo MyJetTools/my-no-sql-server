@@ -1,16 +1,23 @@
 use std::sync::Arc;
 
+use my_azure_storage_sdk::AzureStorageConnection;
 use my_http_server_controllers::controllers::ControllersMiddleware;
 
 use crate::app::AppContext;
 
-pub fn build(app: Arc<AppContext>) -> ControllersMiddleware {
+pub fn build(
+    app: Arc<AppContext>,
+    azure_connection: Option<Arc<AzureStorageConnection>>,
+) -> ControllersMiddleware {
     let mut result = ControllersMiddleware::new();
 
     let api_controller = super::api::ApiController::new();
     result.register_get_action(Arc::new(api_controller));
 
-    let tables_controller = Arc::new(super::tables::TablesController::new(app.clone()));
+    let tables_controller = Arc::new(super::tables::TablesController::new(
+        app.clone(),
+        azure_connection,
+    ));
     result.register_get_action(tables_controller.clone());
     result.register_post_action(tables_controller.clone());
     result.register_put_action(tables_controller.clone());

@@ -1,14 +1,10 @@
 use std::{sync::Arc, time::Duration};
 
-use my_app_insights::AppInsightsTelemetry;
-use my_azure_storage_sdk::AzureStorageConnectionWithTelemetry;
+use my_azure_storage_sdk::AzureStorageConnection;
 
 use crate::{app::AppContext, persistence::PersistResult};
 
-pub async fn start(
-    app: Arc<AppContext>,
-    azure_connection: Arc<AzureStorageConnectionWithTelemetry<AppInsightsTelemetry>>,
-) {
+pub async fn start(app: Arc<AppContext>, azure_connection: Arc<AzureStorageConnection>) {
     let one_sec = Duration::from_secs(1);
     while !app.states.is_initialized() {
         tokio::time::sleep(one_sec).await;
@@ -27,10 +23,7 @@ pub async fn start(
     }
 }
 
-async fn iteration(
-    app: Arc<AppContext>,
-    azure_connection: Arc<AzureStorageConnectionWithTelemetry<AppInsightsTelemetry>>,
-) {
+async fn iteration(app: Arc<AppContext>, azure_connection: Arc<AzureStorageConnection>) {
     let is_shutting_down = app.states.is_shutting_down();
 
     let tables = app.db.get_tables().await;

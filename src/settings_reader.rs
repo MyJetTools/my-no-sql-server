@@ -1,7 +1,7 @@
 use my_app_insights::AppInsightsTelemetry;
-use my_azure_storage_sdk::AzureStorageConnectionWithTelemetry;
+use my_azure_storage_sdk::AzureStorageConnection;
 use serde::{Deserialize, Serialize};
-use std::env;
+use std::{env, sync::Arc};
 use tokio::{fs::File, io::AsyncReadExt};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -29,15 +29,15 @@ impl SettingsModel {
 
     pub fn get_azure_connection(
         &self,
-    ) -> Option<AzureStorageConnectionWithTelemetry<AppInsightsTelemetry>> {
+        telemetry: Arc<AppInsightsTelemetry>,
+    ) -> Option<Arc<AzureStorageConnection>> {
         if !self.persist_to_blob() {
             return None;
         }
-        let result = AzureStorageConnectionWithTelemetry::from_conn_string(
-            self.persistence_dest.as_str(),
-            None,
-        );
-        return Some(result);
+
+        let mut result = AzureStorageConnection::from_conn_string(self.persistence_dest.as_str());
+        result.telemetry = Some(telemetry);
+        return Some(Arc::new(result));
     }
 }
 
