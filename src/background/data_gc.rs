@@ -4,7 +4,7 @@ use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
     app::{logs::SystemProcess, AppContext},
-    db_sync::{DataSynchronizationPeriod, SyncAttributes},
+    db_sync::EventSource,
 };
 
 pub async fn start(app: Arc<AppContext>) {
@@ -17,13 +17,6 @@ pub async fn start(app: Arc<AppContext>) {
             "Started".to_string(),
         )
         .await;
-
-    let transaction_attr = SyncAttributes {
-        headers: None,
-        event_source: crate::db_sync::EventSource::GarbageCollector,
-        locations: vec![app.location.to_string()],
-        sync_period: DataSynchronizationPeriod::Sec1,
-    };
 
     let multipart_timeout = Duration::from_secs(60);
 
@@ -45,11 +38,15 @@ pub async fn start(app: Arc<AppContext>) {
 
             let max_partitions_amount = max_partitions_amount.unwrap();
 
+            let mut persist_moment = now.clone();
+            persist_moment.add_seconds(1);
+
             crate::db_operations::gc::keep_max_partitions_amount::execute(
                 app.as_ref(),
                 db_table,
                 max_partitions_amount,
-                Some(transaction_attr.clone()),
+                EventSource::as_gc(),
+                persist_moment,
             )
             .await;
         }

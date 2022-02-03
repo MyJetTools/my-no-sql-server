@@ -1,19 +1,16 @@
 use crate::{
     app::AppContext,
+    db_sync::EventSource,
     http::contracts::{input_params::MyNoSqlQueryString, input_params_doc},
 };
 use async_trait::async_trait;
+use my_http_server_controllers::controllers::{
+    actions::PostAction,
+    documentation::{out_results::HttpResult, HttpActionDescription},
+};
 use std::{result::Result, sync::Arc};
 
-use my_http_server::{
-    middlewares::controllers::{
-        actions::PostAction,
-        documentation::{
-            data_types::HttpObjectStructure, out_results::HttpResult, HttpActionDescription,
-        },
-    },
-    HttpContext, HttpFailResult, HttpOkResult,
-};
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
 
 use super::models::TableContract;
 
@@ -29,8 +26,8 @@ impl CreateIfNotExistsAction {
 
 #[async_trait]
 impl PostAction for CreateIfNotExistsAction {
-    fn get_additional_types(&self) -> Option<Vec<HttpObjectStructure>> {
-        None
+    fn get_route(&self) -> &str {
+        "/Tables/CreateIfNotExists"
     }
 
     fn get_description(&self) -> Option<HttpActionDescription> {
@@ -53,8 +50,8 @@ impl PostAction for CreateIfNotExistsAction {
         .into()
     }
 
-    async fn handle_request(&self, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
-        let query = ctx.get_query_string()?;
+    async fn handle_request(&self, ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+        let query = ctx.request.get_query_string()?;
 
         let table_name = query.get_table_name()?;
         let persist_table = query.get_persist_table();
@@ -63,15 +60,15 @@ impl PostAction for CreateIfNotExistsAction {
 
         let sync_period = query.get_sync_period();
 
-        let attr =
-            crate::operations::transaction_attributes::create(self.app.as_ref(), sync_period);
+        let even_src = EventSource::as_client_request(self.app.as_ref());
 
         let table = crate::db_operations::write::table::create_if_not_exist(
             self.app.as_ref(),
             table_name,
             persist_table,
             max_partitions_amount,
-            Some(attr),
+            even_src,
+            sync_period.get_sync_moment(),
         )
         .await;
 

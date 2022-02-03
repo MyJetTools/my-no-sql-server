@@ -9,6 +9,9 @@ class HtmlStatusBar {
     private static persistenceQueue: number;
 
 
+    private static tcpConnections: number;
+
+
     public static layout(): string {
         return '<div id="status-bar">' +
             '<table><tr>' +
@@ -27,11 +30,12 @@ class HtmlStatusBar {
             '<td>Compression: <b id="compression" style="text-shadow: 0 0 2px white;"></b></td>' +
             '<td><div class="statusbar-separator"></div></td>' +
 
-            '<td>Connected to master node: <b id="master-node" style="text-shadow: 0 0 1px white;"></b></td>' +
+
+            '<td>Tcp: <b id="tcp-connections" style="text-shadow: 0 0 2px white;"></b></td>' +
             '<td><div class="statusbar-separator"></div></td>' +
 
-
-            '<td>Persistence queue: <b id="persistence-queue" style="text-shadow: 0 0 1px white;"></b></td>' +
+            '<td>Connected to master node: <b id="master-node" style="text-shadow: 0 0 1px white;"></b></td>' +
+            '<td><div class="statusbar-separator"></div></td>' +
 
             '</tr></table></div>';
     }
@@ -70,9 +74,9 @@ class HtmlStatusBar {
                 : '<span style="color: gray">---</span>';
         }
 
-        if (this.persistenceQueue != data.queues.persistence) {
-            this.persistenceQueue = data.queues.persistence;
-            document.getElementById('persistence-queue').innerHTML = this.persistenceQueue.toString()
+        if (this.tcpConnections != data.tcpConnections) {
+            this.tcpConnections = data.tcpConnections;
+            document.getElementById('tcp-connections').innerHTML = this.tcpConnections.toString()
         }
     }
 

@@ -1,22 +1,22 @@
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
-use my_azure_storage_sdk::AzureStorageConnectionWithTelemetry;
+use my_azure_storage_sdk::AzureStorageConnection;
 
 use crate::app::AppContext;
 
-use my_app_insights::AppInsightsTelemetry;
-
 pub async fn with_retries(
-    app: &AppContext,
-    azure_connection: &AzureStorageConnectionWithTelemetry<AppInsightsTelemetry>,
-    table_name: &str,
+    app: Arc<AppContext>,
+    azure_connection: Arc<AzureStorageConnection>,
+    table_name: String,
 ) {
     let mut attempt_no = 0;
     loop {
-        let result = super::table::delete(azure_connection, table_name).await;
+        let result = super::table::delete(azure_connection.as_ref(), table_name.as_str()).await;
 
         if result.is_ok() {
-            app.blob_content_cache.delete_table(table_name).await;
+            app.blob_content_cache
+                .delete_table(table_name.as_str())
+                .await;
 
             app.logs
                 .add_info(

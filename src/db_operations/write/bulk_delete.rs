@@ -1,30 +1,26 @@
 use std::collections::HashMap;
 
+use rust_extensions::date_time::DateTimeAsMicroseconds;
+
 use crate::{
     app::AppContext,
     db::DbTable,
     db_json_entity::JsonTimeStamp,
-    db_sync::{states::DeleteRowsEventSyncData, SyncAttributes, SyncEvent},
+    db_sync::{states::DeleteRowsEventSyncData, EventSource, SyncEvent},
 };
 
 pub async fn execute(
     app: &AppContext,
     db_table: &DbTable,
     rows_to_delete: HashMap<String, Vec<String>>,
-    attr: Option<SyncAttributes>,
+    event_src: EventSource,
     now: &JsonTimeStamp,
+    persist_moment: DateTimeAsMicroseconds,
 ) {
     let mut table_data = db_table.data.write().await;
 
-    let mut sync_data = if let Some(attr) = attr {
-        Some(DeleteRowsEventSyncData::new(
-            &table_data,
-            db_table.attributes.get_persist(),
-            attr,
-        ))
-    } else {
-        None
-    };
+    let mut sync_data =
+        DeleteRowsEventSyncData::new(&table_data, db_table.attributes.get_persist(), event_src);
 
     for (partition_key, row_keys) in rows_to_delete {
         let removed_rows_result = table_data.bulk_remove_rows(
@@ -33,20 +29,20 @@ pub async fn execute(
             true,
             now,
         );
-        if let Some(sync_data) = &mut sync_data {
-            if let Some(removed_rows_result) = removed_rows_result {
-                if removed_rows_result.1 {
-                    sync_data.add_deleted_rows(partition_key.as_str(), &removed_rows_result.0);
-                } else {
-                    sync_data.add_deleted_rows(partition_key.as_str(), &removed_rows_result.0);
-                }
+
+        if let Some(removed_rows_result) = removed_rows_result {
+            table_data
+                .data_to_persist
+                .mark_partition_to_persist(partition_key.as_str(), persist_moment);
+
+            if removed_rows_result.1 {
+                sync_data.new_deleted_partition(partition_key);
+            } else {
+                sync_data.add_deleted_rows(partition_key.as_str(), &removed_rows_result.0);
             }
         }
     }
 
-    if let Some(sync_data) = sync_data {
-        app.events_dispatcher
-            .dispatch(SyncEvent::DeleteRows(sync_data))
-            .await;
-    }
+    app.events_dispatcher
+        .dispatch(SyncEvent::DeleteRows(sync_data));
 }

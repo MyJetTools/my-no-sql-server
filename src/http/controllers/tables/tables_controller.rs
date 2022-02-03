@@ -1,19 +1,17 @@
 use async_trait::async_trait;
+use my_azure_storage_sdk::AzureStorageConnection;
+use my_http_server_controllers::controllers::{
+    actions::{DeleteAction, GetAction, PostAction, PutAction},
+    documentation::{data_types::HttpDataType, out_results::HttpResult, HttpActionDescription},
+};
 use std::sync::Arc;
 
-use my_http_server::{
-    middlewares::controllers::{
-        actions::{DeleteAction, GetAction, PostAction, PutAction},
-        documentation::{
-            data_types::{HttpDataType, HttpObjectStructure},
-            out_results::HttpResult,
-            HttpActionDescription,
-        },
-    },
-    HttpContext, HttpFailResult, HttpOkResult,
-};
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
 
-use crate::{app::AppContext, http::contracts::http_ctx_extensions::StandardParamsReader};
+use crate::{
+    app::AppContext, db_sync::EventSource,
+    http::contracts::http_ctx_extensions::StandardParamsReader,
+};
 
 use super::{
     super::super::contracts::{input_params::*, input_params_doc, response},
@@ -22,18 +20,25 @@ use super::{
 
 pub struct TablesController {
     app: Arc<AppContext>,
+    azure_connection: Option<Arc<AzureStorageConnection>>,
 }
 
 impl TablesController {
-    pub fn new(app: Arc<AppContext>) -> Self {
-        Self { app }
+    pub fn new(
+        app: Arc<AppContext>,
+        azure_connection: Option<Arc<AzureStorageConnection>>,
+    ) -> Self {
+        Self {
+            app,
+            azure_connection,
+        }
     }
 }
 
 #[async_trait]
 impl GetAction for TablesController {
-    fn get_additional_types(&self) -> Option<Vec<HttpObjectStructure>> {
-        None
+    fn get_route(&self) -> &str {
+        "/Tables/List"
     }
 
     fn get_description(&self) -> Option<HttpActionDescription> {
@@ -52,7 +57,7 @@ impl GetAction for TablesController {
         .into()
     }
 
-    async fn handle_request(&self, _ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+    async fn handle_request(&self, _ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
         let tables = self.app.db.get_tables().await;
 
         let mut response: Vec<TableContract> = vec![];
@@ -67,8 +72,8 @@ impl GetAction for TablesController {
 
 #[async_trait]
 impl PostAction for TablesController {
-    fn get_additional_types(&self) -> Option<Vec<HttpObjectStructure>> {
-        None
+    fn get_route(&self) -> &str {
+        "/Tables/Create"
     }
 
     fn get_description(&self) -> Option<HttpActionDescription> {
@@ -76,7 +81,7 @@ impl PostAction for TablesController {
             controller_name: super::consts::CONTROLLER_NAME,
             description: "Create Table",
 
-            input_params: Some(CreateTableCotnract::get_input_params()),
+            input_params: CreateTableCotnract::get_input_params().into(),
             results: vec![
                 HttpResult {
                     http_code: 202,
@@ -90,8 +95,8 @@ impl PostAction for TablesController {
         .into()
     }
 
-    async fn handle_request(&self, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
-        let query = ctx.get_query_string()?;
+    async fn handle_request(&self, ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+        let query = ctx.request.get_query_string()?;
 
         let table_name = query.get_table_name()?;
 
@@ -101,15 +106,15 @@ impl PostAction for TablesController {
 
         let sync_period = query.get_sync_period();
 
-        let attr =
-            crate::operations::transaction_attributes::create(self.app.as_ref(), sync_period);
+        let even_src = EventSource::as_client_request(self.app.as_ref());
 
         crate::db_operations::write::table::create(
             self.app.as_ref(),
             table_name,
             persist_table,
             max_partitions_amount,
-            Some(attr),
+            even_src,
+            sync_period.get_sync_moment(),
         )
         .await?;
 
@@ -118,8 +123,8 @@ impl PostAction for TablesController {
 }
 #[async_trait]
 impl PutAction for TablesController {
-    fn get_additional_types(&self) -> Option<Vec<HttpObjectStructure>> {
-        None
+    fn get_route(&self) -> &str {
+        "/Tables/Clean"
     }
 
     fn get_description(&self) -> Option<HttpActionDescription> {
@@ -141,8 +146,8 @@ impl PutAction for TablesController {
         .into()
     }
 
-    async fn handle_request(&self, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
-        let query = ctx.get_query_string()?;
+    async fn handle_request(&self, ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+        let query = ctx.request.get_query_string()?;
 
         let table_name = query.get_table_name()?;
         let sync_period = query.get_sync_period();
@@ -150,11 +155,15 @@ impl PutAction for TablesController {
         let db_table =
             crate::db_operations::read::table::get(self.app.as_ref(), table_name).await?;
 
-        let attr =
-            crate::operations::transaction_attributes::create(self.app.as_ref(), sync_period);
+        let event_src = EventSource::as_client_request(self.app.as_ref());
 
-        crate::db_operations::write::clean_table::execute(self.app.as_ref(), db_table, Some(attr))
-            .await;
+        crate::db_operations::write::clean_table::execute(
+            self.app.as_ref(),
+            db_table,
+            event_src,
+            sync_period.get_sync_moment(),
+        )
+        .await;
 
         return Ok(HttpOkResult::Empty);
     }
@@ -162,8 +171,8 @@ impl PutAction for TablesController {
 
 #[async_trait]
 impl DeleteAction for TablesController {
-    fn get_additional_types(&self) -> Option<Vec<HttpObjectStructure>> {
-        None
+    fn get_route(&self) -> &str {
+        "/Tables/Delete"
     }
 
     fn get_description(&self) -> Option<HttpActionDescription> {
@@ -186,10 +195,10 @@ impl DeleteAction for TablesController {
         .into()
     }
 
-    async fn handle_request(&self, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
-        let query = ctx.get_query_string()?;
+    async fn handle_request(&self, ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+        let query = ctx.request.get_query_string()?;
 
-        let api_key = ctx.get_api_key()?;
+        let api_key = ctx.request.get_api_key()?;
 
         if api_key != self.app.table_api_key.as_str() {
             return Err(HttpFailResult::as_unauthorized(None));
@@ -198,11 +207,16 @@ impl DeleteAction for TablesController {
         let table_name = query.get_table_name()?;
         let sync_period = query.get_sync_period();
 
-        let attr =
-            crate::operations::transaction_attributes::create(self.app.as_ref(), sync_period);
+        let event_src = EventSource::as_client_request(self.app.as_ref());
 
-        crate::db_operations::write::table::delete(self.app.as_ref(), table_name, Some(attr))
-            .await?;
+        crate::db_operations::write::table::delete(
+            self.app.clone(),
+            table_name.to_string(),
+            event_src,
+            sync_period.get_sync_moment(),
+            self.azure_connection.clone(),
+        )
+        .await?;
 
         return Ok(HttpOkResult::Empty);
     }

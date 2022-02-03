@@ -1,18 +1,12 @@
 use async_trait::async_trait;
-use my_http_server::{
-    middlewares::controllers::{
-        actions::{GetAction, PostAction},
-        documentation::{
-            data_types::{HttpDataType, HttpObjectStructure},
-            out_results::HttpResult,
-            HttpActionDescription,
-        },
-    },
-    HttpContext, HttpFailResult, HttpOkResult,
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
+use my_http_server_controllers::controllers::{
+    actions::{GetAction, PostAction},
+    documentation::{data_types::HttpDataType, out_results::HttpResult, HttpActionDescription},
 };
 
 use super::super::super::contracts::{input_params::*, input_params_doc, response};
-use crate::app::AppContext;
+use crate::{app::AppContext, db_sync::EventSource};
 use std::{result::Result, sync::Arc};
 
 pub struct TablesController2 {
@@ -27,8 +21,8 @@ impl TablesController2 {
 
 #[async_trait]
 impl GetAction for TablesController2 {
-    fn get_additional_types(&self) -> Option<Vec<HttpObjectStructure>> {
-        None
+    fn get_route(&self) -> &str {
+        "/Tables/PartitionsCount"
     }
 
     fn get_description(&self) -> Option<HttpActionDescription> {
@@ -50,8 +44,8 @@ impl GetAction for TablesController2 {
         .into()
     }
 
-    async fn handle_request(&self, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
-        let query = ctx.get_query_string()?;
+    async fn handle_request(&self, ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+        let query = ctx.request.get_query_string()?;
 
         let table_name = query.get_table_name()?;
 
@@ -68,8 +62,8 @@ impl GetAction for TablesController2 {
 
 #[async_trait]
 impl PostAction for TablesController2 {
-    fn get_additional_types(&self) -> Option<Vec<HttpObjectStructure>> {
-        None
+    fn get_route(&self) -> &str {
+        "/Tables/UpdatePersist"
     }
 
     fn get_description(&self) -> Option<HttpActionDescription> {
@@ -94,11 +88,10 @@ impl PostAction for TablesController2 {
         .into()
     }
 
-    async fn handle_request(&self, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
-        let query = ctx.get_query_string()?;
+    async fn handle_request(&self, ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+        let query = ctx.request.get_query_string()?;
 
         let table_name = query.get_table_name()?;
-        let sync_period = query.get_sync_period();
 
         let persist = query.get_persist_table();
 
@@ -107,15 +100,14 @@ impl PostAction for TablesController2 {
         let db_table =
             crate::db_operations::read::table::get(self.app.as_ref(), table_name).await?;
 
-        let attr =
-            crate::operations::transaction_attributes::create(self.app.as_ref(), sync_period);
+        let event_src = EventSource::as_client_request(self.app.as_ref());
 
         crate::db_operations::write::table::set_table_attrubutes(
             self.app.as_ref(),
             db_table,
             persist,
             max_partitions_amount,
-            Some(attr),
+            event_src,
         )
         .await;
 

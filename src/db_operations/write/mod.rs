@@ -9,3 +9,6 @@ pub mod insert;
 pub mod insert_or_replace;
 pub mod replace;
 pub mod table;
+mod write_operation_result;
+
+pub use write_operation_result::WriteOperationResult;

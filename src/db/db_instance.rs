@@ -14,14 +14,18 @@ impl DbInstance {
     }
 
     pub async fn get_table_names(&self) -> Vec<String> {
-        let mut result = Vec::new();
-
         let read_access = self.tables.read().await;
-        for table_name in read_access.keys() {
-            result.push(table_name.to_string());
-        }
 
-        return result;
+        return read_access
+            .values()
+            .into_iter()
+            .map(|table| table.name.clone())
+            .collect();
+    }
+
+    pub async fn get_tables_amount(&self) -> usize {
+        let read_access = self.tables.read().await;
+        read_access.len()
     }
 
     pub async fn get_tables(&self) -> Vec<Arc<DbTable>> {

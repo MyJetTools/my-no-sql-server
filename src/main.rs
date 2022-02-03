@@ -1,10 +1,14 @@
-use app::AppContext;
-use my_http_server::{middlewares::swagger::SwaggerMiddleware, MyHttpServer};
+use app::{AppContext, EventsDispatcherProduction};
+use my_http_server::{middlewares::StaticFilesMiddleware, MyHttpServer};
+use my_http_server_controllers::swagger::SwaggerMiddleware;
+use my_logger::MyLogger;
+use my_no_sql_tcp_shared::MyNoSqlReaderTcpSerializer;
+use my_tcp_sockets::TcpServer;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
+use tcp::{TcpServerEvents, TcpServerLogger};
 
 mod app;
 mod grpc;
-mod parser;
 
 mod blob_operations;
 mod db;
@@ -19,6 +23,7 @@ mod rows_with_expiration;
 mod tcp;
 
 mod background;
+mod data_readers;
 mod persistence;
 mod settings_reader;
 mod utils;
@@ -38,15 +43,16 @@ async fn main() {
 
     let telemetry_writer = Arc::new(AppInsightsTelemetry::new());
 
-    let connection = if let Some(mut connection) = settings.get_azure_connection() {
-        connection.telemetry = Some(telemetry_writer.clone());
+    let connection = settings.get_azure_connection(telemetry_writer.clone());
 
-        Some(Arc::new(connection))
-    } else {
-        None
-    };
+    let app = AppContext::new(
+        &settings,
+        Box::new(EventsDispatcherProduction::new(transactions_sender)),
+    );
 
-    let app = AppContext::new(&settings, Some(transactions_sender));
+    let tcp_server_logger = TcpServerLogger::new(app.logs.clone());
+
+    let my_logger_for_tcp_server = MyLogger::new(Arc::new(tcp_server_logger));
 
     let app = Arc::new(app);
 
@@ -70,15 +76,11 @@ async fn main() {
         crate::background::metrics_updater::start(app.clone()),
     ));
 
-    background_tasks.push(tokio::task::spawn(
-        crate::background::dead_data_readers_gc::start(app.clone()),
-    ));
-
     background_tasks.push(tokio::task::spawn(crate::background::data_gc::start(
         app.clone(),
     )));
 
-    background_tasks.push(tokio::task::spawn(crate::background::sync_handler::start(
+    background_tasks.push(tokio::task::spawn(crate::background::sync::start(
         app.clone(),
         transactions_receiver,
     )));
@@ -87,13 +89,16 @@ async fn main() {
         crate::background::db_rows_expirator::start(app.clone()),
     ));
 
-    background_tasks.push(tokio::task::spawn(
-        crate::background::gc::gc_partitions::start(app.clone()),
-    ));
+    background_tasks.push(tokio::task::spawn(crate::background::gc_partitions::start(
+        app.clone(),
+    )));
 
     let mut http_server = MyHttpServer::new(SocketAddr::from(([0, 0, 0, 0], 5123)));
 
-    let controllers = Arc::new(crate::http::controllers::builder::build(app.clone()));
+    let controllers = Arc::new(crate::http::controllers::builder::build(
+        app.clone(),
+        connection.clone(),
+    ));
 
     let swagger_middleware = SwaggerMiddleware::new(
         controllers.clone(),
@@ -104,10 +109,21 @@ async fn main() {
     http_server.add_middleware(Arc::new(swagger_middleware));
     http_server.add_middleware(controllers);
 
-    tokio::task::spawn(tcp::tcp_server::start(
-        app.clone(),
+    http_server.add_middleware(Arc::new(StaticFilesMiddleware::new(None)));
+
+    let tcp_server = TcpServer::new_with_logger(
+        "MyNoSqlReader".to_string(),
         SocketAddr::from(([0, 0, 0, 0], 5125)),
-    ));
+        Arc::new(my_logger_for_tcp_server),
+    );
+
+    tcp_server
+        .start(
+            app.clone(),
+            Arc::new(MyNoSqlReaderTcpSerializer::new),
+            Arc::new(TcpServerEvents::new(app.clone())),
+        )
+        .await;
 
     http_server.start(app.clone());
 

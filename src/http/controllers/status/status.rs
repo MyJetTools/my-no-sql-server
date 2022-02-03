@@ -1,77 +1,49 @@
-use crate::{app::AppContext, http::http_ok::HttpOkResult};
-use my_http_utils::HttpFailResult;
-use rust_extensions::date_time::DateTimeAsMicroseconds;
-use serde::{Deserialize, Serialize};
-#[derive(Serialize, Deserialize, Debug)]
-struct NodeModel {}
+use std::sync::Arc;
 
-#[derive(Serialize, Deserialize, Debug)]
-struct LocationModel {
-    pub id: String,
-    pub compress: bool,
+use crate::app::AppContext;
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
+use my_http_server_controllers::controllers::{
+    actions::GetAction,
+    documentation::{out_results::IntoHttpResult, HttpActionDescription},
+};
+
+use super::models::StatusModel;
+
+pub struct StatusController {
+    app: Arc<AppContext>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-struct QueuesModel {
-    pub persistence: usize,
+impl StatusController {
+    pub fn new(app: Arc<AppContext>) -> Self {
+        Self { app }
+    }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-struct ReaderModel {
-    id: u64,
-    pub name: String,
-    pub ip: String,
-    pub tables: Vec<String>,
-    #[serde(rename = "lastIncomingTime")]
-    pub last_incoming_time: String,
-    #[serde(rename = "connectedTime")]
-    pub connected_time: String,
-}
-#[derive(Serialize, Deserialize, Debug)]
-struct StatusModel {
-    pub location: LocationModel,
-    #[serde(rename = "masterNode")]
-    pub master_node: Option<String>,
-    pub nodes: Vec<NodeModel>,
-    pub queues: QueuesModel,
-    pub readers: Vec<ReaderModel>,
-}
-
-async fn get_readers(app: &AppContext) -> Vec<ReaderModel> {
-    let mut result = Vec::new();
-    let now = DateTimeAsMicroseconds::now();
-
-    for session in app.data_readers.get_all().await {
-        let metrics = session.metrics.get_metrics().await;
-
-        result.push(ReaderModel {
-            connected_time: metrics.connected.to_rfc3339(),
-            last_incoming_time: format!("{:?}", now.duration_since(metrics.last_incoming_moment)),
-            id: metrics.session_id,
-            ip: metrics.ip.clone(),
-            name: if let Some(name) = metrics.name {
-                name
-            } else {
-                "???".to_string()
-            },
-            tables: session.get_tables().await,
-        });
+#[async_trait::async_trait]
+impl GetAction for StatusController {
+    fn get_route(&self) -> &str {
+        "/Api/Status"
     }
 
-    result
-}
+    fn get_description(&self) -> Option<HttpActionDescription> {
+        HttpActionDescription {
+            controller_name: "Monitoring",
+            description: "Monitoring API",
 
-pub async fn get(app: &AppContext) -> Result<HttpOkResult, HttpFailResult> {
-    let model = StatusModel {
-        location: LocationModel {
-            id: app.location.to_string(),
-            compress: app.compress_data,
-        },
-        master_node: None,
-        nodes: vec![],
-        queues: QueuesModel { persistence: 0 },
-        readers: get_readers(app).await,
-    };
+            input_params: None,
+            results: vec![
+                StatusModel::get_http_data_structure().into_http_result_object(
+                    200,
+                    false,
+                    "Monitoring result",
+                ),
+            ],
+        }
+        .into()
+    }
 
-    return HttpOkResult::create_json_response(model);
+    async fn handle_request(&self, _ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+        let model = StatusModel::new(self.app.as_ref()).await;
+        return HttpOkResult::create_json_response(model).into();
+    }
 }

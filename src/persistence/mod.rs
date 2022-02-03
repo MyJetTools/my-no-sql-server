@@ -1,2 +1,3 @@
 pub mod blob_content_cache;
-pub mod updates_to_persist;
+mod data_to_persist;
+pub use data_to_persist::{DataToPersist, PersistResult};

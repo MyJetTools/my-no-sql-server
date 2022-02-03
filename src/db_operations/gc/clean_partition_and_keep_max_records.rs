@@ -1,7 +1,9 @@
+use rust_extensions::date_time::DateTimeAsMicroseconds;
+
 use crate::{
     app::AppContext,
     db::DbTable,
-    db_sync::{states::DeleteRowsEventSyncData, SyncAttributes, SyncEvent},
+    db_sync::{states::DeleteRowsEventSyncData, EventSource, SyncEvent},
 };
 
 pub async fn execute(
@@ -9,7 +11,8 @@ pub async fn execute(
     db_table: &DbTable,
     partition_key: &str,
     max_rows_amount: usize,
-    attr: Option<SyncAttributes>,
+    event_source: EventSource,
+    sync_moment: DateTimeAsMicroseconds,
 ) {
     let mut table_data = db_table.data.write().await;
 
@@ -24,15 +27,19 @@ pub async fn execute(
     let gced_rows_result = partition.gc_rows(max_rows_amount);
 
     if let Some(gced_rows) = gced_rows_result {
-        if let Some(attr) = attr {
-            let mut sync_data =
-                DeleteRowsEventSyncData::new(&table_data, db_table.attributes.get_persist(), attr);
+        table_data
+            .data_to_persist
+            .mark_partition_to_persist(partition_key, sync_moment);
 
-            sync_data.add_deleted_rows(partition_key, &gced_rows);
+        let mut sync_data = DeleteRowsEventSyncData::new(
+            &table_data,
+            db_table.attributes.get_persist(),
+            event_source,
+        );
 
-            app.events_dispatcher
-                .dispatch(SyncEvent::DeleteRows(sync_data))
-                .await;
-        }
+        sync_data.add_deleted_rows(partition_key, &gced_rows);
+
+        app.events_dispatcher
+            .dispatch(SyncEvent::DeleteRows(sync_data));
     }
 }

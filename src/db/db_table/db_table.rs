@@ -9,6 +9,7 @@ use tokio::sync::RwLock;
 use crate::{
     db::{DbPartitionSnapshot, DbRow},
     json::JsonArrayBuilder,
+    persistence::PersistResult,
 };
 
 use super::{
@@ -85,5 +86,13 @@ impl DbTable {
         }
 
         result
+    }
+
+    pub async fn get_what_to_persist(&self, is_shutting_down: bool) -> Option<PersistResult> {
+        let now = DateTimeAsMicroseconds::now();
+        let mut write_access = self.data.write().await;
+        write_access
+            .data_to_persist
+            .get_what_to_persist(now, is_shutting_down)
     }
 }

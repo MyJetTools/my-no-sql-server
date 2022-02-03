@@ -1,4 +1,4 @@
-use my_http_server::middlewares::controllers::documentation::{
+use my_http_server_controllers::controllers::documentation::{
     data_types::{HttpDataType, HttpField},
     in_parameters::{HttpInputParameter, HttpParameterInputSource},
 };
@@ -20,22 +20,6 @@ pub fn max_partitions_amount() -> HttpInputParameter {
             None,
         ),
         description: "Maximum partitions amount table is keeping".to_string(),
-        source: HttpParameterInputSource::Query,
-    }
-}
-
-pub fn persist_table() -> HttpInputParameter {
-    HttpInputParameter {
-        field: HttpField::new(
-            super::input_params::PARAM_PERSIST_TABLE,
-            HttpDataType::as_bool(),
-            false,
-            None,
-        ),
-        description: format!(
-            "Should we persist table. If it's null - default value is {}",
-            super::input_params::PERISTS_TABLE_DEFAULT
-        ),
         source: HttpParameterInputSource::Query,
     }
 }

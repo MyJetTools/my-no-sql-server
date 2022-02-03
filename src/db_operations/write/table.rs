@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use my_azure_storage_sdk::AzureStorageConnection;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
@@ -11,7 +12,7 @@ use crate::{
             DeleteTableSyncData, InitTableEventSyncData, SyncTableData,
             UpdateTableAttributesSyncData,
         },
-        SyncAttributes, SyncEvent,
+        EventSource, SyncEvent,
     },
 };
 
@@ -20,7 +21,8 @@ pub async fn create(
     table_name: &str,
     persist_table: bool,
     max_partitions_amount: Option<usize>,
-    attr: Option<SyncAttributes>,
+    event_src: EventSource,
+    persist_moment: DateTimeAsMicroseconds,
 ) -> Result<Arc<DbTable>, DbOperationError> {
     let now = DateTimeAsMicroseconds::now();
 
@@ -29,16 +31,20 @@ pub async fn create(
 
     match create_table_result {
         CreateTableResult::JustCreated(db_table) => {
-            if let Some(attr) = attr {
-                let table_data = db_table.data.read().await;
+            {
+                let mut table_data = db_table.data.write().await;
+
+                table_data.data_to_persist.mark_persist_attrs();
+                table_data
+                    .data_to_persist
+                    .mark_table_to_persist(persist_moment);
+
                 let state = InitTableEventSyncData::new(
                     &table_data,
                     db_table.attributes.get_snapshot(),
-                    attr,
+                    event_src,
                 );
-                app.events_dispatcher
-                    .dispatch(SyncEvent::InitTable(state))
-                    .await;
+                app.events_dispatcher.dispatch(SyncEvent::InitTable(state));
             }
 
             return Ok(db_table);
@@ -54,7 +60,8 @@ async fn get_or_create(
     table_name: &str,
     persist_table: bool,
     max_partitions_amount: Option<usize>,
-    attr: Option<SyncAttributes>,
+    event_src: EventSource,
+    persist_moment: DateTimeAsMicroseconds,
 ) -> Arc<DbTable> {
     let now = DateTimeAsMicroseconds::now();
 
@@ -63,16 +70,21 @@ async fn get_or_create(
 
     match create_table_result {
         CreateTableResult::JustCreated(db_table) => {
-            if let Some(attr) = attr {
-                let table_data = db_table.data.read().await;
+            {
+                let mut table_data = db_table.data.write().await;
                 let state = InitTableEventSyncData::new(
                     &table_data,
                     db_table.attributes.get_snapshot(),
-                    attr,
+                    event_src,
                 );
-                app.events_dispatcher
-                    .dispatch(SyncEvent::InitTable(state))
-                    .await;
+
+                app.events_dispatcher.dispatch(SyncEvent::InitTable(state));
+
+                table_data
+                    .data_to_persist
+                    .mark_table_to_persist(persist_moment);
+
+                table_data.data_to_persist.mark_persist_attrs();
             }
 
             return db_table;
@@ -88,14 +100,16 @@ pub async fn create_if_not_exist(
     table_name: &str,
     persist_table: bool,
     max_partitions_amount: Option<usize>,
-    attr: Option<SyncAttributes>,
+    event_src: EventSource,
+    persist_moment: DateTimeAsMicroseconds,
 ) -> Arc<DbTable> {
     let db_table = get_or_create(
         app,
         table_name,
         persist_table,
         max_partitions_amount,
-        attr.clone(),
+        event_src.clone(),
+        persist_moment,
     )
     .await;
 
@@ -104,7 +118,7 @@ pub async fn create_if_not_exist(
         db_table.clone(),
         persist_table,
         max_partitions_amount,
-        attr,
+        event_src,
     )
     .await;
 
@@ -117,35 +131,39 @@ pub async fn set_table_attrubutes(
 
     persist: bool,
     max_partitions_amount: Option<usize>,
-    attr: Option<SyncAttributes>,
+    event_src: EventSource,
 ) {
     let result = db_table.attributes.update(persist, max_partitions_amount);
 
-    if result {
-        if let Some(attr) = attr {
-            app.events_dispatcher
-                .dispatch(SyncEvent::UpdateTableAttributes(
-                    UpdateTableAttributesSyncData {
-                        table_data: SyncTableData {
-                            table_name: db_table.name.to_string(),
-                            persist,
-                        },
-                        attr,
-                        persist,
-                        max_partitions_amount,
-                    },
-                ))
-                .await;
-        }
+    if !result {
+        return;
     }
+
+    app.events_dispatcher
+        .dispatch(SyncEvent::UpdateTableAttributes(
+            UpdateTableAttributesSyncData {
+                table_data: SyncTableData {
+                    table_name: db_table.name.to_string(),
+                    persist,
+                },
+                event_src,
+                persist,
+                max_partitions_amount,
+            },
+        ));
+
+    let mut table_access = db_table.data.write().await;
+    table_access.data_to_persist.mark_persist_attrs();
 }
 
 pub async fn delete(
-    app: &AppContext,
-    table_name: &str,
-    attr: Option<SyncAttributes>,
+    app: Arc<AppContext>,
+    table_name: String,
+    event_src: EventSource,
+    persist_moment: DateTimeAsMicroseconds,
+    azure_connection: Option<Arc<AzureStorageConnection>>,
 ) -> Result<(), DbOperationError> {
-    let result = app.db.delete_table(table_name).await;
+    let result = app.db.delete_table(table_name.as_str()).await;
 
     if result.is_none() {
         return Err(DbOperationError::TableNotFound(table_name.to_string()));
@@ -153,15 +171,27 @@ pub async fn delete(
 
     let db_table = result.unwrap();
 
-    if let Some(attr) = attr {
-        let table_data = db_table.data.read().await;
+    {
+        let mut table_data = db_table.data.write().await;
+
+        table_data
+            .data_to_persist
+            .mark_table_to_persist(persist_moment);
+
         app.events_dispatcher
             .dispatch(SyncEvent::DeleteTable(DeleteTableSyncData::new(
                 &table_data,
-                attr,
+                event_src,
                 db_table.attributes.get_persist(),
-            )))
-            .await;
+            )));
+    }
+
+    if let Some(azure_connection) = azure_connection {
+        tokio::spawn(crate::blob_operations::delete_table::with_retries(
+            app,
+            azure_connection,
+            table_name,
+        ));
     }
 
     Ok(())

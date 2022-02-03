@@ -1,7 +1,8 @@
 pub mod data_initializer;
+mod errors;
 
-pub mod sessions;
+pub mod data_readers;
 pub mod shutdown;
 
 pub mod blob_sync;
-pub mod transaction_attributes;
+pub use errors::OperationError;

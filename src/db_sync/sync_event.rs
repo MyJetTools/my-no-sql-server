@@ -1,6 +1,6 @@
 use super::states::{
     DeleteRowsEventSyncData, DeleteTableSyncData, InitPartitionsSyncData, InitTableEventSyncData,
-    UpdateRowsSyncData, UpdateTableAttributesSyncData,
+    TableFirstInitSyncData, UpdateRowsSyncData, UpdateTableAttributesSyncData,
 };
 
 pub enum SyncEvent {
@@ -15,6 +15,8 @@ pub enum SyncEvent {
     DeleteRows(DeleteRowsEventSyncData),
 
     DeleteTable(DeleteTableSyncData),
+
+    TableFirstInit(TableFirstInitSyncData),
 }
 
 impl SyncEvent {
@@ -26,19 +28,13 @@ impl SyncEvent {
             SyncEvent::UpdateRows(data) => data.table_data.table_name.as_ref(),
             SyncEvent::DeleteRows(data) => data.table_data.table_name.as_ref(),
             SyncEvent::DeleteTable(data) => data.table_data.table_name.as_ref(),
+            SyncEvent::TableFirstInit(data) => data.db_table.name.as_ref(),
         }
     }
+}
 
-    pub fn has_elements_to_dispatch(&self) -> bool {
-        match self {
-            SyncEvent::UpdateTableAttributes(_) => true,
-            SyncEvent::InitTable(_) => true,
-            SyncEvent::InitPartitions(data) => data.partitions_to_update.len() > 0,
-            SyncEvent::UpdateRows(data) => data.updated_rows_by_partition.len() > 0,
-            SyncEvent::DeleteRows(data) => {
-                data.deleted_partitions.is_some() || data.deleted_rows.is_some()
-            }
-            SyncEvent::DeleteTable(_) => true,
-        }
+impl Into<SyncEvent> for InitTableEventSyncData {
+    fn into(self) -> SyncEvent {
+        SyncEvent::InitTable(self)
     }
 }

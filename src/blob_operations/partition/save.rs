@@ -1,11 +1,7 @@
-use my_azure_storage_sdk::{
-    block_blob::BlockBlobApi, AzureStorageConnectionWithTelemetry, AzureStorageError,
-};
-
-use my_app_insights::AppInsightsTelemetry;
+use my_azure_storage_sdk::{block_blob::BlockBlobApi, AzureStorageConnection, AzureStorageError};
 
 pub async fn save(
-    azure_connection: &AzureStorageConnectionWithTelemetry<AppInsightsTelemetry>,
+    azure_connection: &AzureStorageConnection,
     table_name: &str,
     partition_key: &str,
     content: Vec<u8>,

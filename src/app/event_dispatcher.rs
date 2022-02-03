@@ -1,62 +1,27 @@
-use std::collections::HashMap;
-
-use tokio::sync::{mpsc::UnboundedSender, Mutex};
+use tokio::sync::mpsc::UnboundedSender;
 
 use crate::db_sync::SyncEvent;
 
-pub struct NextEventsToHandle {
-    pub table_name: String,
-    pub events: Vec<SyncEvent>,
+pub trait EventsDispatcher {
+    fn dispatch(&self, event: SyncEvent);
 }
 
-pub struct EventsDispatcher {
-    pub events: Mutex<HashMap<String, Vec<SyncEvent>>>,
-    sender: Option<UnboundedSender<()>>,
+pub struct EventsDispatcherProduction {
+    sender: UnboundedSender<SyncEvent>,
 }
 
-impl EventsDispatcher {
-    pub fn new(sender: Option<UnboundedSender<()>>) -> Self {
-        Self {
-            events: Mutex::new(HashMap::new()),
-            sender,
-        }
+impl EventsDispatcherProduction {
+    pub fn new(sender: UnboundedSender<SyncEvent>) -> Self {
+        Self { sender }
     }
+}
 
-    pub async fn dispatch(&self, event: SyncEvent) {
-        if !event.has_elements_to_dispatch() {
-            return;
+impl EventsDispatcher for EventsDispatcherProduction {
+    fn dispatch(&self, event: SyncEvent) {
+        let result = self.sender.send(event);
+
+        if let Err(_) = result {
+            println!("Error on dispatching event.");
         }
-
-        {
-            let table_name = event.get_table_name();
-            let mut write_access = self.events.lock().await;
-
-            if !write_access.contains_key(table_name) {
-                write_access.insert(table_name.to_string(), Vec::new());
-            }
-
-            write_access.get_mut(table_name).unwrap().push(event);
-        }
-
-        if let Some(sender) = &self.sender {
-            let result = sender.send(());
-
-            if let Err(err) = result {
-                println!("Error on dispatching event. Err: {:?}", err);
-            }
-        }
-    }
-
-    pub async fn get_next_events(&self) -> Option<NextEventsToHandle> {
-        let mut write_access = self.events.lock().await;
-
-        for itm in write_access.drain() {
-            return Some(NextEventsToHandle {
-                table_name: itm.0,
-                events: itm.1,
-            });
-        }
-
-        return None;
     }
 }

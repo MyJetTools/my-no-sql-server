@@ -1,15 +1,13 @@
 use std::sync::Arc;
 
-use my_azure_storage_sdk::AzureStorageConnectionWithTelemetry;
+use my_azure_storage_sdk::AzureStorageConnection;
 use rust_extensions::StopWatch;
 
 use crate::app::AppContext;
 
-use my_app_insights::AppInsightsTelemetry;
-
 pub async fn init_tables(
     app: Arc<AppContext>,
-    connection: Arc<AzureStorageConnectionWithTelemetry<AppInsightsTelemetry>>,
+    connection: Arc<AzureStorageConnection>,
     init_threads_amount: usize,
 ) {
     tokio::spawn(init_tables_spawned(app, connection, init_threads_amount));
@@ -17,7 +15,7 @@ pub async fn init_tables(
 
 async fn init_tables_spawned(
     app: Arc<AppContext>,
-    connection: Arc<AzureStorageConnectionWithTelemetry<AppInsightsTelemetry>>,
+    connection: Arc<AzureStorageConnection>,
     init_threads_amount: usize,
 ) {
     let tables = crate::blob_operations::table::get_list(connection.as_ref())

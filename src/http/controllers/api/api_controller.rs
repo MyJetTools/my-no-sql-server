@@ -1,19 +1,13 @@
 use async_trait::async_trait;
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-use my_http_server::{
-    middlewares::controllers::{
-        actions::GetAction,
-        documentation::{
-            data_types::{HttpDataType, HttpField, HttpObjectStructure},
-            out_results::HttpResult,
-            HttpActionDescription,
-        },
-    },
-    HttpContext, HttpFailResult, HttpOkResult,
+use my_http_server_controllers::controllers::{
+    actions::GetAction,
+    documentation::{out_results::IntoHttpResult, HttpActionDescription},
 };
 
-use super::models::ApiModel;
+use super::models::IsAliveResponse;
 
 pub struct ApiController {}
 
@@ -22,10 +16,11 @@ impl ApiController {
         Self {}
     }
 }
+
 #[async_trait]
 impl GetAction for ApiController {
-    fn get_additional_types(&self) -> Option<Vec<HttpObjectStructure>> {
-        None
+    fn get_route(&self) -> &str {
+        "/Api/IsAlive"
     }
 
     fn get_description(&self) -> Option<HttpActionDescription> {
@@ -34,25 +29,18 @@ impl GetAction for ApiController {
             description: "Monitoring API",
 
             input_params: None,
-            results: vec![HttpResult {
-                http_code: 200,
-                nullable: true,
-                description: "Get Monitoring structure".to_string(),
-                data_type: HttpDataType::Object(HttpObjectStructure {
-                    struct_id: "IsAliveResponse".to_string(),
-                    fields: vec![
-                        HttpField::new("name", HttpDataType::as_string(), true, None),
-                        HttpField::new("time", HttpDataType::as_date_time(), true, None),
-                        HttpField::new("version", HttpDataType::as_string(), true, None),
-                        HttpField::new("env_info", HttpDataType::as_string(), false, None),
-                    ],
-                }),
-            }],
+            results: vec![
+                IsAliveResponse::get_http_data_structure().into_http_result_object(
+                    200,
+                    false,
+                    "Monitoring result",
+                ),
+            ],
         }
         .into()
     }
 
-    async fn handle_request(&self, ctx: HttpContext) -> Result<HttpOkResult, HttpFailResult> {
+    async fn handle_request(&self, _ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
         let version = env!("CARGO_PKG_VERSION");
 
         let env_info = match std::env::var("ENV_INFO") {
@@ -62,7 +50,7 @@ impl GetAction for ApiController {
 
         let time = DateTimeAsMicroseconds::now();
 
-        let model = ApiModel {
+        let model = IsAliveResponse {
             name: "MyNoSqlServer".to_string(),
             time: time.to_rfc3339(),
             version: version.to_string(),

@@ -1,17 +1,15 @@
 use std::time::Duration;
 
-use my_azure_storage_sdk::AzureStorageConnectionWithTelemetry;
+use my_azure_storage_sdk::AzureStorageConnection;
 
 use crate::{
     app::{logs::SystemProcess, AppContext},
     db::DbTableAttributesSnapshot,
 };
 
-use my_app_insights::AppInsightsTelemetry;
-
 pub async fn with_retries(
     app: &AppContext,
-    azure_connection: &AzureStorageConnectionWithTelemetry<AppInsightsTelemetry>,
+    azure_connection: &AzureStorageConnection,
     table_name: &str,
     attr: &DbTableAttributesSnapshot,
 ) {

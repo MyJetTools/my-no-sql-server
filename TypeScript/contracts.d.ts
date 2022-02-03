@@ -21,15 +21,12 @@ interface ILocationStatus {
 }
 
 
-interface IQueuesStatus {
-    persistence: number
-}
 
 interface IStatus {
     masterNode: string,
     tablesAmount: number,
-    queues: IQueuesStatus,
     location: ILocationStatus,
     readers: IReaderStatus[],
     nodes: INodeStatus[]
+    tcpConnections: number,
 }

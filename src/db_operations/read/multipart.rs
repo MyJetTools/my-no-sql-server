@@ -1,6 +1,6 @@
-use std::sync::Arc;
+use crate::{app::AppContext, db_operations::DbOperationError, json::JsonArrayBuilder};
 
-use crate::{app::AppContext, db::DbRow, db_operations::DbOperationError};
+use super::ReadOperationResult;
 
 pub async fn start_read_all(app: &AppContext, table_name: &str) -> Result<i64, DbOperationError> {
     let db_table = super::table::get(app, table_name).await?;
@@ -20,6 +20,14 @@ pub async fn get_next(
     app: &AppContext,
     multipart_id: i64,
     amount: usize,
-) -> Option<Vec<Arc<DbRow>>> {
-    return app.multipart_list.get(multipart_id, amount).await;
+) -> Option<ReadOperationResult> {
+    let result = app.multipart_list.get(multipart_id, amount).await?;
+
+    let mut array_builder = JsonArrayBuilder::new();
+
+    for db_row in result {
+        array_builder.append_json_object(db_row.data.as_slice());
+    }
+
+    ReadOperationResult::RowsArray(array_builder.build()).into()
 }

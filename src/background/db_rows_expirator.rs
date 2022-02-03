@@ -1,6 +1,8 @@
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
-use crate::{app::AppContext, db::DbRow, db_json_entity::JsonTimeStamp};
+use rust_extensions::date_time::DateTimeAsMicroseconds;
+
+use crate::{app::AppContext, db::DbRow, db_json_entity::JsonTimeStamp, db_sync::EventSource};
 
 pub async fn start(app: Arc<AppContext>) {
     let duration = Duration::from_secs(1);
@@ -39,17 +41,18 @@ async fn interation(app: Arc<AppContext>) {
         let removed_db_rows = db_table.get_expired_rows(now.date_time).await;
 
         if let Some(removed_db_rows) = removed_db_rows {
-            let attr = crate::operations::transaction_attributes::create(
-                app.as_ref(),
-                crate::db_sync::DataSynchronizationPeriod::Sec5,
-            );
+            let event_source = EventSource::as_gc();
+
+            let mut persist_moment = DateTimeAsMicroseconds::now();
+            persist_moment.add_seconds(1);
 
             crate::db_operations::write::bulk_delete::execute(
                 app.as_ref(),
                 db_table.as_ref(),
                 as_hash_map(removed_db_rows),
-                Some(attr),
+                event_source,
                 &now,
+                persist_moment,
             )
             .await;
         }
