@@ -1,6 +1,6 @@
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-use crate::{db::DbTable, json::JsonArrayBuilder};
+use crate::{db::DbTable, db_operations::DbOperationError, json::JsonArrayBuilder};
 
 use super::ReadOperationResult;
 
@@ -79,7 +79,11 @@ pub async fn get_all_rows_by_row_key(
     ));
 }
 
-pub async fn get_row(table: &DbTable, partition_key: &str, row_key: &str) -> ReadOperationResult {
+pub async fn get_row(
+    table: &DbTable,
+    partition_key: &str,
+    row_key: &str,
+) -> Result<ReadOperationResult, DbOperationError> {
     let now = DateTimeAsMicroseconds::now();
 
     let table_data = table.data.read().await;
@@ -89,7 +93,7 @@ pub async fn get_row(table: &DbTable, partition_key: &str, row_key: &str) -> Rea
     let partition = table_data.get_partition(partition_key);
 
     if partition.is_none() {
-        return ReadOperationResult::EmptyArray;
+        return Err(DbOperationError::RecordNotFound);
     }
 
     let partition = partition.unwrap();
@@ -97,7 +101,7 @@ pub async fn get_row(table: &DbTable, partition_key: &str, row_key: &str) -> Rea
     let db_row = partition.get_row(row_key);
 
     if db_row.is_none() {
-        return ReadOperationResult::EmptyArray;
+        return Err(DbOperationError::RecordNotFound);
     }
 
     let db_row = db_row.unwrap();
@@ -105,7 +109,7 @@ pub async fn get_row(table: &DbTable, partition_key: &str, row_key: &str) -> Rea
     partition.last_read_access.update(now);
     db_row.last_read_access.update(now);
 
-    return ReadOperationResult::SingleRow(db_row.data.clone());
+    return Ok(ReadOperationResult::SingleRow(db_row.data.clone()));
 }
 
 pub async fn get_single_partition_multiple_rows(

@@ -68,7 +68,7 @@ impl GetAction for RowAction {
                     partition_key,
                     row_key,
                 )
-                .await;
+                .await?;
 
                 return Ok(result.into());
             } else {
