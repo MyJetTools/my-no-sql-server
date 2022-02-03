@@ -10,7 +10,7 @@ pub struct CleanAndKeepMaxPartitionsAmountInputContract {
     #[http_query(name = "syncPeriod"; description = "Synchronization period"; default="Sec5")]
     pub sync_period: DataSynchronizationPeriod,
 
-    #[http_query(name = "maxPartitionsAmount"; description = "After operations there will be no more than maxPartitionsAmount partitions")]
+    #[http_query(name = "maxAmount"; description = "After operations there will be no more than maxPartitionsAmount partitions")]
     pub max_partitions_amount: usize,
 }
 
