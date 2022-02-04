@@ -1,5 +1,6 @@
 use app::{AppContext, EventsDispatcherProduction};
 use my_http_server::{middlewares::StaticFilesMiddleware, MyHttpServer};
+use my_http_server_app_insights::AppInsightsMiddleware;
 use my_http_server_controllers::swagger::SwaggerMiddleware;
 use my_logger::MyLogger;
 use my_no_sql_tcp_shared::MyNoSqlReaderTcpSerializer;
@@ -41,9 +42,9 @@ async fn main() {
 
     let mut background_tasks = Vec::new();
 
-    let telemetry_writer = Arc::new(AppInsightsTelemetry::new());
+    let app_insights = Arc::new(AppInsightsTelemetry::new("my-no-sql-server".to_string()));
 
-    let connection = settings.get_azure_connection(telemetry_writer.clone());
+    let connection = settings.get_azure_connection(app_insights.clone());
 
     let app = AppContext::new(
         &settings,
@@ -100,6 +101,9 @@ async fn main() {
         connection.clone(),
     ));
 
+    let app_insights_middleware = AppInsightsMiddleware::new(app_insights.clone());
+    http_server.add_middleware(Arc::new(app_insights_middleware));
+
     let swagger_middleware = SwaggerMiddleware::new(
         controllers.clone(),
         "MyNoSqlServer".to_string(),
@@ -135,9 +139,7 @@ async fn main() {
     )
     .unwrap();
 
-    telemetry_writer
-        .start(app.states.shutting_down.clone())
-        .await;
+    app_insights.start(app.clone()).await;
 
     shut_down_task(app).await;
 
