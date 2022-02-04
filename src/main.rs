@@ -1,7 +1,4 @@
 use app::{AppContext, EventsDispatcherProduction};
-use my_http_server::{middlewares::StaticFilesMiddleware, MyHttpServer};
-use my_http_server_app_insights::AppInsightsMiddleware;
-use my_http_server_controllers::swagger::SwaggerMiddleware;
 use my_logger::MyLogger;
 use my_no_sql_tcp_shared::MyNoSqlReaderTcpSerializer;
 use my_tcp_sockets::TcpServer;
@@ -44,7 +41,7 @@ async fn main() {
 
     let app_insights = Arc::new(AppInsightsTelemetry::new("my-no-sql-server".to_string()));
 
-    let connection = settings.get_azure_connection(app_insights.clone());
+    let azure_connection = settings.get_azure_connection(app_insights.clone());
 
     let app = AppContext::new(
         &settings,
@@ -57,17 +54,17 @@ async fn main() {
 
     let app = Arc::new(app);
 
-    if let Some(connection) = &connection {
+    if let Some(azure_connection) = &azure_connection {
         crate::operations::data_initializer::init_tables(
             app.clone(),
-            connection.clone(),
+            azure_connection.clone(),
             settings.init_threads_amount,
         )
         .await;
 
         let handler = tokio::task::spawn(crate::background::flush_to_blobs::start(
             app.clone(),
-            connection.clone(),
+            azure_connection.clone(),
         ));
 
         background_tasks.push(handler);
@@ -94,26 +91,11 @@ async fn main() {
         app.clone(),
     )));
 
-    let mut http_server = MyHttpServer::new(SocketAddr::from(([0, 0, 0, 0], 5123)));
-
-    let controllers = Arc::new(crate::http::controllers::builder::build(
+    crate::http::start_up::setup_server(
         app.clone(),
-        connection.clone(),
-    ));
-
-    let app_insights_middleware = AppInsightsMiddleware::new(app_insights.clone());
-    http_server.add_middleware(Arc::new(app_insights_middleware));
-
-    let swagger_middleware = SwaggerMiddleware::new(
-        controllers.clone(),
-        "MyNoSqlServer".to_string(),
-        crate::app::APP_VERSION.to_string(),
+        app_insights.clone(),
+        azure_connection.clone(),
     );
-
-    http_server.add_middleware(Arc::new(swagger_middleware));
-    http_server.add_middleware(controllers);
-
-    http_server.add_middleware(Arc::new(StaticFilesMiddleware::new(None)));
 
     let tcp_server = TcpServer::new_with_logger(
         "MyNoSqlReader".to_string(),
@@ -128,8 +110,6 @@ async fn main() {
             Arc::new(TcpServerEvents::new(app.clone())),
         )
         .await;
-
-    http_server.start(app.clone());
 
     tokio::task::spawn(crate::grpc::server::start(app.clone(), 5124));
 
