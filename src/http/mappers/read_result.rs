@@ -6,10 +6,12 @@ impl Into<HttpOkResult> for ReadOperationResult {
     fn into(self) -> HttpOkResult {
         match self {
             ReadOperationResult::SingleRow(content) => HttpOkResult::Content {
+                headers: None,
                 content,
                 content_type: Some(WebContentType::Json),
             },
             ReadOperationResult::RowsArray(content) => HttpOkResult::Content {
+                headers: None,
                 content,
                 content_type: Some(WebContentType::Json),
             },
@@ -20,6 +22,7 @@ impl Into<HttpOkResult> for ReadOperationResult {
                 ];
 
                 HttpOkResult::Content {
+                    headers: None,
                     content: empty_array,
                     content_type: Some(WebContentType::Json),
                 }

@@ -37,7 +37,7 @@ impl SettingsModel {
 
         let mut result = AzureStorageConnection::from_conn_string(self.persistence_dest.as_str());
         result.telemetry = Some(telemetry);
-        return Some(Arc::new(result));
+        Some(Arc::new(result))
     }
 }
 
@@ -57,7 +57,7 @@ pub async fn read_settings() -> SettingsModel {
 fn get_settings_filename() -> String {
     let path = env!("HOME");
 
-    if path.ends_with("/") {
+    if path.ends_with('/') {
         return format!("{}{}", path, ".mynosqlserver");
     }
 

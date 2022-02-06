@@ -39,6 +39,7 @@ impl GetAction for IndexAction {
         );
 
         HttpOkResult::Content {
+            headers: None,
             content_type: Some(WebContentType::Html),
             content: content.into_bytes(),
         }

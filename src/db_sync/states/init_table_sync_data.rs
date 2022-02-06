@@ -1,5 +1,5 @@
 use crate::{
-    db::{DbTableAttributesSnapshot, DbTableData, DbTableSnapshot},
+    db::{db_snapshots::DbTableSnapshot, DbTableAttributesSnapshot, DbTableData},
     db_sync::EventSource,
 };
 
@@ -22,9 +22,5 @@ impl InitTableEventSyncData {
             event_src,
             table_snapshot: DbTableSnapshot::new(table_data, table_attrs),
         }
-    }
-
-    pub fn as_raw_bytes(&self) -> Vec<u8> {
-        return self.table_snapshot.as_raw_bytes();
     }
 }

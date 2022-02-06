@@ -19,6 +19,7 @@ my-http-server-swagger = { branch = "main", git = "https://github.com/MyJetTools
 my-http-server-app-insights = { branch = "0.1.0", git = "https://github.com/MyJetTools/my-http-server-app-insights.git" }
 my-tcp-sockets = { branch = "0.1.1", git = "https://github.com/MyJetTools/my-tcp-sockets.git" }
 my-logger = { branch = "0.1.1", git = "https://github.com/MyJetTools/my-logger.git" }
+my-json = { branch = "main", git = "https://github.com/MyJetTools/my-json.git" }
 hyper-tls = "*"
 tonic = { version = "*", features = ["tls", "tls-roots", "prost"] }
 anyhow = "*"

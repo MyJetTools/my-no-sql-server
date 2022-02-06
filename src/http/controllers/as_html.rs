@@ -2,6 +2,7 @@ use my_http_server::{HttpOkResult, WebContentType};
 
 pub fn build(title: &str, body: &str) -> HttpOkResult {
     HttpOkResult::Content {
+        headers: None,
         content_type: Some(WebContentType::Html),
         content: format!(
             r###"<html><head><title>{ver} MyNoSQLServer {title}</title>

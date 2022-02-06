@@ -7,7 +7,7 @@ use std::{
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 use tokio::sync::Mutex;
 
-use crate::db::DbRow;
+use crate::db::{db_snapshots::DbRowsSnapshot, DbRow};
 
 use super::Multipart;
 
@@ -39,13 +39,13 @@ impl MultipartList {
         return id;
     }
 
-    pub async fn get(&self, id: i64, amount: usize) -> Option<Vec<Arc<DbRow>>> {
+    pub async fn get(&self, id: i64, amount: usize) -> Option<DbRowsSnapshot> {
         let mut write_access = self.items.lock().await;
 
         let (result, delete_it) = {
             let multipart = write_access.get_mut(&id)?;
 
-            let mut result = Vec::with_capacity(amount);
+            let mut result = DbRowsSnapshot::with_capacity(amount);
 
             while let Some(db_row) = multipart.items.remove(0) {
                 result.push(db_row);

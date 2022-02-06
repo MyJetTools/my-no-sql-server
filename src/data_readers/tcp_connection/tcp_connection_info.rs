@@ -1,7 +1,4 @@
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc,
-};
+use std::sync::Arc;
 
 use crate::tcp::MyNoSqlTcpConnection;
 
@@ -9,15 +6,11 @@ use super::TcpPayloadToSend;
 
 pub struct TcpConnectionInfo {
     pub connection: Arc<MyNoSqlTcpConnection>,
-    has_first_init: AtomicBool,
 }
 
 impl TcpConnectionInfo {
     pub fn new(connection: Arc<MyNoSqlTcpConnection>) -> Self {
-        Self {
-            connection,
-            has_first_init: AtomicBool::new(false),
-        }
+        Self { connection }
     }
 
     pub fn get_id(&self) -> i32 {
@@ -43,7 +36,6 @@ impl TcpConnectionInfo {
             }
             TcpPayloadToSend::FirstInit(tcp_contract) => {
                 self.connection.send_ref(tcp_contract).await;
-                self.has_first_init.store(true, Ordering::SeqCst);
             }
         }
     }

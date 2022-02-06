@@ -30,7 +30,7 @@ pub async fn execute(
         .data_to_persist
         .mark_partition_to_persist(db_row.partition_key.as_ref(), persist_moment);
 
-    update_rows_state.add_row(db_row);
+    update_rows_state.rows_by_partition.add_row(db_row);
     app.events_dispatcher
         .dispatch(SyncEvent::UpdateRows(update_rows_state));
 

@@ -86,6 +86,7 @@ impl PostAction for MigrationAction {
         .await;
 
         Ok(HttpOkResult::Content {
+            headers: None,
             content: format!("Migrated {} partitions", partitions_count).into_bytes(),
             content_type: Some(WebContentType::Text),
         })

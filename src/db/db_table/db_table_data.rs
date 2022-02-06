@@ -1,3 +1,4 @@
+use my_json::json_writer::JsonArrayWriter;
 use rust_extensions::date_time::{AtomicDateTimeAsMicroseconds, DateTimeAsMicroseconds};
 
 use std::{
@@ -6,7 +7,10 @@ use std::{
 };
 
 use crate::{
-    db::{DbPartition, DbPartitionSnapshot, DbRow},
+    db::{
+        db_snapshots::{DbPartitionSnapshot, DbRowsByPartitionsSnapshot},
+        DbPartition, DbRow,
+    },
     db_json_entity::JsonTimeStamp,
     persistence::DataToPersist,
     rows_with_expiration::RowsWithExpiration,
@@ -18,7 +22,7 @@ pub type TPartitions = BTreeMap<String, DbPartition>;
 
 pub struct DbTableData {
     pub name: String,
-    partitions: TPartitions,
+    pub partitions: TPartitions,
 
     pub created: DateTimeAsMicroseconds,
     pub last_update_time: AtomicDateTimeAsMicroseconds,
@@ -52,21 +56,28 @@ impl DbTableData {
         DbTableDataIterator::new(&self.partitions)
     }
 
-    pub fn get_snapshot_as_partitions(&self) -> BTreeMap<String, DbPartitionSnapshot> {
-        let mut result = BTreeMap::new();
+    pub fn get_table_as_json_array(&self) -> JsonArrayWriter {
+        let mut json_array_writer = JsonArrayWriter::new();
 
-        for (partition_key, db_partition) in &self.partitions {
-            let partition_snapshot = db_partition.get_db_partition_snapshot();
-            result.insert(partition_key.to_string(), partition_snapshot);
+        for db_partition in self.partitions.values() {
+            for db_row in db_partition.rows.values() {
+                json_array_writer.write_raw_element(db_row.data.as_slice())
+            }
         }
 
-        result
+        json_array_writer
     }
 
-    pub fn get_partition_snapshot(&self, partition_key: &str) -> Option<DbPartitionSnapshot> {
-        let partition = self.partitions.get(partition_key)?;
+    pub fn get_partition_as_json_array(&self, partition_key: &str) -> Option<JsonArrayWriter> {
+        let mut json_array_writer = JsonArrayWriter::new();
 
-        return Some(partition.get_db_partition_snapshot());
+        if let Some(db_partition) = self.partitions.get(partition_key) {
+            for db_row in db_partition.rows.values() {
+                json_array_writer.write_raw_element(db_row.data.as_slice())
+            }
+        }
+
+        json_array_writer.into()
     }
 
     #[inline]
@@ -379,5 +390,28 @@ impl DbTableData {
         self.table_size -= db_row.data.len();
         self.rows_amount -= 1;
         self.rows_with_expiration.remove(db_row);
+    }
+}
+
+impl Into<DbRowsByPartitionsSnapshot> for &DbTableData {
+    fn into(self) -> DbRowsByPartitionsSnapshot {
+        let mut result = DbRowsByPartitionsSnapshot::new();
+        for (partition_key, db_partition) in &self.partitions {
+            result.insert_partition(partition_key.to_string(), db_partition);
+        }
+
+        result
+    }
+}
+
+impl Into<BTreeMap<String, DbPartitionSnapshot>> for &DbTableData {
+    fn into(self) -> BTreeMap<String, DbPartitionSnapshot> {
+        let mut result: BTreeMap<String, DbPartitionSnapshot> = BTreeMap::new();
+
+        for (partition_key, db_partition) in &self.partitions {
+            result.insert(partition_key.to_string(), db_partition.into());
+        }
+
+        result
     }
 }

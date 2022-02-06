@@ -1,10 +1,6 @@
 use my_no_sql_tcp_shared::{DeleteRowTcpContract, TcpContract};
 
-use crate::{
-    db::{read_as_json::DbEntityAsJsonArray, DbTableSnapshot},
-    db_sync::SyncEvent,
-    json::consts::EMPTY_ARRAY,
-};
+use crate::{db_sync::SyncEvent, json::consts::EMPTY_ARRAY};
 
 pub enum TcpPayloadToSend {
     FirstInit(TcpContract),
@@ -16,12 +12,8 @@ impl TcpPayloadToSend {
     pub async fn parse_from(sync_event: &SyncEvent) -> Option<TcpPayloadToSend> {
         match sync_event {
             SyncEvent::TableFirstInit(data) => {
-                let attrs = data.db_table.attributes.get_snapshot();
-                let table_access = data.db_table.data.read().await;
-
-                let table_snapshot = DbTableSnapshot::new(&table_access, attrs);
-
-                let tcp_contract = table_snapshot.as_tcp_contract(data.db_table.name.to_string());
+                let table_snapshot = data.db_table.get_table_snapshot().await;
+                let tcp_contract = table_snapshot.into_tcp_contract(data.db_table.name.to_string());
 
                 TcpPayloadToSend::FirstInit(tcp_contract).into()
             }
@@ -29,7 +21,7 @@ impl TcpPayloadToSend {
             SyncEvent::InitTable(data) => {
                 let result = TcpContract::InitTable {
                     table_name: data.table_data.table_name.to_string(),
-                    data: data.as_raw_bytes(),
+                    data: data.table_snapshot.as_json_array().build(),
                 };
 
                 TcpPayloadToSend::Single(result.serialize()).into()
@@ -41,8 +33,8 @@ impl TcpPayloadToSend {
                     let contract = TcpContract::InitPartition {
                         partition_key: partition_key.to_string(),
                         table_name: data.table_data.table_name.to_string(),
-                        data: if let Some(snapshot) = snapshot {
-                            snapshot.content.as_json_array()
+                        data: if let Some(db_partition_snapshot) = snapshot {
+                            db_partition_snapshot.db_rows.as_json_array().build()
                         } else {
                             EMPTY_ARRAY.to_vec()
                         },
@@ -56,7 +48,7 @@ impl TcpPayloadToSend {
             SyncEvent::UpdateRows(data) => {
                 let result = TcpContract::UpdateRows {
                     table_name: data.table_data.table_name.to_string(),
-                    data: data.updated_rows_by_partition.as_json_array(),
+                    data: data.rows_by_partition.as_json_array().build(),
                 };
                 TcpPayloadToSend::Single(result.serialize()).into()
             }

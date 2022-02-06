@@ -5,7 +5,7 @@ use rust_extensions::StopWatch;
 
 use crate::{
     app::{logs::SystemProcess, AppContext},
-    db::{read_as_json::DbEntityAsJsonArray, DbPartitionSnapshot},
+    db::db_snapshots::DbPartitionSnapshot,
 };
 
 pub async fn with_retries(
@@ -13,7 +13,7 @@ pub async fn with_retries(
     azure_connection: &AzureStorageConnection,
     table_name: &str,
     partition_key: &str,
-    snapshot: DbPartitionSnapshot,
+    db_partition_snapshot: &DbPartitionSnapshot,
 ) {
     let mut attempt_no = 0;
     let mut stop_watch = StopWatch::new();
@@ -23,7 +23,7 @@ pub async fn with_retries(
             azure_connection,
             table_name,
             partition_key,
-            snapshot.content.as_json_array(),
+            db_partition_snapshot.db_rows.as_json_array().build(),
         )
         .await;
 
@@ -32,7 +32,7 @@ pub async fn with_retries(
                 .update_table_partition_snapshot_id(
                     table_name,
                     partition_key,
-                    snapshot.last_write_moment,
+                    db_partition_snapshot.last_write_moment,
                 )
                 .await;
 

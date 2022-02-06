@@ -137,5 +137,17 @@ pub fn build(
         app.clone(),
     )));
 
+    result.register_post_action(Arc::new(
+        super::data_reader_controller::GreetingAction::new(app.clone()),
+    ));
+
+    result.register_post_action(Arc::new(
+        super::data_reader_controller::SubscribeAction::new(app.clone()),
+    ));
+
+    result.register_post_action(Arc::new(
+        super::data_reader_controller::GetChangesAction::new(app.clone()),
+    ));
+
     result
 }

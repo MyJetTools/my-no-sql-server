@@ -6,6 +6,7 @@ impl Into<HttpOkResult> for WriteOperationResult {
     fn into(self) -> HttpOkResult {
         match self {
             WriteOperationResult::SingleRow(db_row) => HttpOkResult::Content {
+                headers: None,
                 content_type: Some(WebContentType::Json),
                 content: db_row.data.to_vec(),
             },

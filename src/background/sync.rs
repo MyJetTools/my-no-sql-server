@@ -18,30 +18,39 @@ pub async fn start(app: Arc<AppContext>, mut rx: mpsc::UnboundedReceiver<SyncEve
 
 async fn handle_event(app: &AppContext, sync_event: &SyncEvent) {
     if let SyncEvent::TableFirstInit(data) = sync_event {
+        data.data_reader.set_first_init();
+
         match &data.data_reader.connection {
             DataReaderConnection::Tcp(tcp_info) => {
                 if let Some(payload_to_send) = TcpPayloadToSend::parse_from(sync_event).await {
                     tcp_info.send(&payload_to_send).await;
                 }
             }
+            DataReaderConnection::Http(http_info) => {
+                http_info.send(&sync_event).await;
+            }
         }
         return;
     }
 
-    let connections = app
+    let data_readers = app
         .data_readers
         .get_subscribed_to_table(sync_event.get_table_name())
         .await;
 
-    if connections.is_none() {
+    if data_readers.is_none() {
         return;
     }
-    let connections = connections.unwrap();
+    let data_readers = data_readers.unwrap();
 
     let mut tcp_contracts: Option<TcpPayloadToSend> = None;
 
-    for session in &connections {
-        match &session.connection {
+    for data_reader in &data_readers {
+        if !data_reader.has_first_init() {
+            continue;
+        }
+
+        match &data_reader.connection {
             DataReaderConnection::Tcp(info) => {
                 if let Some(to_send) = &tcp_contracts {
                     info.send(to_send).await;
@@ -51,6 +60,9 @@ async fn handle_event(app: &AppContext, sync_event: &SyncEvent) {
                         tcp_contracts = Some(to_send);
                     }
                 }
+            }
+            DataReaderConnection::Http(http_info) => {
+                http_info.send(&sync_event).await;
             }
         }
     }

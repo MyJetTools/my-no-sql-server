@@ -53,6 +53,7 @@ impl GetAction for LogsByTableAction {
                 );
 
                 HttpOkResult::Content {
+                    headers: None,
                     content_type: Some(WebContentType::Text),
                     content: content.into_bytes(),
                 }

@@ -41,6 +41,7 @@ impl GetAction for LogsByProcessAction {
 
         if process.is_none() {
             return Ok(HttpOkResult::Content {
+                headers: None,
                 content_type: Some(WebContentType::Text),
                 content: format!("Invalid process name: {}", process_name).into(),
             });
@@ -58,6 +59,7 @@ impl GetAction for LogsByProcessAction {
                 sw.pause();
 
                 Ok(HttpOkResult::Content {
+                    headers: None,
                     content_type: Some(WebContentType::Text),
                     content: format!(
                         "Result compiled in: {:?}. No log recods for the process '{}'",

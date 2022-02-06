@@ -30,6 +30,7 @@ impl GetAction for MetricsAction {
         let result = self.app.metrics.build();
 
         HttpOkResult::Content {
+            headers: None,
             content_type: None,
             content: result.into_bytes(),
         }

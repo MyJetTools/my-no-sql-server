@@ -25,7 +25,9 @@ pub async fn execute(
     for (partition_key, db_rows) in rows_by_partition {
         table_data.bulk_insert_or_replace(&partition_key, &db_rows, now);
 
-        update_rows_state.add_rows(partition_key.as_str(), db_rows);
+        update_rows_state
+            .rows_by_partition
+            .add_rows(partition_key.as_str(), db_rows);
 
         table_data
             .data_to_persist

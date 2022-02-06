@@ -2,7 +2,7 @@ use my_http_server_controllers::controllers::documentation::out_results::HttpRes
 
 use crate::http::mappers::OperationFailHttpContract;
 
-pub const OPERATION_FAIL_HTTP_STATUS_CODE: u16 = 400;
+use crate::http::mappers::db_operation_error::OPERATION_FAIL_HTTP_STATUS_CODE;
 
 pub fn op_with_table_is_failed() -> HttpResult {
     HttpResult {
