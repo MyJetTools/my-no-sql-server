@@ -26,5 +26,9 @@ pub async fn start(app: Arc<AppContext>) {
 
 async fn iteration(app: Arc<AppContext>) {
     let now = DateTimeAsMicroseconds::now();
-    app.data_readers.gc_http_sessions(now).await;
+
+    for data_reader in app.data_readers.get_all().await {
+        data_reader.ping_http_servers(now).await;
+    }
+    app.data_readers.ten_seconds_tick(now).await;
 }

@@ -108,4 +108,10 @@ impl DataReader {
             tables: read_access.get_table_names(),
         }
     }
+
+    pub async fn ping_http_servers(&self, now: DateTimeAsMicroseconds) {
+        if let DataReaderConnection::Http(info) = &self.connection {
+            info.ping(now).await;
+        }
+    }
 }

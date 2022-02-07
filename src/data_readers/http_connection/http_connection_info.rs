@@ -24,6 +24,12 @@ impl HttpConnectionInfo {
             delivery_info: Mutex::new(HttpConnectionDeliveryInfo::new()),
         }
     }
+
+    pub async fn ping(&self, now: DateTimeAsMicroseconds) {
+        let mut delivery_info = self.delivery_info.lock().await;
+        delivery_info.ping(now)
+    }
+
     pub async fn send(&self, sync_event: &SyncEvent) {
         if let Some(http_ok_result) = into_http_ok_result::convert(sync_event).await {
             let mut write_access = self.delivery_info.lock().await;

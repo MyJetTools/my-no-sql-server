@@ -119,3 +119,19 @@ pub fn compile_delete_rows_result(sync_data: &DeleteRowsEventSyncData) -> HttpOk
         output,
     }
 }
+
+pub fn compile_ping_result() -> HttpOkResult {
+    let mut headers = HashMap::new();
+    headers.insert(SYNC_HEADER.to_string(), format!("ping"));
+
+    let output = HttpOutput::Content {
+        headers: Some(headers),
+        content_type: Some(WebContentType::Json),
+        content: vec![],
+    };
+
+    HttpOkResult {
+        write_telemetry: false,
+        output,
+    }
+}

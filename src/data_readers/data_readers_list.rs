@@ -75,7 +75,7 @@ impl DataReadersList {
         read_access.get_subscribred_to_table(table_name).await
     }
 
-    pub async fn gc_http_sessions(&self, now: DateTimeAsMicroseconds) {
+    pub async fn ten_seconds_tick(&self, now: DateTimeAsMicroseconds) {
         let mut write_access = self.data.write().await;
         write_access.gc_http_sessions(now, self.http_session_time_out);
     }
