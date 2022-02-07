@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, HashMap};
 
-use my_http_server::{HttpOkResult, WebContentType};
+use my_http_server::{HttpOkResult, HttpOutput, WebContentType};
 use my_json::json_writer::{JsonArrayWriter, JsonObjectWriter};
 
 use crate::{
@@ -41,10 +41,15 @@ fn compile_init_table_result(table_name: &str, content: JsonArrayWriter) -> Http
     let mut headers = HashMap::new();
     headers.insert("SyncType".to_string(), format!("initTable={table_name}"));
 
-    HttpOkResult::Content {
+    let output = HttpOutput::Content {
         headers: Some(headers),
         content_type: Some(WebContentType::Json),
         content: content.build(),
+    };
+
+    HttpOkResult {
+        write_telemetry: false,
+        output,
     }
 }
 
@@ -65,10 +70,15 @@ fn compile_init_partitions_result(
     let mut headers = HashMap::new();
     headers.insert(SYNC_HEADER.to_string(), "initPartition".to_string());
 
-    HttpOkResult::Content {
+    let output = HttpOutput::Content {
         headers: Some(headers),
         content_type: Some(WebContentType::Json),
         content: json_object_writer.build(),
+    };
+
+    HttpOkResult {
+        write_telemetry: false,
+        output,
     }
 }
 
@@ -79,10 +89,15 @@ pub fn compile_update_rows_result(sync_data: &UpdateRowsSyncData) -> HttpOkResul
         format!("updateRows={}", sync_data.table_data.table_name),
     );
 
-    HttpOkResult::Content {
+    let output = HttpOutput::Content {
         headers: Some(headers),
         content_type: Some(WebContentType::Json),
         content: sync_data.rows_by_partition.as_json_array().build(),
+    };
+
+    HttpOkResult {
+        write_telemetry: false,
+        output,
     }
 }
 
@@ -93,9 +108,14 @@ pub fn compile_delete_rows_result(sync_data: &DeleteRowsEventSyncData) -> HttpOk
         format!("deleteRows={}", sync_data.table_data.table_name),
     );
 
-    HttpOkResult::Content {
+    let output = HttpOutput::Content {
         headers: Some(headers),
         content_type: Some(WebContentType::Json),
         content: sync_data.as_vec(),
+    };
+
+    HttpOkResult {
+        write_telemetry: false,
+        output,
     }
 }

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, WebContentType};
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput, WebContentType};
 use my_http_server_controllers::controllers::{
     actions::GetAction, documentation::HttpActionDescription,
 };
@@ -52,11 +52,12 @@ impl GetAction for LogsByTableAction {
                     table_name
                 );
 
-                HttpOkResult::Content {
+                HttpOutput::Content {
                     headers: None,
                     content_type: Some(WebContentType::Text),
                     content: content.into_bytes(),
                 }
+                .into_ok_result(true)
                 .into()
             }
         }
@@ -92,5 +93,7 @@ async fn render_select_table(app: &AppContext) -> HttpOkResult {
         body.push_str(line.as_str());
     }
 
-    super::super::as_html::build("Select table to show logs", body.as_str()).into()
+    super::super::as_html::build("Select table to show logs", body.as_str())
+        .into_ok_result(true)
+        .into()
 }

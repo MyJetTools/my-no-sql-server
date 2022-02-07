@@ -10,7 +10,7 @@ use my_http_server_controllers::controllers::{
 };
 use std::{result::Result, sync::Arc};
 
-use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 
 use super::models::TableContract;
 
@@ -74,6 +74,6 @@ impl PostAction for CreateIfNotExistsAction {
 
         let response: TableContract = table.as_ref().into();
 
-        return HttpOkResult::create_json_response(response).into();
+        HttpOutput::as_json(response).into_ok_result(true).into()
     }
 }

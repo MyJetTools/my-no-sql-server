@@ -1,30 +1,49 @@
-use my_http_server::{HttpOkResult, WebContentType};
+use my_http_server::{HttpOkResult, HttpOutput, WebContentType};
 
 use crate::db_operations::read::ReadOperationResult;
 
 impl Into<HttpOkResult> for ReadOperationResult {
     fn into(self) -> HttpOkResult {
         match self {
-            ReadOperationResult::SingleRow(content) => HttpOkResult::Content {
-                headers: None,
-                content,
-                content_type: Some(WebContentType::Json),
-            },
-            ReadOperationResult::RowsArray(content) => HttpOkResult::Content {
-                headers: None,
-                content,
-                content_type: Some(WebContentType::Json),
-            },
+            ReadOperationResult::SingleRow(content) => {
+                let output = HttpOutput::Content {
+                    headers: None,
+                    content,
+                    content_type: Some(WebContentType::Json),
+                };
+
+                HttpOkResult {
+                    write_telemetry: true,
+                    output,
+                }
+            }
+            ReadOperationResult::RowsArray(content) => {
+                let output = HttpOutput::Content {
+                    headers: None,
+                    content,
+                    content_type: Some(WebContentType::Json),
+                };
+
+                HttpOkResult {
+                    write_telemetry: true,
+                    output,
+                }
+            }
             ReadOperationResult::EmptyArray => {
                 let empty_array = vec![
                     crate::json::consts::OPEN_ARRAY,
                     crate::json::consts::CLOSE_ARRAY,
                 ];
 
-                HttpOkResult::Content {
+                let output = HttpOutput::Content {
                     headers: None,
                     content: empty_array,
                     content_type: Some(WebContentType::Json),
+                };
+
+                HttpOkResult {
+                    write_telemetry: true,
+                    output,
                 }
             }
         }

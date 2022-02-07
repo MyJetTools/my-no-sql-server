@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::app::AppContext;
-use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 use my_http_server_controllers::controllers::{
     actions::GetAction,
     documentation::{out_results::IntoHttpResult, HttpActionDescription},
@@ -44,6 +44,6 @@ impl GetAction for StatusController {
 
     async fn handle_request(&self, _ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
         let model = StatusModel::new(self.app.as_ref()).await;
-        return HttpOkResult::create_json_response(model).into();
+        HttpOutput::as_json(model).into_ok_result(true).into()
     }
 }

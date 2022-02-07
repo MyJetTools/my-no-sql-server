@@ -6,7 +6,7 @@ use my_http_server_controllers::controllers::{
 };
 use std::sync::Arc;
 
-use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 
 use crate::{
     app::AppContext, db_sync::EventSource,
@@ -66,7 +66,7 @@ impl GetAction for TablesController {
             response.push(db_table.as_ref().into());
         }
 
-        return HttpOkResult::create_json_response(response).into();
+        HttpOutput::as_json(response).into_ok_result(true).into()
     }
 }
 
@@ -118,7 +118,7 @@ impl PostAction for TablesController {
         )
         .await?;
 
-        return Ok(HttpOkResult::Empty);
+        return Ok(HttpOutput::Empty.into_ok_result(true));
     }
 }
 #[async_trait]
@@ -165,7 +165,7 @@ impl PutAction for TablesController {
         )
         .await;
 
-        return Ok(HttpOkResult::Empty);
+        return Ok(HttpOutput::Empty.into_ok_result(true));
     }
 }
 
@@ -218,6 +218,6 @@ impl DeleteAction for TablesController {
         )
         .await?;
 
-        return Ok(HttpOkResult::Empty);
+        return Ok(HttpOutput::Empty.into_ok_result(true));
     }
 }

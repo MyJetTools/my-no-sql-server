@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{app::AppContext, http::contracts::response};
 use async_trait::async_trait;
-use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 use my_http_server_controllers::controllers::{
     actions::PostAction, documentation::HttpActionDescription,
 };
@@ -53,6 +53,6 @@ impl PostAction for AppendTransactionAction {
         )
         .await?;
 
-        return Ok(HttpOkResult::Empty);
+        return Ok(HttpOutput::Empty.into_ok_result(true));
     }
 }

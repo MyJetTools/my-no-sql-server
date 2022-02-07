@@ -1,6 +1,6 @@
 use crate::app::AppContext;
 use async_trait::async_trait;
-use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 use my_http_server_controllers::controllers::{
     actions::PostAction,
     documentation::{out_results::HttpResult, HttpActionDescription},
@@ -47,6 +47,6 @@ impl PostAction for StartTransactionAction {
 
         let response = StartTransactionResponse { transaction_id };
 
-        return HttpOkResult::create_json_response(response).into();
+        HttpOutput::as_json(response).into_ok_result(true).into()
     }
 }

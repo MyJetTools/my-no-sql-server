@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 use my_http_server_controllers::controllers::{
     actions::PostAction,
     documentation::{data_types::HttpDataType, out_results::HttpResult, HttpActionDescription},
@@ -49,6 +49,6 @@ impl PostAction for PingAction {
             .get_http_session(input_data.session_id.as_str())
             .await?;
 
-        HttpOkResult::Empty.into()
+        HttpOutput::Empty.into_ok_result(true).into()
     }
 }

@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use my_http_server_controllers::controllers::{
@@ -50,13 +50,13 @@ impl GetAction for ApiController {
 
         let time = DateTimeAsMicroseconds::now();
 
-        let model = IsAliveResponse {
+        let response = IsAliveResponse {
             name: "MyNoSqlServer".to_string(),
             time: time.to_rfc3339(),
             version: version.to_string(),
             env_info,
         };
 
-        return HttpOkResult::create_json_response(model).into();
+        HttpOutput::as_json(response).into_ok_result(true).into()
     }
 }

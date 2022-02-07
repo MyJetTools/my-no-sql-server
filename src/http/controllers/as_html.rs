@@ -1,7 +1,7 @@
-use my_http_server::{HttpOkResult, WebContentType};
+use my_http_server::{HttpOutput, WebContentType};
 
-pub fn build(title: &str, body: &str) -> HttpOkResult {
-    HttpOkResult::Content {
+pub fn build(title: &str, body: &str) -> HttpOutput {
+    HttpOutput::Content {
         headers: None,
         content_type: Some(WebContentType::Html),
         content: format!(

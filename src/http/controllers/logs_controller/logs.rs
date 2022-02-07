@@ -64,7 +64,9 @@ pub fn compile_result(title: &str, logs: Vec<Arc<LogItem>>, mut sw: StopWatch) -
     let line = format!("Rendered in {:?}", sw.duration());
     sb.append_line(line.as_str());
 
-    super::super::as_html::build(title, sb.to_string_utf8().unwrap().as_str()).into()
+    super::super::as_html::build(title, sb.to_string_utf8().unwrap().as_str())
+        .into_ok_result(true)
+        .into()
 }
 
 fn get_log_level_color(item: &LogItem) -> &str {
