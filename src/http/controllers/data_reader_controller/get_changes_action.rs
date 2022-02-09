@@ -1,13 +1,15 @@
 use std::sync::Arc;
 
-use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, WebContentType};
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput, WebContentType};
 use my_http_server_controllers::controllers::{
     actions::PostAction,
     documentation::{data_types::HttpDataType, out_results::HttpResult, HttpActionDescription},
 };
 
 use crate::{
-    app::AppContext, data_readers::DataReaderConnection, http::http_sessions::HttpSessionsSupport,
+    app::AppContext,
+    data_readers::{http_connection::HttpPayload, DataReaderConnection},
+    http::http_sessions::HttpSessionsSupport,
 };
 
 use super::models::GetChangesInputModel;
@@ -52,7 +54,19 @@ impl PostAction for GetChangesAction {
             .await?;
 
         if let DataReaderConnection::Http(info) = &data_reader.connection {
-            return info.new_request().await;
+            let result = info.new_request().await?;
+            match result {
+                HttpPayload::Ping => return HttpOutput::Empty.into_ok_result(false).into(),
+                HttpPayload::Payload(payload) => {
+                    return HttpOutput::Content {
+                        headers: None,
+                        content_type: None,
+                        content: payload,
+                    }
+                    .into_ok_result(false)
+                    .into();
+                }
+            }
         }
 
         return Err(HttpFailResult {

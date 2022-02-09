@@ -1,10 +1,12 @@
-use my_http_server::{HttpFailResult, HttpOkResult};
+use my_http_server::HttpFailResult;
 use rust_extensions::date_time::{AtomicDateTimeAsMicroseconds, DateTimeAsMicroseconds};
 use tokio::sync::Mutex;
 
-use crate::db_sync::SyncEvent;
+use crate::{
+    data_readers::http_connection::connection_delivery_info::HttpPayload, db_sync::SyncEvent,
+};
 
-use super::{into_http_ok_result, HttpConnectionDeliveryInfo};
+use super::{into_http_payload, HttpConnectionDeliveryInfo};
 
 pub struct HttpConnectionInfo {
     pub id: String,
@@ -31,23 +33,23 @@ impl HttpConnectionInfo {
     }
 
     pub async fn send(&self, sync_event: &SyncEvent) {
-        if let Some(http_ok_result) = into_http_ok_result::convert(sync_event).await {
+        if let Some(payload) = into_http_payload::convert(sync_event).await {
             let mut write_access = self.delivery_info.lock().await;
-            write_access.payload_to_deliver.push_back(http_ok_result);
+            write_access.upload(payload);
 
             if let Some(mut task) = write_access.get_task_to_write_response() {
-                let payload = write_access.payload_to_deliver.pop_front().unwrap();
-                task.set_ok(payload);
+                let payload = write_access.get_payload_to_deliver().unwrap();
+                task.set_ok(HttpPayload::Payload(payload));
             }
         }
     }
 
-    pub async fn new_request(&self) -> Result<HttpOkResult, HttpFailResult> {
+    pub async fn new_request(&self) -> Result<HttpPayload, HttpFailResult> {
         let task_completion = {
             let mut write_access = self.delivery_info.lock().await;
 
-            if let Some(result) = write_access.payload_to_deliver.pop_front() {
-                return Ok(result);
+            if let Some(payload) = write_access.get_payload_to_deliver() {
+                return Ok(HttpPayload::Payload(payload));
             }
 
             write_access.issue_task_completion()

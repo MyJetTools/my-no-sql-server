@@ -78,7 +78,7 @@ impl DataReader {
         }
     }
 
-    fn get_last_incoming_moment(&self) -> DateTimeAsMicroseconds {
+    pub fn get_last_incoming_moment(&self) -> DateTimeAsMicroseconds {
         match &self.connection {
             DataReaderConnection::Tcp(connection) => connection
                 .connection

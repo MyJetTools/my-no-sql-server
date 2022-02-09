@@ -1,16 +1,21 @@
 use std::{collections::VecDeque, time::Duration};
 
-use my_http_server::{HttpFailResult, HttpOkResult};
+use my_http_server::HttpFailResult;
 use rust_extensions::{date_time::DateTimeAsMicroseconds, TaskCompletion, TaskCompletionAwaiter};
+
+pub enum HttpPayload {
+    Ping,
+    Payload(Vec<u8>),
+}
 
 pub struct AwaitingResponse {
     pub created: DateTimeAsMicroseconds,
-    task_completion: TaskCompletion<HttpOkResult, HttpFailResult>,
+    task_completion: TaskCompletion<HttpPayload, HttpFailResult>,
 }
 
 pub struct HttpConnectionDeliveryInfo {
     awaiting_response: Option<AwaitingResponse>,
-    pub payload_to_deliver: VecDeque<HttpOkResult>,
+    payload_to_deliver: VecDeque<Vec<u8>>,
 }
 static MIN_PING_TIMEOUT: Duration = Duration::from_secs(3);
 
@@ -20,6 +25,22 @@ impl HttpConnectionDeliveryInfo {
             awaiting_response: None,
             payload_to_deliver: VecDeque::new(),
         }
+    }
+
+    pub fn upload(&mut self, payload: Vec<u8>) {
+        match self.payload_to_deliver.pop_back() {
+            Some(mut last_one) => {
+                last_one.extend(payload);
+                self.payload_to_deliver.push_back(last_one);
+            }
+            None => {
+                self.payload_to_deliver.push_back(payload);
+            }
+        }
+    }
+
+    pub fn get_payload_to_deliver(&mut self) -> Option<Vec<u8>> {
+        self.payload_to_deliver.pop_front()
     }
 
     pub fn ping(&mut self, now: DateTimeAsMicroseconds) {
@@ -34,13 +55,14 @@ impl HttpConnectionDeliveryInfo {
         }
 
         if let Some(mut task) = self.get_task_to_write_response() {
-            task.set_ok(super::into_http_ok_result::compile_ping_result())
+            println!("Set Ping to Task completion");
+            task.set_ok(HttpPayload::Ping)
         }
     }
 
     pub fn get_task_to_write_response(
         &mut self,
-    ) -> Option<TaskCompletion<HttpOkResult, HttpFailResult>> {
+    ) -> Option<TaskCompletion<HttpPayload, HttpFailResult>> {
         if self.awaiting_response.is_none() {
             return None;
         }
@@ -52,7 +74,7 @@ impl HttpConnectionDeliveryInfo {
         result.task_completion.into()
     }
 
-    pub fn issue_task_completion(&mut self) -> TaskCompletionAwaiter<HttpOkResult, HttpFailResult> {
+    pub fn issue_task_completion(&mut self) -> TaskCompletionAwaiter<HttpPayload, HttpFailResult> {
         if self.awaiting_response.is_some() {
             panic!("Task completion is already issued");
         }

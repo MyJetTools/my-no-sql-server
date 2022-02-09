@@ -8,10 +8,7 @@ use my_http_server_controllers::controllers::{
 
 use crate::{
     app::AppContext,
-    http::{
-        get_table::GetTableHttpSupport,
-        http_sessions::{self, *},
-    },
+    http::http_sessions::{self, *},
 };
 
 use super::models::SubscribeToTableInputModel;
@@ -59,9 +56,12 @@ impl PostAction for SubscribeAction {
             .get_http_session(input_data.session_id.as_str())
             .await?;
 
-        let db_table = self.app.get_table(input_data.table_name.as_str()).await?;
-
-        data_reader.subscribe(db_table).await;
+        crate::operations::data_readers::subscribe(
+            self.app.as_ref(),
+            data_reader,
+            input_data.table_name.as_str(),
+        )
+        .await?;
 
         HttpOutput::Empty.into_ok_result(true).into()
     }

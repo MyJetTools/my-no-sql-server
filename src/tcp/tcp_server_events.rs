@@ -3,10 +3,7 @@ use std::sync::Arc;
 use my_no_sql_tcp_shared::{MyNoSqlReaderTcpSerializer, TcpContract};
 use my_tcp_sockets::{tcp_connection::SocketConnection, ConnectionEvent, SocketEventCallback};
 
-use crate::{
-    app::{logs::SystemProcess, AppContext},
-    operations::OperationError,
-};
+use crate::app::{logs::SystemProcess, AppContext};
 
 pub type MyNoSqlTcpConnection = SocketConnection<TcpContract, MyNoSqlReaderTcpSerializer>;
 
@@ -47,20 +44,13 @@ impl TcpServerEvents {
             TcpContract::Subscribe { table_name } => {
                 if let Some(data_reader) = self.app.data_readers.get_tcp(connection.as_ref()).await
                 {
-                    let result = crate::operations::data_readers::subscribe(
+                    crate::operations::data_readers::subscribe(
                         self.app.as_ref(),
                         data_reader,
                         &table_name,
                     )
-                    .await;
-
-                    if let Err(err) = result {
-                        match err {
-                            OperationError::TableNotFound => {
-                                panic!("Table {} is not found to subscribe", table_name);
-                            }
-                        }
-                    }
+                    .await
+                    .unwrap();
                 }
             }
             _ => {}

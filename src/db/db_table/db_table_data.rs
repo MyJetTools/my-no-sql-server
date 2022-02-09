@@ -7,10 +7,7 @@ use std::{
 };
 
 use crate::{
-    db::{
-        db_snapshots::{DbPartitionSnapshot, DbRowsByPartitionsSnapshot},
-        DbPartition, DbRow,
-    },
+    db::{db_snapshots::DbPartitionSnapshot, DbPartition, DbRow},
     db_json_entity::JsonTimeStamp,
     persistence::DataToPersist,
     rows_with_expiration::RowsWithExpiration,
@@ -390,17 +387,6 @@ impl DbTableData {
         self.table_size -= db_row.data.len();
         self.rows_amount -= 1;
         self.rows_with_expiration.remove(db_row);
-    }
-}
-
-impl Into<DbRowsByPartitionsSnapshot> for &DbTableData {
-    fn into(self) -> DbRowsByPartitionsSnapshot {
-        let mut result = DbRowsByPartitionsSnapshot::new();
-        for (partition_key, db_partition) in &self.partitions {
-            result.insert_partition(partition_key.to_string(), db_partition);
-        }
-
-        result
     }
 }
 

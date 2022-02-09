@@ -3,15 +3,15 @@ use std::sync::Arc;
 use crate::{
     app::AppContext,
     data_readers::DataReader,
+    db_operations::DbOperationError,
     db_sync::{states::TableFirstInitSyncData, SyncEvent},
-    operations::OperationError,
 };
 
 pub async fn subscribe(
     app: &AppContext,
     data_reader: Arc<DataReader>,
     table_name: &str,
-) -> Result<(), OperationError> {
+) -> Result<(), DbOperationError> {
     let table = app.db.get_table(table_name).await;
 
     if table.is_none() {
@@ -21,7 +21,7 @@ pub async fn subscribe(
             table_name
         );
 
-        return Err(OperationError::TableNotFound);
+        return Err(DbOperationError::TableNotFound(table_name.to_string()));
     }
 
     let db_table = table.unwrap();
