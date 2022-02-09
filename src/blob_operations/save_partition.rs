@@ -20,7 +20,10 @@ pub async fn with_retries(
             azure_connection,
             table_name,
             partition_key,
-            db_partition_snapshot.db_rows.as_json_array().build(),
+            db_partition_snapshot
+                .db_rows_snapshot
+                .as_json_array()
+                .build(),
         )
         .await
         {

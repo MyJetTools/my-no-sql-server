@@ -132,7 +132,7 @@ impl Into<DbPartitionSnapshot> for &DbPartition {
         DbPartitionSnapshot {
             last_read_access: self.last_read_access.as_date_time(),
             last_write_moment: self.last_write_moment.as_date_time(),
-            db_rows: self.into(),
+            db_rows_snapshot: self.into(),
         }
     }
 }

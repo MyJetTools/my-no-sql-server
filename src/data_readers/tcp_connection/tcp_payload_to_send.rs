@@ -11,17 +11,25 @@ pub enum TcpPayloadToSend {
 impl TcpPayloadToSend {
     pub async fn parse_from(sync_event: &SyncEvent) -> Option<TcpPayloadToSend> {
         match sync_event {
-            SyncEvent::TableFirstInit(data) => {
-                let table_snapshot = data.db_table.get_table_snapshot().await;
-                let tcp_contract = table_snapshot.into_tcp_contract(data.db_table.name.to_string());
+            SyncEvent::TableFirstInit(sync_data) => {
+                let table_snapshot = sync_data.db_table.get_table_snapshot().await;
+
+                let data = table_snapshot.as_json_array().build();
+
+                let tcp_contract = TcpContract::InitTable {
+                    table_name: sync_data.db_table.name.to_string(),
+                    data,
+                };
 
                 TcpPayloadToSend::FirstInit(tcp_contract).into()
             }
             SyncEvent::UpdateTableAttributes(_) => None,
-            SyncEvent::InitTable(data) => {
+            SyncEvent::InitTable(sync_data) => {
+                let data = sync_data.table_snapshot.as_json_array().build();
+
                 let result = TcpContract::InitTable {
-                    table_name: data.table_data.table_name.to_string(),
-                    data: data.table_snapshot.as_json_array().build(),
+                    table_name: sync_data.table_data.table_name.to_string(),
+                    data,
                 };
 
                 TcpPayloadToSend::Single(result.serialize()).into()
@@ -34,7 +42,10 @@ impl TcpPayloadToSend {
                         partition_key: partition_key.to_string(),
                         table_name: data.table_data.table_name.to_string(),
                         data: if let Some(db_partition_snapshot) = snapshot {
-                            db_partition_snapshot.db_rows.as_json_array().build()
+                            db_partition_snapshot
+                                .db_rows_snapshot
+                                .as_json_array()
+                                .build()
                         } else {
                             EMPTY_ARRAY.to_vec()
                         },
