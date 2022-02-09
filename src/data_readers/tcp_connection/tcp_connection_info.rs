@@ -2,8 +2,6 @@ use std::sync::Arc;
 
 use crate::tcp::MyNoSqlTcpConnection;
 
-use super::TcpPayloadToSend;
-
 pub struct TcpConnectionInfo {
     pub connection: Arc<MyNoSqlTcpConnection>,
 }
@@ -24,19 +22,7 @@ impl TcpConnectionInfo {
         }
     }
 
-    pub async fn send(&self, payload_to_send: &TcpPayloadToSend) {
-        match payload_to_send {
-            TcpPayloadToSend::Single(payload) => {
-                self.connection.send_bytes(payload).await;
-            }
-            TcpPayloadToSend::Multiple(payloads) => {
-                for payload in payloads {
-                    self.connection.send_bytes(payload).await;
-                }
-            }
-            TcpPayloadToSend::FirstInit(tcp_contract) => {
-                self.connection.send_ref(tcp_contract).await;
-            }
-        }
+    pub async fn send(&self, payload_to_send: &[u8]) {
+        self.connection.send_bytes(payload_to_send).await;
     }
 }

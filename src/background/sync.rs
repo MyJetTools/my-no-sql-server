@@ -2,11 +2,7 @@ use std::sync::Arc;
 
 use tokio::sync::mpsc;
 
-use crate::{
-    app::AppContext,
-    data_readers::{tcp_connection::TcpPayloadToSend, DataReaderConnection},
-    db_sync::SyncEvent,
-};
+use crate::{app::AppContext, data_readers::DataReaderConnection, db_sync::SyncEvent};
 
 pub async fn start(app: Arc<AppContext>, mut rx: mpsc::UnboundedReceiver<SyncEvent>) {
     while !app.states.is_shutting_down() {
@@ -22,7 +18,10 @@ async fn handle_event(app: &AppContext, sync_event: &SyncEvent) {
 
         match &data.data_reader.connection {
             DataReaderConnection::Tcp(tcp_info) => {
-                if let Some(payload_to_send) = TcpPayloadToSend::parse_from(sync_event).await {
+                if let Some(payload_to_send) =
+                    crate::data_readers::tcp_connection::tcp_payload_to_send::serialize(sync_event)
+                        .await
+                {
                     tcp_info.send(&payload_to_send).await;
                 }
             }
@@ -43,7 +42,7 @@ async fn handle_event(app: &AppContext, sync_event: &SyncEvent) {
     }
     let data_readers = data_readers.unwrap();
 
-    let mut tcp_contracts: Option<TcpPayloadToSend> = None;
+    let mut tcp_contracts: Option<Vec<u8>> = None;
 
     for data_reader in &data_readers {
         if !data_reader.has_first_init() {
@@ -55,7 +54,12 @@ async fn handle_event(app: &AppContext, sync_event: &SyncEvent) {
                 if let Some(to_send) = &tcp_contracts {
                     info.send(to_send).await;
                 } else {
-                    if let Some(to_send) = TcpPayloadToSend::parse_from(&sync_event).await {
+                    if let Some(to_send) =
+                        crate::data_readers::tcp_connection::tcp_payload_to_send::serialize(
+                            sync_event,
+                        )
+                        .await
+                    {
                         info.send(&to_send).await;
                         tcp_contracts = Some(to_send);
                     }
