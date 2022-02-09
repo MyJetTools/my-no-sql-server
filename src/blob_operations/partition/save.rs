@@ -10,7 +10,5 @@ pub async fn save(
 
     azure_connection
         .upload(table_name, blob_file.as_str(), content)
-        .await?;
-
-    Ok(())
+        .await
 }
