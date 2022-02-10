@@ -1,11 +1,14 @@
-use std::sync::Arc;
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
 
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 use tokio::sync::RwLock;
 
 use crate::db::DbTable;
 
-use super::{tcp_connection::TcpConnectionInfo, DataReaderUpdatableData};
+use super::{DataReaderConnection, DataReaderUpdatableData};
 
 pub struct DataReadeMetrics {
     pub session_id: String,
@@ -16,14 +19,11 @@ pub struct DataReadeMetrics {
     pub tables: Vec<String>,
 }
 
-pub enum DataReaderConnection {
-    Tcp(TcpConnectionInfo),
-}
-
 pub struct DataReader {
     pub id: String,
     data: RwLock<DataReaderUpdatableData>,
     pub connection: DataReaderConnection,
+    has_first_init: AtomicBool,
 }
 
 impl DataReader {
@@ -32,7 +32,16 @@ impl DataReader {
             id,
             data: RwLock::new(DataReaderUpdatableData::new()),
             connection,
+            has_first_init: AtomicBool::new(false),
         }
+    }
+
+    pub fn has_first_init(&self) -> bool {
+        self.has_first_init.load(Ordering::Relaxed)
+    }
+
+    pub fn set_first_init(&self) {
+        self.has_first_init.store(true, Ordering::SeqCst);
     }
 
     pub async fn has_table(&self, table_name: &str) -> bool {
@@ -58,22 +67,27 @@ impl DataReader {
     fn get_ip(&self) -> String {
         match &self.connection {
             DataReaderConnection::Tcp(connection) => connection.get_ip(),
+            DataReaderConnection::Http(connection) => connection.ip.to_string(),
         }
     }
 
     fn get_connected_moment(&self) -> DateTimeAsMicroseconds {
         match &self.connection {
             DataReaderConnection::Tcp(connection) => connection.connection.statistics.connected,
+            DataReaderConnection::Http(connection) => connection.connected,
         }
     }
 
-    fn get_last_incoming_moment(&self) -> DateTimeAsMicroseconds {
+    pub fn get_last_incoming_moment(&self) -> DateTimeAsMicroseconds {
         match &self.connection {
             DataReaderConnection::Tcp(connection) => connection
                 .connection
                 .statistics
                 .last_receive_moment
                 .as_date_time(),
+            DataReaderConnection::Http(connection) => {
+                connection.last_incoming_moment.as_date_time()
+            }
         }
     }
 
@@ -92,6 +106,12 @@ impl DataReader {
             ip,
             name: read_access.name.clone(),
             tables: read_access.get_table_names(),
+        }
+    }
+
+    pub async fn ping_http_servers(&self, now: DateTimeAsMicroseconds) {
+        if let DataReaderConnection::Http(info) = &self.connection {
+            info.ping(now).await;
         }
     }
 }

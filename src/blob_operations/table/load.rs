@@ -60,18 +60,24 @@ async fn init_to_db_table(
     tasks: &mut Vec<JoinHandle<LoadBlobResult>>,
 ) {
     for task in tasks.drain(..) {
-        let result = task.await.unwrap();
-
-        match result {
-            LoadBlobResult::Metadata(meta_data) => {
-                table_attributes.max_partitions_amount = meta_data.max_partitions_amount;
-                table_attributes.persist = meta_data.persist;
-            }
-            LoadBlobResult::DbPartition {
-                partition_key,
-                db_partition,
-            } => {
-                db_table_data.init_partition(partition_key, db_partition);
+        match task.await {
+            Ok(result) => match result {
+                LoadBlobResult::Metadata(meta_data) => {
+                    table_attributes.max_partitions_amount = meta_data.max_partitions_amount;
+                    table_attributes.persist = meta_data.persist;
+                }
+                LoadBlobResult::DbPartition {
+                    partition_key,
+                    db_partition,
+                } => {
+                    db_table_data.init_partition(partition_key, db_partition);
+                }
+            },
+            Err(_) => {
+                println!(
+                    "Error loading partition for table {}. Skipping partition",
+                    db_table_data.name
+                );
             }
         }
     }

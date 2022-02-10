@@ -2,7 +2,7 @@ use crate::{
     app::AppContext, db_json_entity::JsonTimeStamp, db_sync::EventSource, http::contracts::response,
 };
 use async_trait::async_trait;
-use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 use my_http_server_controllers::controllers::{
     actions::PostAction, documentation::HttpActionDescription,
 };
@@ -57,6 +57,6 @@ impl PostAction for CommitTransactionAction {
         )
         .await?;
 
-        return HttpOkResult::Empty.into();
+        return HttpOutput::Empty.into_ok_result(true).into();
     }
 }

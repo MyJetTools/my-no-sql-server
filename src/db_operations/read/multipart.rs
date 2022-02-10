@@ -1,4 +1,4 @@
-use crate::{app::AppContext, db_operations::DbOperationError, json::JsonArrayBuilder};
+use crate::{app::AppContext, db_operations::DbOperationError};
 
 use super::ReadOperationResult;
 
@@ -21,13 +21,7 @@ pub async fn get_next(
     multipart_id: i64,
     amount: usize,
 ) -> Option<ReadOperationResult> {
-    let result = app.multipart_list.get(multipart_id, amount).await?;
+    let db_rows = app.multipart_list.get(multipart_id, amount).await?;
 
-    let mut array_builder = JsonArrayBuilder::new();
-
-    for db_row in result {
-        array_builder.append_json_object(db_row.data.as_slice());
-    }
-
-    ReadOperationResult::RowsArray(array_builder.build()).into()
+    ReadOperationResult::RowsArray(db_rows.as_json_array().build()).into()
 }

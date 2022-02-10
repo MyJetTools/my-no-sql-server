@@ -40,7 +40,7 @@ async fn iteration(app: Arc<AppContext>, azure_connection: Arc<AzureStorageConne
                     .await;
                 }
                 PersistResult::PersistTable => {
-                    crate::operations::blob_sync::sync_table::sync_everything(
+                    crate::operations::blob_sync::persist_table::execute(
                         app.as_ref(),
                         db_table.as_ref(),
                         azure_connection.as_ref(),
@@ -48,7 +48,7 @@ async fn iteration(app: Arc<AppContext>, azure_connection: Arc<AzureStorageConne
                     .await;
                 }
                 PersistResult::PersistPartition(partition_key) => {
-                    crate::operations::blob_sync::sync_partition::execute(
+                    crate::operations::blob_sync::persist_partition::execute(
                         app.as_ref(),
                         db_table.as_ref(),
                         azure_connection.as_ref(),

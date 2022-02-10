@@ -3,7 +3,7 @@ use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
     app::AppContext,
-    db::{DbPartitionSnapshot, DbTable},
+    db::{db_snapshots::DbPartitionSnapshot, DbTable},
     persistence::blob_content_cache::BlobPartitionUpdateTimeResult,
 };
 
@@ -27,13 +27,13 @@ pub async fn execute(
                 db_table.name.as_str(),
                 partition_key,
                 azure_connection,
-                partition_snapshot,
+                partition_snapshot.as_ref(),
                 Some(blob_date_time),
             )
             .await;
         }
         BlobPartitionUpdateTimeResult::TableNotFound => {
-            super::sync_table::from_no_table_in_blob(app, db_table, azure_connection).await;
+            super::persist_table::from_no_table_in_blob(app, db_table, azure_connection).await;
         }
         BlobPartitionUpdateTimeResult::PartitionNoFound => {
             if let Some(snapshot) = partition_snapshot {
@@ -42,7 +42,7 @@ pub async fn execute(
                     azure_connection,
                     db_table.name.as_str(),
                     partition_key,
-                    snapshot,
+                    &snapshot,
                 )
                 .await;
             }
@@ -55,7 +55,7 @@ pub async fn sync_single_partition(
     table_name: &str,
     partition_key: &str,
     azure_connection: &AzureStorageConnection,
-    partition_snapshot: Option<DbPartitionSnapshot>,
+    partition_snapshot: Option<&DbPartitionSnapshot>,
     blob_date_time: Option<DateTimeAsMicroseconds>,
 ) {
     if let Some(db_partition_snapshot) = partition_snapshot {

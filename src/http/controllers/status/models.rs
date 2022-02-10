@@ -34,6 +34,8 @@ pub struct StatusModel {
     pub tcp_connections: usize,
     #[serde(rename = "tablesAmount")]
     pub tables_amount: usize,
+    #[serde(rename = "httpConnections")]
+    pub http_connections: usize,
 }
 
 impl StatusModel {
@@ -50,20 +52,23 @@ impl StatusModel {
             nodes: vec![],
             readers: readers.0,
             tcp_connections: readers.1,
+            http_connections: readers.2,
             tables_amount,
         }
     }
 }
 
-async fn get_readers(app: &AppContext) -> (Vec<ReaderModel>, usize) {
+async fn get_readers(app: &AppContext) -> (Vec<ReaderModel>, usize, usize) {
     let mut result = Vec::new();
     let now = DateTimeAsMicroseconds::now();
 
     let mut tcp_count = 0;
+    let mut http_count = 0;
 
     for data_reader in app.data_readers.get_all().await {
         match &data_reader.connection {
             crate::data_readers::DataReaderConnection::Tcp(_) => tcp_count += 1,
+            crate::data_readers::DataReaderConnection::Http(_) => http_count += 1,
         }
 
         let metrics = data_reader.get_metrics().await;
@@ -83,5 +88,5 @@ async fn get_readers(app: &AppContext) -> (Vec<ReaderModel>, usize) {
         }
     }
 
-    (result, tcp_count)
+    (result, tcp_count, http_count)
 }

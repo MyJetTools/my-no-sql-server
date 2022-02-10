@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 use my_http_server_controllers::controllers::{
     actions::PostAction, documentation::HttpActionDescription,
 };
@@ -48,6 +48,6 @@ impl PostAction for CancelTransactionAction {
             input_model.transaction_id.as_str(),
         )
         .await?;
-        return Ok(HttpOkResult::Empty);
+        return Ok(HttpOutput::Empty.into_ok_result(true));
     }
 }

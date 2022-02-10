@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 use my_http_server_controllers::controllers::actions::PostAction;
 use my_http_server_controllers::controllers::documentation::data_types::HttpDataType;
 use my_http_server_controllers::controllers::documentation::out_results::HttpResult;
@@ -70,6 +70,6 @@ impl PostAction for BlukInsertOrReplaceControllerAction {
         )
         .await;
 
-        HttpOkResult::Empty.into()
+        HttpOutput::Empty.into_ok_result(true).into()
     }
 }

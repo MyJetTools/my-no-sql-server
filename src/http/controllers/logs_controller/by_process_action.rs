@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, WebContentType};
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput, WebContentType};
 use my_http_server_controllers::controllers::{
     actions::GetAction, documentation::HttpActionDescription,
 };
@@ -40,10 +40,13 @@ impl GetAction for LogsByProcessAction {
         let process = SystemProcess::parse(process_name);
 
         if process.is_none() {
-            return Ok(HttpOkResult::Content {
+            return HttpOutput::Content {
+                headers: None,
                 content_type: Some(WebContentType::Text),
                 content: format!("Invalid process name: {}", process_name).into(),
-            });
+            }
+            .into_ok_result(true)
+            .into();
         }
 
         let process = process.unwrap();
@@ -57,7 +60,8 @@ impl GetAction for LogsByProcessAction {
             None => {
                 sw.pause();
 
-                Ok(HttpOkResult::Content {
+                Ok(HttpOutput::Content {
+                    headers: None,
                     content_type: Some(WebContentType::Text),
                     content: format!(
                         "Result compiled in: {:?}. No log recods for the process '{}'",
@@ -65,7 +69,8 @@ impl GetAction for LogsByProcessAction {
                         process_name
                     )
                     .into_bytes(),
-                })
+                }
+                .into_ok_result(true))
             }
         }
     }
@@ -84,5 +89,7 @@ async fn render_select_process() -> HttpOkResult {
         sb.push_str(line.as_str())
     }
 
-    super::super::as_html::build("Select table to show logs", sb.as_str()).into()
+    super::super::as_html::build("Select table to show logs", sb.as_str())
+        .into_ok_result(true)
+        .into()
 }

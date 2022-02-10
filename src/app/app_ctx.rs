@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use rust_extensions::ApplicationStates;
 
@@ -60,7 +60,7 @@ impl AppContext {
             table_api_key: settings.table_api_key.to_string(),
             events_dispatcher,
             blob_content_cache: BlobContentCache::new(),
-            data_readers: DataReadersList::new(),
+            data_readers: DataReadersList::new(Duration::from_secs(30)),
             multipart_list: MultipartList::new(),
         }
     }

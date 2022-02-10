@@ -4,3 +4,5 @@ pub mod flush_to_blobs;
 pub mod gc_partitions;
 pub mod metrics_updater;
 pub mod sync;
+
+pub mod gc_http_sessions;

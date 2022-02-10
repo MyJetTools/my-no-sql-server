@@ -55,7 +55,7 @@ pub async fn execute(
     let mut update_rows_state =
         UpdateRowsSyncData::new(&table_data, db_table.attributes.get_persist(), event_src);
 
-    update_rows_state.add_row(db_row);
+    update_rows_state.rows_by_partition.add_row(db_row);
 
     app.events_dispatcher
         .dispatch(SyncEvent::UpdateRows(update_rows_state));

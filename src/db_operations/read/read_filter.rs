@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
+use my_json::json_writer::JsonArrayWriter;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-use crate::{db::DbRow, json::JsonArrayBuilder};
+use crate::db::DbRow;
 
 pub struct DbRowsFilter<'s, TIter: Iterator<Item = &'s Arc<DbRow>>> {
     pub iterator: TIter,
@@ -57,12 +58,12 @@ pub fn filter_it<'s, TIter: Iterator<Item = &'s Arc<DbRow>>>(
     skip: Option<usize>,
     now: DateTimeAsMicroseconds,
 ) -> Vec<u8> {
-    let mut array_builder = JsonArrayBuilder::new();
+    let mut json_array_writer = JsonArrayWriter::new();
 
     for db_row in DbRowsFilter::new(iterator, limit, skip) {
-        array_builder.append_json_object(&db_row.data);
+        json_array_writer.write_raw_element(&db_row.data);
         db_row.last_read_access.update(now);
     }
 
-    array_builder.build()
+    json_array_writer.build()
 }

@@ -1,11 +1,12 @@
 use crate::{
-    db_json_entity::DbEntityParseFail, db_operations::DbOperationError, http::docs::rejects,
-    json::JsonParseError,
+    db_json_entity::DbEntityParseFail, db_operations::DbOperationError, json::JsonParseError,
 };
 
 use my_http_server::{HttpFailResult, WebContentType};
 
 use super::{OperationFailHttpContract, OperationFailReason};
+
+pub const OPERATION_FAIL_HTTP_STATUS_CODE: u16 = 400;
 
 impl From<DbOperationError> for HttpFailResult {
     fn from(src: DbOperationError) -> Self {
@@ -19,24 +20,13 @@ impl From<DbOperationError> for HttpFailResult {
 
                 HttpFailResult {
                     content_type: WebContentType::Json,
-                    status_code: rejects::OPERATION_FAIL_HTTP_STATUS_CODE,
+                    status_code: OPERATION_FAIL_HTTP_STATUS_CODE,
                     content,
                     write_telemetry: true,
                 }
             }
             DbOperationError::TableNotFound(table_name) => {
-                let err_model = OperationFailHttpContract {
-                    reason: OperationFailReason::TableNotFound,
-                    message: format!("Table '{}' not found", table_name),
-                };
-                let content = serde_json::to_vec(&err_model).unwrap();
-
-                HttpFailResult {
-                    content_type: WebContentType::Json,
-                    status_code: rejects::OPERATION_FAIL_HTTP_STATUS_CODE,
-                    content,
-                    write_telemetry: true,
-                }
+                super::super::get_table::table_not_found_http_result(table_name.as_str())
             }
             DbOperationError::RecordNotFound => HttpFailResult {
                 content_type: WebContentType::Json,
@@ -59,7 +49,7 @@ impl From<DbOperationError> for HttpFailResult {
 
                 HttpFailResult {
                     content_type: WebContentType::Json,
-                    status_code: rejects::OPERATION_FAIL_HTTP_STATUS_CODE,
+                    status_code: OPERATION_FAIL_HTTP_STATUS_CODE,
                     content,
                     write_telemetry: false,
                 }
@@ -73,7 +63,7 @@ impl From<DbOperationError> for HttpFailResult {
                 let content = serde_json::to_vec(&err_model).unwrap();
                 HttpFailResult {
                     content_type: WebContentType::Text,
-                    status_code: rejects::OPERATION_FAIL_HTTP_STATUS_CODE,
+                    status_code: OPERATION_FAIL_HTTP_STATUS_CODE,
                     content,
                     write_telemetry: true,
                 }
@@ -93,7 +83,7 @@ impl From<JsonParseError> for HttpFailResult {
 
         Self {
             content_type: WebContentType::Json,
-            status_code: rejects::OPERATION_FAIL_HTTP_STATUS_CODE,
+            status_code: OPERATION_FAIL_HTTP_STATUS_CODE,
             content,
             write_telemetry: true,
         }
@@ -113,7 +103,7 @@ impl From<DbEntityParseFail> for HttpFailResult {
 
                 Self {
                     content_type: WebContentType::Json,
-                    status_code: rejects::OPERATION_FAIL_HTTP_STATUS_CODE,
+                    status_code: OPERATION_FAIL_HTTP_STATUS_CODE,
                     content,
                     write_telemetry: true,
                 }
@@ -128,7 +118,7 @@ impl From<DbEntityParseFail> for HttpFailResult {
 
                 Self {
                     content_type: WebContentType::Json,
-                    status_code: rejects::OPERATION_FAIL_HTTP_STATUS_CODE,
+                    status_code: OPERATION_FAIL_HTTP_STATUS_CODE,
                     content,
                     write_telemetry: true,
                 }

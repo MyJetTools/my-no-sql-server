@@ -1,3 +1,4 @@
+mod blob_errors_handler;
 pub mod create_table;
 pub mod delete_partition;
 pub mod delete_table;

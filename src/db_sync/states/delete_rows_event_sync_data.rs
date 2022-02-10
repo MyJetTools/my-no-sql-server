@@ -1,5 +1,7 @@
 use std::{collections::BTreeMap, sync::Arc};
 
+use my_json::json_writer::{JsonArrayWriter, JsonObjectWriter};
+
 use crate::{
     db::{DbRow, DbTableData},
     db_sync::EventSource,
@@ -10,7 +12,7 @@ use super::SyncTableData;
 pub struct DeleteRowsEventSyncData {
     pub table_data: SyncTableData,
     pub event_src: EventSource,
-    pub deleted_partitions: Option<BTreeMap<String, u8>>,
+    pub deleted_partitions: Option<BTreeMap<String, ()>>,
     pub deleted_rows: Option<BTreeMap<String, BTreeMap<String, Arc<DbRow>>>>,
 }
 
@@ -80,6 +82,30 @@ impl DeleteRowsEventSyncData {
         self.deleted_partitions
             .as_mut()
             .unwrap()
-            .insert(partition_key, 0);
+            .insert(partition_key, ());
+    }
+
+    pub fn as_vec(&self) -> Vec<u8> {
+        let mut json_object_writer = JsonObjectWriter::new();
+
+        {
+            if let Some(deleted_partitions) = &self.deleted_partitions {
+                for partition_key in deleted_partitions.keys() {
+                    json_object_writer.write_null_value(partition_key);
+                }
+            }
+
+            if let Some(deleted_rows) = &self.deleted_rows {
+                for (partition_key, deleted_rows) in deleted_rows {
+                    let mut deleted_rows_json_array = JsonArrayWriter::new();
+                    for deleted_row in deleted_rows.values() {
+                        deleted_rows_json_array.write_string_element(deleted_row.row_key.as_str());
+                    }
+                    json_object_writer.write_object(partition_key, deleted_rows_json_array);
+                }
+            }
+        }
+
+        json_object_writer.build()
     }
 }

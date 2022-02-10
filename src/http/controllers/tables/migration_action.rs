@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use flurl::FlUrl;
-use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, WebContentType};
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput, WebContentType};
 use my_http_server_controllers::controllers::{
     actions::PostAction,
     documentation::{data_types::HttpDataType, out_results::HttpResult, HttpActionDescription},
@@ -85,9 +85,11 @@ impl PostAction for MigrationAction {
         )
         .await;
 
-        Ok(HttpOkResult::Content {
+        Ok(HttpOutput::Content {
+            headers: None,
             content: format!("Migrated {} partitions", partitions_count).into_bytes(),
             content_type: Some(WebContentType::Text),
-        })
+        }
+        .into_ok_result(true))
     }
 }

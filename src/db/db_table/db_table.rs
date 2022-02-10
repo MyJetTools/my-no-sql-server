@@ -1,14 +1,14 @@
-use std::{
-    collections::{BTreeMap, VecDeque},
-    sync::Arc,
-};
+use std::{collections::VecDeque, sync::Arc};
 
+use my_json::json_writer::JsonArrayWriter;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 use tokio::sync::RwLock;
 
 use crate::{
-    db::{DbPartitionSnapshot, DbRow},
-    json::JsonArrayBuilder,
+    db::{
+        db_snapshots::{DbPartitionSnapshot, DbTableSnapshot},
+        DbRow,
+    },
     persistence::PersistResult,
 };
 
@@ -50,25 +50,9 @@ impl DbTable {
         return read_access.get_partitions_amount();
     }
 
-    pub async fn as_json(&self) -> Vec<u8> {
-        let mut result = JsonArrayBuilder::new();
+    pub async fn get_table_as_json_array(&self) -> JsonArrayWriter {
         let read_access = self.data.read().await;
-
-        for db_row in read_access.iterate_all_rows() {
-            result.append_json_object(&db_row.data);
-        }
-
-        result.build()
-    }
-
-    pub async fn get_snapshot_as_partitions(&self) -> BTreeMap<String, DbPartitionSnapshot> {
-        let read_access = self.data.read().await;
-        read_access.get_snapshot_as_partitions()
-    }
-
-    pub async fn get_partition_snapshot(&self, partition_key: &str) -> Option<DbPartitionSnapshot> {
-        let read_access = self.data.read().await;
-        read_access.get_partition_snapshot(partition_key)
+        read_access.get_table_as_json_array()
     }
 
     pub async fn get_expired_rows(&self, now: DateTimeAsMicroseconds) -> Option<Vec<Arc<DbRow>>> {
@@ -94,5 +78,24 @@ impl DbTable {
         write_access
             .data_to_persist
             .get_what_to_persist(now, is_shutting_down)
+    }
+
+    pub async fn get_table_snapshot(&self) -> DbTableSnapshot {
+        let read_access = self.data.read().await;
+        let read_access: &DbTableData = &read_access;
+
+        DbTableSnapshot {
+            attr: self.attributes.get_snapshot(),
+            created: read_access.created,
+            last_update: read_access.last_update_time.as_date_time(),
+            by_partition: read_access.into(),
+        }
+    }
+
+    pub async fn get_partition_snapshot(&self, partition_key: &str) -> Option<DbPartitionSnapshot> {
+        let read_access = self.data.read().await;
+        let db_partition = read_access.get_partition(partition_key)?;
+        let result: DbPartitionSnapshot = db_partition.into();
+        result.into()
     }
 }

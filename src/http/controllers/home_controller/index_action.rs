@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, WebContentType};
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput, WebContentType};
 use my_http_server_controllers::controllers::{
     actions::GetAction, documentation::HttpActionDescription,
 };
@@ -38,10 +38,12 @@ impl GetAction for IndexAction {
             rnd = self.app.process_id
         );
 
-        HttpOkResult::Content {
+        HttpOutput::Content {
+            headers: None,
             content_type: Some(WebContentType::Html),
             content: content.into_bytes(),
         }
+        .into_ok_result(true)
         .into()
     }
 }

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-use crate::db::{read_as_json::DbEntityAsJsonArray, DbRow, DbTable};
+use crate::db::{db_snapshots::DbRowsSnapshot, DbRow, DbTable};
 
 use super::ReadOperationResult;
 
@@ -34,15 +34,15 @@ pub async fn execute(
 
     let result = reverse_and_take(db_rows, max_amount, now);
 
-    return ReadOperationResult::RowsArray(result.as_json_array());
+    return ReadOperationResult::RowsArray(result.as_json_array().build());
 }
 
 fn reverse_and_take(
     mut src: Vec<Arc<DbRow>>,
     max_amount: usize,
     now: DateTimeAsMicroseconds,
-) -> Vec<Arc<DbRow>> {
-    let mut result = Vec::new();
+) -> DbRowsSnapshot {
+    let mut result = DbRowsSnapshot::with_capacity(src.len());
 
     for index in src.len() - 1..0 {
         let db_row = src.remove(index);

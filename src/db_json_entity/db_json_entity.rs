@@ -43,10 +43,14 @@ impl<'s> DbJsonEntity<'s> {
                 expires = line.get_value_as_date_time();
             }
 
-            if name == super::consts::TIME_STAMP {
+            if name == super::consts::TIME_STAMP
+                || name.to_lowercase() == super::consts::TIME_STAMP_LOWER_CASE
+            {
                 timestamp_value_position = Some(TimeStampValuePosition {
-                    start: line.value_start,
-                    end: line.value_end,
+                    key_start: line.name_start,
+                    key_end: line.name_end,
+                    value_start: line.value_start,
+                    value_end: line.value_end,
                 });
 
                 time_stamp = Some(line.get_value()?)

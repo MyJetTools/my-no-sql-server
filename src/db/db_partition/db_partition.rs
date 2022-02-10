@@ -1,9 +1,14 @@
+use my_json::json_writer::JsonArrayWriter;
 use rust_extensions::date_time::{AtomicDateTimeAsMicroseconds, DateTimeAsMicroseconds};
 
-use crate::{db::DbRow, json::JsonArrayBuilder, utils::SortedDictionary};
+use crate::{
+    db::{
+        db_snapshots::{DbPartitionSnapshot, DbRowsSnapshot},
+        DbRow,
+    },
+    utils::SortedDictionary,
+};
 use std::{collections::BTreeMap, sync::Arc};
-
-use super::DbPartitionSnapshot;
 
 pub struct DbPartition {
     pub rows: BTreeMap<String, Arc<DbRow>>,
@@ -94,17 +99,9 @@ impl DbPartition {
         result
     }
 
-    pub fn fill_with_json_data(&self, builder: &mut JsonArrayBuilder) {
+    pub fn fill_with_json_data(&self, json_array_writer: &mut JsonArrayWriter) {
         for db_row in self.rows.values() {
-            builder.append_json_object(db_row.data.as_slice());
-        }
-    }
-
-    pub fn get_db_partition_snapshot(&self) -> DbPartitionSnapshot {
-        DbPartitionSnapshot {
-            last_read_access: self.last_read_access.as_date_time(),
-            last_write_moment: self.last_write_moment.as_date_time(),
-            content: self.rows.values().map(|itm| itm.clone()).collect(),
+            json_array_writer.write_raw_element(db_row.data.as_slice());
         }
     }
 
@@ -121,5 +118,21 @@ impl DbPartition {
         }
 
         return last_write_access;
+    }
+}
+
+impl Into<DbRowsSnapshot> for &DbPartition {
+    fn into(self) -> DbRowsSnapshot {
+        DbRowsSnapshot::new_from_snapshot(self.rows.values().map(|itm| itm.clone()).collect())
+    }
+}
+
+impl Into<DbPartitionSnapshot> for &DbPartition {
+    fn into(self) -> DbPartitionSnapshot {
+        DbPartitionSnapshot {
+            last_read_access: self.last_read_access.as_date_time(),
+            last_write_moment: self.last_write_moment.as_date_time(),
+            db_rows_snapshot: self.into(),
+        }
     }
 }

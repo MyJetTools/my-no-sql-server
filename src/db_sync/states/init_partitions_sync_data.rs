@@ -1,7 +1,9 @@
 use std::collections::BTreeMap;
 
+use my_json::json_writer::JsonObjectWriter;
+
 use crate::{
-    db::{DbPartitionSnapshot, DbTableData},
+    db::{db_snapshots::DbPartitionSnapshot, DbTableData},
     db_sync::EventSource,
 };
 
@@ -30,9 +32,12 @@ impl InitPartitionsSyncData {
     ) -> Self {
         let mut partitions_to_update = BTreeMap::new();
 
-        let partition_snapshot = table_data.get_partition_snapshot(partition_key);
-
-        partitions_to_update.insert(partition_key.to_string(), partition_snapshot);
+        if let Some(db_partition) = table_data.get_partition(partition_key) {
+            let partition_snapshot: DbPartitionSnapshot = db_partition.into();
+            partitions_to_update.insert(partition_key.to_string(), Some(partition_snapshot));
+        } else {
+            partitions_to_update.insert(partition_key.to_string(), None);
+        }
 
         Self {
             table_data: SyncTableData::new(table_data, persist),
@@ -43,5 +48,22 @@ impl InitPartitionsSyncData {
 
     pub fn add(&mut self, partition_key: String, snapshot: Option<DbPartitionSnapshot>) {
         self.partitions_to_update.insert(partition_key, snapshot);
+    }
+
+    pub fn as_json(&self) -> JsonObjectWriter {
+        let mut json_object_writer = JsonObjectWriter::new();
+
+        for (partition_key, db_partition) in &self.partitions_to_update {
+            if let Some(db_partition_snapshot) = db_partition {
+                json_object_writer.write_object(
+                    partition_key,
+                    db_partition_snapshot.db_rows_snapshot.as_json_array(),
+                );
+            } else {
+                json_object_writer.write_empty_array(partition_key)
+            }
+        }
+
+        json_object_writer
     }
 }

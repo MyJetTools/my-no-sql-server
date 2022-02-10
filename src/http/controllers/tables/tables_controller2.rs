@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 use my_http_server_controllers::controllers::{
     actions::{GetAction, PostAction},
     documentation::{data_types::HttpDataType, out_results::HttpResult, HttpActionDescription},
@@ -54,9 +54,9 @@ impl GetAction for TablesController2 {
 
         let partitions_amount = db_table.get_partitions_amount().await;
 
-        return Ok(HttpOkResult::Text {
-            text: format!("{}", partitions_amount),
-        });
+        HttpOutput::as_text(format!("{}", partitions_amount))
+            .into_ok_result(true)
+            .into()
     }
 }
 
@@ -111,6 +111,6 @@ impl PostAction for TablesController2 {
         )
         .await;
 
-        return Ok(HttpOkResult::Empty);
+        HttpOutput::Empty.into_ok_result(true).into()
     }
 }

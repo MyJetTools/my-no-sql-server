@@ -1,6 +1,7 @@
+use my_json::json_writer::JsonArrayWriter;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-use crate::{db::DbTable, db_operations::DbOperationError, json::JsonArrayBuilder};
+use crate::{db::DbTable, db_operations::DbOperationError};
 
 use super::ReadOperationResult;
 
@@ -128,7 +129,7 @@ pub async fn get_single_partition_multiple_rows(
 
     let db_partition = db_partition.unwrap();
 
-    let mut result = JsonArrayBuilder::new();
+    let mut json_array_writer = JsonArrayWriter::new();
 
     for row_key in &row_keys {
         let db_row = db_partition.get_row(row_key);
@@ -136,9 +137,9 @@ pub async fn get_single_partition_multiple_rows(
         if let Some(db_row) = db_row {
             db_row.update_last_access(now);
 
-            result.append_json_object(&db_row.data);
+            json_array_writer.write_raw_element(&db_row.data);
         }
     }
 
-    return ReadOperationResult::RowsArray(result.build());
+    return ReadOperationResult::RowsArray(json_array_writer.build());
 }

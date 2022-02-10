@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 use my_http_server_controllers::controllers::{
     actions::GetAction, documentation::HttpActionDescription,
 };
@@ -29,10 +29,12 @@ impl GetAction for MetricsAction {
     async fn handle_request(&self, _ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
         let result = self.app.metrics.build();
 
-        HttpOkResult::Content {
+        HttpOutput::Content {
+            headers: None,
             content_type: None,
             content: result.into_bytes(),
         }
+        .into_ok_result(true)
         .into()
     }
 }

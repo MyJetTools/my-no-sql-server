@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 use my_http_server_controllers::controllers::{
     actions::PostAction,
     documentation::{out_results::IntoHttpResult, HttpActionDescription},
@@ -55,6 +55,6 @@ impl PostAction for FirstMultipartController {
             snapshot_id: format!("{}", result),
         };
 
-        return HttpOkResult::create_json_response(response).into();
+        HttpOutput::as_json(response).into_ok_result(true).into()
     }
 }

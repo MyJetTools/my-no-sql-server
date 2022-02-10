@@ -84,6 +84,10 @@ async fn main() {
     )));
 
     background_tasks.push(tokio::task::spawn(
+        crate::background::gc_http_sessions::start(app.clone()),
+    ));
+
+    background_tasks.push(tokio::task::spawn(
         crate::background::db_rows_expirator::start(app.clone()),
     ));
 

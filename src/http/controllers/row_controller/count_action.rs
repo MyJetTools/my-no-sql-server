@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 use my_http_server_controllers::controllers::{
     actions::GetAction,
     documentation::{data_types::HttpDataType, out_results::HttpResult, HttpActionDescription},
@@ -57,12 +57,11 @@ impl GetAction for RowCountAction {
             let partition = table_access.get_partition(partition_key.as_str());
 
             if let Some(partition) = partition {
-                return HttpOkResult::Text {
-                    text: partition.rows_count().to_string(),
-                }
-                .into();
+                return HttpOutput::as_text(partition.rows_count().to_string())
+                    .into_ok_result(true)
+                    .into();
             } else {
-                return Ok(HttpOkResult::Empty);
+                return Ok(HttpOutput::Empty.into_ok_result(true));
             }
         }
 
@@ -73,9 +72,9 @@ impl GetAction for RowCountAction {
         for partition in table_access.get_partitions() {
             result += partition.rows_count();
         }
-        return HttpOkResult::Text {
-            text: result.to_string(),
-        }
-        .into();
+
+        return HttpOutput::as_text(result.to_string())
+            .into_ok_result(true)
+            .into();
     }
 }
