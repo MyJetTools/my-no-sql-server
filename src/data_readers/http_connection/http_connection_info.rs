@@ -19,11 +19,11 @@ pub struct HttpConnectionInfo {
 impl HttpConnectionInfo {
     pub fn new(id: String, ip: String) -> Self {
         Self {
-            id,
+            id: id.to_string(),
             ip,
             connected: DateTimeAsMicroseconds::now(),
             last_incoming_moment: AtomicDateTimeAsMicroseconds::now(),
-            delivery_info: Mutex::new(HttpConnectionDeliveryInfo::new()),
+            delivery_info: Mutex::new(HttpConnectionDeliveryInfo::new(id)),
         }
     }
 
@@ -39,7 +39,13 @@ impl HttpConnectionInfo {
 
             if let Some(mut task) = write_access.get_task_to_write_response() {
                 let payload = write_access.get_payload_to_deliver().unwrap();
-                task.set_ok(HttpPayload::Payload(payload));
+
+                if let Err(err) = task.try_set_ok(HttpPayload::Payload(payload)) {
+                    println!(
+                        "Sending payload Error for the session: {}. Reason:{:?}",
+                        self.id, err
+                    );
+                }
             }
         }
     }

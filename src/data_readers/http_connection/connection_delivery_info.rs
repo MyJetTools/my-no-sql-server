@@ -16,14 +16,16 @@ pub struct AwaitingResponse {
 pub struct HttpConnectionDeliveryInfo {
     awaiting_response: Option<AwaitingResponse>,
     payload_to_deliver: VecDeque<Vec<u8>>,
+    id: String,
 }
 static MIN_PING_TIMEOUT: Duration = Duration::from_secs(3);
 
 impl HttpConnectionDeliveryInfo {
-    pub fn new() -> Self {
+    pub fn new(id: String) -> Self {
         Self {
             awaiting_response: None,
             payload_to_deliver: VecDeque::new(),
+            id,
         }
     }
 
@@ -55,8 +57,12 @@ impl HttpConnectionDeliveryInfo {
         }
 
         if let Some(mut task) = self.get_task_to_write_response() {
-            println!("Set Ping to Task completion");
-            task.set_ok(HttpPayload::Ping)
+            if let Err(err) = task.try_set_ok(HttpPayload::Ping) {
+                println!(
+                    "Could not set ping result to http connection {}. Err:{:?}",
+                    self.id, err
+                );
+            }
         }
     }
 

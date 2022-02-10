@@ -74,8 +74,8 @@ fn write_pascal_string(src: &str, dest: &mut Vec<u8>) {
 }
 
 fn write_byte_array(src: &[u8], dest: &mut Vec<u8>) {
-    let bytes = src.len() as u32;
+    let bytes_size_as_u32 = src.len() as u32;
 
-    dest.extend_from_slice(&bytes.to_le_bytes());
+    dest.extend_from_slice(&bytes_size_as_u32.to_le_bytes());
     dest.extend_from_slice(src);
 }
