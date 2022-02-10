@@ -21,12 +21,12 @@ pub fn replace_timestamp_value(
 
     let mut result = Vec::with_capacity(new_len);
 
-    result.extend_from_slice(&raw[..time_stamp_position.key_start]);
+    result.extend_from_slice(&raw[..time_stamp_position.key_start + 1]);
     let time_stamp_as_bytes = super::consts::TIME_STAMP.as_bytes();
     result.extend_from_slice(time_stamp_as_bytes);
 
     result.extend_from_slice(
-        &raw[time_stamp_position.key_start + time_stamp_as_bytes.len()
+        &raw[time_stamp_position.key_start + 1 + time_stamp_as_bytes.len()
             ..time_stamp_position.value_start],
     );
 
@@ -111,13 +111,13 @@ mod tests {
             '}'
         );
 
-        let key_start = src_json.find("timestamp").unwrap();
+        let key_start = src_json.find("\"timestamp").unwrap();
 
         let value_start = src_json.find("null").unwrap();
 
         let ts_value_position = TimeStampValuePosition {
             key_start,
-            key_end: key_start + super::super::consts::TIME_STAMP.len(),
+            key_end: key_start + super::super::consts::TIME_STAMP.len() + 2,
             value_start,
             value_end: value_start + 4,
         };
@@ -146,7 +146,7 @@ mod tests {
             '}'
         );
 
-        let key_start = src_json.find("TimeStamp").unwrap();
+        let key_start = src_json.find("\"TimeStamp").unwrap();
 
         let replace_string = "\"ReplaceHere\"";
 
@@ -154,7 +154,7 @@ mod tests {
 
         let ts_value_position = TimeStampValuePosition {
             key_start,
-            key_end: key_start + super::super::consts::TIME_STAMP.len(),
+            key_end: key_start + super::super::consts::TIME_STAMP.len() + 2,
             value_start,
             value_end: value_start + replace_string.len(),
         };
