@@ -47,8 +47,10 @@ impl<'s> DbJsonEntity<'s> {
                 || name.to_lowercase() == super::consts::TIME_STAMP_LOWER_CASE
             {
                 timestamp_value_position = Some(TimeStampValuePosition {
-                    start: line.value_start,
-                    end: line.value_end,
+                    key_start: line.name_start,
+                    key_end: line.name_end,
+                    value_start: line.value_start,
+                    value_end: line.value_end,
                 });
 
                 time_stamp = Some(line.get_value()?)

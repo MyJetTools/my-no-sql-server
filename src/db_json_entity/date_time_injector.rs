@@ -1,13 +1,15 @@
 use super::utils::JsonTimeStamp;
 
 pub struct TimeStampValuePosition {
-    pub start: usize,
-    pub end: usize,
+    pub key_start: usize,
+    pub key_end: usize,
+    pub value_start: usize,
+    pub value_end: usize,
 }
 
 pub fn replace_timestamp_value(
     raw: &[u8],
-    time_stamp_value_position: &TimeStampValuePosition,
+    time_stamp_position: &TimeStampValuePosition,
     json_time_stamp: &JsonTimeStamp,
 ) -> Vec<u8> {
     let timestamp_value = format!("{dq}{val}{dq}", dq = '"', val = json_time_stamp.as_str());
@@ -15,17 +17,22 @@ pub fn replace_timestamp_value(
     let timestamp_value = timestamp_value.as_bytes();
 
     let new_len = timestamp_value.len()
-        + (raw.len() - (time_stamp_value_position.end - time_stamp_value_position.start));
+        + (raw.len() - (time_stamp_position.value_end - time_stamp_position.value_start));
 
     let mut result = Vec::with_capacity(new_len);
 
-    let before = &raw[..time_stamp_value_position.start];
+    result.extend_from_slice(&raw[..time_stamp_position.key_start]);
+    let time_stamp_as_bytes = super::consts::TIME_STAMP.as_bytes();
+    result.extend_from_slice(time_stamp_as_bytes);
 
-    result.extend_from_slice(before);
+    result.extend_from_slice(
+        &raw[time_stamp_position.key_start + time_stamp_as_bytes.len()
+            ..time_stamp_position.value_start],
+    );
 
     result.extend_from_slice(timestamp_value);
 
-    let after = &raw[time_stamp_value_position.end..];
+    let after = &raw[time_stamp_position.value_end..];
     result.extend_from_slice(after);
 
     return result;
@@ -92,23 +99,27 @@ mod tests {
     }
 
     #[test]
-    fn test_replace_null_to_timestamp() {
+    fn test_replace_null_to_timestamp_and_change_timestamp_from_lowerkey() {
         let json_ts = JsonTimeStamp::now();
 
-        let src_json = r#"{"Field1":"Value1","TimeStamp":null}"#;
+        let src_json = r#"{"Field1":"Value1","timestamp":null}"#;
 
-        let dest_json_etalon = format!(
+        let dest_json_result = format!(
             "{}\"Field1\":\"Value1\",\"TimeStamp\":\"{}\"{}",
             '{',
             json_ts.as_str(),
             '}'
         );
 
-        let index = src_json.find("null").unwrap();
+        let key_start = src_json.find("timestamp").unwrap();
+
+        let value_start = src_json.find("null").unwrap();
 
         let ts_value_position = TimeStampValuePosition {
-            start: index,
-            end: index + 4,
+            key_start,
+            key_end: key_start + super::super::consts::TIME_STAMP.len(),
+            value_start,
+            value_end: value_start + 4,
         };
 
         let result =
@@ -116,10 +127,10 @@ mod tests {
 
         let dest_json = String::from_utf8(result).unwrap();
 
-        println!("{}", dest_json_etalon);
+        println!("{}", dest_json_result);
         println!("{}", dest_json);
 
-        assert_eq!(dest_json_etalon, dest_json);
+        assert_eq!(dest_json_result, dest_json);
     }
 
     #[test]
@@ -135,13 +146,17 @@ mod tests {
             '}'
         );
 
+        let key_start = src_json.find("TimeStamp").unwrap();
+
         let replace_string = "\"ReplaceHere\"";
 
-        let index = src_json.find(replace_string).unwrap();
+        let value_start = src_json.find(replace_string).unwrap();
 
         let ts_value_position = TimeStampValuePosition {
-            start: index,
-            end: index + replace_string.len(),
+            key_start,
+            key_end: key_start + super::super::consts::TIME_STAMP.len(),
+            value_start,
+            value_end: value_start + replace_string.len(),
         };
 
         let result =
