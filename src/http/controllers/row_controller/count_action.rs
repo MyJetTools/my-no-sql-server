@@ -61,7 +61,9 @@ impl GetAction for RowCountAction {
                     .into_ok_result(true)
                     .into();
             } else {
-                return Ok(HttpOutput::Empty.into_ok_result(true));
+                return HttpOutput::as_text("0".to_string())
+                    .into_ok_result(true)
+                    .into();
             }
         }
 
