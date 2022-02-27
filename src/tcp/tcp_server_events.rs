@@ -44,13 +44,41 @@ impl TcpServerEvents {
             TcpContract::Subscribe { table_name } => {
                 if let Some(data_reader) = self.app.data_readers.get_tcp(connection.as_ref()).await
                 {
-                    crate::operations::data_readers::subscribe(
+                    let result = crate::operations::data_readers::subscribe(
                         self.app.as_ref(),
                         data_reader,
                         &table_name,
                     )
-                    .await
-                    .unwrap();
+                    .await;
+
+                    if let Err(err) = result {
+                        let session = self.app.data_readers.get_tcp(connection.as_ref()).await;
+
+                        let session_name = if let Some(session) = session {
+                            session.get_name().await
+                        } else {
+                            None
+                        };
+
+                        let message =
+                            format!("Subscribe to table {} error. Err: {:?}", table_name, err);
+
+                        self.app
+                            .logs
+                            .add_error(
+                                Some(table_name.to_string()),
+                                SystemProcess::TcpSocket,
+                                "Subscribe to table".to_string(),
+                                message.to_string(),
+                                Some(format!(
+                                    "SessionId:{}, Name:{:?}",
+                                    connection.id, session_name
+                                )),
+                            )
+                            .await;
+
+                        connection.send(TcpContract::Error { message }).await;
+                    }
                 }
             }
             _ => {}
