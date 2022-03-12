@@ -1,19 +1,13 @@
-use my_azure_storage_sdk::AzureStorageConnection;
-
 use crate::{app::AppContext, db::DbTable};
 
-pub async fn execute(
-    app: &AppContext,
-    db_table: &DbTable,
-    azure_connection: &AzureStorageConnection,
-) {
+pub async fn execute(app: &AppContext, db_table: &DbTable) {
     let table_in_blob = app
         .blob_content_cache
         .get_snapshot(db_table.name.as_str())
         .await;
 
     if table_in_blob.is_none() {
-        from_no_table_in_blob(app, db_table, azure_connection).await;
+        from_no_table_in_blob(app, db_table).await;
         return;
     }
 
@@ -28,7 +22,6 @@ pub async fn execute(
             app,
             db_table.name.as_str(),
             partition_key.as_str(),
-            azure_connection,
             partition_snapshot.as_ref(),
             Some(last_write_time),
         )
@@ -40,7 +33,6 @@ pub async fn execute(
             app,
             db_table.name.as_str(),
             partition_key.as_str(),
-            azure_connection,
             Some(db_partition),
             None,
         )
@@ -48,40 +40,43 @@ pub async fn execute(
     }
 }
 
-pub async fn from_no_table_in_blob(
-    app: &AppContext,
-    db_table: &DbTable,
-    azure_connection: &AzureStorageConnection,
-) {
+pub async fn from_no_table_in_blob(app: &AppContext, db_table: &DbTable) {
     let attr = db_table.attributes.get_snapshot();
-    crate::blob_operations::create_table::with_retries(
-        app,
-        azure_connection,
-        db_table.name.as_str(),
-        &attr,
-    )
-    .await;
+
+    app.persist_io
+        .create_table(db_table.name.as_str(), &attr)
+        .await;
+
+    app.blob_content_cache
+        .create_table(db_table.name.as_str(), attr.clone())
+        .await;
+
+    app.logs
+        .add_info(
+            Some(db_table.name.to_string()),
+            crate::app::logs::SystemProcess::BlobOperation,
+            "create_table".to_string(),
+            "Saved".to_string(),
+        )
+        .await;
+
+
 
     let table_snapshot = db_table.get_table_snapshot().await;
 
     for partition_key in table_snapshot.by_partition.keys() {
         if let Some(db_partition_snapshot) = &db_table.get_partition_snapshot(partition_key).await {
-            crate::blob_operations::save_partition::with_retries(
-                app,
-                azure_connection,
-                db_table.name.as_str(),
-                partition_key.as_str(),
-                db_partition_snapshot,
-            )
-            .await;
+            app.persist_io
+                .save_partition(
+                    db_table.name.as_str(),
+                    partition_key.as_str(),
+                    db_partition_snapshot,
+                )
+                .await;
         } else {
-            crate::blob_operations::delete_partition::with_retires(
-                app,
-                azure_connection,
-                db_table.name.as_str(),
-                partition_key,
-            )
-            .await
+            app.persist_io
+                .delete_partition(db_table.name.as_str(), partition_key)
+                .await;
         }
     }
 }

@@ -1,18 +1,12 @@
-use my_azure_storage_sdk::AzureStorageConnection;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
     app::AppContext,
     db::{db_snapshots::DbPartitionSnapshot, DbTable},
-    persistence::blob_content_cache::BlobPartitionUpdateTimeResult,
+    persist_operations::blob_content_cache::BlobPartitionUpdateTimeResult,
 };
 
-pub async fn execute(
-    app: &AppContext,
-    db_table: &DbTable,
-    azure_connection: &AzureStorageConnection,
-    partition_key: &str,
-) {
+pub async fn execute(app: &AppContext, db_table: &DbTable, partition_key: &str) {
     let get_blob_content_cache = app
         .blob_content_cache
         .get(db_table.name.as_str(), partition_key)
@@ -26,25 +20,19 @@ pub async fn execute(
                 app,
                 db_table.name.as_str(),
                 partition_key,
-                azure_connection,
                 partition_snapshot.as_ref(),
                 Some(blob_date_time),
             )
             .await;
         }
         BlobPartitionUpdateTimeResult::TableNotFound => {
-            super::persist_table::from_no_table_in_blob(app, db_table, azure_connection).await;
+            super::persist_table::from_no_table_in_blob(app, db_table).await;
         }
         BlobPartitionUpdateTimeResult::PartitionNoFound => {
             if let Some(snapshot) = partition_snapshot {
-                crate::blob_operations::save_partition::with_retries(
-                    app,
-                    azure_connection,
-                    db_table.name.as_str(),
-                    partition_key,
-                    &snapshot,
-                )
-                .await;
+                app.persist_io
+                    .save_partition(db_table.name.as_str(), partition_key, &snapshot)
+                    .await;
             }
         }
     }
@@ -54,7 +42,6 @@ pub async fn sync_single_partition(
     app: &AppContext,
     table_name: &str,
     partition_key: &str,
-    azure_connection: &AzureStorageConnection,
     partition_snapshot: Option<&DbPartitionSnapshot>,
     blob_date_time: Option<DateTimeAsMicroseconds>,
 ) {
@@ -63,32 +50,18 @@ pub async fn sync_single_partition(
             if db_partition_snapshot.last_write_moment.unix_microseconds
                 > blob_date_time.unix_microseconds
             {
-                crate::blob_operations::save_partition::with_retries(
-                    app,
-                    azure_connection,
-                    table_name,
-                    partition_key,
-                    db_partition_snapshot,
-                )
-                .await;
+                app.persist_io
+                    .save_partition(table_name, partition_key, db_partition_snapshot)
+                    .await;
             }
         } else {
-            crate::blob_operations::save_partition::with_retries(
-                app,
-                azure_connection,
-                table_name,
-                partition_key,
-                db_partition_snapshot,
-            )
-            .await;
+            app.persist_io
+                .save_partition(table_name, partition_key, db_partition_snapshot)
+                .await;
         }
     } else {
-        crate::blob_operations::delete_partition::with_retires(
-            app,
-            azure_connection,
-            table_name,
-            partition_key,
-        )
-        .await
+        app.persist_io
+            .delete_partition(table_name, partition_key)
+            .await;
     }
 }
