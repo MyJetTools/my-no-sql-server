@@ -4,6 +4,16 @@ use serde::{Deserialize, Serialize};
 use std::{env, sync::Arc};
 use tokio::{fs::File, io::AsyncReadExt};
 
+use crate::{
+    app::logs::Logs,
+    persist_io::{AzurePageBlobPersistIo, FilesPersistIo},
+};
+
+pub enum PersistIoResult {
+    AzurePageBlob(AzurePageBlobPersistIo),
+    File(FilesPersistIo),
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SettingsModel {
     #[serde(rename = "PersistenceDest")]
@@ -24,20 +34,30 @@ pub struct SettingsModel {
 
 impl SettingsModel {
     pub fn persist_to_blob(&self) -> bool {
-        return !self.persistence_dest.starts_with("http");
+        return self
+            .persistence_dest
+            .starts_with("DefaultEndpointsProtocol");
     }
 
-    pub fn get_azure_connection(
+    pub fn get_persist_io(
         &self,
+        logs: Arc<Logs>,
         telemetry: Arc<AppInsightsTelemetry>,
-    ) -> Option<Arc<AzureStorageConnection>> {
+    ) -> PersistIoResult {
         if !self.persist_to_blob() {
-            return None;
+            return PersistIoResult::File(FilesPersistIo::new(
+                self.persistence_dest.to_string(),
+                std::path::MAIN_SEPARATOR,
+            ));
         }
 
-        let mut result = AzureStorageConnection::from_conn_string(self.persistence_dest.as_str());
-        result.telemetry = Some(telemetry);
-        Some(Arc::new(result))
+        let mut conn_string =
+            AzureStorageConnection::from_conn_string(self.persistence_dest.as_str());
+
+        conn_string.telemetry = Some(telemetry);
+
+        let azure_page_blob_io = AzurePageBlobPersistIo::new(Arc::new(conn_string), logs);
+        PersistIoResult::AzurePageBlob(azure_page_blob_io)
     }
 }
 

@@ -1,15 +1,13 @@
 use my_azure_storage_sdk::{block_blob::BlockBlobApi, AzureStorageConnection, AzureStorageError};
 
-use crate::db::DbTableAttributesSnapshot;
-
-use super::metadata::TableMetadataFileContract;
+use crate::{db::DbTableAttributesSnapshot, persist_io::serializers::table_attrs};
 
 pub async fn save_attributes(
     azure_connection: &AzureStorageConnection,
     table_name: &str,
     attributes: &DbTableAttributesSnapshot,
 ) -> Result<(), AzureStorageError> {
-    let contract = TableMetadataFileContract {
+    let contract = table_attrs::TableMetadataFileContract {
         persist: attributes.persist,
         max_partitions_amount: attributes.max_partitions_amount,
     };
@@ -19,7 +17,7 @@ pub async fn save_attributes(
     match serialize_result {
         Ok(json) => {
             azure_connection
-                .upload(table_name, super::metadata::METADATA_BLOB_NAME, json)
+                .upload(table_name, table_attrs::METADATA_FILE_NAME, json)
                 .await?;
 
             return Ok(());

@@ -9,7 +9,7 @@ use std::{
 use crate::{
     db::{db_snapshots::DbPartitionSnapshot, DbPartition, DbRow},
     db_json_entity::JsonTimeStamp,
-    persistence::DataToPersist,
+    persist_operations::DataToPersist,
     rows_with_expiration::RowsWithExpiration,
 };
 

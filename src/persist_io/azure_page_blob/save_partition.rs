@@ -2,33 +2,38 @@ use std::time::Duration;
 
 use my_azure_storage_sdk::AzureStorageConnection;
 
-use crate::{app::AppContext, db::DbTableAttributesSnapshot};
+use crate::{app::logs::Logs, db::db_snapshots::DbPartitionSnapshot};
 
 pub async fn with_retries(
-    app: &AppContext,
+    logs: &Logs,
     azure_connection: &AzureStorageConnection,
     table_name: &str,
-    attr: &DbTableAttributesSnapshot,
+    partition_key: &str,
+    db_partition_snapshot: &DbPartitionSnapshot,
 ) {
     let mut attempt_no = 0;
+
     loop {
-        match super::table::save_attributes(&azure_connection, table_name, &attr).await {
+        match super::partition::save(
+            azure_connection,
+            table_name,
+            partition_key,
+            db_partition_snapshot
+                .db_rows_snapshot
+                .as_json_array()
+                .build(),
+        )
+        .await
+        {
             Ok(_) => {
-                app.logs
-                    .add_info(
-                        Some(table_name.to_string()),
-                        crate::app::logs::SystemProcess::BlobOperation,
-                        "save_table_attributes".to_string(),
-                        "Saved".to_string(),
-                    )
-                    .await;
                 return;
             }
             Err(err) => {
                 attempt_no += 1;
+
                 super::blob_errors_handler::handle_azure_blob_error(
-                    app,
-                    "save_table_attributes",
+                    logs,
+                    "save_partition",
                     &err,
                     table_name,
                     azure_connection,

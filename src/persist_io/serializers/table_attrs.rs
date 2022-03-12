@@ -1,6 +1,17 @@
+use crate::db::DbTableAttributesSnapshot;
+use rust_extensions::date_time::DateTimeAsMicroseconds;
 use serde::{Deserialize, Serialize};
 
-pub const METADATA_BLOB_NAME: &str = ".metadata";
+pub fn serialize(attr: &DbTableAttributesSnapshot) -> Vec<u8> {
+    let contract = TableMetadataFileContract {
+        persist: attr.persist,
+        max_partitions_amount: attr.max_partitions_amount,
+    };
+
+    serde_json::to_vec(&contract).unwrap()
+}
+
+pub const METADATA_FILE_NAME: &str = ".metadata";
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct TableMetadataFileContract {
@@ -27,4 +38,14 @@ impl TableMetadataFileContract {
 
 fn default_persist() -> bool {
     true
+}
+
+impl Into<DbTableAttributesSnapshot> for TableMetadataFileContract {
+    fn into(self) -> DbTableAttributesSnapshot {
+        DbTableAttributesSnapshot {
+            created: DateTimeAsMicroseconds::now(),
+            max_partitions_amount: self.max_partitions_amount,
+            persist: self.persist,
+        }
+    }
 }

@@ -2,10 +2,10 @@ use std::time::Duration;
 
 use my_azure_storage_sdk::{AzureStorageConnection, AzureStorageError};
 
-use crate::{app::AppContext, db::DbTableAttributesSnapshot};
+use crate::{app::logs::Logs, db::DbTableAttributesSnapshot};
 
 pub async fn with_retries(
-    app: &AppContext,
+    logs: &Logs,
     azure_connection: &AzureStorageConnection,
     table_name: &str,
     attr: &DbTableAttributesSnapshot,
@@ -15,18 +15,6 @@ pub async fn with_retries(
         let result = create_table(azure_connection, table_name, attr).await;
 
         if result.is_ok() {
-            app.blob_content_cache
-                .create_table(table_name, attr.clone())
-                .await;
-
-            app.logs
-                .add_info(
-                    Some(table_name.to_string()),
-                    crate::app::logs::SystemProcess::BlobOperation,
-                    "create_table".to_string(),
-                    "Saved".to_string(),
-                )
-                .await;
             return;
         }
 
@@ -34,15 +22,14 @@ pub async fn with_retries(
 
         attempt_no += 1;
 
-        app.logs
-            .add_error(
-                Some(table_name.to_string()),
-                crate::app::logs::SystemProcess::BlobOperation,
-                "create_table".to_string(),
-                format!("Attempt: {}", attempt_no),
-                Some(format!("{:?}", err)),
-            )
-            .await;
+        logs.add_error(
+            Some(table_name.to_string()),
+            crate::app::logs::SystemProcess::PersistOperation,
+            "create_table".to_string(),
+            format!("Attempt: {}", attempt_no),
+            Some(format!("{:?}", err)),
+        )
+        .await;
 
         tokio::time::sleep(Duration::from_secs(3)).await;
     }

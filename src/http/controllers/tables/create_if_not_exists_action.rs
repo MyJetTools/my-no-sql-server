@@ -63,7 +63,7 @@ impl PostAction for CreateIfNotExistsAction {
         let even_src = EventSource::as_client_request(self.app.as_ref());
 
         let table = crate::db_operations::write::table::create_if_not_exist(
-            self.app.as_ref(),
+            &self.app,
             table_name,
             persist_table,
             max_partitions_amount,

@@ -6,7 +6,7 @@ pub async fn save(
     partition_key: &str,
     content: Vec<u8>,
 ) -> Result<(), AzureStorageError> {
-    let blob_file = super::utils::get_blob_file_name_by_partition_name(partition_key);
+    let blob_file = super::super::super::serializers::blob_file_name::encode(partition_key);
 
     azure_connection
         .upload(table_name, blob_file.as_str(), content)

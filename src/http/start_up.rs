@@ -7,17 +7,10 @@ use my_http_server_controllers::swagger::SwaggerMiddleware;
 
 use crate::app::AppContext;
 
-pub fn setup_server(
-    app: Arc<AppContext>,
-    app_insights_telemetry: Arc<AppInsightsTelemetry>,
-    azure_connection: Option<Arc<my_azure_storage_sdk::AzureStorageConnection>>,
-) {
+pub fn setup_server(app: Arc<AppContext>, app_insights_telemetry: Arc<AppInsightsTelemetry>) {
     let mut http_server = MyHttpServer::new(SocketAddr::from(([0, 0, 0, 0], 5123)));
 
-    let controllers = Arc::new(crate::http::controllers::builder::build(
-        app.clone(),
-        azure_connection.clone(),
-    ));
+    let controllers = Arc::new(crate::http::controllers::builder::build(app.clone()));
 
     let app_insights_middleware = AppInsightsMiddleware::new(app_insights_telemetry.clone());
     http_server.add_middleware(Arc::new(app_insights_middleware));

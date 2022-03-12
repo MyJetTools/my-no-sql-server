@@ -7,7 +7,7 @@ use tokio::sync::RwLock;
 pub enum SystemProcess {
     System = 0,
     TcpSocket = 1,
-    BlobOperation = 2,
+    PersistOperation = 2,
     TableOperation = 3,
     Init = 4,
     Timer = 5,
@@ -15,16 +15,14 @@ pub enum SystemProcess {
 
 impl SystemProcess {
     pub fn iterate() -> Vec<Self> {
-        let mut result = Vec::new();
-
-        result.push(SystemProcess::System);
-        result.push(SystemProcess::TcpSocket);
-        result.push(SystemProcess::BlobOperation);
-        result.push(SystemProcess::TableOperation);
-        result.push(SystemProcess::Init);
-        result.push(SystemProcess::Timer);
-
-        return result;
+        vec![
+            SystemProcess::System,
+            SystemProcess::TcpSocket,
+            SystemProcess::PersistOperation,
+            SystemProcess::TableOperation,
+            SystemProcess::Init,
+            SystemProcess::Timer,
+        ]
     }
     pub fn parse(value: &str) -> Option<Self> {
         let value = value.to_ascii_lowercase();
@@ -36,8 +34,8 @@ impl SystemProcess {
             return Some(SystemProcess::TcpSocket);
         }
 
-        if value == "bloboperation" {
-            return Some(SystemProcess::BlobOperation);
+        if value == "persistoperation" {
+            return Some(SystemProcess::PersistOperation);
         }
 
         if value == "tableoperation" {
@@ -120,7 +118,7 @@ impl Logs {
         match &item.process {
             SystemProcess::System => print_to_console(&item),
             SystemProcess::TcpSocket => {}
-            SystemProcess::BlobOperation => {}
+            SystemProcess::PersistOperation => {}
             SystemProcess::TableOperation => {}
             SystemProcess::Init => print_to_console(&item),
             SystemProcess::Timer => {}
@@ -160,7 +158,7 @@ impl Logs {
             err_ctx: None,
         };
 
-        if let SystemProcess::BlobOperation = process {
+        if let SystemProcess::PersistOperation = process {
             print_to_console(&item);
         }
 

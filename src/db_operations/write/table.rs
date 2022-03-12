@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use my_azure_storage_sdk::AzureStorageConnection;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
@@ -96,7 +95,7 @@ async fn get_or_create(
 }
 
 pub async fn create_if_not_exist(
-    app: &AppContext,
+    app: &Arc<AppContext>,
     table_name: &str,
     persist_table: bool,
     max_partitions_amount: Option<usize>,
@@ -126,7 +125,7 @@ pub async fn create_if_not_exist(
 }
 
 pub async fn set_table_attrubutes(
-    app: &AppContext,
+    app: &Arc<AppContext>,
     db_table: Arc<DbTable>,
 
     persist: bool,
@@ -161,7 +160,6 @@ pub async fn delete(
     table_name: String,
     event_src: EventSource,
     persist_moment: DateTimeAsMicroseconds,
-    azure_connection: Option<Arc<AzureStorageConnection>>,
 ) -> Result<(), DbOperationError> {
     let result = app.db.delete_table(table_name.as_str()).await;
 
@@ -186,13 +184,11 @@ pub async fn delete(
             )));
     }
 
-    if let Some(azure_connection) = azure_connection {
-        tokio::spawn(crate::blob_operations::delete_table::with_retries(
-            app,
-            azure_connection,
-            table_name,
-        ));
-    }
+    let app = app.clone();
+    let table_name = table_name.to_string();
+    tokio::spawn(async move {
+        crate::operations::persist::io_with_cache::delete_table(app, table_name).await
+    });
 
     Ok(())
 }

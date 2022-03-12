@@ -4,8 +4,8 @@ use rust_extensions::ApplicationStates;
 
 use crate::{
     data_readers::DataReadersList, db::DbInstance, db_operations::multipart::MultipartList,
-    db_transactions::ActiveTransactions, persistence::blob_content_cache::BlobContentCache,
-    settings_reader::SettingsModel,
+    db_transactions::ActiveTransactions, persist_io::PersistIoOperations,
+    persist_operations::blob_content_cache::BlobContentCache, settings_reader::SettingsModel,
 };
 
 use super::{global_states::GlobalStates, logs::Logs, EventsDispatcher, PrometheusMetrics};
@@ -39,17 +39,20 @@ pub struct AppContext {
     pub data_readers: DataReadersList,
 
     pub multipart_list: MultipartList,
+    pub persist_io: Arc<dyn PersistIoOperations + Send + Sync + 'static>,
 }
 
 impl AppContext {
     pub fn new(
+        logs: Arc<Logs>,
         settings: &SettingsModel,
         events_dispatcher: Box<dyn EventsDispatcher + Send + Sync + 'static>,
+        persist_io: Arc<dyn PersistIoOperations + Send + Sync + 'static>,
     ) -> Self {
         AppContext {
             db: DbInstance::new(),
             persist_to_blob: settings.persist_to_blob(),
-            logs: Arc::new(Logs::new()),
+            logs,
             metrics: PrometheusMetrics::new(),
             active_transactions: ActiveTransactions::new(),
             process_id: uuid::Uuid::new_v4().to_string(),
@@ -62,6 +65,7 @@ impl AppContext {
             blob_content_cache: BlobContentCache::new(),
             data_readers: DataReadersList::new(Duration::from_secs(30)),
             multipart_list: MultipartList::new(),
+            persist_io,
         }
     }
 }

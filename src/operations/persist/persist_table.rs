@@ -54,25 +54,23 @@ pub async fn from_no_table_in_blob(app: &AppContext, db_table: &DbTable) {
     app.logs
         .add_info(
             Some(db_table.name.to_string()),
-            crate::app::logs::SystemProcess::BlobOperation,
+            crate::app::logs::SystemProcess::PersistOperation,
             "create_table".to_string(),
             "Saved".to_string(),
         )
         .await;
 
-
-
     let table_snapshot = db_table.get_table_snapshot().await;
 
     for partition_key in table_snapshot.by_partition.keys() {
         if let Some(db_partition_snapshot) = &db_table.get_partition_snapshot(partition_key).await {
-            app.persist_io
-                .save_partition(
-                    db_table.name.as_str(),
-                    partition_key.as_str(),
-                    db_partition_snapshot,
-                )
-                .await;
+            super::io_with_cache::save_partition(
+                app,
+                db_table.name.as_str(),
+                partition_key.as_str(),
+                db_partition_snapshot,
+            )
+            .await;
         } else {
             app.persist_io
                 .delete_partition(db_table.name.as_str(), partition_key)

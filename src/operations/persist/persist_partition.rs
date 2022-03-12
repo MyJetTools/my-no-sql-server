@@ -30,9 +30,13 @@ pub async fn execute(app: &AppContext, db_table: &DbTable, partition_key: &str) 
         }
         BlobPartitionUpdateTimeResult::PartitionNoFound => {
             if let Some(snapshot) = partition_snapshot {
-                app.persist_io
-                    .save_partition(db_table.name.as_str(), partition_key, &snapshot)
-                    .await;
+                super::io_with_cache::save_partition(
+                    app,
+                    db_table.name.as_str(),
+                    partition_key,
+                    &snapshot,
+                )
+                .await;
             }
         }
     }
@@ -50,18 +54,24 @@ pub async fn sync_single_partition(
             if db_partition_snapshot.last_write_moment.unix_microseconds
                 > blob_date_time.unix_microseconds
             {
-                app.persist_io
-                    .save_partition(table_name, partition_key, db_partition_snapshot)
-                    .await;
+                super::io_with_cache::save_partition(
+                    app,
+                    table_name,
+                    partition_key,
+                    db_partition_snapshot,
+                )
+                .await;
             }
         } else {
-            app.persist_io
-                .save_partition(table_name, partition_key, db_partition_snapshot)
-                .await;
+            super::io_with_cache::save_partition(
+                app,
+                table_name,
+                partition_key,
+                db_partition_snapshot,
+            )
+            .await;
         }
     } else {
-        app.persist_io
-            .delete_partition(table_name, partition_key)
-            .await;
+        super::io_with_cache::delete_partition(app, table_name, partition_key).await;
     }
 }

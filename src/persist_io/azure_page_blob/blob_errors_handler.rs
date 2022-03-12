@@ -2,28 +2,27 @@ use my_azure_storage_sdk::{
     blob_container::BlobContainersApi, AzureStorageConnection, AzureStorageError,
 };
 
-use crate::app::{logs::SystemProcess, AppContext};
+use crate::app::logs::{Logs, SystemProcess};
 
 pub async fn handle_azure_blob_error(
-    app: &AppContext,
+    logs: &Logs,
     process_name: &str,
     err: &AzureStorageError,
     table_name: &str,
     azure_connection: &AzureStorageConnection,
     attempt_no: usize,
 ) {
-    app.logs
-        .add_error(
-            Some(table_name.to_string()),
-            SystemProcess::BlobOperation,
-            process_name.to_string(),
-            format!("Azure storage error with table:{table_name}. Attempt: {attempt_no}"),
-            Some(format!("{:?}", err)),
-        )
-        .await;
+    logs.add_error(
+        Some(table_name.to_string()),
+        SystemProcess::PersistOperation,
+        process_name.to_string(),
+        format!("Azure storage error with table:{table_name}. Attempt: {attempt_no}"),
+        Some(format!("{:?}", err)),
+    )
+    .await;
     match err {
         AzureStorageError::ContainerNotFound => {
-            create_table_container(app, table_name, azure_connection).await;
+            create_table_container(logs, table_name, azure_connection).await;
         }
         AzureStorageError::BlobNotFound => {}
         AzureStorageError::BlobAlreadyExists => {}
@@ -41,7 +40,7 @@ pub async fn handle_azure_blob_error(
 }
 
 async fn create_table_container(
-    app: &AppContext,
+    logs: &Logs,
     table_name: &str,
     azure_connection: &AzureStorageConnection,
 ) {
@@ -49,14 +48,13 @@ async fn create_table_container(
         .create_container_if_not_exist(table_name)
         .await
     {
-        app.logs
-            .add_error(
-                Some(table_name.to_string()),
-                SystemProcess::BlobOperation,
-                "create_table_container".to_string(),
-                format!("Azure storage error with table: {table_name}"),
-                Some(format!("{:?}", err)),
-            )
-            .await;
+        logs.add_error(
+            Some(table_name.to_string()),
+            SystemProcess::PersistOperation,
+            "create_table_container".to_string(),
+            format!("Azure storage error with table: {table_name}"),
+            Some(format!("{:?}", err)),
+        )
+        .await;
     }
 }

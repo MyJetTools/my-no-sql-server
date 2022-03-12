@@ -103,7 +103,7 @@ impl PostAction for TablesController2 {
         let event_src = EventSource::as_client_request(self.app.as_ref());
 
         crate::db_operations::write::table::set_table_attrubutes(
-            self.app.as_ref(),
+            &self.app,
             db_table,
             persist,
             max_partitions_amount,
