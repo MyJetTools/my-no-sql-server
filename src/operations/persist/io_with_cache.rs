@@ -20,19 +20,17 @@ pub async fn save_partition(
 
     stop_watch.pause();
 
-    app.logs
-        .add_info(
-            Some(table_name.to_string()),
-            crate::app::logs::SystemProcess::PersistOperation,
-            "save_partition".to_string(),
-            format!(
-                "Saved partition {}/{} in {}",
-                table_name,
-                partition_key,
-                stop_watch.duration_as_string()
-            ),
-        )
-        .await;
+    app.logs.add_info(
+        Some(table_name.to_string()),
+        crate::app::logs::SystemProcess::PersistOperation,
+        "save_partition".to_string(),
+        format!(
+            "Saved partition {}/{} in {}",
+            table_name,
+            partition_key,
+            stop_watch.duration_as_string()
+        ),
+    );
 
     app.blob_content_cache
         .update_table_partition_snapshot_id(
@@ -54,10 +52,29 @@ pub async fn delete_partition(app: &AppContext, table_name: &str, partition_key:
 }
 
 pub async fn save_table_attributes(app: &AppContext, db_table: &DbTable) {
-    let attr = db_table.attributes.get_snapshot();
-    app.persist_io
-        .save_table_attributes(db_table.name.as_str(), &attr)
-        .await;
+    if !app
+        .blob_content_cache
+        .has_table(db_table.name.as_str())
+        .await
+    {
+        let attr = db_table.attributes.get_snapshot();
+        app.persist_io
+            .create_table(db_table.name.as_str(), &attr)
+            .await;
+
+        app.blob_content_cache
+            .create_table(db_table.name.as_str(), attr)
+            .await;
+    } else {
+        let attr = db_table.attributes.get_snapshot();
+        app.persist_io
+            .save_table_attributes(db_table.name.as_str(), &attr)
+            .await;
+
+        app.blob_content_cache
+            .update_table_attributes(db_table.name.as_str(), attr)
+            .await;
+    }
 }
 
 pub async fn delete_table(app: Arc<AppContext>, table_name: String) {
@@ -67,12 +84,10 @@ pub async fn delete_table(app: Arc<AppContext>, table_name: String) {
         .delete_table(table_name.as_str())
         .await;
 
-    app.logs
-        .add_info(
-            Some(table_name.to_string()),
-            crate::app::logs::SystemProcess::PersistOperation,
-            "delete_table".to_string(),
-            "Saved".to_string(),
-        )
-        .await;
+    app.logs.add_info(
+        Some(table_name.to_string()),
+        crate::app::logs::SystemProcess::PersistOperation,
+        "delete_table".to_string(),
+        "Saved".to_string(),
+    );
 }

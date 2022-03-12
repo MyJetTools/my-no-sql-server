@@ -28,15 +28,12 @@ impl TcpServerEvents {
             TcpContract::Greeting { name } => {
                 if let Some(data_reader) = self.app.data_readers.get_tcp(connection.as_ref()).await
                 {
-                    self.app
-                        .logs
-                        .add_info(
-                            None,
-                            SystemProcess::TcpSocket,
-                            format!("Connection name update to {}", name),
-                            format!("ID: {}", connection.id),
-                        )
-                        .await;
+                    self.app.logs.add_info(
+                        None,
+                        SystemProcess::TcpSocket,
+                        format!("Connection name update to {}", name),
+                        format!("ID: {}", connection.id),
+                    );
                     data_reader.set_name(name).await;
                 }
             }
@@ -63,19 +60,16 @@ impl TcpServerEvents {
                         let message =
                             format!("Subscribe to table {} error. Err: {:?}", table_name, err);
 
-                        self.app
-                            .logs
-                            .add_error(
-                                Some(table_name.to_string()),
-                                SystemProcess::TcpSocket,
-                                "Subscribe to table".to_string(),
-                                message.to_string(),
-                                Some(format!(
-                                    "SessionId:{}, Name:{:?}",
-                                    connection.id, session_name
-                                )),
-                            )
-                            .await;
+                        self.app.logs.add_error(
+                            Some(table_name.to_string()),
+                            SystemProcess::TcpSocket,
+                            "Subscribe to table".to_string(),
+                            message.to_string(),
+                            Some(format!(
+                                "SessionId:{}, Name:{:?}",
+                                connection.id, session_name
+                            )),
+                        );
 
                         connection.send(TcpContract::Error { message }).await;
                     }
@@ -94,28 +88,22 @@ impl SocketEventCallback<TcpContract, MyNoSqlReaderTcpSerializer> for TcpServerE
     ) {
         match connection_event {
             ConnectionEvent::Connected(connection) => {
-                self.app
-                    .logs
-                    .add_info(
-                        None,
-                        SystemProcess::TcpSocket,
-                        "New tcp connection".to_string(),
-                        format!("ID: {}", connection.id),
-                    )
-                    .await;
+                self.app.logs.add_info(
+                    None,
+                    SystemProcess::TcpSocket,
+                    "New tcp connection".to_string(),
+                    format!("ID: {}", connection.id),
+                );
 
                 self.app.data_readers.add_tcp(connection).await;
             }
             ConnectionEvent::Disconnected(connection) => {
-                self.app
-                    .logs
-                    .add_info(
-                        None,
-                        SystemProcess::TcpSocket,
-                        "Disconnect".to_string(),
-                        format!("ID: {}", connection.id),
-                    )
-                    .await;
+                self.app.logs.add_info(
+                    None,
+                    SystemProcess::TcpSocket,
+                    "Disconnect".to_string(),
+                    format!("ID: {}", connection.id),
+                );
                 self.app.data_readers.remove_tcp(connection.as_ref()).await;
             }
             ConnectionEvent::Payload {

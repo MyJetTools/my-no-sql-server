@@ -89,7 +89,7 @@ struct LogsData {
 }
 
 pub struct Logs {
-    data: RwLock<LogsData>,
+    data: Arc<RwLock<LogsData>>,
 }
 
 impl Logs {
@@ -101,71 +101,37 @@ impl Logs {
         };
 
         Self {
-            data: RwLock::new(logs_data),
+            data: Arc::new(RwLock::new(logs_data)),
         }
     }
 
-    async fn add(&self, item: LogItem) {
-        let item = Arc::new(item);
-        let mut wirte_access = self.data.write().await;
-
-        match &item.level {
-            LogLevel::Info => {}
-            LogLevel::Error => print_to_console(&item),
-            LogLevel::FatalError => print_to_console(&item),
-        }
-
-        match &item.process {
-            SystemProcess::System => print_to_console(&item),
-            SystemProcess::TcpSocket => {}
-            SystemProcess::PersistOperation => {}
-            SystemProcess::TableOperation => {}
-            SystemProcess::Init => print_to_console(&item),
-            SystemProcess::Timer => {}
-        }
-
-        let process_id = item.as_ref().process.as_u8();
-
-        add_table_data(
-            &mut wirte_access.items_by_process,
-            &process_id,
-            item.clone(),
-        );
-
-        if let Some(table_name) = &item.table {
-            add_table_data(&mut wirte_access.items_by_table, table_name, item.clone());
-        }
-
-        let items = &mut wirte_access.items;
-        items.push(item);
-        gc_logs(items);
-    }
-
-    pub async fn add_info(
+    pub fn add_info(
         &self,
         table: Option<String>,
         process: SystemProcess,
         process_name: String,
         message: String,
     ) {
-        let item = LogItem {
-            date: DateTimeAsMicroseconds::now(),
-            level: LogLevel::Info,
-            table,
-            process_name,
-            process,
-            message: message,
-            err_ctx: None,
-        };
+        let logs_data = self.data.clone();
+        tokio::spawn(async move {
+            let item = LogItem {
+                date: DateTimeAsMicroseconds::now(),
+                level: LogLevel::Info,
+                table,
+                process_name,
+                process,
+                message: message,
+                err_ctx: None,
+            };
 
-        if let SystemProcess::PersistOperation = process {
-            print_to_console(&item);
-        }
-
-        self.add(item).await;
+            if let SystemProcess::PersistOperation = process {
+                print_to_console(&item);
+            }
+            add(logs_data, item).await;
+        });
     }
 
-    pub async fn add_error(
+    pub fn add_error(
         &self,
         table: Option<String>,
         process: SystemProcess,
@@ -173,36 +139,37 @@ impl Logs {
         message: String,
         err_ctx: Option<String>,
     ) {
-        let item = LogItem {
-            date: DateTimeAsMicroseconds::now(),
-            level: LogLevel::Error,
-            table,
-            process_name,
-            process,
-            message: message,
-            err_ctx,
-        };
+        let logs_data = self.data.clone();
+        tokio::spawn(async move {
+            let item = LogItem {
+                date: DateTimeAsMicroseconds::now(),
+                level: LogLevel::Error,
+                table,
+                process_name,
+                process,
+                message: message,
+                err_ctx,
+            };
 
-        self.add(item).await;
+            add(logs_data, item).await;
+        });
     }
 
-    pub async fn add_fatal_error(
-        &self,
-        process: SystemProcess,
-        process_name: String,
-        message: String,
-    ) {
-        let item = LogItem {
-            date: DateTimeAsMicroseconds::now(),
-            level: LogLevel::FatalError,
-            table: None,
-            process_name,
-            process,
-            message: message,
-            err_ctx: None,
-        };
+    pub fn add_fatal_error(&self, process: SystemProcess, process_name: String, message: String) {
+        let logs_data = self.data.clone();
+        tokio::spawn(async move {
+            let item = LogItem {
+                date: DateTimeAsMicroseconds::now(),
+                level: LogLevel::FatalError,
+                table: None,
+                process_name,
+                process,
+                message: message,
+                err_ctx: None,
+            };
 
-        self.add(item).await;
+            add(logs_data, item).await;
+        });
     }
 
     pub async fn get(&self) -> Vec<Arc<LogItem>> {
@@ -262,4 +229,40 @@ fn gc_logs(items: &mut Vec<Arc<LogItem>>) {
     while items.len() > 100 {
         items.remove(0);
     }
+}
+
+async fn add(logs_data: Arc<RwLock<LogsData>>, item: LogItem) {
+    let item = Arc::new(item);
+    let mut wirte_access = logs_data.write().await;
+
+    match &item.level {
+        LogLevel::Info => {}
+        LogLevel::Error => print_to_console(&item),
+        LogLevel::FatalError => print_to_console(&item),
+    }
+
+    match &item.process {
+        SystemProcess::System => print_to_console(&item),
+        SystemProcess::TcpSocket => {}
+        SystemProcess::PersistOperation => {}
+        SystemProcess::TableOperation => {}
+        SystemProcess::Init => print_to_console(&item),
+        SystemProcess::Timer => {}
+    }
+
+    let process_id = item.as_ref().process.as_u8();
+
+    add_table_data(
+        &mut wirte_access.items_by_process,
+        &process_id,
+        item.clone(),
+    );
+
+    if let Some(table_name) = &item.table {
+        add_table_data(&mut wirte_access.items_by_table, table_name, item.clone());
+    }
+
+    let items = &mut wirte_access.items;
+    items.push(item);
+    gc_logs(items);
 }

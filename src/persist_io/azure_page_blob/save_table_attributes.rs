@@ -19,8 +19,7 @@ pub async fn with_retries(
                     crate::app::logs::SystemProcess::PersistOperation,
                     "save_table_attributes".to_string(),
                     "Saved".to_string(),
-                )
-                .await;
+                );
                 return;
             }
             Err(err) => {

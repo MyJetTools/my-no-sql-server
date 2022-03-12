@@ -18,8 +18,7 @@ pub async fn handle_azure_blob_error(
         process_name.to_string(),
         format!("Azure storage error with table:{table_name}. Attempt: {attempt_no}"),
         Some(format!("{:?}", err)),
-    )
-    .await;
+    );
     match err {
         AzureStorageError::ContainerNotFound => {
             create_table_container(logs, table_name, azure_connection).await;
@@ -54,7 +53,6 @@ async fn create_table_container(
             "create_table_container".to_string(),
             format!("Azure storage error with table: {table_name}"),
             Some(format!("{:?}", err)),
-        )
-        .await;
+        );
     }
 }

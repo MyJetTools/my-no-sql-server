@@ -21,13 +21,11 @@ pub async fn start(app: Arc<AppContext>) {
         let result = tokio::spawn(gc_partitions_iteration(app.clone())).await;
 
         if let Err(err) = result {
-            app.logs
-                .add_fatal_error(
-                    crate::app::logs::SystemProcess::Timer,
-                    format!("gc_partitions"),
-                    format!("{}", err),
-                )
-                .await;
+            app.logs.add_fatal_error(
+                crate::app::logs::SystemProcess::Timer,
+                format!("gc_partitions"),
+                format!("{}", err),
+            );
         }
     }
 }

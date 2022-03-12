@@ -1,20 +1,17 @@
 use async_trait::async_trait;
 use my_http_server_controllers::controllers::{
-    actions::{DeleteAction, GetAction, PostAction, PutAction},
+    actions::{DeleteAction, GetAction, PutAction},
     documentation::{data_types::HttpDataType, out_results::HttpResult, HttpActionDescription},
 };
 use std::sync::Arc;
 
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 
-use crate::{
-    app::AppContext, db_sync::EventSource,
-    http::contracts::http_ctx_extensions::StandardParamsReader,
-};
+use crate::{app::AppContext, db_sync::EventSource};
 
 use super::{
-    super::super::contracts::{input_params::*, input_params_doc, response},
-    models::{CreateTableCotnract, TableContract},
+    super::super::contracts::{input_params::*, input_params_doc},
+    models::{DeleteTableContract, TableContract},
 };
 
 pub struct TablesController {
@@ -62,49 +59,6 @@ impl GetAction for TablesController {
     }
 }
 
-#[async_trait]
-impl PostAction for TablesController {
-    fn get_route(&self) -> &str {
-        "/Tables/Create"
-    }
-
-    fn get_description(&self) -> Option<HttpActionDescription> {
-        HttpActionDescription {
-            controller_name: super::consts::CONTROLLER_NAME,
-            description: "Create Table",
-
-            input_params: CreateTableCotnract::get_input_params().into(),
-            results: vec![
-                HttpResult {
-                    http_code: 202,
-                    nullable: true,
-                    description: "Table is created".to_string(),
-                    data_type: HttpDataType::as_string(),
-                },
-                response::table_not_found(),
-            ],
-        }
-        .into()
-    }
-
-    async fn handle_request(&self, ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
-        let input_data = CreateTableCotnract::parse_http_input(ctx).await?;
-
-        let even_src = EventSource::as_client_request(self.app.as_ref());
-
-        crate::db_operations::write::table::create(
-            self.app.as_ref(),
-            input_data.table_name.as_str(),
-            input_data.persist,
-            input_data.max_partitions_amount,
-            even_src,
-            input_data.sync_period.get_sync_moment(),
-        )
-        .await?;
-
-        return Ok(HttpOutput::Empty.into_ok_result(true));
-    }
-}
 #[async_trait]
 impl PutAction for TablesController {
     fn get_route(&self) -> &str {
@@ -164,15 +118,11 @@ impl DeleteAction for TablesController {
             controller_name: super::consts::CONTROLLER_NAME,
             description: "Delete Table",
 
-            input_params: Some(vec![
-                input_params_doc::table_name(),
-                input_params_doc::sync_period(),
-                input_params_doc::api_key(),
-            ]),
+            input_params: DeleteTableContract::get_input_params().into(),
             results: vec![HttpResult {
                 http_code: 202,
                 nullable: true,
-                description: "Table is cleaned".to_string(),
+                description: "Table is deleted".to_string(),
                 data_type: HttpDataType::as_string(),
             }],
         }
@@ -180,24 +130,19 @@ impl DeleteAction for TablesController {
     }
 
     async fn handle_request(&self, ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
-        let query = ctx.request.get_query_string()?;
+        let input_data = DeleteTableContract::parse_http_input(ctx).await?;
 
-        let api_key = ctx.request.get_api_key()?;
-
-        if api_key != self.app.table_api_key.as_str() {
+        if input_data.api_key != self.app.table_api_key.as_str() {
             return Err(HttpFailResult::as_unauthorized(None));
         }
-
-        let table_name = query.get_table_name()?;
-        let sync_period = query.get_sync_period();
 
         let event_src = EventSource::as_client_request(self.app.as_ref());
 
         crate::db_operations::write::table::delete(
             self.app.clone(),
-            table_name.to_string(),
+            input_data.table_name,
             event_src,
-            sync_period.get_sync_moment(),
+            DEFAULT_SYNC_PERIOD.get_sync_moment(),
         )
         .await?;
 

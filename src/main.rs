@@ -1,7 +1,9 @@
 use app::{logs::Logs, AppContext, EventsDispatcherProduction};
+use background::{metrics_updater::MetricsUpdater, persist::PersistTimer};
 use my_logger::MyLogger;
 use my_no_sql_tcp_shared::MyNoSqlReaderTcpSerializer;
 use my_tcp_sockets::TcpServer;
+use rust_extensions::MyTimer;
 use settings_reader::PersistIoResult;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tcp::{TcpServerEvents, TcpServerLogger};
@@ -46,13 +48,13 @@ async fn main() {
 
     let app = match settings.get_persist_io(logs.clone(), app_insights.clone()) {
         PersistIoResult::AzurePageBlob(azure_page_blob_persist_io) => AppContext::new(
-            logs,
+            logs.clone(),
             &settings,
             Box::new(EventsDispatcherProduction::new(transactions_sender)),
             Arc::new(azure_page_blob_persist_io),
         ),
         PersistIoResult::File(file_persist_io) => AppContext::new(
-            logs,
+            logs.clone(),
             &settings,
             Box::new(EventsDispatcherProduction::new(transactions_sender)),
             Arc::new(file_persist_io),
@@ -68,13 +70,12 @@ async fn main() {
     crate::operations::data_initializer::init_tables(app.clone(), settings.init_threads_amount)
         .await;
 
-    let handler = tokio::task::spawn(crate::background::flush_to_blobs::start(app.clone()));
+    let mut timer_1s = MyTimer::new(Duration::from_secs(1));
 
-    background_tasks.push(handler);
+    timer_1s.register_timer("Persist", Arc::new(PersistTimer::new(app.clone())));
+    timer_1s.register_timer("MetricsUpdated", Arc::new(MetricsUpdater::new(app.clone())));
 
-    background_tasks.push(tokio::task::spawn(
-        crate::background::metrics_updater::start(app.clone()),
-    ));
+    timer_1s.start(app.clone(), app.clone());
 
     background_tasks.push(tokio::task::spawn(crate::background::data_gc::start(
         app.clone(),

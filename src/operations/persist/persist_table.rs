@@ -51,14 +51,12 @@ pub async fn from_no_table_in_blob(app: &AppContext, db_table: &DbTable) {
         .create_table(db_table.name.as_str(), attr.clone())
         .await;
 
-    app.logs
-        .add_info(
-            Some(db_table.name.to_string()),
-            crate::app::logs::SystemProcess::PersistOperation,
-            "create_table".to_string(),
-            "Saved".to_string(),
-        )
-        .await;
+    app.logs.add_info(
+        Some(db_table.name.to_string()),
+        crate::app::logs::SystemProcess::PersistOperation,
+        "create_table".to_string(),
+        "Saved".to_string(),
+    );
 
     let table_snapshot = db_table.get_table_snapshot().await;
 

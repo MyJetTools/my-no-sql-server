@@ -24,6 +24,11 @@ impl BlobContentCache {
         }
     }
 
+    pub async fn has_table(&self, table_name: &str) -> bool {
+        let read_access = self.data_by_table.read().await;
+        read_access.contains_key(table_name)
+    }
+
     pub async fn init(&self, table_data: &DbTableData, attr: DbTableAttributesSnapshot) {
         let data_to_insert = PersistedTableData::init(table_data, attr);
         let mut write_access = self.data_by_table.write().await;
@@ -34,6 +39,12 @@ impl BlobContentCache {
         let table_data = PersistedTableData::new(attr);
         let mut write_access = self.data_by_table.write().await;
         write_access.insert(table_name.to_string(), table_data);
+    }
+
+    pub async fn update_table_attributes(&self, table_name: &str, attr: DbTableAttributesSnapshot) {
+        let mut write_access = self.data_by_table.write().await;
+        let data = write_access.get_mut(table_name).unwrap();
+        data.attr = attr;
     }
 
     pub async fn delete_table(&self, table_name: &str) {

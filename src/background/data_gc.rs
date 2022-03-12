@@ -9,14 +9,12 @@ use crate::{
 
 pub async fn start(app: Arc<AppContext>) {
     let delay = Duration::from_secs(10);
-    app.logs
-        .add_info(
-            None,
-            SystemProcess::System,
-            "Timer dead data readers gc".to_string(),
-            "Started".to_string(),
-        )
-        .await;
+    app.logs.add_info(
+        None,
+        SystemProcess::System,
+        "Timer dead data readers gc".to_string(),
+        "Started".to_string(),
+    );
 
     let multipart_timeout = Duration::from_secs(60);
 

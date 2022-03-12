@@ -1,10 +1,12 @@
 mod consts;
 mod create_if_not_exists_action;
+mod create_table_action;
 mod migration_action;
 mod models;
 mod tables_controller;
 mod tables_controller2;
 pub use create_if_not_exists_action::CreateIfNotExistsAction;
+pub use create_table_action::CreateTableAction;
 pub use migration_action::MigrationAction;
 pub use tables_controller::TablesController;
 pub use tables_controller2::TablesController2;

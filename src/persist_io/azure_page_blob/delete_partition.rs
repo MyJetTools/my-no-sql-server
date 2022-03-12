@@ -20,8 +20,7 @@ pub async fn with_retries(
                 crate::app::logs::SystemProcess::PersistOperation,
                 "delete_partition".to_string(),
                 "Saved".to_string(),
-            )
-            .await;
+            );
             return;
         }
 
@@ -35,8 +34,7 @@ pub async fn with_retries(
             "delete_partition".to_string(),
             format!("PartitionKey: {}, Attempt: {}", partition_key, attempt_no),
             Some(format!("{:?}", err)),
-        )
-        .await;
+        );
 
         tokio::time::sleep(Duration::from_secs(3)).await;
     }

@@ -27,8 +27,7 @@ pub async fn with_retries(
             "delete_table".to_string(),
             format!("Attempt: {}", attempt_no),
             Some(format!("{:?}", err)),
-        )
-        .await;
+        );
 
         tokio::time::sleep(Duration::from_secs(3)).await;
     }

@@ -13,13 +13,11 @@ pub async fn start(app: Arc<AppContext>) {
         let result = tokio::spawn(iteration(app.clone())).await;
 
         if let Err(err) = result {
-            app.logs
-                .add_fatal_error(
-                    SystemProcess::Timer,
-                    "gc_http_session".to_string(),
-                    format!("Err:{}", err),
-                )
-                .await;
+            app.logs.add_fatal_error(
+                SystemProcess::Timer,
+                "gc_http_session".to_string(),
+                format!("Err:{}", err),
+            );
         }
     }
 }

@@ -1,6 +1,6 @@
 use std::{sync::Arc, time::Duration};
 
-use rust_extensions::ApplicationStates;
+use rust_extensions::{ApplicationStates, MyTimerLogger};
 
 use crate::{
     data_readers::DataReadersList, db::DbInstance, db_operations::multipart::MultipartList,
@@ -8,7 +8,11 @@ use crate::{
     persist_operations::blob_content_cache::BlobContentCache, settings_reader::SettingsModel,
 };
 
-use super::{global_states::GlobalStates, logs::Logs, EventsDispatcher, PrometheusMetrics};
+use super::{
+    global_states::GlobalStates,
+    logs::{Logs, SystemProcess},
+    EventsDispatcher, PrometheusMetrics,
+};
 
 pub const APP_VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
@@ -77,5 +81,17 @@ impl ApplicationStates for AppContext {
 
     fn is_shutting_down(&self) -> bool {
         self.states.is_shutting_down()
+    }
+}
+
+impl MyTimerLogger for AppContext {
+    fn write_info(&self, timer_id: String, message: String) {
+        self.logs
+            .add_info(None, SystemProcess::Timer, timer_id, message);
+    }
+
+    fn write_error(&self, timer_id: String, message: String) {
+        self.logs
+            .add_fatal_error(SystemProcess::Timer, timer_id, message);
     }
 }

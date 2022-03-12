@@ -1,26 +1,29 @@
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
 
-use crate::app::{logs::SystemProcess, AppContext};
+use rust_extensions::MyTimerTick;
 
-pub async fn start(app: Arc<AppContext>) {
-    app.logs
-        .add_info(
-            None,
-            SystemProcess::System,
-            "Timer metrics updaters readers gc".to_string(),
-            "Started".to_string(),
-        )
-        .await;
-    let delay = Duration::from_secs(5);
-    loop {
-        tokio::time::sleep(delay).await;
+use crate::app::AppContext;
 
-        let tables = app.db.get_tables().await;
+pub struct MetricsUpdater {
+    app: Arc<AppContext>,
+}
+
+impl MetricsUpdater {
+    pub fn new(app: Arc<AppContext>) -> Self {
+        Self { app }
+    }
+}
+
+#[async_trait::async_trait]
+impl MyTimerTick for MetricsUpdater {
+    async fn tick(&self) {
+        let tables = self.app.db.get_tables().await;
 
         for db_table in tables {
             let table_metrics = db_table.get_metrics().await;
 
-            app.metrics
+            self.app
+                .metrics
                 .update_table_metrics(db_table.name.as_str(), &table_metrics);
         }
     }

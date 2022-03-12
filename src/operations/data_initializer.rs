@@ -17,14 +17,12 @@ async fn init_tables_spawned(app: Arc<AppContext>, init_threads_amount: usize) {
     let tables = app.persist_io.get_list_of_tables().await;
 
     for table_name in tables {
-        app.logs
-            .add_info(
-                Some(table_name.to_string()),
-                crate::app::logs::SystemProcess::Init,
-                "init_tables".to_string(),
-                format!("Initializing table {}", table_name),
-            )
-            .await;
+        app.logs.add_info(
+            Some(table_name.to_string()),
+            crate::app::logs::SystemProcess::Init,
+            "init_tables".to_string(),
+            format!("Initializing table {}", table_name),
+        );
         let mut sw = StopWatch::new();
         sw.start();
 
@@ -60,24 +58,20 @@ async fn init_tables_spawned(app: Arc<AppContext>, init_threads_amount: usize) {
 
         sw.pause();
 
-        app.logs
-            .add_info(
-                Some(table_name.to_string()),
-                crate::app::logs::SystemProcess::Init,
-                "init_tables".to_string(),
-                format!("Table {} is initialized in {:?}", table_name, sw.duration()),
-            )
-            .await;
+        app.logs.add_info(
+            Some(table_name.to_string()),
+            crate::app::logs::SystemProcess::Init,
+            "init_tables".to_string(),
+            format!("Table {} is initialized in {:?}", table_name, sw.duration()),
+        );
     }
 
     app.states.set_initialized();
 
-    app.logs
-        .add_info(
-            None,
-            crate::app::logs::SystemProcess::Init,
-            "init_tables".to_string(),
-            "All tables initialized".to_string(),
-        )
-        .await;
+    app.logs.add_info(
+        None,
+        crate::app::logs::SystemProcess::Init,
+        "init_tables".to_string(),
+        "All tables initialized".to_string(),
+    );
 }

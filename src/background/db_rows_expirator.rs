@@ -21,13 +21,11 @@ pub async fn start(app: Arc<AppContext>) {
         let tick_result = tokio::spawn(interation(app.clone())).await;
 
         if let Err(err) = tick_result {
-            app.logs
-                .add_fatal_error(
-                    crate::app::logs::SystemProcess::Timer,
-                    "db_rows_expirator".to_string(),
-                    format!("{}", err),
-                )
-                .await;
+            app.logs.add_fatal_error(
+                crate::app::logs::SystemProcess::Timer,
+                "db_rows_expirator".to_string(),
+                format!("{}", err),
+            );
         }
     }
 }

@@ -24,7 +24,7 @@ impl Into<TableContract> for &DbTable {
 
 #[derive(MyHttpInput)]
 pub struct CreateTableCotnract {
-    #[http_query(name = "table"; description = "Name of a table")]
+    #[http_query(name = "name"; description = "Name of a table")]
     pub table_name: String,
 
     #[http_query(description = "Persist a table"; default="true")]
@@ -46,4 +46,12 @@ pub struct TableMigrationInputContract {
 
     #[http_query(name = "remoteTableName"; description = "Table name of the remote MyNoSqlServer we are going to copy data from")]
     pub remote_table_name: String,
+}
+
+#[derive(MyHttpInput)]
+pub struct DeleteTableContract {
+    #[http_query(name = "name"; description = "Name of a table")]
+    pub table_name: String,
+    #[http_header(name = "apikey"; description = "Api Key protecting the table to be deleted")]
+    pub api_key: String,
 }
