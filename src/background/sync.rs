@@ -7,7 +7,7 @@ use crate::{app::AppContext, data_readers::DataReaderConnection, db_sync::SyncEv
 pub async fn start(app: Arc<AppContext>, mut rx: mpsc::UnboundedReceiver<SyncEvent>) {
     while !app.states.is_shutting_down() {
         if let Some(sync_event) = rx.recv().await {
-            handle_event(app.as_ref(), &sync_event).await; //TODO - Probably run it through span
+            handle_event(app.as_ref(), &sync_event).await;
         }
     }
 }

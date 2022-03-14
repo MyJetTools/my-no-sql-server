@@ -12,5 +12,5 @@ pub mod prometheus_controller;
 pub mod row_controller;
 pub mod rows_controller;
 pub mod status;
-pub mod tables;
+pub mod tables_controller;
 pub mod transactions;

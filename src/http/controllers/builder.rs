@@ -1,36 +1,38 @@
 use std::sync::Arc;
 
-use my_azure_storage_sdk::AzureStorageConnection;
 use my_http_server_controllers::controllers::ControllersMiddleware;
 
 use crate::app::AppContext;
 
-pub fn build(
-    app: Arc<AppContext>,
-    azure_connection: Option<Arc<AzureStorageConnection>>,
-) -> ControllersMiddleware {
+pub fn build(app: Arc<AppContext>) -> ControllersMiddleware {
     let mut result = ControllersMiddleware::new();
 
     let api_controller = super::api::ApiController::new();
     result.register_get_action(Arc::new(api_controller));
 
-    let tables_controller = Arc::new(super::tables::TablesController::new(
-        app.clone(),
-        azure_connection,
-    ));
+    let tables_controller = Arc::new(super::tables_controller::TablesController::new(app.clone()));
     result.register_get_action(tables_controller.clone());
-    result.register_post_action(tables_controller.clone());
+
     result.register_put_action(tables_controller.clone());
     result.register_delete_action(tables_controller);
 
-    let tables_controller = Arc::new(super::tables::TablesController2::new(app.clone()));
+    let crate_table_action = Arc::new(super::tables_controller::CreateTableAction::new(
+        app.clone(),
+    ));
+    result.register_post_action(crate_table_action);
+
+    let tables_controller = Arc::new(super::tables_controller::TablesController2::new(
+        app.clone(),
+    ));
     result.register_get_action(tables_controller.clone());
     result.register_post_action(tables_controller);
 
-    let tables_controller = Arc::new(super::tables::MigrationAction::new(app.clone()));
+    let tables_controller = Arc::new(super::tables_controller::MigrationAction::new(app.clone()));
     result.register_post_action(tables_controller);
 
-    let tables_controller = Arc::new(super::tables::CreateIfNotExistsAction::new(app.clone()));
+    let tables_controller = Arc::new(super::tables_controller::CreateIfNotExistsAction::new(
+        app.clone(),
+    ));
     result.register_post_action(tables_controller);
 
     let transactions_controller = Arc::new(super::transactions::StartTransactionAction::new(

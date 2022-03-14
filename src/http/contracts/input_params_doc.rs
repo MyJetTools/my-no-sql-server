@@ -34,11 +34,3 @@ pub fn sync_period() -> HttpInputParameter {
         source: HttpParameterInputSource::Query,
     }
 }
-
-pub fn api_key() -> HttpInputParameter {
-    HttpInputParameter {
-        field: HttpField::new("apiKey", HttpDataType::as_string(), true, None),
-        description: "Api key".to_string(),
-        source: HttpParameterInputSource::Header,
-    }
-}

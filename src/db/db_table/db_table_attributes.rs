@@ -15,6 +15,16 @@ pub struct DbTableAttributesSnapshot {
     pub created: DateTimeAsMicroseconds,
 }
 
+impl DbTableAttributesSnapshot {
+    pub fn create_default() -> Self {
+        Self {
+            created: DateTimeAsMicroseconds::now(),
+            persist: true,
+            max_partitions_amount: None,
+        }
+    }
+}
+
 impl DbTableAttributes {
     pub fn new(
         persist: bool,

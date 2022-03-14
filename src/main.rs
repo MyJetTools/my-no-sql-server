@@ -1,14 +1,20 @@
-use app::{AppContext, EventsDispatcherProduction};
+use app::{logs::Logs, AppContext, EventsDispatcherProduction};
+use background::{
+    data_gc::DataGcTimer, db_rows_expirator::DbRowsExpirator,
+    gc_http_sessions::GcHttpSessionsTimer, gc_partitions::GcPartitions,
+    metrics_updater::MetricsUpdater, persist::PersistTimer,
+};
 use my_logger::MyLogger;
 use my_no_sql_tcp_shared::MyNoSqlReaderTcpSerializer;
 use my_tcp_sockets::TcpServer;
+use rust_extensions::MyTimer;
+use settings_reader::PersistIoResult;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tcp::{TcpServerEvents, TcpServerLogger};
 
 mod app;
 mod grpc;
 
-mod blob_operations;
 mod db;
 mod db_json_entity;
 mod db_operations;
@@ -22,7 +28,8 @@ mod tcp;
 
 mod background;
 mod data_readers;
-mod persistence;
+mod persist_io;
+mod persist_operations;
 mod settings_reader;
 mod utils;
 
@@ -41,12 +48,22 @@ async fn main() {
 
     let app_insights = Arc::new(AppInsightsTelemetry::new("my-no-sql-server".to_string()));
 
-    let azure_connection = settings.get_azure_connection(app_insights.clone());
+    let logs = Arc::new(Logs::new());
 
-    let app = AppContext::new(
-        &settings,
-        Box::new(EventsDispatcherProduction::new(transactions_sender)),
-    );
+    let app = match settings.get_persist_io(logs.clone(), app_insights.clone()) {
+        PersistIoResult::AzurePageBlob(azure_page_blob_persist_io) => AppContext::new(
+            logs.clone(),
+            &settings,
+            Box::new(EventsDispatcherProduction::new(transactions_sender)),
+            Arc::new(azure_page_blob_persist_io),
+        ),
+        PersistIoResult::File(file_persist_io) => AppContext::new(
+            logs.clone(),
+            &settings,
+            Box::new(EventsDispatcherProduction::new(transactions_sender)),
+            Arc::new(file_persist_io),
+        ),
+    };
 
     let tcp_server_logger = TcpServerLogger::new(app.logs.clone());
 
@@ -54,52 +71,39 @@ async fn main() {
 
     let app = Arc::new(app);
 
-    if let Some(azure_connection) = &azure_connection {
-        crate::operations::data_initializer::init_tables(
-            app.clone(),
-            azure_connection.clone(),
-            settings.init_threads_amount,
-        )
+    crate::operations::data_initializer::init_tables(app.clone(), settings.init_threads_amount)
         .await;
 
-        let handler = tokio::task::spawn(crate::background::flush_to_blobs::start(
-            app.clone(),
-            azure_connection.clone(),
-        ));
+    let mut timer_1s = MyTimer::new(Duration::from_secs(1));
 
-        background_tasks.push(handler);
-    }
+    timer_1s.register_timer("Persist", Arc::new(PersistTimer::new(app.clone())));
+    timer_1s.register_timer("MetricsUpdated", Arc::new(MetricsUpdater::new(app.clone())));
 
-    background_tasks.push(tokio::task::spawn(
-        crate::background::metrics_updater::start(app.clone()),
-    ));
+    let mut timer_10s = MyTimer::new(Duration::from_secs(10));
+    timer_10s.register_timer(
+        "GcHttpSessions",
+        Arc::new(GcHttpSessionsTimer::new(app.clone())),
+    );
 
-    background_tasks.push(tokio::task::spawn(crate::background::data_gc::start(
-        app.clone(),
-    )));
+    timer_10s.register_timer(
+        "DbRowsExpirator",
+        Arc::new(DbRowsExpirator::new(app.clone())),
+    );
+
+    let mut timer_30s = MyTimer::new(Duration::from_secs(30));
+    timer_30s.register_timer("GcPartitions", Arc::new(GcPartitions::new(app.clone())));
+    timer_30s.register_timer("DataGc", Arc::new(DataGcTimer::new(app.clone())));
+
+    timer_1s.start(app.clone(), app.clone());
+    timer_10s.start(app.clone(), app.clone());
+    timer_30s.start(app.clone(), app.clone());
 
     background_tasks.push(tokio::task::spawn(crate::background::sync::start(
         app.clone(),
         transactions_receiver,
     )));
 
-    background_tasks.push(tokio::task::spawn(
-        crate::background::gc_http_sessions::start(app.clone()),
-    ));
-
-    background_tasks.push(tokio::task::spawn(
-        crate::background::db_rows_expirator::start(app.clone()),
-    ));
-
-    background_tasks.push(tokio::task::spawn(crate::background::gc_partitions::start(
-        app.clone(),
-    )));
-
-    crate::http::start_up::setup_server(
-        app.clone(),
-        app_insights.clone(),
-        azure_connection.clone(),
-    );
+    crate::http::start_up::setup_server(app.clone(), app_insights.clone());
 
     let tcp_server = TcpServer::new_with_logger(
         "MyNoSqlReader".to_string(),

@@ -1,60 +1,45 @@
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::{collections::HashMap, sync::Arc};
 
-use rust_extensions::date_time::DateTimeAsMicroseconds;
+use rust_extensions::{date_time::DateTimeAsMicroseconds, MyTimerTick};
 
 use crate::{app::AppContext, db::DbRow, db_json_entity::JsonTimeStamp, db_sync::EventSource};
 
-pub async fn start(app: Arc<AppContext>) {
-    let duration = Duration::from_secs(1);
-    while !app.states.is_initialized() {
-        tokio::time::sleep(duration).await;
-    }
+pub struct DbRowsExpirator {
+    app: Arc<AppContext>,
+}
 
-    while !app.states.is_shutting_down() {
-        for _ in 0..10 {
-            tokio::time::sleep(duration).await;
-            if app.states.is_shutting_down() {
-                break;
-            }
-        }
-
-        let tick_result = tokio::spawn(interation(app.clone())).await;
-
-        if let Err(err) = tick_result {
-            app.logs
-                .add_fatal_error(
-                    crate::app::logs::SystemProcess::Timer,
-                    "db_rows_expirator".to_string(),
-                    format!("{}", err),
-                )
-                .await;
-        }
+impl DbRowsExpirator {
+    pub fn new(app: Arc<AppContext>) -> Self {
+        Self { app }
     }
 }
 
-async fn interation(app: Arc<AppContext>) {
-    let now = JsonTimeStamp::now();
+#[async_trait::async_trait]
+impl MyTimerTick for DbRowsExpirator {
+    async fn tick(&self) {
+        let now = JsonTimeStamp::now();
 
-    let db_tables = app.db.get_tables().await;
+        let db_tables = self.app.db.get_tables().await;
 
-    for db_table in db_tables {
-        let removed_db_rows = db_table.get_expired_rows(now.date_time).await;
+        for db_table in db_tables {
+            let removed_db_rows = db_table.get_expired_rows(now.date_time).await;
 
-        if let Some(removed_db_rows) = removed_db_rows {
-            let event_source = EventSource::as_gc();
+            if let Some(removed_db_rows) = removed_db_rows {
+                let event_source = EventSource::as_gc();
 
-            let mut persist_moment = DateTimeAsMicroseconds::now();
-            persist_moment.add_seconds(1);
+                let mut persist_moment = DateTimeAsMicroseconds::now();
+                persist_moment.add_seconds(1);
 
-            crate::db_operations::write::bulk_delete::execute(
-                app.as_ref(),
-                db_table.as_ref(),
-                as_hash_map(removed_db_rows),
-                event_source,
-                &now,
-                persist_moment,
-            )
-            .await;
+                crate::db_operations::write::bulk_delete::execute(
+                    self.app.as_ref(),
+                    db_table.as_ref(),
+                    as_hash_map(removed_db_rows),
+                    event_source,
+                    &now,
+                    persist_moment,
+                )
+                .await;
+            }
         }
     }
 }
