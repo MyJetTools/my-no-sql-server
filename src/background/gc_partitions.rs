@@ -1,27 +1,26 @@
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
+
+use rust_extensions::MyTimerTick;
 
 use crate::{app::AppContext, db_sync::EventSource};
 
-pub async fn start(app: Arc<AppContext>) {
-    let duration = Duration::from_secs(1);
+pub struct GcPartitions {
+    app: Arc<AppContext>,
+}
 
-    while !app.states.is_initialized() {
-        tokio::time::sleep(duration).await;
+impl GcPartitions {
+    pub fn new(app: Arc<AppContext>) -> Self {
+        Self { app }
     }
+}
 
-    while !app.states.is_shutting_down() {
-        for _ in 0..60 {
-            tokio::time::sleep(duration).await;
-
-            if !app.states.is_initialized() {
-                return;
-            }
-        }
-
-        let result = tokio::spawn(gc_partitions_iteration(app.clone())).await;
+#[async_trait::async_trait]
+impl MyTimerTick for GcPartitions {
+    async fn tick(&self) {
+        let result = tokio::spawn(gc_partitions_iteration(self.app.clone())).await;
 
         if let Err(err) = result {
-            app.logs.add_fatal_error(
+            self.app.logs.add_fatal_error(
                 crate::app::logs::SystemProcess::Timer,
                 format!("gc_partitions"),
                 format!("{}", err),

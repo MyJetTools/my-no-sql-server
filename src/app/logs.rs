@@ -191,8 +191,9 @@ impl Logs {
 }
 
 fn print_to_console(item: &LogItem) {
+    println!("----------");
     println!(
-        "{} {:?} {:?} -----------",
+        "{} {:?} {:?}",
         item.date.to_rfc3339(),
         item.level,
         item.process

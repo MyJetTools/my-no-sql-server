@@ -1,32 +1,27 @@
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
 
-use rust_extensions::date_time::DateTimeAsMicroseconds;
+use rust_extensions::{date_time::DateTimeAsMicroseconds, MyTimerTick};
 
-use crate::app::{logs::SystemProcess, AppContext};
+use crate::app::AppContext;
 
-pub async fn start(app: Arc<AppContext>) {
-    let delay = Duration::from_secs(10);
+pub struct GcHttpSessionsTimer {
+    app: Arc<AppContext>,
+}
 
-    while !app.states.is_shutting_down() {
-        tokio::time::sleep(delay).await;
-
-        let result = tokio::spawn(iteration(app.clone())).await;
-
-        if let Err(err) = result {
-            app.logs.add_fatal_error(
-                SystemProcess::Timer,
-                "gc_http_session".to_string(),
-                format!("Err:{}", err),
-            );
-        }
+impl GcHttpSessionsTimer {
+    pub fn new(app: Arc<AppContext>) -> Self {
+        Self { app }
     }
 }
 
-async fn iteration(app: Arc<AppContext>) {
-    let now = DateTimeAsMicroseconds::now();
+#[async_trait::async_trait]
+impl MyTimerTick for GcHttpSessionsTimer {
+    async fn tick(&self) {
+        let now = DateTimeAsMicroseconds::now();
 
-    for data_reader in app.data_readers.get_all().await {
-        data_reader.ping_http_servers(now).await;
+        for data_reader in self.app.data_readers.get_all().await {
+            data_reader.ping_http_servers(now).await;
+        }
+        self.app.data_readers.ten_seconds_tick(now).await;
     }
-    app.data_readers.ten_seconds_tick(now).await;
 }

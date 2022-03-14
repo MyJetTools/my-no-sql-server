@@ -1,5 +1,9 @@
 use app::{logs::Logs, AppContext, EventsDispatcherProduction};
-use background::{metrics_updater::MetricsUpdater, persist::PersistTimer};
+use background::{
+    data_gc::DataGcTimer, db_rows_expirator::DbRowsExpirator,
+    gc_http_sessions::GcHttpSessionsTimer, gc_partitions::GcPartitions,
+    metrics_updater::MetricsUpdater, persist::PersistTimer,
+};
 use my_logger::MyLogger;
 use my_no_sql_tcp_shared::MyNoSqlReaderTcpSerializer;
 use my_tcp_sockets::TcpServer;
@@ -75,27 +79,28 @@ async fn main() {
     timer_1s.register_timer("Persist", Arc::new(PersistTimer::new(app.clone())));
     timer_1s.register_timer("MetricsUpdated", Arc::new(MetricsUpdater::new(app.clone())));
 
-    timer_1s.start(app.clone(), app.clone());
+    let mut timer_10s = MyTimer::new(Duration::from_secs(10));
+    timer_10s.register_timer(
+        "GcHttpSessions",
+        Arc::new(GcHttpSessionsTimer::new(app.clone())),
+    );
 
-    background_tasks.push(tokio::task::spawn(crate::background::data_gc::start(
-        app.clone(),
-    )));
+    timer_10s.register_timer(
+        "DbRowsExpirator",
+        Arc::new(DbRowsExpirator::new(app.clone())),
+    );
+
+    let mut timer_30s = MyTimer::new(Duration::from_secs(30));
+    timer_30s.register_timer("GcPartitions", Arc::new(GcPartitions::new(app.clone())));
+    timer_30s.register_timer("DataGc", Arc::new(DataGcTimer::new(app.clone())));
+
+    timer_1s.start(app.clone(), app.clone());
+    timer_10s.start(app.clone(), app.clone());
+    timer_30s.start(app.clone(), app.clone());
 
     background_tasks.push(tokio::task::spawn(crate::background::sync::start(
         app.clone(),
         transactions_receiver,
-    )));
-
-    background_tasks.push(tokio::task::spawn(
-        crate::background::gc_http_sessions::start(app.clone()),
-    ));
-
-    background_tasks.push(tokio::task::spawn(
-        crate::background::db_rows_expirator::start(app.clone()),
-    ));
-
-    background_tasks.push(tokio::task::spawn(crate::background::gc_partitions::start(
-        app.clone(),
     )));
 
     crate::http::start_up::setup_server(app.clone(), app_insights.clone());
