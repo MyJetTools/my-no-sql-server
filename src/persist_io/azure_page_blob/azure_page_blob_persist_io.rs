@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use my_azure_storage_sdk::AzureStorageConnection;
 
@@ -32,9 +32,26 @@ impl AzurePageBlobPersistIo {
 #[async_trait::async_trait]
 impl PersistIoOperations for AzurePageBlobPersistIo {
     async fn get_list_of_tables(&self) -> Vec<String> {
-        super::table::get_list(&self.azure_connection)
-            .await
-            .unwrap()
+        let mut attempt: u8 = 0;
+        loop {
+            match super::table::get_list(&self.azure_connection).await {
+                Ok(result) => {
+                    return result;
+                }
+                Err(err) => {
+                    if attempt == 5 {
+                        panic!("Can not get list of tables: {:?}", err);
+                    } else {
+                        println!(
+                            "[{}]Retrying.. Error reading table list for table {:?}.",
+                            attempt, err
+                        );
+                        attempt += 1;
+                        tokio::time::sleep(Duration::from_secs(1)).await;
+                    }
+                }
+            }
+        }
     }
 
     async fn start_loading_table(&self, table_name: &str) -> Option<TableLoadItem> {

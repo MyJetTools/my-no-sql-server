@@ -29,11 +29,15 @@ pub async fn handle_azure_blob_error(
         AzureStorageError::ContainerAlreadyExists => {}
         AzureStorageError::InvalidPageRange => {}
         AzureStorageError::RequestBodyTooLarge => {}
+
         AzureStorageError::UnknownError { msg } => {
             println!("handle_azure_blob_error::Unknown error:{} ", msg);
         }
-        AzureStorageError::HyperError { err } => {
+        AzureStorageError::HyperError(err) => {
             println!("handle_azure_blob_error::HyperError:{:?} ", err);
+        }
+        AzureStorageError::IoError(err) => {
+            println!("handle_azure_blob_error::IOError:{:?} ", err);
         }
     }
 }

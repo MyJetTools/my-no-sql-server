@@ -8,6 +8,18 @@ pub enum TableLoadItem {
     },
 }
 
+impl TableLoadItem {
+    pub fn as_str(&self) -> &str {
+        match self {
+            TableLoadItem::TableAttributes(_) => "attr",
+            TableLoadItem::DbPartition {
+                partition_key,
+                db_partition,
+            } => partition_key,
+        }
+    }
+}
+
 #[async_trait::async_trait]
 pub trait PersistIoOperations {
     async fn get_list_of_tables(&self) -> Vec<String>;

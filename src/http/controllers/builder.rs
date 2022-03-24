@@ -119,6 +119,10 @@ pub fn build(app: Arc<AppContext>) -> ControllersMiddleware {
         super::rows_controller::GetSinglePartitionMultipleRowsAction::new(app.clone()),
     ));
 
+    result.register_delete_action(Arc::new(
+        super::rows_controller::DeletePartitionsAction::new(app.clone()),
+    ));
+
     result.register_get_action(Arc::new(super::logs_controller::LogsByTableAction::new(
         app.clone(),
     )));

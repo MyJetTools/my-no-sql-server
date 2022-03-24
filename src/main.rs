@@ -8,7 +8,6 @@ use my_logger::MyLogger;
 use my_no_sql_tcp_shared::MyNoSqlReaderTcpSerializer;
 use my_tcp_sockets::TcpServer;
 use rust_extensions::MyTimer;
-use settings_reader::PersistIoResult;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tcp::{TcpServerEvents, TcpServerLogger};
 
@@ -50,20 +49,14 @@ async fn main() {
 
     let logs = Arc::new(Logs::new());
 
-    let app = match settings.get_persist_io(logs.clone(), app_insights.clone()) {
-        PersistIoResult::AzurePageBlob(azure_page_blob_persist_io) => AppContext::new(
-            logs.clone(),
-            &settings,
-            Box::new(EventsDispatcherProduction::new(transactions_sender)),
-            Arc::new(azure_page_blob_persist_io),
-        ),
-        PersistIoResult::File(file_persist_io) => AppContext::new(
-            logs.clone(),
-            &settings,
-            Box::new(EventsDispatcherProduction::new(transactions_sender)),
-            Arc::new(file_persist_io),
-        ),
-    };
+    let persist_io = settings.get_persist_io(logs.clone(), app_insights.clone());
+
+    let app = AppContext::new(
+        logs.clone(),
+        &settings,
+        Box::new(EventsDispatcherProduction::new(transactions_sender)),
+        Arc::new(persist_io),
+    );
 
     let tcp_server_logger = TcpServerLogger::new(app.logs.clone());
 

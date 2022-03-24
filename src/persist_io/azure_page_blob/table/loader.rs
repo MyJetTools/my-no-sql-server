@@ -1,9 +1,11 @@
 use std::sync::Arc;
+use std::time::Duration;
 
 use my_azure_storage_sdk::blob::BlobApi;
 use my_azure_storage_sdk::AzureStorageConnection;
 
 use my_azure_storage_sdk::blob_container::BlobContainersApi;
+use my_azure_storage_sdk::sdk_azure::blobs::AzureBlobsListReader;
 use tokio::sync::Mutex;
 
 use crate::persist_io::serializers::table_attrs::{TableMetadataFileContract, METADATA_FILE_NAME};
@@ -17,13 +19,10 @@ pub struct PageBlobTableLoader {
 
 impl PageBlobTableLoader {
     pub async fn new(azure_connection: Arc<AzureStorageConnection>, table_name: &str) -> Self {
-        let blobs = azure_connection
-            .get_list_of_blobs(&table_name)
-            .await
-            .unwrap();
+        let result = get_list_of_blobs(azure_connection.as_ref(), table_name).await;
 
         Self {
-            blobs: Mutex::new(blobs),
+            blobs: Mutex::new(result),
             azure_connection,
             table_name: table_name.to_string(),
         }
@@ -42,11 +41,12 @@ impl PageBlobTableLoader {
     pub async fn get_next(&self) -> Option<TableLoadItem> {
         let blob_name = self.get_next_blob_name().await?;
 
-        let raw = self
-            .azure_connection
-            .download_blob(&self.table_name, blob_name.as_str())
-            .await
-            .unwrap();
+        let raw = download_with_retries(
+            self.azure_connection.as_ref(),
+            &self.table_name,
+            blob_name.as_str(),
+        )
+        .await;
 
         if blob_name == METADATA_FILE_NAME {
             let table_metadata = TableMetadataFileContract::parse(raw.as_slice());
@@ -64,41 +64,88 @@ impl PageBlobTableLoader {
     }
 }
 
-/*
-async fn init_to_db_table(
-    db_table_data: &mut DbTableData,
-    table_attributes: &mut DbTableAttributesSnapshot,
-    tasks: &mut Vec<JoinHandle<LoadBlobResult>>,
-) {
-    for task in tasks.drain(..) {
-        match task.await {
-            Ok(result) => match result {
-                LoadBlobResult::Metadata(meta_data) => {
-                    table_attributes.max_partitions_amount = meta_data.max_partitions_amount;
-                    table_attributes.persist = meta_data.persist;
+async fn get_list_of_blobs(
+    azure_connection: &AzureStorageConnection,
+    container_name: &str,
+) -> Vec<String> {
+    match azure_connection {
+        AzureStorageConnection::AzureStorage(connection_data) => {
+            let reader = AzureBlobsListReader::new(connection_data, container_name);
+
+            let reader = Mutex::new(reader);
+
+            let mut result = Vec::new();
+
+            while let Some(chunk) = get_next_with_retries(&reader, container_name).await {
+                result.extend(chunk);
+            }
+
+            result
+        }
+        _ => azure_connection
+            .get_list_of_blobs(container_name)
+            .await
+            .unwrap(),
+    }
+}
+
+async fn get_next_with_retries<'s>(
+    reader: &'s Mutex<AzureBlobsListReader<'s>>,
+    container_name: &str,
+) -> Option<Vec<String>> {
+    let mut attempt_no: u8 = 0;
+    loop {
+        let mut write_access = reader.lock().await;
+        match write_access.get_next().await {
+            Ok(result) => return result,
+            Err(err) => {
+                if attempt_no == 5 {
+                    panic!(
+                        "Can not get list of blobs for container: {}",
+                        container_name
+                    );
                 }
-                LoadBlobResult::DbPartition {
-                    partition_key,
-                    db_partition,
-                } => {
-                    db_table_data.init_partition(partition_key, db_partition);
-                }
-            },
-            Err(_) => {
+
                 println!(
-                    "Error loading partition for table {}. Skipping partition",
-                    db_table_data.name
+                    "Attempt:[{}]. Can not get list of blobs for container: {}. Retrying... Err:{:?}",
+                    attempt_no, container_name, err
                 );
+                tokio::time::sleep(Duration::from_secs(1)).await;
+                attempt_no += 1;
             }
         }
     }
 }
 
-pub enum LoadBlobResult {
-    Metadata(TableMetadataFileContract),
-    DbPartition {
-        partition_key: String,
-        db_partition: DbPartition,
-    },
+async fn download_with_retries(
+    azure_connection: &AzureStorageConnection,
+    container_name: &str,
+    blob_name: &str,
+) -> Vec<u8> {
+    let mut attempt_no: u8 = 0;
+
+    loop {
+        let result = azure_connection
+            .download_blob(container_name, blob_name)
+            .await;
+
+        match result {
+            Ok(result) => return result,
+            Err(err) => {
+                if attempt_no == 5 {
+                    panic!(
+                        "Can not get list of blobs for container: {}",
+                        container_name
+                    );
+                }
+
+                println!(
+                    "Attempt:[{}]. Can not get list of blobs for container: {}. Retrying... Err:{:?}",
+                    attempt_no, container_name, err
+                );
+                tokio::time::sleep(Duration::from_secs(1)).await;
+                attempt_no += 1;
+            }
+        }
+    }
 }
- */

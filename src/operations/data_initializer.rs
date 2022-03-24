@@ -18,6 +18,14 @@ pub async fn init_tables(app: Arc<AppContext>, init_threads_amount: usize) {
 async fn init_tables_spawned(app: Arc<AppContext>, init_threads_amount: usize) {
     let tables = app.persist_io.get_list_of_tables().await;
 
+    /*
+       let tables: Vec<String> = tables
+           .iter()
+           .filter(|itm| *itm == "tokens-manager-short-sessions")
+           .map(|itm| itm.to_string())
+           .collect();
+    */
+
     let tables = Arc::new(TablesToInitialize::new(tables));
 
     let mut sw = StopWatch::new();
@@ -64,6 +72,7 @@ async fn load_tables_thread(tables: Arc<TablesToInitialize>, app: Arc<AppContext
         let mut item = app.persist_io.start_loading_table(&table_name).await;
 
         while let Some(table_load_item) = item {
+            //    println!("Loading partition: {}", table_load_item.as_str());
             match table_load_item {
                 TableLoadItem::TableAttributes(attrs) => {
                     db_table_attirbutes = Some(attrs);
