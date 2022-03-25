@@ -5,7 +5,7 @@ class HtmlSubscribersGenerator {
 
 
 
-    public static generateHtml(data: IStatus): string {
+    public static generateHtml(data: IInitializedStatus): string {
 
         return '<h3>Connected Nodes</h3>'
             + this.generateNodesHtml(data.nodes)

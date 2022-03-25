@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 use tokio::sync::RwLock;
 
-use crate::db::{DbTableAttributesSnapshot, DbTableData};
+use crate::db::{db_snapshots::DbPartitionSnapshot, DbTableAttributesSnapshot, DbTableData};
 
 use super::PersistedTableData;
 
@@ -35,7 +35,7 @@ impl BlobContentCache {
         write_access.insert(table_data.name.to_string(), data_to_insert);
     }
 
-    pub async fn create_table(&self, table_name: &str, attr: DbTableAttributesSnapshot) {
+    pub async fn create_table(&self, table_name: &str, attr: &DbTableAttributesSnapshot) {
         let table_data = PersistedTableData::new(attr);
         let mut write_access = self.data_by_table.write().await;
         write_access.insert(table_name.to_string(), table_data);
@@ -66,16 +66,17 @@ impl BlobContentCache {
         &self,
         table_name: &str,
         partition_key: &str,
-        timestamp: DateTimeAsMicroseconds,
+        db_partition_snapshot: &DbPartitionSnapshot,
     ) {
         let mut write_access = self.data_by_table.write().await;
 
         let table = write_access.get_mut(table_name);
 
         if let Some(table) = table {
-            table
-                .partitions
-                .insert(partition_key.to_string(), timestamp);
+            table.partitions.insert(
+                partition_key.to_string(),
+                db_partition_snapshot.last_write_moment,
+            );
         }
     }
 

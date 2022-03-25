@@ -9,7 +9,7 @@ use crate::{
         db_snapshots::{DbPartitionSnapshot, DbTableSnapshot},
         DbRow,
     },
-    persist_operations::PersistResult,
+    persist_operations::data_to_persist::PersistResult,
 };
 
 use super::{

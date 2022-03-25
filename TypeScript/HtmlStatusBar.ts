@@ -40,7 +40,7 @@ class HtmlStatusBar {
             '</tr></table></div>';
     }
 
-    public static updateStatusbar(data: IStatus) {
+    public static updateStatusbar(data: IInitializedStatus) {
 
 
         if (this.tablesAmount != data.tablesAmount) {

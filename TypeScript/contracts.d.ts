@@ -21,8 +21,27 @@ interface ILocationStatus {
 }
 
 
+interface INonInitializedModel {
+    tablesRemains: number,
+    initializingSeconds: number,
+    progress: ITableLoadProgress[]
+}
+
+
+interface ITableLoadProgress {
+    tableName: String,
+    loaded: number,
+    partitions: number,
+    secondsGone: number
+}
 
 interface IStatus {
+    notInitialized: INonInitializedModel,
+    initialized: IInitializedStatus
+
+}
+
+interface IInitializedStatus {
     masterNode: string,
     tablesAmount: number,
     location: ILocationStatus,

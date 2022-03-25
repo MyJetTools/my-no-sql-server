@@ -186,9 +186,9 @@ pub async fn delete(
 
     let app = app.clone();
     let table_name = table_name.to_string();
-    tokio::spawn(async move {
-        crate::operations::persist::io_with_cache::delete_table(app, table_name).await
-    });
+    tokio::spawn(
+        async move { crate::persist_operations::sync::delete_table(app, table_name).await },
+    );
 
     Ok(())
 }

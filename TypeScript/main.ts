@@ -60,10 +60,14 @@ class main {
 
         this.requested = true;
         $.ajax({ url: '/api/status', type: 'get' })
-            .then(result => {
+            .then((result: IStatus) => {
                 this.requested = false;
-                this.layoutElement.innerHTML = HtmlSubscribersGenerator.generateHtml(result);
-                HtmlStatusBar.updateStatusbar(result);
+                if (result.initialized) {
+                    this.layoutElement.innerHTML = HtmlSubscribersGenerator.generateHtml(result.initialized);
+                    HtmlStatusBar.updateStatusbar(result.initialized);
+                } else {
+                    this.layoutElement.innerHTML = HtmlMain.generateInit(result.notInitialized);
+                }
             }).fail(() => {
                 this.requested = false;
                 HtmlStatusBar.updateOffline();

@@ -21,14 +21,14 @@ mod db_sync;
 mod db_transactions;
 mod http;
 mod json;
-mod operations;
+mod persist_operations;
 mod rows_with_expiration;
 mod tcp;
 
 mod background;
 mod data_readers;
+mod operations;
 mod persist_io;
-mod persist_operations;
 mod settings_reader;
 mod utils;
 
@@ -64,8 +64,12 @@ async fn main() {
 
     let app = Arc::new(app);
 
-    crate::operations::data_initializer::init_tables(app.clone(), settings.init_threads_amount)
-        .await;
+    crate::persist_operations::data_initializer::init_tables(
+        app.clone(),
+        settings.init_tabes_thread,
+        settings.init_threads_amount,
+    )
+    .await;
 
     let mut timer_1s = MyTimer::new(Duration::from_secs(1));
 

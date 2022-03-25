@@ -10,9 +10,9 @@ pub struct PersistedTableData {
 }
 
 impl PersistedTableData {
-    pub fn new(attr: DbTableAttributesSnapshot) -> Self {
+    pub fn new(attr: &DbTableAttributesSnapshot) -> Self {
         Self {
-            attr,
+            attr: attr.clone(),
             partitions: HashMap::new(),
         }
     }

@@ -1,11 +1,15 @@
 use std::{sync::Arc, time::Duration};
 
-use rust_extensions::{ApplicationStates, MyTimerLogger};
+use rust_extensions::{date_time::DateTimeAsMicroseconds, ApplicationStates, MyTimerLogger};
 
 use crate::{
-    data_readers::DataReadersList, db::DbInstance, db_operations::multipart::MultipartList,
-    db_transactions::ActiveTransactions, persist_io::PersistIoOperations,
-    persist_operations::blob_content_cache::BlobContentCache, settings_reader::SettingsModel,
+    data_readers::DataReadersList,
+    db::DbInstance,
+    db_operations::multipart::MultipartList,
+    db_transactions::ActiveTransactions,
+    persist_io::PersistIoOperations,
+    persist_operations::{blob_content_cache::BlobContentCache, data_initializer::InitState},
+    settings_reader::SettingsModel,
 };
 
 use super::{
@@ -20,6 +24,7 @@ pub const DEFAULT_PERSIST_PERIOD: crate::db_sync::DataSynchronizationPeriod =
     crate::db_sync::DataSynchronizationPeriod::Sec5;
 
 pub struct AppContext {
+    pub created: DateTimeAsMicroseconds,
     pub db: DbInstance,
     pub logs: Arc<Logs>,
 
@@ -44,6 +49,7 @@ pub struct AppContext {
 
     pub multipart_list: MultipartList,
     pub persist_io: Arc<dyn PersistIoOperations + Send + Sync + 'static>,
+    pub init_state: InitState,
 }
 
 impl AppContext {
@@ -54,6 +60,8 @@ impl AppContext {
         persist_io: Arc<dyn PersistIoOperations + Send + Sync + 'static>,
     ) -> Self {
         AppContext {
+            created: DateTimeAsMicroseconds::now(),
+            init_state: InitState::new(),
             db: DbInstance::new(),
             persist_to_blob: settings.persist_to_blob(),
             logs,

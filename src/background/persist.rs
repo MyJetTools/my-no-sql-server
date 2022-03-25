@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use rust_extensions::MyTimerTick;
 
-use crate::{app::AppContext, persist_operations::PersistResult};
+use crate::{app::AppContext, persist_operations::data_to_persist::PersistResult};
 
 pub struct PersistTimer {
     app: Arc<AppContext>,
@@ -25,21 +25,23 @@ impl MyTimerTick for PersistTimer {
             if let Some(persist_result) = db_table.get_what_to_persist(is_shutting_down).await {
                 match persist_result {
                     PersistResult::PersistAttrs => {
-                        crate::operations::persist::io_with_cache::save_table_attributes(
+                        let attrs = db_table.attributes.get_snapshot();
+                        crate::persist_operations::sync::save_table_attributes(
                             self.app.as_ref(),
-                            db_table.as_ref(),
+                            db_table.name.as_str(),
+                            &attrs,
                         )
                         .await;
                     }
                     PersistResult::PersistTable => {
-                        crate::operations::persist::persist_table::execute(
+                        crate::persist_operations::sync::save_table(
                             self.app.as_ref(),
                             db_table.as_ref(),
                         )
                         .await;
                     }
                     PersistResult::PersistPartition(partition_key) => {
-                        crate::operations::persist::persist_partition::execute(
+                        crate::persist_operations::sync::save_partition(
                             self.app.as_ref(),
                             db_table.as_ref(),
                             partition_key.as_str(),

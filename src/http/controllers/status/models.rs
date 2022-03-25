@@ -3,6 +3,8 @@ use my_http_server_swagger::*;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 use serde::{Deserialize, Serialize};
 
+use super::non_initialized::NonInitializedModel;
+
 #[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
 pub struct NodeModel {}
 
@@ -25,6 +27,28 @@ pub struct ReaderModel {
 }
 #[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
 pub struct StatusModel {
+    #[serde(rename = "notInitialized")]
+    not_initialized: Option<NonInitializedModel>,
+    initialized: Option<InitializedModel>,
+}
+
+impl StatusModel {
+    pub async fn new(app: &AppContext) -> Self {
+        if app.states.is_initialized() {
+            return Self {
+                not_initialized: None,
+                initialized: Some(InitializedModel::new(app).await),
+            };
+        }
+
+        return Self {
+            not_initialized: Some(NonInitializedModel::new(app).await),
+            initialized: None,
+        };
+    }
+}
+#[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
+pub struct InitializedModel {
     pub location: LocationModel,
     #[serde(rename = "masterNode")]
     pub master_node: Option<String>,
@@ -38,7 +62,7 @@ pub struct StatusModel {
     pub http_connections: usize,
 }
 
-impl StatusModel {
+impl InitializedModel {
     pub async fn new(app: &AppContext) -> Self {
         let readers = get_readers(app).await;
         let tables_amount = app.db.get_tables_amount().await;

@@ -30,8 +30,13 @@ var main = /** @class */ (function () {
         $.ajax({ url: '/api/status', type: 'get' })
             .then(function (result) {
             _this.requested = false;
-            _this.layoutElement.innerHTML = HtmlSubscribersGenerator.generateHtml(result);
-            HtmlStatusBar.updateStatusbar(result);
+            if (result.initialized) {
+                _this.layoutElement.innerHTML = HtmlSubscribersGenerator.generateHtml(result.initialized);
+                HtmlStatusBar.updateStatusbar(result.initialized);
+            }
+            else {
+                _this.layoutElement.innerHTML = HtmlMain.generateInit(result.notInitialized);
+            }
         }).fail(function () {
             _this.requested = false;
             HtmlStatusBar.updateOffline();

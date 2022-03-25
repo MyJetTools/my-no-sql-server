@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::{env, sync::Arc};
 use tokio::{fs::File, io::AsyncReadExt};
 
-use crate::{app::logs::Logs, persist_io::AzurePageBlobPersistIo};
+use crate::{app::logs::Logs, persist_io::AzureBlobsPersistIo};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SettingsModel {
@@ -19,7 +19,8 @@ pub struct SettingsModel {
 
     #[serde(rename = "TableApiKey")]
     pub table_api_key: String,
-
+    #[serde(rename = "InitTablesThreadsAmount")]
+    pub init_tabes_thread: usize,
     #[serde(rename = "InitThreadsAmount")]
     pub init_threads_amount: usize,
 }
@@ -35,13 +36,13 @@ impl SettingsModel {
         &self,
         logs: Arc<Logs>,
         telemetry: Arc<AppInsightsTelemetry>,
-    ) -> AzurePageBlobPersistIo {
+    ) -> AzureBlobsPersistIo {
         let mut conn_string =
             AzureStorageConnection::from_conn_string(self.persistence_dest.as_str());
 
         conn_string.set_telemetry(telemetry);
 
-        AzurePageBlobPersistIo::new(Arc::new(conn_string), logs)
+        AzureBlobsPersistIo::new(Arc::new(conn_string), logs)
     }
 }
 
