@@ -168,16 +168,26 @@ async fn load_partitions_thread(
             .await;
 
         if let Some(content) = content.as_ref() {
-            let item = get_item(table_file, content).unwrap();
-            let amount = loaded_table.add(item).await;
-            app.init_state
-                .update_loaded(table_name.as_str(), amount)
-                .await;
+            match get_item(&table_file, content) {
+                Ok(item) => {
+                    let amount = loaded_table.add(item).await;
+                    app.init_state
+                        .update_loaded(table_name.as_str(), amount)
+                        .await;
+                }
+                Err(err) => {
+                    println!(
+                        "Skipping file {}. Reason: {:?}",
+                        table_file.get_file_name().as_str(),
+                        err
+                    );
+                }
+            }
         }
     }
 }
 
-fn get_item(table_file: TableFile, content: &[u8]) -> Result<TableLoadItem, String> {
+fn get_item(table_file: &TableFile, content: &[u8]) -> Result<TableLoadItem, String> {
     match table_file {
         TableFile::TableAttributes => {
             let table_metadata = TableMetadataFileContract::parse(content);
@@ -188,7 +198,7 @@ fn get_item(table_file: TableFile, content: &[u8]) -> Result<TableLoadItem, Stri
             let db_partition = serializers::db_partition::deserialize(content)?;
 
             let result = TableLoadItem::DbPartition {
-                partition_key,
+                partition_key: partition_key.to_string(),
                 db_partition,
             };
 
