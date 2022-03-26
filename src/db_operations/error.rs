@@ -6,4 +6,5 @@ pub enum DbOperationError {
     TimeStampFieldRequires,
     RecordNotFound,
     OptimisticConcurencyUpdateFails,
+    TableNameValidationError(String),
 }

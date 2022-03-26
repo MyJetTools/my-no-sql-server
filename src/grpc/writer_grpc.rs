@@ -38,7 +38,8 @@ impl Writer for MyNoSqlServerWriterGrpcSerice {
             event_src,
             crate::app::DEFAULT_PERSIST_PERIOD.get_sync_moment(),
         )
-        .await;
+        .await
+        .unwrap();
 
         return Ok(tonic::Response::new(()));
     }

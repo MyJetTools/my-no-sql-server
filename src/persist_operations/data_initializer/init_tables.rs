@@ -33,7 +33,9 @@ async fn init_tables_spawned(
 ) {
     let tables = app.persist_io.get_list_of_tables().await;
 
-    app.init_state.init(tables.as_ref()).await;
+    app.init_state
+        .init(tables.as_ref(), app.logs.as_ref())
+        .await;
 
     let tables = Arc::new(TablesToLoad::new(tables));
 

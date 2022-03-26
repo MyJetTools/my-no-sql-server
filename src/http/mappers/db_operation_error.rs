@@ -68,6 +68,20 @@ impl From<DbOperationError> for HttpFailResult {
                     write_telemetry: true,
                 }
             }
+            DbOperationError::TableNameValidationError(reason) => {
+                let err_model = OperationFailHttpContract {
+                    reason: OperationFailReason::RequieredEntityFieldIsMissing,
+                    message: format!("Invalid table name: {}", reason),
+                };
+
+                let content = serde_json::to_vec(&err_model).unwrap();
+                HttpFailResult {
+                    content_type: WebContentType::Text,
+                    status_code: OPERATION_FAIL_HTTP_STATUS_CODE,
+                    content,
+                    write_telemetry: true,
+                }
+            }
         }
     }
 }

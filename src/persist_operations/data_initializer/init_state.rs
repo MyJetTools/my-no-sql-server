@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
+use crate::{app::logs::Logs, db_operations::validation};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 use tokio::sync::Mutex;
-
 #[derive(Debug, Clone)]
 pub struct TableInitState {
     pub partitions_amount: usize,
@@ -21,17 +21,30 @@ impl InitState {
         }
     }
 
-    pub async fn init(&self, tables: &[String]) {
+    pub async fn init(&self, tables: &[String], logs: &Logs) {
         let mut write_access = self.data.lock().await;
         for table_name in tables {
-            write_access.insert(
-                table_name.to_string(),
-                TableInitState {
-                    partitions_amount: 0,
-                    loaded: 0,
-                    started: DateTimeAsMicroseconds::now(),
-                },
-            );
+            if let Err(err) = validation::validate_table_name(table_name) {
+                logs.add_error(
+                    Some(table_name.to_string()),
+                    crate::app::logs::SystemProcess::Init,
+                    "init_tables".to_string(),
+                    format!(
+                        "Table name does not fit validation. Skipping loading it... Reason:{:?}",
+                        err
+                    ),
+                    None,
+                );
+            } else {
+                write_access.insert(
+                    table_name.to_string(),
+                    TableInitState {
+                        partitions_amount: 0,
+                        loaded: 0,
+                        started: DateTimeAsMicroseconds::now(),
+                    },
+                );
+            }
         }
     }
 

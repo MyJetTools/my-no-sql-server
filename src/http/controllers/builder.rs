@@ -67,7 +67,9 @@ pub fn build(app: Arc<AppContext>) -> ControllersMiddleware {
         app.clone(),
     )));
 
-    result.register_get_action(Arc::new(super::status::StatusController::new(app.clone())));
+    result.register_get_action(Arc::new(super::status_controller::StatusController::new(
+        app.clone(),
+    )));
 
     result.register_post_action(Arc::new(super::bulk::BulkDeleteControllerAction::new(
         app.clone(),

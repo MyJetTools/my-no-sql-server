@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
+use crate::db_operations::validation;
 use crate::{
     app::AppContext,
     db::{DbTable, DbTableAttributesSnapshot, DbTableData},
@@ -23,6 +24,8 @@ pub async fn create(
     event_src: EventSource,
     persist_moment: DateTimeAsMicroseconds,
 ) -> Result<Arc<DbTable>, DbOperationError> {
+    validation::validate_table_name(table_name)?;
+
     let now = DateTimeAsMicroseconds::now();
 
     let create_table_result =
@@ -61,7 +64,8 @@ async fn get_or_create(
     max_partitions_amount: Option<usize>,
     event_src: EventSource,
     persist_moment: DateTimeAsMicroseconds,
-) -> Arc<DbTable> {
+) -> Result<Arc<DbTable>, DbOperationError> {
+    validation::validate_table_name(table_name)?;
     let now = DateTimeAsMicroseconds::now();
 
     let create_table_result =
@@ -86,10 +90,10 @@ async fn get_or_create(
                 table_data.data_to_persist.mark_persist_attrs();
             }
 
-            return db_table;
+            return Ok(db_table);
         }
         CreateTableResult::AlreadyHadTable(db_table) => {
-            return db_table;
+            return Ok(db_table);
         }
     }
 }
@@ -101,7 +105,9 @@ pub async fn create_if_not_exist(
     max_partitions_amount: Option<usize>,
     event_src: EventSource,
     persist_moment: DateTimeAsMicroseconds,
-) -> Arc<DbTable> {
+) -> Result<Arc<DbTable>, DbOperationError> {
+    validation::validate_table_name(table_name)?;
+
     let db_table = get_or_create(
         app,
         table_name,
@@ -110,7 +116,7 @@ pub async fn create_if_not_exist(
         event_src.clone(),
         persist_moment,
     )
-    .await;
+    .await?;
 
     set_table_attrubutes(
         app,
@@ -121,7 +127,7 @@ pub async fn create_if_not_exist(
     )
     .await;
 
-    db_table
+    Ok(db_table)
 }
 
 pub async fn set_table_attrubutes(

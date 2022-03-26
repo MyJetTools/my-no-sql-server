@@ -70,7 +70,7 @@ impl PostAction for CreateIfNotExistsAction {
             even_src,
             sync_period.get_sync_moment(),
         )
-        .await;
+        .await?;
 
         let response: TableContract = table.as_ref().into();
 
