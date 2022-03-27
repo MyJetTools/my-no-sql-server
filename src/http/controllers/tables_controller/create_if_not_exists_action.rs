@@ -1,8 +1,4 @@
-use crate::{
-    app::AppContext,
-    db_sync::EventSource,
-    http::contracts::{input_params::MyNoSqlQueryString, input_params_doc},
-};
+use crate::{app::AppContext, db_sync::EventSource};
 use async_trait::async_trait;
 use my_http_server_controllers::controllers::{
     actions::PostAction,
@@ -12,7 +8,7 @@ use std::{result::Result, sync::Arc};
 
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 
-use super::models::TableContract;
+use super::models::{CreateTableCotnract, TableContract};
 
 pub struct CreateIfNotExistsAction {
     app: Arc<AppContext>,
@@ -35,11 +31,8 @@ impl PostAction for CreateIfNotExistsAction {
             controller_name: super::consts::CONTROLLER_NAME,
             description: "Migrate records from the other table of other instance",
 
-            input_params: vec![
-                input_params_doc::table_name(),
-                input_params_doc::max_partitions_amount(),
-            ]
-            .into(),
+            input_params: CreateTableCotnract::get_input_params().into(),
+
             results: vec![HttpResult {
                 http_code: 200,
                 nullable: true,
@@ -51,24 +44,17 @@ impl PostAction for CreateIfNotExistsAction {
     }
 
     async fn handle_request(&self, ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
-        let query = ctx.request.get_query_string()?;
-
-        let table_name = query.get_table_name()?;
-        let persist_table = query.get_persist_table();
-
-        let max_partitions_amount = query.get_max_partitions_amount();
-
-        let sync_period = query.get_sync_period();
+        let input_data = CreateTableCotnract::parse_http_input(ctx).await?;
 
         let even_src = EventSource::as_client_request(self.app.as_ref());
 
         let table = crate::db_operations::write::table::create_if_not_exist(
             &self.app,
-            table_name,
-            persist_table,
-            max_partitions_amount,
+            input_data.table_name.as_str(),
+            input_data.persist,
+            input_data.max_partitions_amount,
             even_src,
-            sync_period.get_sync_moment(),
+            input_data.sync_period.get_sync_moment(),
         )
         .await?;
 

@@ -130,6 +130,16 @@ pub async fn create_if_not_exist(
     Ok(db_table)
 }
 
+pub async fn update_persist_state(
+    app: &Arc<AppContext>,
+    db_table: Arc<DbTable>,
+    persist: bool,
+    event_src: EventSource,
+) {
+    let max_partitions_amount = db_table.attributes.get_max_partitions_amount();
+    set_table_attrubutes(app, db_table, persist, max_partitions_amount, event_src).await;
+}
+
 pub async fn set_table_attrubutes(
     app: &Arc<AppContext>,
     db_table: Arc<DbTable>,

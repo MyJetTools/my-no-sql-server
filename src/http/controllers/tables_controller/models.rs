@@ -3,6 +3,29 @@ use serde::{Deserialize, Serialize};
 
 use crate::{db::DbTable, db_sync::DataSynchronizationPeriod};
 
+#[derive(MyHttpInput)]
+pub struct GetPartitionsAmountContract {
+    #[http_query(name = "name"; description = "Name of a table")]
+    pub table_name: String,
+}
+
+#[derive(MyHttpInput)]
+pub struct CleanTableContract {
+    #[http_query(name = "name"; description = "Name of a table")]
+    pub table_name: String,
+    #[http_query(name = "syncPeriod"; description = "Synchronization period"; default="Sec5")]
+    pub sync_period: DataSynchronizationPeriod,
+}
+
+#[derive(MyHttpInput)]
+pub struct UpdatePersistTableContract {
+    #[http_query(name = "name"; description = "Name of a table")]
+    pub table_name: String,
+
+    #[http_query(description = "Persist table"; default="true")]
+    pub persist: bool,
+}
+
 #[derive(Deserialize, Serialize, MyHttpObjectStructure)]
 pub struct TableContract {
     pub name: String,
@@ -27,7 +50,7 @@ pub struct CreateTableCotnract {
     #[http_query(name = "name"; description = "Name of a table")]
     pub table_name: String,
 
-    #[http_query(description = "Persist a table"; default="true")]
+    #[http_query(description = "Persist table"; default="true")]
     pub persist: bool,
 
     #[http_query(name = "maxPartitionsAmount"; description = "Maximim partitions amount. Empty - means unlimited")]

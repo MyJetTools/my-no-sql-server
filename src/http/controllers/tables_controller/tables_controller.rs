@@ -10,8 +10,8 @@ use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 use crate::{app::AppContext, db_sync::EventSource};
 
 use super::{
-    super::super::contracts::{input_params::*, input_params_doc},
-    models::{DeleteTableContract, TableContract},
+    super::super::contracts::input_params::*,
+    models::{CleanTableContract, DeleteTableContract, TableContract},
 };
 
 pub struct TablesController {
@@ -70,10 +70,7 @@ impl PutAction for TablesController {
             controller_name: super::consts::CONTROLLER_NAME,
             description: "Clean Table",
 
-            input_params: Some(vec![
-                input_params_doc::table_name(),
-                input_params_doc::sync_period(),
-            ]),
+            input_params: CleanTableContract::get_input_params().into(),
             results: vec![HttpResult {
                 http_code: 202,
                 nullable: true,
@@ -85,13 +82,13 @@ impl PutAction for TablesController {
     }
 
     async fn handle_request(&self, ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
-        let query = ctx.request.get_query_string()?;
+        let input_data = CleanTableContract::parse_http_input(ctx).await?;
 
-        let table_name = query.get_table_name()?;
-        let sync_period = query.get_sync_period();
-
-        let db_table =
-            crate::db_operations::read::table::get(self.app.as_ref(), table_name).await?;
+        let db_table = crate::db_operations::read::table::get(
+            self.app.as_ref(),
+            input_data.table_name.as_ref(),
+        )
+        .await?;
 
         let event_src = EventSource::as_client_request(self.app.as_ref());
 
@@ -99,7 +96,7 @@ impl PutAction for TablesController {
             self.app.as_ref(),
             db_table,
             event_src,
-            sync_period.get_sync_moment(),
+            input_data.sync_period.get_sync_moment(),
         )
         .await;
 

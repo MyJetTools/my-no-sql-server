@@ -24,18 +24,6 @@ pub enum DataSynchronizationPeriod {
 }
 
 impl DataSynchronizationPeriod {
-    pub fn as_str(&self) -> &str {
-        match self {
-            DataSynchronizationPeriod::Immediately => "Immediately",
-            DataSynchronizationPeriod::Sec1 => "1 second",
-            DataSynchronizationPeriod::Sec5 => "5 seconds",
-            DataSynchronizationPeriod::Sec15 => "15 seconds",
-            DataSynchronizationPeriod::Sec30 => "30 seconds",
-            DataSynchronizationPeriod::Min1 => "1 minute",
-            DataSynchronizationPeriod::Asap => "As soon as possible",
-        }
-    }
-
     pub fn get_sync_moment(&self) -> DateTimeAsMicroseconds {
         let mut now = DateTimeAsMicroseconds::now();
 

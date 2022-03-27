@@ -21,11 +21,17 @@ pub fn build(app: Arc<AppContext>) -> ControllersMiddleware {
     ));
     result.register_post_action(crate_table_action);
 
-    let tables_controller = Arc::new(super::tables_controller::TablesController2::new(
+    let update_persist_action = Arc::new(super::tables_controller::UpdatePersistAction::new(
         app.clone(),
     ));
-    result.register_get_action(tables_controller.clone());
-    result.register_post_action(tables_controller);
+
+    result.register_post_action(update_persist_action);
+
+    let get_partitions_count_action = Arc::new(
+        super::tables_controller::GetPartitionsCountAction::new(app.clone()),
+    );
+
+    result.register_get_action(get_partitions_count_action);
 
     let tables_controller = Arc::new(super::tables_controller::MigrationAction::new(app.clone()));
     result.register_post_action(tables_controller);
