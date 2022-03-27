@@ -51,9 +51,9 @@ pub async fn commit(
                     partition_keys,
                 } => {
                     let db_table = tables.get(table_name.as_str()).unwrap();
-                    crate::db_operations::write::delete_partitions::execute(
+                    crate::db_operations::write::delete_partitions(
                         app,
-                        db_table.clone(),
+                        db_table.as_ref(),
                         partition_keys,
                         event_src.clone(),
                         persist_moment,

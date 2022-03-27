@@ -69,8 +69,8 @@ impl InitializedModel {
 
         Self {
             location: LocationModel {
-                id: app.location.to_string(),
-                compress: app.compress_data,
+                id: app.settings.location.to_string(),
+                compress: app.settings.compress_data,
             },
             master_node: None,
             nodes: vec![],

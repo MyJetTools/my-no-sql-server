@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
@@ -8,9 +6,9 @@ use crate::{
     db_sync::{states::InitPartitionsSyncData, EventSource, SyncEvent},
 };
 
-pub async fn execute(
+pub async fn delete_partitions(
     app: &AppContext,
-    db_table: Arc<DbTable>,
+    db_table: &DbTable,
     partition_keys: Vec<String>,
     event_src: EventSource,
     persist_moment: DateTimeAsMicroseconds,

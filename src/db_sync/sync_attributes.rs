@@ -71,7 +71,7 @@ impl EventSource {
     }
 
     pub fn as_client_request(app: &AppContext) -> Self {
-        let locations = vec![app.location.to_string()];
+        let locations = vec![app.settings.location.to_string()];
 
         let data = ClientRequestsSourceData {
             locations,

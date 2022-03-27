@@ -14,23 +14,11 @@ use super::{
     table_load_item::TableLoadItem,
 };
 
-pub async fn init_tables(
-    app: Arc<AppContext>,
-    init_tables_threads: usize,
-    init_threads_amount: usize,
-) {
-    tokio::spawn(init_tables_spawned(
-        app,
-        init_tables_threads,
-        init_threads_amount,
-    ));
+pub async fn init_tables(app: Arc<AppContext>) {
+    tokio::spawn(init_tables_spawned(app));
 }
 
-async fn init_tables_spawned(
-    app: Arc<AppContext>,
-    init_tables_threads: usize,
-    init_threads_amount: usize,
-) {
+async fn init_tables_spawned(app: Arc<AppContext>) {
     let tables = app.persist_io.get_list_of_tables().await;
 
     app.init_state
@@ -43,12 +31,8 @@ async fn init_tables_spawned(
     sw.start();
 
     let mut threads = Vec::new();
-    for _ in 0..init_tables_threads {
-        threads.push(tokio::spawn(load_tables(
-            app.clone(),
-            tables.clone(),
-            init_threads_amount,
-        )));
+    for _ in 0..app.settings.init_tabes_threads_amount {
+        threads.push(tokio::spawn(load_tables(app.clone(), tables.clone())));
     }
 
     for thread in threads {
@@ -67,13 +51,13 @@ async fn init_tables_spawned(
     );
 }
 
-async fn load_tables(app: Arc<AppContext>, tables: Arc<TablesToLoad>, init_threads_amount: usize) {
+async fn load_tables(app: Arc<AppContext>, tables: Arc<TablesToLoad>) {
     while let Some(table_name) = tables.get().await {
-        load_table(table_name, &app, init_threads_amount).await;
+        load_table(table_name, &app).await;
     }
 }
 
-async fn load_table(table_name: String, app: &Arc<AppContext>, init_threads_amount: usize) {
+async fn load_table(table_name: String, app: &Arc<AppContext>) {
     app.logs.add_info(
         Some(table_name.to_string()),
         crate::app::logs::SystemProcess::Init,
@@ -89,7 +73,7 @@ async fn load_table(table_name: String, app: &Arc<AppContext>, init_threads_amou
 
     let mut db_table_attirbutes: Option<DbTableAttributesSnapshot> = None;
 
-    let table_items = load_partitions(table_name.as_str(), app.clone(), init_threads_amount).await;
+    let table_items = load_partitions(table_name.as_str(), app.clone()).await;
 
     for table_item in table_items.get().await {
         match table_item {
@@ -121,11 +105,7 @@ async fn load_table(table_name: String, app: &Arc<AppContext>, init_threads_amou
     );
 }
 
-async fn load_partitions(
-    table_name: &str,
-    app: Arc<AppContext>,
-    init_threads_amount: usize,
-) -> Arc<LoadedTable> {
+async fn load_partitions(table_name: &str, app: Arc<AppContext>) -> Arc<LoadedTable> {
     let files_to_load = app.persist_io.get_table_files(&table_name).await;
 
     app.init_state
@@ -137,7 +117,7 @@ async fn load_partitions(
     let loaded_table = Arc::new(LoadedTable::new());
 
     let mut threads = Vec::new();
-    for _ in 0..init_threads_amount {
+    for _ in 0..app.settings.init_partitions_threads_amount {
         threads.push(tokio::spawn(load_partitions_thread(
             table_name.to_string(),
             files_to_load.clone(),
@@ -176,11 +156,20 @@ async fn load_partitions_thread(
                         .await;
                 }
                 Err(err) => {
-                    println!(
-                        "Skipping file {}. Reason: {:?}",
-                        table_file.get_file_name().as_str(),
-                        err
-                    );
+                    if app.settings.skip_broken_partitions {
+                        println!(
+                            "Skipping file {}. Reason: {:?}",
+                            table_file.get_file_name().as_str(),
+                            err
+                        );
+                    } else {
+                        panic!(
+                            "Partition is broken. Stopping initialization because of the file {}/{}. Reason: {:?}",
+                            table_name.as_str(),
+                            table_file.get_file_name().as_str(),
+                            err
+                        );
+                    }
                 }
             }
         }

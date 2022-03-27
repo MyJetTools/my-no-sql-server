@@ -132,7 +132,7 @@ impl DeleteAction for TablesController {
     async fn handle_request(&self, ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
         let input_data = DeleteTableContract::parse_http_input(ctx).await?;
 
-        if input_data.api_key != self.app.table_api_key.as_str() {
+        if input_data.api_key != self.app.settings.table_api_key.as_str() {
             return Err(HttpFailResult::as_unauthorized(None));
         }
 

@@ -5,6 +5,7 @@ pub enum DbEntityParseFail {
     FieldPartitionKeyIsRequired,
     FieldRowKeyIsRequired,
     JsonParseError(JsonParseError),
+    PartitionKeyIsTooLong,
 }
 
 impl From<JsonParseError> for DbEntityParseFail {

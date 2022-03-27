@@ -35,14 +35,6 @@ pub struct AppContext {
 
     pub states: GlobalStates,
 
-    pub persist_to_blob: bool,
-
-    pub location: String,
-
-    pub compress_data: bool,
-
-    pub table_api_key: String,
-
     pub events_dispatcher: Box<dyn EventsDispatcher + Send + Sync + 'static>,
     pub blob_content_cache: BlobContentCache,
     pub data_readers: DataReadersList,
@@ -50,12 +42,13 @@ pub struct AppContext {
     pub multipart_list: MultipartList,
     pub persist_io: Arc<dyn PersistIoOperations + Send + Sync + 'static>,
     pub init_state: InitState,
+    pub settings: Arc<SettingsModel>,
 }
 
 impl AppContext {
     pub fn new(
         logs: Arc<Logs>,
-        settings: &SettingsModel,
+        settings: Arc<SettingsModel>,
         events_dispatcher: Box<dyn EventsDispatcher + Send + Sync + 'static>,
         persist_io: Arc<dyn PersistIoOperations + Send + Sync + 'static>,
     ) -> Self {
@@ -63,21 +56,18 @@ impl AppContext {
             created: DateTimeAsMicroseconds::now(),
             init_state: InitState::new(),
             db: DbInstance::new(),
-            persist_to_blob: settings.persist_to_blob(),
             logs,
             metrics: PrometheusMetrics::new(),
             active_transactions: ActiveTransactions::new(),
             process_id: uuid::Uuid::new_v4().to_string(),
             states: GlobalStates::new(),
 
-            location: settings.location.to_string(),
-            compress_data: settings.compress_data,
-            table_api_key: settings.table_api_key.to_string(),
             events_dispatcher,
             blob_content_cache: BlobContentCache::new(),
             data_readers: DataReadersList::new(Duration::from_secs(30)),
             multipart_list: MultipartList::new(),
             persist_io,
+            settings,
         }
     }
 }

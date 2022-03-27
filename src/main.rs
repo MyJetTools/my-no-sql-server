@@ -43,6 +43,8 @@ async fn main() {
     let (transactions_sender, transactions_receiver) = tokio::sync::mpsc::unbounded_channel();
     let settings = settings_reader::read_settings().await;
 
+    let settings = Arc::new(settings);
+
     let mut background_tasks = Vec::new();
 
     let app_insights = Arc::new(AppInsightsTelemetry::new("my-no-sql-server".to_string()));
@@ -53,7 +55,7 @@ async fn main() {
 
     let app = AppContext::new(
         logs.clone(),
-        &settings,
+        settings,
         Box::new(EventsDispatcherProduction::new(transactions_sender)),
         Arc::new(persist_io),
     );
@@ -64,13 +66,7 @@ async fn main() {
 
     let app = Arc::new(app);
 
-    crate::persist_operations::data_initializer::init_tables(
-        app.clone(),
-        settings.init_tabes_thread,
-        settings.init_threads_amount,
-    )
-    .await;
-
+    crate::persist_operations::data_initializer::init_tables(app.clone()).await;
     let mut timer_1s = MyTimer::new(Duration::from_secs(1));
 
     timer_1s.register_timer("Persist", Arc::new(PersistTimer::new(app.clone())));

@@ -1,5 +1,7 @@
 use my_http_server_swagger::*;
 use serde::{Deserialize, Serialize};
+
+use crate::db_sync::DataSynchronizationPeriod;
 #[derive(MyHttpInput)]
 pub struct GetHighestRowsAndBelowInputContract {
     #[http_query(name = "tableName"; description = "Name of a table")]
@@ -32,12 +34,15 @@ pub struct DeletePartitionsInputContract {
     #[http_query(name = "tableName"; description = "Name of a table")]
     pub table_name: String,
 
-    #[http_body(name = "partitionKeys"; description = "Partition Keys to delete", required = true, body_type="DeletePartitionsModel" )]
-    pub body: Vec<u8>,
+    #[http_body(name = "partitionKeys"; description = "Partition Keys to delete", required = true )]
+    pub body: DeletePartitionsModel,
+
+    #[http_query(name = "syncPeriod"; description = "Synchronization period"; default="Sec5")]
+    pub sync_period: DataSynchronizationPeriod,
 }
 
 #[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
 pub struct DeletePartitionsModel {
     #[serde(rename = "partitionKeys")]
-    pub partition_keys: Vec<u8>,
+    pub partition_keys: Vec<String>,
 }

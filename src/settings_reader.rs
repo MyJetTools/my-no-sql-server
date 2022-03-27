@@ -19,19 +19,18 @@ pub struct SettingsModel {
 
     #[serde(rename = "TableApiKey")]
     pub table_api_key: String,
+
+    #[serde(rename = "SkipBrokenPartitions")]
+    pub skip_broken_partitions: bool,
+
     #[serde(rename = "InitTablesThreadsAmount")]
-    pub init_tabes_thread: usize,
-    #[serde(rename = "InitThreadsAmount")]
-    pub init_threads_amount: usize,
+    pub init_tabes_threads_amount: usize,
+
+    #[serde(rename = "InitPartitionsThreadsAmount")]
+    pub init_partitions_threads_amount: usize,
 }
 
 impl SettingsModel {
-    pub fn persist_to_blob(&self) -> bool {
-        return self
-            .persistence_dest
-            .starts_with("DefaultEndpointsProtocol");
-    }
-
     pub fn get_persist_io(
         &self,
         logs: Arc<Logs>,

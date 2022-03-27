@@ -61,13 +61,19 @@ impl<'s> DbJsonEntity<'s> {
             return Err(DbEntityParseFail::FieldPartitionKeyIsRequired);
         }
 
+        let partition_key = partition_key.unwrap();
+
+        if partition_key.len() > 255 {
+            return Err(DbEntityParseFail::PartitionKeyIsTooLong);
+        }
+
         if row_key.is_none() {
             return Err(DbEntityParseFail::FieldRowKeyIsRequired);
         }
 
         let result = Self {
             raw,
-            partition_key: partition_key.unwrap(),
+            partition_key,
             row_key: row_key.unwrap(),
             expires,
             time_stamp,

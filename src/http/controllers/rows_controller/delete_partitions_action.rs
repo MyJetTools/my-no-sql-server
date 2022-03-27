@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
-use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 use my_http_server_controllers::controllers::{
     actions::DeleteAction,
     documentation::{data_types::HttpDataType, out_results::HttpResult, HttpActionDescription},
 };
 
-use crate::app::AppContext;
+use crate::{app::AppContext, db_sync::EventSource};
 
 use super::models::DeletePartitionsInputContract;
 
@@ -46,8 +46,25 @@ impl DeleteAction for DeletePartitionsAction {
     }
 
     async fn handle_request(&self, ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
-        let data = DeletePartitionsInputContract::parse_http_input(ctx).await?;
+        let input_data = DeletePartitionsInputContract::parse_http_input(ctx).await?;
 
-        todo!("Implement")
+        let db_table = crate::db_operations::read::table::get(
+            self.app.as_ref(),
+            input_data.table_name.as_ref(),
+        )
+        .await?;
+
+        let event_src = EventSource::as_client_request(self.app.as_ref());
+
+        crate::db_operations::write::delete_partitions(
+            self.app.as_ref(),
+            db_table.as_ref(),
+            input_data.body.partition_keys,
+            event_src,
+            input_data.sync_period.get_sync_moment(),
+        )
+        .await;
+
+        HttpOutput::Empty.into_ok_result(true).into()
     }
 }
