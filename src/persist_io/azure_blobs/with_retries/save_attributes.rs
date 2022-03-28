@@ -1,7 +1,7 @@
 use my_azure_storage_sdk::{block_blob::BlockBlobApi, AzureStorageConnection, AzureStorageError};
 
 use crate::db::DbTableAttributesSnapshot;
-//TODO - Delete
+
 pub async fn save_attributes(
     azure_connection: &AzureStorageConnection,
     table_name: &str,

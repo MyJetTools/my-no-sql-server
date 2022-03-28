@@ -7,7 +7,7 @@ use crate::db::{db_snapshots::DbRowsSnapshot, DbRow, DbTable};
 use super::ReadOperationResult;
 
 //TODO - Unit test it
-pub async fn execute(
+pub async fn get_highest_row_and_below(
     db_table: &DbTable,
     partition_key: &str,
     row_key: &String,

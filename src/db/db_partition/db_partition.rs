@@ -8,10 +8,12 @@ use crate::{
     },
     utils::SortedDictionary,
 };
-use std::{collections::BTreeMap, sync::Arc};
+use std::sync::Arc;
+
+use super::DbRowsContainer;
 
 pub struct DbPartition {
-    pub rows: BTreeMap<String, Arc<DbRow>>,
+    pub rows: DbRowsContainer,
     pub last_read_access: AtomicDateTimeAsMicroseconds,
     pub last_write_moment: AtomicDateTimeAsMicroseconds,
 }
@@ -19,7 +21,7 @@ pub struct DbPartition {
 impl DbPartition {
     pub fn new() -> DbPartition {
         DbPartition {
-            rows: BTreeMap::new(),
+            rows: DbRowsContainer::new(),
             last_read_access: AtomicDateTimeAsMicroseconds::now(),
             last_write_moment: AtomicDateTimeAsMicroseconds::now(),
         }
@@ -31,7 +33,7 @@ impl DbPartition {
 
     #[inline]
     pub fn insert(&mut self, db_row: Arc<DbRow>) -> Option<Arc<DbRow>> {
-        self.rows.insert(db_row.row_key.to_string(), db_row)
+        self.rows.insert(db_row)
     }
 
     pub fn get_row(&self, row_key: &str) -> Option<&DbRow> {
@@ -51,7 +53,7 @@ impl DbPartition {
 
         let mut partitions_by_date_time: SortedDictionary<i64, String> = SortedDictionary::new();
 
-        for (row_key, db_row) in &mut self.rows {
+        for db_row in &mut self.rows.get_all() {
             let mut last_access = db_row.last_read_access.as_date_time();
 
             let last_access_before_insert = last_access;
@@ -60,7 +62,8 @@ impl DbPartition {
                 last_access.unix_microseconds += 1;
             }
 
-            partitions_by_date_time.insert(last_access.unix_microseconds, row_key.to_string());
+            partitions_by_date_time
+                .insert(last_access.unix_microseconds, db_row.row_key.to_string());
 
             if last_access_before_insert.unix_microseconds != last_access.unix_microseconds {
                 db_row.last_read_access.update(last_access);
@@ -100,7 +103,7 @@ impl DbPartition {
     }
 
     pub fn fill_with_json_data(&self, json_array_writer: &mut JsonArrayWriter) {
-        for db_row in self.rows.values() {
+        for db_row in self.rows.get_all() {
             json_array_writer.write_raw_element(db_row.data.as_slice());
         }
     }
@@ -123,7 +126,7 @@ impl DbPartition {
 
 impl Into<DbRowsSnapshot> for &DbPartition {
     fn into(self) -> DbRowsSnapshot {
-        DbRowsSnapshot::new_from_snapshot(self.rows.values().map(|itm| itm.clone()).collect())
+        DbRowsSnapshot::new_from_snapshot(self.rows.get_all().map(|itm| itm.clone()).collect())
     }
 }
 

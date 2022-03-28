@@ -57,7 +57,7 @@ impl DbTableData {
         let mut json_array_writer = JsonArrayWriter::new();
 
         for db_partition in self.partitions.values() {
-            for db_row in db_partition.rows.values() {
+            for db_row in db_partition.rows.get_all() {
                 json_array_writer.write_raw_element(db_row.data.as_slice())
             }
         }
@@ -69,7 +69,7 @@ impl DbTableData {
         let mut json_array_writer = JsonArrayWriter::new();
 
         if let Some(db_partition) = self.partitions.get(partition_key) {
-            for db_row in db_partition.rows.values() {
+            for db_row in db_partition.rows.get_all() {
                 json_array_writer.write_raw_element(db_row.data.as_slice())
             }
         }
@@ -162,7 +162,7 @@ impl DbTableData {
         {
             let db_partition = self.partitions.get_mut(&db_row.partition_key).unwrap();
 
-            if db_partition.rows.contains_key(&db_row.row_key) {
+            if db_partition.rows.has_db_row(db_row.row_key.as_str()) {
                 return false;
             }
 
@@ -224,7 +224,7 @@ impl DbTableData {
 
     #[inline]
     pub fn init_partition(&mut self, partition_key: String, db_partition: DbPartition) {
-        for db_row in db_partition.rows.values() {
+        for db_row in db_partition.rows.get_all() {
             self.handle_after_insert_row(db_row);
         }
 
@@ -247,7 +247,7 @@ impl DbTableData {
     pub fn remove_row(
         &mut self,
         partition_key: &str,
-        row_key: &str,
+        row_key: &String,
         delete_empty_partition: bool,
         now: &JsonTimeStamp,
     ) -> Option<(Arc<DbRow>, bool)> {
@@ -270,7 +270,7 @@ impl DbTableData {
         return Some((removed_row, partition_is_empty));
     }
 
-    pub fn bulk_remove_rows<'s, TIter: Iterator<Item = &'s str>>(
+    pub fn bulk_remove_rows<'s, TIter: Iterator<Item = &'s String>>(
         &mut self,
         partition_key: &str,
         row_keys: TIter,
@@ -377,7 +377,7 @@ impl DbTableData {
 
     #[inline]
     fn handle_after_remove_partition(&mut self, db_partition: &DbPartition) {
-        for db_row in db_partition.rows.values() {
+        for db_row in db_partition.rows.get_all() {
             self.handle_after_remove_row(db_row.as_ref());
         }
     }

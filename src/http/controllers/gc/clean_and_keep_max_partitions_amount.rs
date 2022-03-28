@@ -54,7 +54,7 @@ impl PostAction for CleanAndKeepMaxPartitionsAmount {
 
         let event_src = EventSource::as_client_request(self.app.as_ref());
 
-        crate::db_operations::gc::keep_max_partitions_amount::execute(
+        crate::db_operations::gc::keep_max_partitions_amount(
             self.app.as_ref(),
             db_table,
             http_input.max_partitions_amount,

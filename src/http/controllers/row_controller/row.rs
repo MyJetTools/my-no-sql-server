@@ -149,7 +149,7 @@ impl DeleteAction for RowAction {
             self.app.as_ref(),
             db_table,
             http_input.partition_key.as_ref(),
-            http_input.row_key.as_ref(),
+            &http_input.row_key,
             event_src,
             &now,
             http_input.sync_period.get_sync_moment(),

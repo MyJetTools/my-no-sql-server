@@ -1,7 +1,7 @@
 use app::{logs::Logs, AppContext, EventsDispatcherProduction};
 use background::{
-    data_gc::DataGcTimer, db_rows_expirator::DbRowsExpirator,
-    gc_http_sessions::GcHttpSessionsTimer, gc_partitions::GcPartitions,
+    db_rows_expirator::DbRowsExpirator, gc_db_rows::GcDbRows,
+    gc_http_sessions::GcHttpSessionsTimer, gc_multipart::GcMultipart,
     metrics_updater::MetricsUpdater, persist::PersistTimer,
 };
 use my_logger::MyLogger;
@@ -84,8 +84,8 @@ async fn main() {
     );
 
     let mut timer_30s = MyTimer::new(Duration::from_secs(30));
-    timer_30s.register_timer("GcPartitions", Arc::new(GcPartitions::new(app.clone())));
-    timer_30s.register_timer("DataGc", Arc::new(DataGcTimer::new(app.clone())));
+    timer_30s.register_timer("GcDbRows", Arc::new(GcDbRows::new(app.clone())));
+    timer_30s.register_timer("GcMultipart", Arc::new(GcMultipart::new(app.clone())));
 
     timer_1s.start(app.clone(), app.clone());
     timer_10s.start(app.clone(), app.clone());

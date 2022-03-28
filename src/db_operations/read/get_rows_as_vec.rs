@@ -61,7 +61,7 @@ async fn get_as_partition_key_only(
 
     let db_partition = read_access.get_partition(partition_key)?;
 
-    let db_row_filter = DbRowsFilter::new(db_partition.rows.values(), limit, skip);
+    let db_row_filter = DbRowsFilter::new(db_partition.rows.get_all(), limit, skip);
 
     let mut result = None;
 

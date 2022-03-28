@@ -23,12 +23,8 @@ pub async fn execute(
         DeleteRowsEventSyncData::new(&table_data, db_table.attributes.get_persist(), event_src);
 
     for (partition_key, row_keys) in rows_to_delete {
-        let removed_rows_result = table_data.bulk_remove_rows(
-            partition_key.as_str(),
-            row_keys.iter().map(|itm| itm.as_str()),
-            true,
-            now,
-        );
+        let removed_rows_result =
+            table_data.bulk_remove_rows(partition_key.as_str(), row_keys.iter(), true, now);
 
         if let Some(removed_rows_result) = removed_rows_result {
             table_data

@@ -40,7 +40,7 @@ pub async fn get_all_rows_by_partition_key(
             partition.last_read_access.update(now);
 
             ReadOperationResult::RowsArray(super::read_filter::filter_it(
-                partition.rows.values(),
+                partition.rows.get_all(),
                 limit,
                 skip,
                 now,

@@ -45,7 +45,7 @@ impl<'s> Iterator for DbTableDataIterator<'s> {
 
             let next_partition = next_partition.unwrap();
 
-            let db_rows = next_partition.rows.values().collect();
+            let db_rows = next_partition.rows.get_all().collect();
 
             self.current_partition = Some(db_rows);
         }

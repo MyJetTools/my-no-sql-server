@@ -15,7 +15,7 @@ pub async fn execute(
     app: &AppContext,
     db_table: Arc<DbTable>,
     partition_key: &str,
-    row_key: &str,
+    row_key: &String,
     event_src: EventSource,
     now: &JsonTimeStamp,
     persist_moment: DateTimeAsMicroseconds,
