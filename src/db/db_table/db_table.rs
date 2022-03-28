@@ -25,6 +25,7 @@ pub struct DbTable {
 pub struct DbTableMetrics {
     pub table_size: usize,
     pub partitions_amount: usize,
+    pub persist_amount: usize,
 }
 
 impl DbTable {
@@ -42,6 +43,7 @@ impl DbTable {
         return DbTableMetrics {
             table_size: read_access.table_size,
             partitions_amount: read_access.get_partitions_amount(),
+            persist_amount: read_access.data_to_persist.persist_amount(),
         };
     }
 

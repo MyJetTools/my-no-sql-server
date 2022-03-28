@@ -1,4 +1,7 @@
-use std::{sync::Arc, time::Duration};
+use std::{
+    sync::{atomic::AtomicUsize, Arc},
+    time::Duration,
+};
 
 use rust_extensions::{date_time::DateTimeAsMicroseconds, ApplicationStates, MyTimerLogger};
 
@@ -43,6 +46,7 @@ pub struct AppContext {
     pub persist_io: Arc<dyn PersistIoOperations + Send + Sync + 'static>,
     pub init_state: InitState,
     pub settings: Arc<SettingsModel>,
+    persist_amount: AtomicUsize,
 }
 
 impl AppContext {
@@ -68,7 +72,18 @@ impl AppContext {
             multipart_list: MultipartList::new(),
             persist_io,
             settings,
+            persist_amount: AtomicUsize::new(0),
         }
+    }
+
+    pub fn update_persist_amount(&self, value: usize) {
+        self.persist_amount
+            .store(value, std::sync::atomic::Ordering::SeqCst);
+    }
+
+    pub fn get_persist_amount(&self) -> usize {
+        self.persist_amount
+            .load(std::sync::atomic::Ordering::Relaxed)
     }
 }
 

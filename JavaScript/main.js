@@ -32,11 +32,11 @@ var main = /** @class */ (function () {
             _this.requested = false;
             if (result.initialized) {
                 _this.layoutElement.innerHTML = HtmlSubscribersGenerator.generateHtml(result.initialized);
-                HtmlStatusBar.updateStatusbar(result.initialized);
             }
             else {
                 _this.layoutElement.innerHTML = HtmlMain.generateInit(result.notInitialized);
             }
+            HtmlStatusBar.updateStatusbar(result.statusBar);
         }).fail(function () {
             _this.requested = false;
             HtmlStatusBar.updateOffline();

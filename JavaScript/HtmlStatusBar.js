@@ -14,6 +14,10 @@ var HtmlStatusBar = /** @class */ (function () {
             '<td><div class="statusbar-separator"></div></td>' +
             '<td>Tcp: <b id="tcp-connections" style="text-shadow: 0 0 2px white;"></b></td>' +
             '<td><div class="statusbar-separator"></div></td>' +
+            '<td>Http: <b id="http-connections" style="text-shadow: 0 0 2px white;"></b></td>' +
+            '<td><div class="statusbar-separator"></div></td>' +
+            '<td>Persist queue: <b id="persist-queue" style="text-shadow: 0 0 2px white;"></b></td>' +
+            '<td><div class="statusbar-separator"></div></td>' +
             '<td>Connected to master node: <b id="master-node" style="text-shadow: 0 0 1px white;"></b></td>' +
             '<td><div class="statusbar-separator"></div></td>' +
             '</tr></table></div>';
@@ -46,6 +50,14 @@ var HtmlStatusBar = /** @class */ (function () {
         if (this.tcpConnections != data.tcpConnections) {
             this.tcpConnections = data.tcpConnections;
             document.getElementById('tcp-connections').innerHTML = this.tcpConnections.toString();
+        }
+        if (this.httpConnections != data.httpConnections) {
+            this.httpConnections = data.httpConnections;
+            document.getElementById('http-connections').innerHTML = this.httpConnections.toString();
+        }
+        if (this.persistAmount != data.persistAmount) {
+            this.persistAmount = data.persistAmount;
+            document.getElementById('persist-queue').innerHTML = this.persistAmount.toString();
         }
     };
     HtmlStatusBar.updateOffline = function () {

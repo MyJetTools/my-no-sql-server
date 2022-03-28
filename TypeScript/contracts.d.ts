@@ -38,14 +38,20 @@ interface ITableLoadProgress {
 interface IStatus {
     notInitialized: INonInitializedModel,
     initialized: IInitializedStatus
+    statusBar: IStatusBarModel;
 
 }
 
 interface IInitializedStatus {
-    masterNode: string,
-    tablesAmount: number,
-    location: ILocationStatus,
     readers: IReaderStatus[],
     nodes: INodeStatus[]
-    tcpConnections: number,
+}
+
+interface IStatusBarModel {
+    persistAmount: number;
+    tcpConnections: number;
+    tablesAmount: number;
+    httpConnections: number;
+    location: ILocationStatus,
+    masterNode: string,
 }

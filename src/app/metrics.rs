@@ -6,6 +6,7 @@ pub struct PrometheusMetrics {
     registry: Registry,
     partitions_amount: IntGaugeVec,
     table_size: IntGaugeVec,
+    persist_amount: IntGaugeVec,
 }
 
 const TABLE_NAME: &str = "table_name";
@@ -14,6 +15,7 @@ impl PrometheusMetrics {
         let registry = Registry::new();
         let partitions_amount = create_partititions_amount_gauge();
         let table_size = create_table_size_gauge();
+        let persist_amount = create_persist_amount_gauge();
 
         registry
             .register(Box::new(partitions_amount.clone()))
@@ -25,17 +27,25 @@ impl PrometheusMetrics {
             registry,
             partitions_amount,
             table_size,
+            persist_amount,
         };
     }
 
     pub fn update_table_metrics(&self, table_name: &str, table_metrics: &DbTableMetrics) {
-        let value = table_metrics.partitions_amount as i64;
+        let partitions_amount_value = table_metrics.partitions_amount as i64;
         self.partitions_amount
             .with_label_values(&[table_name])
-            .set(value);
+            .set(partitions_amount_value);
 
-        let value = table_metrics.table_size as i64;
-        self.table_size.with_label_values(&[table_name]).set(value);
+        let table_size_value = table_metrics.table_size as i64;
+        self.table_size
+            .with_label_values(&[table_name])
+            .set(table_size_value);
+
+        let persist_amount_value = table_metrics.persist_amount as i64;
+        self.persist_amount
+            .with_label_values(&[table_name])
+            .set(persist_amount_value);
     }
 
     pub fn build(&self) -> String {
@@ -60,6 +70,13 @@ fn create_partititions_amount_gauge() -> IntGaugeVec {
 
 fn create_table_size_gauge() -> IntGaugeVec {
     let gauge_opts = Opts::new(format!("table_size"), format!("table size"));
+
+    let lables = &[TABLE_NAME];
+    IntGaugeVec::new(gauge_opts, lables).unwrap()
+}
+
+fn create_persist_amount_gauge() -> IntGaugeVec {
+    let gauge_opts = Opts::new(format!("persist_amount"), format!("persist amount"));
 
     let lables = &[TABLE_NAME];
     IntGaugeVec::new(gauge_opts, lables).unwrap()
