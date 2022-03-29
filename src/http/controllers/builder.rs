@@ -33,6 +33,12 @@ pub fn build(app: Arc<AppContext>) -> ControllersMiddleware {
 
     result.register_get_action(get_partitions_count_action);
 
+    let get_table_size_action = Arc::new(super::tables_controller::GetTableSizeAction::new(
+        app.clone(),
+    ));
+
+    result.register_get_action(get_table_size_action);
+
     let tables_controller = Arc::new(super::tables_controller::MigrationAction::new(app.clone()));
     result.register_post_action(tables_controller);
 

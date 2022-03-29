@@ -40,17 +40,16 @@ impl DbTable {
     pub async fn get_metrics(&self) -> DbTableMetrics {
         let read_access = self.data.read().await;
 
-        let mut table_size = 0;
-
-        for db_partition in read_access.partitions.values() {
-            table_size += db_partition.rows.get_content_size();
-        }
-
         return DbTableMetrics {
-            table_size,
+            table_size: read_access.get_table_size(),
             partitions_amount: read_access.get_partitions_amount(),
             persist_amount: read_access.data_to_persist.persist_amount(),
         };
+    }
+
+    pub async fn get_table_size(&self) -> usize {
+        let read_access = self.data.read().await;
+        return read_access.get_table_size();
     }
 
     pub async fn get_partitions_amount(&self) -> usize {

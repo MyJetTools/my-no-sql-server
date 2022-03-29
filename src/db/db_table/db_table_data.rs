@@ -42,6 +42,16 @@ impl DbTableData {
         self.partitions.len()
     }
 
+    pub fn get_table_size(&self) -> usize {
+        let mut table_size = 0;
+
+        for db_partition in self.partitions.values() {
+            table_size += db_partition.rows.get_content_size();
+        }
+
+        table_size
+    }
+
     pub fn iterate_all_rows<'s>(&'s self) -> DbTableDataIterator<'s> {
         DbTableDataIterator::new(&self.partitions)
     }
