@@ -80,9 +80,7 @@ impl DbRowsContainer {
         for key in &keys {
             if let Some(items) = self.rows_with_expiration_index.remove(key) {
                 for (row_key, db_row) in items {
-                    // If we remove from data - we remove content size
                     self.remove_from_data(row_key.as_str());
-                    // If we remove from data - we remove content size
                     result.push(db_row);
                 }
             }
@@ -153,7 +151,6 @@ impl DbRowsContainer {
 
         if let Some(removed_db_row) = &result {
             self.remove_indices(&removed_db_row);
-            self.content_size -= removed_db_row.data.len();
         }
 
         result
