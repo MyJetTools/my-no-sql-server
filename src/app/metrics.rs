@@ -22,6 +22,7 @@ impl PrometheusMetrics {
             .unwrap();
 
         registry.register(Box::new(table_size.clone())).unwrap();
+        registry.register(Box::new(persist_amount.clone())).unwrap();
 
         return Self {
             registry,
