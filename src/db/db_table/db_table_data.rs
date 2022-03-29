@@ -10,7 +10,6 @@ use crate::{
     db::{db_snapshots::DbPartitionSnapshot, DbPartition, DbRow},
     db_json_entity::JsonTimeStamp,
     persist_operations::data_to_persist::DataToPersist,
-    rows_with_expiration::RowsWithExpiration,
 };
 
 use super::DbTableDataIterator;
@@ -24,10 +23,7 @@ pub struct DbTableData {
     pub created: DateTimeAsMicroseconds,
     pub last_update_time: AtomicDateTimeAsMicroseconds,
     pub last_read_time: AtomicDateTimeAsMicroseconds,
-    pub table_size: usize,
-    pub rows_amount: usize,
     pub data_to_persist: DataToPersist,
-    rows_with_expiration: RowsWithExpiration,
 }
 
 impl DbTableData {
@@ -38,9 +34,6 @@ impl DbTableData {
             last_update_time: AtomicDateTimeAsMicroseconds::new(created.unix_microseconds),
             created,
             last_read_time: AtomicDateTimeAsMicroseconds::new(created.unix_microseconds),
-            table_size: 0,
-            rows_amount: 0,
-            rows_with_expiration: RowsWithExpiration::new(),
             data_to_persist: DataToPersist::new(),
         }
     }
@@ -63,6 +56,15 @@ impl DbTableData {
         }
 
         json_array_writer
+    }
+
+    pub fn get_rows_amount(&self) -> usize {
+        let mut result = 0;
+        for db_partition in self.partitions.values() {
+            result += db_partition.rows.len();
+        }
+
+        result
     }
 
     pub fn get_partition_as_json_array(&self, partition_key: &str) -> Option<JsonArrayWriter> {
@@ -103,13 +105,6 @@ impl DbTableData {
 
         result
     }
-
-    pub fn get_expired_rows_up_to(
-        &mut self,
-        now: DateTimeAsMicroseconds,
-    ) -> Option<Vec<Arc<DbRow>>> {
-        self.rows_with_expiration.remove_up_to(now)
-    }
 }
 
 /// Insert Operations
@@ -122,8 +117,6 @@ impl DbTableData {
         update_write_access: &JsonTimeStamp,
     ) -> Option<Arc<DbRow>> {
         if !self.partitions.contains_key(&db_row.partition_key) {
-            self.handle_after_insert_row(&db_row);
-
             let mut db_partition = DbPartition::new();
             db_partition.insert(db_row.clone());
 
@@ -140,14 +133,8 @@ impl DbTableData {
                 .last_write_moment
                 .update(update_write_access.date_time);
 
-            if let Some(removed_row) = &removed_row {
-                self.handle_after_remove_row(removed_row);
-            }
-
             removed_row
         };
-
-        self.handle_after_insert_row(db_row);
 
         return removed_row;
     }
@@ -172,8 +159,6 @@ impl DbTableData {
                 .update(update_write_access.date_time);
         }
 
-        self.handle_after_insert_row(&db_row);
-
         return true;
     }
 
@@ -189,53 +174,28 @@ impl DbTableData {
                 .insert(partition_key.to_string(), DbPartition::new());
         }
 
-        let removed_rows = {
-            let db_partition = self.partitions.get_mut(partition_key).unwrap();
-            db_partition
-                .last_write_moment
-                .update(update_write_access.date_time);
+        let db_partition = self.partitions.get_mut(partition_key).unwrap();
+        db_partition
+            .last_write_moment
+            .update(update_write_access.date_time);
 
-            let mut removed_rows = None;
-
-            for db_row in db_rows {
-                let removed_row = db_partition.insert(db_row.clone());
-                if let Some(removed_row) = removed_row {
-                    if removed_rows.is_none() {
-                        removed_rows = Some(Vec::new());
-                    }
-
-                    removed_rows.as_mut().unwrap().push(removed_row);
-                }
-            }
-
-            removed_rows
-        };
+        let mut removed_rows = None;
 
         for db_row in db_rows {
-            self.handle_after_insert_row(&db_row);
-        }
+            let removed_row = db_partition.insert(db_row.clone());
+            if let Some(removed_row) = removed_row {
+                if removed_rows.is_none() {
+                    removed_rows = Some(Vec::new());
+                }
 
-        if let Some(removed_rows) = removed_rows {
-            for removed_row in removed_rows {
-                self.handle_after_remove_row(&removed_row);
+                removed_rows.as_mut().unwrap().push(removed_row);
             }
         }
     }
 
     #[inline]
     pub fn init_partition(&mut self, partition_key: String, db_partition: DbPartition) {
-        for db_row in db_partition.rows.get_all() {
-            self.handle_after_insert_row(db_row);
-        }
-
         self.partitions.insert(partition_key, db_partition);
-    }
-
-    #[inline]
-    pub fn handle_after_insert_row(&mut self, db_row: &Arc<DbRow>) {
-        self.table_size += db_row.data.len();
-        self.rows_amount += 1;
-        self.rows_with_expiration.add(db_row);
     }
 }
 
@@ -260,8 +220,6 @@ impl DbTableData {
 
             (removed_row, db_partition.is_empty())
         };
-
-        self.handle_after_remove_row(&removed_row);
 
         if delete_empty_partition && partition_is_empty {
             self.partitions.remove(partition_key);
@@ -307,10 +265,6 @@ impl DbTableData {
             self.partitions.remove(partition_key);
         }
 
-        for removed_row in &removed_rows {
-            self.handle_after_remove_row(removed_row.as_ref());
-        }
-
         return Some((removed_rows, partition_is_empty));
     }
 
@@ -352,9 +306,6 @@ impl DbTableData {
     #[inline]
     pub fn remove_partition(&mut self, partition_key: &str) -> Option<DbPartition> {
         let removed_partition = self.partitions.remove(partition_key);
-        if let Some(db_partition) = &removed_partition {
-            self.handle_after_remove_partition(db_partition);
-        }
 
         removed_partition
     }
@@ -368,25 +319,7 @@ impl DbTableData {
 
         std::mem::swap(&mut partitions, &mut self.partitions);
 
-        for db_partition in partitions.values() {
-            self.handle_after_remove_partition(db_partition);
-        }
-
         Some(partitions)
-    }
-
-    #[inline]
-    fn handle_after_remove_partition(&mut self, db_partition: &DbPartition) {
-        for db_row in db_partition.rows.get_all() {
-            self.handle_after_remove_row(db_row.as_ref());
-        }
-    }
-
-    #[inline]
-    fn handle_after_remove_row(&mut self, db_row: &DbRow) {
-        self.table_size -= db_row.data.len();
-        self.rows_amount -= 1;
-        self.rows_with_expiration.remove(db_row);
     }
 }
 

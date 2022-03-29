@@ -1,4 +1,3 @@
-pub mod db_rows_expirator;
 pub mod gc_db_rows;
 pub mod gc_http_sessions;
 pub mod gc_multipart;

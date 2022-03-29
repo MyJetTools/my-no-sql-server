@@ -40,8 +40,14 @@ impl DbTable {
     pub async fn get_metrics(&self) -> DbTableMetrics {
         let read_access = self.data.read().await;
 
+        let mut table_size = 0;
+
+        for db_partition in read_access.partitions.values() {
+            table_size += db_partition.rows.get_content_size();
+        }
+
         return DbTableMetrics {
-            table_size: read_access.table_size,
+            table_size,
             partitions_amount: read_access.get_partitions_amount(),
             persist_amount: read_access.data_to_persist.persist_amount(),
         };
@@ -55,11 +61,6 @@ impl DbTable {
     pub async fn get_table_as_json_array(&self) -> JsonArrayWriter {
         let read_access = self.data.read().await;
         read_access.get_table_as_json_array()
-    }
-
-    pub async fn get_expired_rows(&self, now: DateTimeAsMicroseconds) -> Option<Vec<Arc<DbRow>>> {
-        let mut write_access = self.data.write().await;
-        write_access.get_expired_rows_up_to(now)
     }
 
     pub async fn get_all_as_vec_dequeue(&self) -> VecDeque<Arc<DbRow>> {

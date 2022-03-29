@@ -14,6 +14,8 @@ use crate::{db::DbRow, utils::LazyVec};
 pub struct DbRowsContainer {
     data: BTreeMap<String, Arc<DbRow>>,
     rows_with_expiration_index: BTreeMap<i64, HashMap<String, Arc<DbRow>>>,
+
+    content_size: usize,
 }
 
 impl DbRowsContainer {
@@ -21,7 +23,33 @@ impl DbRowsContainer {
         Self {
             data: BTreeMap::new(),
             rows_with_expiration_index: BTreeMap::new(),
+            content_size: 0,
         }
+    }
+
+    pub fn get_content_size(&self) -> usize {
+        self.content_size
+    }
+
+    fn insert_to_data(&mut self, db_row: Arc<DbRow>) -> Option<Arc<DbRow>> {
+        self.content_size += db_row.data.len();
+        let result = self.data.insert(db_row.row_key.to_string(), db_row);
+
+        if let Some(removed_item) = &result {
+            self.content_size -= removed_item.data.len();
+        }
+
+        result
+    }
+
+    fn remove_from_data(&mut self, row_key: &str) -> Option<Arc<DbRow>> {
+        let result = self.data.remove(row_key);
+
+        if let Some(removed_item) = &result {
+            self.content_size -= removed_item.data.len();
+        }
+
+        result
     }
 
     pub fn len(&self) -> usize {
@@ -52,7 +80,9 @@ impl DbRowsContainer {
         for key in &keys {
             if let Some(items) = self.rows_with_expiration_index.remove(key) {
                 for (row_key, db_row) in items {
-                    self.data.remove(row_key.as_str());
+                    // If we remove from data - we remove content size
+                    self.remove_from_data(row_key.as_str());
+                    // If we remove from data - we remove content size
                     result.push(db_row);
                 }
             }
@@ -119,17 +149,18 @@ impl DbRowsContainer {
 
     pub fn insert(&mut self, db_row: Arc<DbRow>) -> Option<Arc<DbRow>> {
         self.insert_indices(&db_row);
-        let result = self.data.insert(db_row.row_key.to_string(), db_row);
+        let result = self.insert_to_data(db_row);
 
         if let Some(removed_db_row) = &result {
             self.remove_indices(&removed_db_row);
+            self.content_size -= removed_db_row.data.len();
         }
 
         result
     }
 
     pub fn remove(&mut self, row_key: &str) -> Option<Arc<DbRow>> {
-        let result = self.data.remove(row_key);
+        let result = self.remove_from_data(row_key);
 
         if let Some(removed_db_row) = &result {
             self.remove_indices(&removed_db_row);

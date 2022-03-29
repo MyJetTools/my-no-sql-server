@@ -1,7 +1,6 @@
 use app::{logs::Logs, AppContext, EventsDispatcherProduction};
 use background::{
-    db_rows_expirator::DbRowsExpirator, gc_db_rows::GcDbRows,
-    gc_http_sessions::GcHttpSessionsTimer, gc_multipart::GcMultipart,
+    gc_db_rows::GcDbRows, gc_http_sessions::GcHttpSessionsTimer, gc_multipart::GcMultipart,
     metrics_updater::MetricsUpdater, persist::PersistTimer,
 };
 use my_logger::MyLogger;
@@ -22,7 +21,6 @@ mod db_transactions;
 mod http;
 mod json;
 mod persist_operations;
-mod rows_with_expiration;
 mod tcp;
 
 mod background;
@@ -76,11 +74,6 @@ async fn main() {
     timer_10s.register_timer(
         "GcHttpSessions",
         Arc::new(GcHttpSessionsTimer::new(app.clone())),
-    );
-
-    timer_10s.register_timer(
-        "DbRowsExpirator",
-        Arc::new(DbRowsExpirator::new(app.clone())),
     );
 
     let mut timer_30s = MyTimer::new(Duration::from_secs(30));
