@@ -14,19 +14,19 @@ impl LookingForJsonValueStartState {
     pub fn read_next(&self, raw: &[u8]) -> Result<usize, JsonParseError> {
         let mut pos = self.pos;
         while pos < raw.len() {
-            let b = raw[self.pos];
+            let b = raw[pos];
             if super::utils::is_space(b) {
                 pos += 1;
                 continue;
             }
 
             if is_open_value(b) {
-                return Ok(self.pos);
+                return Ok(pos);
             } else {
                 return Err(JsonParseError::new(format!(
                     "Invalid token '{}' is found at position {}. Expected token is {}",
                     b as char,
-                    self.pos,
+                    pos,
                     expected_token()
                 )));
             }
