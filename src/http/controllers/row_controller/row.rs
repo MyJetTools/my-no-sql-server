@@ -63,7 +63,7 @@ impl GetAction for RowAction {
 
         if let Some(partition_key) = http_input.partition_key.as_ref() {
             if let Some(row_key) = http_input.row_key.as_ref() {
-                let result = crate::db_operations::read::rows::get_row(
+                let result = crate::db_operations::read::rows::get_single(
                     db_table.as_ref(),
                     partition_key,
                     row_key,
@@ -72,7 +72,7 @@ impl GetAction for RowAction {
 
                 return Ok(result.into());
             } else {
-                let result = crate::db_operations::read::rows::get_all_rows_by_partition_key(
+                let result = crate::db_operations::read::rows::get_all_by_partition_key(
                     db_table.as_ref(),
                     partition_key,
                     http_input.limit,
@@ -84,7 +84,7 @@ impl GetAction for RowAction {
             }
         } else {
             if let Some(row_key) = http_input.row_key.as_ref() {
-                let result = crate::db_operations::read::rows::get_all_rows_by_row_key(
+                let result = crate::db_operations::read::rows::get_all_by_row_key(
                     db_table.as_ref(),
                     row_key,
                     http_input.limit,
@@ -94,7 +94,7 @@ impl GetAction for RowAction {
 
                 return Ok(result.into());
             } else {
-                let result = crate::db_operations::read::rows::get_all_table_rows(
+                let result = crate::db_operations::read::rows::get_all(
                     db_table.as_ref(),
                     http_input.limit,
                     http_input.skip,

@@ -1,4 +1,4 @@
-use super::utils::JsonTimeStamp;
+use super::JsonTimeStamp;
 
 pub struct TimeStampValuePosition {
     pub key_start: usize,
@@ -73,7 +73,9 @@ fn get_the_end_of_the_json(data: &[u8]) -> usize {
 #[cfg(test)]
 mod tests {
 
-    use crate::db_json_entity::{date_time_injector::TimeStampValuePosition, utils::JsonTimeStamp};
+    use crate::db_json_entity::{
+        date_time_injector::TimeStampValuePosition, json_time_stamp::JsonTimeStamp,
+    };
 
     #[test]
     fn test_timestamp_injection() {

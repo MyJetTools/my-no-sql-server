@@ -1,8 +1,18 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use rust_extensions::{date_time::DateTimeAsMicroseconds, MyTimerTick};
 
-use crate::{app::AppContext, db::DbTable, db_sync::EventSource, utils::LazyVec};
+use crate::{
+    app::AppContext,
+    db::DbTable,
+    db_sync::EventSource,
+    utils::{LazyHashMap, LazyVec},
+};
+
+struct DataToExpire {
+    partitions_to_expire: Option<Vec<(Arc<DbTable>, Vec<String>)>>,
+    db_rows_to_expire: Option<Vec<(Arc<DbTable>, HashMap<String, Vec<String>>)>>,
+}
 
 pub struct GcDbRows {
     app: Arc<AppContext>,
@@ -17,73 +27,74 @@ impl GcDbRows {
 #[async_trait::async_trait]
 impl MyTimerTick for GcDbRows {
     async fn tick(&self) {
-        let result = tokio::spawn(gc_partitions_iteration(self.app.clone())).await;
+        let now = DateTimeAsMicroseconds::now();
+        let data_to_expire = get_data_to_expire(self.app.as_ref(), now).await;
 
-        if let Err(err) = result {
-            self.app.logs.add_fatal_error(
-                crate::app::logs::SystemProcess::Timer,
-                format!("gc_partitions"),
-                format!("{}", err),
-            );
+        if let Some(partitions_to_expire) = data_to_expire.partitions_to_expire {
+            let now = DateTimeAsMicroseconds::now();
+            for (db_table, partitions) in partitions_to_expire {
+                crate::db_operations::write::delete_partitions(
+                    self.app.as_ref(),
+                    db_table.as_ref(),
+                    partitions,
+                    EventSource::as_gc(),
+                    now,
+                )
+                .await;
+            }
+        }
+
+        if let Some(db_rows_to_expire) = data_to_expire.db_rows_to_expire {
+            let now = DateTimeAsMicroseconds::now();
+            for (db_table, db_rows_to_expire) in db_rows_to_expire {
+                crate::db_operations::write::bulk_delete(
+                    self.app.as_ref(),
+                    db_table.as_ref(),
+                    db_rows_to_expire,
+                    EventSource::as_gc(),
+                    now,
+                    now,
+                )
+                .await;
+            }
         }
     }
 }
 
-async fn gc_partitions_iteration(app: Arc<AppContext>) {
-    let now = DateTimeAsMicroseconds::now();
-    let tables_with_something_to_gc = get_tables_which_has_something_to_gc(app.as_ref(), now).await;
-
-    if let Some(tables) = tables_with_something_to_gc {
-        expire_partitions_and_rows(app.as_ref(), tables, now).await;
-    }
-}
-
-pub async fn get_tables_which_has_something_to_gc(
-    app: &AppContext,
-    now: DateTimeAsMicroseconds,
-) -> Option<Vec<Arc<DbTable>>> {
-    let mut result = LazyVec::new();
+async fn get_data_to_expire(app: &AppContext, now: DateTimeAsMicroseconds) -> DataToExpire {
+    let mut tables_with_partitions_to_expire = LazyVec::new();
 
     let tables = app.db.get_tables().await;
 
+    let mut rows_to_expire_by_table = LazyVec::new();
+
     for table in tables {
+        let max_amount = table.attributes.get_max_partitions_amount();
+
         let table_read_access = table.data.read().await;
 
-        if let Some(max_partitions_amount) = table.attributes.get_max_partitions_amount() {
-            if table_read_access.partitions.len() > max_partitions_amount {
-                result.push(table.clone());
-                continue;
+        if let Some(max_amount) = max_amount {
+            if let Some(partitions_to_expire) =
+                table_read_access.get_partitions_to_expire(max_amount)
+            {
+                tables_with_partitions_to_expire.push((table.clone(), partitions_to_expire));
             }
         }
 
-        for db_partition in table_read_access.partitions.values() {
-            if db_partition.rows.has_rows_to_expire(now) {
-                result.push(table.clone());
+        let mut db_rows_to_expire = LazyHashMap::new();
+        for (partition_key, db_partition) in &table_read_access.partitions {
+            if let Some(rows_to_expire) = db_partition.get_rows_to_expire(now) {
+                db_rows_to_expire.insert(partition_key.to_string(), rows_to_expire);
             }
+        }
+
+        if let Some(db_rows) = db_rows_to_expire.get_result() {
+            rows_to_expire_by_table.push((table.clone(), db_rows));
         }
     }
 
-    result.get_result()
-}
-
-async fn expire_partitions_and_rows(
-    app: &AppContext,
-    tables: Vec<Arc<DbTable>>,
-    now: DateTimeAsMicroseconds,
-) {
-    for db_table in tables {
-        let max_partitions_amount = db_table.attributes.get_max_partitions_amount();
-
-        if let Some(max_partitions_amount) = max_partitions_amount {
-            crate::db_operations::gc::keep_max_partitions_amount_and_expire_db_rows(
-                app,
-                db_table,
-                max_partitions_amount,
-                EventSource::as_gc(),
-                crate::app::DEFAULT_PERSIST_PERIOD.get_sync_moment(),
-                now,
-            )
-            .await;
-        }
+    DataToExpire {
+        partitions_to_expire: tables_with_partitions_to_expire.get_result(),
+        db_rows_to_expire: rows_to_expire_by_table.get_result(),
     }
 }

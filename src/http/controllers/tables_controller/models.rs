@@ -5,13 +5,13 @@ use crate::{db::DbTable, db_sync::DataSynchronizationPeriod};
 
 #[derive(MyHttpInput)]
 pub struct GetPartitionsAmountContract {
-    #[http_query(name = "name"; description = "Name of a table")]
+    #[http_query(name = "tableName"; description = "Name of a table")]
     pub table_name: String,
 }
 
 #[derive(MyHttpInput)]
 pub struct CleanTableContract {
-    #[http_query(name = "name"; description = "Name of a table")]
+    #[http_query(name = "tableName"; description = "Name of a table")]
     pub table_name: String,
     #[http_query(name = "syncPeriod"; description = "Synchronization period"; default="Sec5")]
     pub sync_period: DataSynchronizationPeriod,
@@ -19,7 +19,7 @@ pub struct CleanTableContract {
 
 #[derive(MyHttpInput)]
 pub struct UpdatePersistTableContract {
-    #[http_query(name = "name"; description = "Name of a table")]
+    #[http_query(name = "tableName"; description = "Name of a table")]
     pub table_name: String,
 
     #[http_query(description = "Persist table"; default="true")]
@@ -47,7 +47,7 @@ impl Into<TableContract> for &DbTable {
 
 #[derive(MyHttpInput)]
 pub struct CreateTableCotnract {
-    #[http_query(name = "name"; description = "Name of a table")]
+    #[http_query(name = "tableName"; description = "Name of a table")]
     pub table_name: String,
 
     #[http_query(description = "Persist table"; default="true")]
@@ -64,7 +64,7 @@ pub struct TableMigrationInputContract {
     #[http_query(name = "remoteUrl"; description = "Url of the remote MyNoSqlServer we are going to copy data from")]
     pub remote_url: String,
 
-    #[http_query(name = "table"; description = "Table name of the current MyNoSqlServer we are going to copy data to")]
+    #[http_query(name = "tableName"; description = "Table name of the current MyNoSqlServer we are going to copy data to")]
     pub table_name: String,
 
     #[http_query(name = "remoteTableName"; description = "Table name of the remote MyNoSqlServer we are going to copy data from")]
@@ -73,7 +73,7 @@ pub struct TableMigrationInputContract {
 
 #[derive(MyHttpInput)]
 pub struct DeleteTableContract {
-    #[http_query(name = "name"; description = "Name of a table")]
+    #[http_query(name = "tableName"; description = "Name of a table")]
     pub table_name: String,
     #[http_header(name = "apikey"; description = "Api Key protecting the table to be deleted")]
     pub api_key: String,

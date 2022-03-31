@@ -67,7 +67,7 @@ impl DbTable {
 
         let mut result = VecDeque::new();
 
-        for db_row in read_access.iterate_all_rows() {
+        for db_row in read_access.get_all_rows() {
             result.push_back(db_row.clone());
         }
 

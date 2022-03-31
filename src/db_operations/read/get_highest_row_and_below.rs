@@ -24,9 +24,8 @@ pub async fn get_highest_row_and_below(
     }
 
     let db_partition = db_partition.unwrap();
-    db_partition.last_read_access.update(now);
 
-    let db_rows = db_partition.get_highest_row_and_below(row_key);
+    let db_rows = db_partition.get_highest_row_and_below(row_key, Some(now));
 
     if db_rows.len() == 0 {
         return ReadOperationResult::EmptyArray;

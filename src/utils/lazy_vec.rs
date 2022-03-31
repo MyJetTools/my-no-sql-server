@@ -23,7 +23,7 @@ impl<T> LazyVec<T> {
         self.items
     }
 
-    pub fn extend(&mut self, src: Vec<T>) {
-        self.get_items().extend(src);
+    pub fn is_empty(&self) -> bool {
+        self.items.is_none()
     }
 }

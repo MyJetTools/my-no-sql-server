@@ -1,4 +1,4 @@
-pub mod bulk_delete;
+mod bulk_delete;
 pub mod bulk_insert_or_update;
 pub mod clean_partition_and_bulk_insert;
 pub mod clean_table;
@@ -14,4 +14,5 @@ mod write_operation_result;
 
 pub use write_operation_result::WriteOperationResult;
 
+pub use bulk_delete::bulk_delete;
 pub use delete_partitions::delete_partitions;

@@ -1,11 +1,10 @@
 pub use db_instance::DbInstance;
 
 pub use db_table::{
-    DbTable, DbTableAttributes, DbTableAttributesSnapshot, DbTableData, DbTableDataIterator,
-    DbTableMetrics,
+    DbTable, DbTableAttributes, DbTableAttributesSnapshot, DbTableData, DbTableMetrics,
 };
 
-pub use db_partition::DbPartition;
+pub use db_partition::{DbPartition, UpdatePartitionReadMoment};
 
 pub use db_row::DbRow;
 

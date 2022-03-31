@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     app::AppContext,
-    db::{DbRow, DbTable},
+    db::{DbRow, DbTable, UpdatePartitionReadMoment},
     db_json_entity::JsonTimeStamp,
     db_operations::DbOperationError,
     db_sync::{states::UpdateRowsSyncData, EventSource, SyncEvent},
@@ -32,7 +32,9 @@ pub async fn validate_before(
         return Err(DbOperationError::RecordNotFound);
     }
 
-    let db_row = db_partition.unwrap().get_row(row_key);
+    let db_row = db_partition
+        .unwrap()
+        .get_row(row_key, UpdatePartitionReadMoment::None);
 
     if db_row.is_none() {
         return Err(DbOperationError::RecordNotFound);
@@ -66,7 +68,8 @@ pub async fn execute(
 
         let db_partition = db_partition.unwrap();
 
-        let current_db_row = db_partition.get_row(db_row.row_key.as_str());
+        let current_db_row =
+            db_partition.get_row(db_row.row_key.as_str(), UpdatePartitionReadMoment::None);
 
         match current_db_row {
             Some(current_db_row) => {

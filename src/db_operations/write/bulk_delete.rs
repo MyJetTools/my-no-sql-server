@@ -5,16 +5,15 @@ use rust_extensions::date_time::DateTimeAsMicroseconds;
 use crate::{
     app::AppContext,
     db::DbTable,
-    db_json_entity::JsonTimeStamp,
     db_sync::{states::DeleteRowsEventSyncData, EventSource, SyncEvent},
 };
 
-pub async fn execute(
+pub async fn bulk_delete(
     app: &AppContext,
     db_table: &DbTable,
     rows_to_delete: HashMap<String, Vec<String>>,
     event_src: EventSource,
-    now: &JsonTimeStamp,
+    now: DateTimeAsMicroseconds,
     persist_moment: DateTimeAsMicroseconds,
 ) {
     let mut table_data = db_table.data.write().await;

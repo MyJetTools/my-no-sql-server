@@ -7,7 +7,7 @@ use crate::{
     json::{array_parser::ArrayToJsonObjectsSplitter, JsonFirstLineReader},
 };
 
-use super::{date_time_injector::TimeStampValuePosition, utils::JsonTimeStamp, DbEntityParseFail};
+use super::{date_time_injector::TimeStampValuePosition, DbEntityParseFail, JsonTimeStamp};
 
 pub struct DbJsonEntity<'s> {
     pub partition_key: &'s str,

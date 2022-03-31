@@ -68,12 +68,12 @@ pub async fn commit(
                     let db_table = tables.get(table_name.as_str()).unwrap();
                     let mut rows_to_delete = HashMap::new();
                     rows_to_delete.insert(partition_key, row_keys);
-                    crate::db_operations::write::bulk_delete::execute(
+                    crate::db_operations::write::bulk_delete(
                         app,
                         db_table.as_ref(),
                         rows_to_delete,
                         event_src.clone(),
-                        now,
+                        now.date_time,
                         persist_moment,
                     )
                     .await;

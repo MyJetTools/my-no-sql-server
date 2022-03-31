@@ -115,6 +115,10 @@ pub fn build(app: Arc<AppContext>) -> ControllersMiddleware {
         app.clone(),
     )));
 
+    result.register_get_action(Arc::new(
+        super::row_controller::RowAndUpdateExpirationTimeAction::new(app.clone()),
+    ));
+
     result.register_get_action(Arc::new(super::row_controller::RowAction::new(app.clone())));
 
     result.register_put_action(Arc::new(super::row_controller::RowAction::new(app.clone())));
