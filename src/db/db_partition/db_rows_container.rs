@@ -1,15 +1,16 @@
 use std::{
-    collections::{
-        btree_map::{Range, Values},
-        BTreeMap, HashMap,
-    },
-    ops::RangeBounds,
+    collections::{btree_map::Values, BTreeMap, HashMap},
     sync::Arc,
 };
 
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-use crate::{db::DbRow, utils::LazyVec};
+use crate::{
+    db::{
+        update_expiration_time_model::UpdateExpirationDateTime, DbRow, UpdateExpirationTimeModel,
+    },
+    utils::LazyVec,
+};
 
 pub struct DbRowsContainer {
     data: BTreeMap<String, Arc<DbRow>>,
@@ -137,10 +138,16 @@ impl DbRowsContainer {
     pub fn get_and_update_expiration_time(
         &mut self,
         row_key: &str,
-        expiration_time: Option<DateTimeAsMicroseconds>,
+        update_expiration_time: &UpdateExpirationTimeModel,
     ) -> Option<Arc<DbRow>> {
         let result = self.data.get(row_key)?.clone();
-        self.update_expiration_time(&result, expiration_time);
+
+        if let UpdateExpirationDateTime::Yes(expiration_time) =
+            update_expiration_time.update_db_rows_expiration_time
+        {
+            self.update_expiration_time(&result, expiration_time);
+        }
+
         Some(result)
     }
 
@@ -154,25 +161,75 @@ impl DbRowsContainer {
 
     pub fn get_all_and_update_expiration_time<'s>(
         &'s mut self,
-        expiration_time: Option<DateTimeAsMicroseconds>,
+        update_expiration_time: &UpdateExpirationTimeModel,
     ) -> Vec<Arc<DbRow>> {
         let mut result = Vec::new();
         for db_row in self.data.values() {
             result.push(db_row.clone());
         }
 
-        for item in &result {
-            self.update_expiration_time(item, expiration_time);
+        if let UpdateExpirationDateTime::Yes(expiration_time) =
+            update_expiration_time.update_db_rows_expiration_time
+        {
+            for item in &result {
+                self.update_expiration_time(item, expiration_time);
+            }
         }
 
         result
     }
 
-    pub fn range<'s, R>(&'s self, range: R) -> Range<'s, String, Arc<DbRow>>
-    where
-        R: RangeBounds<String>,
-    {
-        self.data.range(range)
+    pub fn get_highest_row_and_below(
+        &self,
+        row_key: &String,
+        limit: Option<usize>,
+    ) -> Vec<&Arc<DbRow>> {
+        let mut result = Vec::new();
+        for (db_row_key, db_row) in self.data.range(..row_key.to_string()) {
+            if db_row_key <= row_key {
+                result.insert(0, db_row);
+
+                if let Some(limit) = limit {
+                    if result.len() >= limit {
+                        break;
+                    }
+                }
+            }
+        }
+
+        result
+    }
+
+    pub fn get_highest_row_and_below_and_update_expiration_time(
+        &mut self,
+        row_key: &String,
+        limit: Option<usize>,
+        update_expiration: &UpdateExpirationTimeModel,
+    ) -> Vec<Arc<DbRow>> {
+        let mut result = Vec::new();
+        for (db_row_key, db_row) in self.data.range(..row_key.to_string()) {
+            if db_row_key <= row_key {
+                let db_row = db_row.clone();
+
+                result.insert(0, db_row);
+
+                if let Some(limit) = limit {
+                    if result.len() >= limit {
+                        break;
+                    }
+                }
+            }
+        }
+
+        if let UpdateExpirationDateTime::Yes(expiration_time) =
+            update_expiration.update_db_rows_expiration_time
+        {
+            for db_row in &result {
+                self.update_expiration_time(&db_row, expiration_time);
+            }
+        }
+
+        result
     }
 
     fn update_expiration_time(

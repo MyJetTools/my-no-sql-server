@@ -4,7 +4,8 @@ use rust_extensions::date_time::{AtomicDateTimeAsMicroseconds, DateTimeAsMicrose
 use crate::{
     db::{
         db_snapshots::{DbPartitionSnapshot, DbRowsSnapshot},
-        DbRow,
+        update_expiration_time_model::UpdateExpirationDateTime,
+        DbRow, UpdateExpirationTimeModel,
     },
     utils::{LazyVec, SortedDictionary},
 };
@@ -19,6 +20,7 @@ pub enum UpdatePartitionReadMoment {
 }
 
 pub struct DbPartition {
+    expires: Option<DateTimeAsMicroseconds>,
     rows: DbRowsContainer,
     last_read_moment: AtomicDateTimeAsMicroseconds,
     last_write_moment: AtomicDateTimeAsMicroseconds,
@@ -32,6 +34,7 @@ impl DbPartition {
             last_read_moment: AtomicDateTimeAsMicroseconds::now(),
             last_write_moment: AtomicDateTimeAsMicroseconds::now(),
             content_size: 0,
+            expires: None,
         }
     }
 
@@ -177,14 +180,14 @@ impl DbPartition {
     pub fn get_all_rows_and_update_expiration_time<'s>(
         &'s mut self,
         update_last_read_moment: Option<DateTimeAsMicroseconds>,
-        expiration_time: Option<DateTimeAsMicroseconds>,
+        update_expiration_time: &UpdateExpirationTimeModel,
     ) -> Vec<Arc<DbRow>> {
         if let Some(update_last_read_moment) = update_last_read_moment {
             self.last_read_moment.update(update_last_read_moment);
         }
 
         self.rows
-            .get_all_and_update_expiration_time(expiration_time)
+            .get_all_and_update_expiration_time(update_expiration_time)
     }
 
     pub fn get_all_rows_cloned<'s>(
@@ -218,7 +221,7 @@ impl DbPartition {
         &mut self,
         row_key: &str,
         update_last_read_moment: UpdatePartitionReadMoment,
-        expiration_time: Option<DateTimeAsMicroseconds>,
+        expiration_time: &UpdateExpirationTimeModel,
     ) -> Option<Arc<DbRow>> {
         let result = self
             .rows
@@ -290,19 +293,39 @@ impl DbPartition {
         &self,
         row_key: &String,
         update_last_read_moment: Option<DateTimeAsMicroseconds>,
+        limit: Option<usize>,
+    ) -> Vec<&Arc<DbRow>> {
+        if let Some(read_moment) = update_last_read_moment {
+            self.last_read_moment.update(read_moment);
+        }
+
+        return self.rows.get_highest_row_and_below(row_key, limit);
+    }
+
+    pub fn get_highest_row_and_below_and_update_expiration_time(
+        &mut self,
+        row_key: &String,
+        update_last_read_moment: Option<DateTimeAsMicroseconds>,
+        limit: Option<usize>,
+        update_expiration_time: &UpdateExpirationTimeModel,
     ) -> Vec<Arc<DbRow>> {
         if let Some(read_moment) = update_last_read_moment {
             self.last_read_moment.update(read_moment);
         }
 
-        let mut result = Vec::new();
-        for (db_row_key, db_row) in self.rows.range(..row_key.to_string()) {
-            if db_row_key <= row_key {
-                result.push(db_row.clone());
-            }
+        if let UpdateExpirationDateTime::Yes(expiration_moment) =
+            update_expiration_time.update_db_partition_expiration_time
+        {
+            self.expires = expiration_moment;
         }
 
-        result
+        return self
+            .rows
+            .get_highest_row_and_below_and_update_expiration_time(
+                row_key,
+                limit,
+                update_expiration_time,
+            );
     }
 
     pub fn fill_with_json_data(&self, json_array_writer: &mut JsonArrayWriter) {

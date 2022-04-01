@@ -7,7 +7,7 @@ use std::{
 };
 
 use crate::{
-    db::{db_snapshots::DbPartitionSnapshot, DbPartition, DbRow},
+    db::{db_snapshots::DbPartitionSnapshot, DbPartition, DbRow, UpdateExpirationTimeModel},
     db_json_entity::JsonTimeStamp,
     persist_operations::data_to_persist::DataToPersist,
 };
@@ -88,12 +88,12 @@ impl DbTableData {
 
     pub fn get_all_rows_and_update_expiration_time<'s>(
         &'s mut self,
-        expiration_time: Option<DateTimeAsMicroseconds>,
+        update_expiration_time: &UpdateExpirationTimeModel,
     ) -> Vec<Arc<DbRow>> {
         let mut result = Vec::new();
         for db_partition in self.partitions.values_mut() {
             result.extend(
-                db_partition.get_all_rows_and_update_expiration_time(None, expiration_time),
+                db_partition.get_all_rows_and_update_expiration_time(None, update_expiration_time),
             );
         }
         result

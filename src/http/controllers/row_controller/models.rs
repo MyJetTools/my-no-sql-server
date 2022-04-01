@@ -78,27 +78,12 @@ pub struct GetRowInputModel {
 
     #[http_query(name = "skip"; description = "Skip amount of records before start collecting them")]
     pub skip: Option<usize>,
-}
 
-#[derive(MyHttpInput)]
-pub struct GetRowAndUpdateExpirationTimeInputModel {
-    #[http_query(name = "tableName"; description = "Name of a table")]
-    pub table_name: String,
+    #[http_header(name ="setPartitionExpirationTime" description = "Set Partition Expiration time")]
+    pub set_partition_expiration_time: Option<String>,
 
-    #[http_query(name = "partitionKey"; description = "Partition Key")]
-    pub partition_key: Option<String>,
-
-    #[http_query(name = "rowKey"; description = "Row Key")]
-    pub row_key: Option<String>,
-
-    #[http_query(name = "limit"; description = "Limit amount of records we are going to get")]
-    pub limit: Option<usize>,
-
-    #[http_query(name = "skip"; description = "Skip amount of records before start collecting them")]
-    pub skip: Option<usize>,
-
-    #[http_query(name = "expirationTime"; description = "Update expiration time")]
-    pub expiration_time: Option<String>,
+    #[http_header(name ="setRowsExpirationTime" description = "Set Found DbRows Expiration time")]
+    pub set_db_rows_expiration_time: Option<String>,
 }
 
 #[derive(MyHttpInput)]

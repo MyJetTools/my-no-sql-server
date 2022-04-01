@@ -6,7 +6,10 @@ use my_http_server_controllers::controllers::{
     documentation::{out_results::HttpResult, HttpActionDescription},
 };
 
-use crate::{app::AppContext, http::controllers::row_controller::models::BaseDbRowContract};
+use crate::{
+    app::AppContext, db::UpdateExpirationTimeModel,
+    http::controllers::row_controller::models::BaseDbRowContract,
+};
 
 use super::models::GetHighestRowsAndBelowInputContract;
 
@@ -55,11 +58,27 @@ impl GetAction for GetHighestRowAndBelowAction {
         )
         .await?;
 
+        let limit = if let Some(max_amount) = input_data.max_amount {
+            if max_amount == 0 {
+                None
+            } else {
+                Some(max_amount)
+            }
+        } else {
+            None
+        };
+
+        let update_expiration = UpdateExpirationTimeModel::new(
+            input_data.set_db_rows_expiration_time.as_ref(),
+            input_data.set_partition_expiration_time.as_ref(),
+        );
+
         let result = crate::db_operations::read::get_highest_row_and_below(
             db_table.as_ref(),
             input_data.partition_key.as_ref(),
             &input_data.row_key,
-            input_data.max_amount,
+            limit,
+            update_expiration,
         )
         .await;
 

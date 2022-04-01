@@ -1,10 +1,31 @@
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-use crate::db::{DbTable, UpdatePartitionReadMoment};
+use crate::db::{DbTable, UpdateExpirationTimeModel, UpdatePartitionReadMoment};
 
 use super::super::{read_filter, ReadOperationResult};
 
 pub async fn get_all_by_row_key(
+    table: &DbTable,
+    row_key: &str,
+    limit: Option<usize>,
+    skip: Option<usize>,
+    update_expiration_time: Option<UpdateExpirationTimeModel>,
+) -> ReadOperationResult {
+    if let Some(update_expiration_time) = update_expiration_time {
+        get_all_by_row_key_and_update_expiration_time(
+            table,
+            row_key,
+            limit,
+            skip,
+            &update_expiration_time,
+        )
+        .await
+    } else {
+        get_all_by_row_key_and_update_no_expiration_time(table, row_key, limit, skip).await
+    }
+}
+
+async fn get_all_by_row_key_and_update_no_expiration_time(
     table: &DbTable,
     row_key: &str,
     limit: Option<usize>,
@@ -39,12 +60,12 @@ pub async fn get_all_by_row_key(
     ));
 }
 
-pub async fn get_all_by_row_key_and_update_expiration_time(
+async fn get_all_by_row_key_and_update_expiration_time(
     table: &DbTable,
     row_key: &str,
     limit: Option<usize>,
     skip: Option<usize>,
-    expiration_time: Option<DateTimeAsMicroseconds>,
+    update_expiration_time: &UpdateExpirationTimeModel,
 ) -> ReadOperationResult {
     let now = DateTimeAsMicroseconds::now();
 
@@ -60,7 +81,7 @@ pub async fn get_all_by_row_key_and_update_expiration_time(
         let get_row_result = partition.get_row_and_update_expiration_time(
             row_key,
             UpdatePartitionReadMoment::UpdateIfElementIsFound(now),
-            expiration_time,
+            update_expiration_time,
         );
 
         if let Some(db_row) = get_row_result {

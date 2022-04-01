@@ -1,13 +1,32 @@
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
-    db::{DbTable, UpdatePartitionReadMoment},
+    db::{DbTable, UpdateExpirationTimeModel, UpdatePartitionReadMoment},
     db_operations::DbOperationError,
 };
 
 use super::super::ReadOperationResult;
 
 pub async fn get_single(
+    table: &DbTable,
+    partition_key: &str,
+    row_key: &str,
+    update_expiration_time: Option<UpdateExpirationTimeModel>,
+) -> Result<ReadOperationResult, DbOperationError> {
+    if let Some(update_expiration_time) = update_expiration_time {
+        get_single_and_update_expiration_time(
+            table,
+            partition_key,
+            row_key,
+            &update_expiration_time,
+        )
+        .await
+    } else {
+        get_single_and_update_no_expiration_time(table, partition_key, row_key).await
+    }
+}
+
+async fn get_single_and_update_no_expiration_time(
     table: &DbTable,
     partition_key: &str,
     row_key: &str,
@@ -41,11 +60,11 @@ pub async fn get_single(
     return Ok(ReadOperationResult::SingleRow(db_row.data.clone()));
 }
 
-pub async fn get_single_and_update_expiration_time(
+async fn get_single_and_update_expiration_time(
     table: &DbTable,
     partition_key: &str,
     row_key: &str,
-    expiration_time: Option<DateTimeAsMicroseconds>,
+    update_expiration_time: &UpdateExpirationTimeModel,
 ) -> Result<ReadOperationResult, DbOperationError> {
     let now = DateTimeAsMicroseconds::now();
 
@@ -64,7 +83,7 @@ pub async fn get_single_and_update_expiration_time(
     let db_row = partition.get_row_and_update_expiration_time(
         row_key,
         UpdatePartitionReadMoment::UpdateIfElementIsFound(now),
-        expiration_time,
+        update_expiration_time,
     );
 
     if db_row.is_none() {

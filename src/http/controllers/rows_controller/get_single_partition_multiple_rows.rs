@@ -6,7 +6,10 @@ use my_http_server_controllers::controllers::{
     documentation::{out_results::HttpResult, HttpActionDescription},
 };
 
-use crate::{app::AppContext, http::controllers::row_controller::models::BaseDbRowContract};
+use crate::{
+    app::AppContext, db::UpdateExpirationTimeModel,
+    http::controllers::row_controller::models::BaseDbRowContract,
+};
 
 use super::models::GetSinglePartitionMultipleRowsActionInputContract;
 
@@ -59,10 +62,16 @@ impl PostAction for GetSinglePartitionMultipleRowsAction {
 
         let row_keys = serde_json::from_slice(input_data.body.as_slice()).unwrap();
 
+        let update_expiration_time = UpdateExpirationTimeModel::new(
+            input_data.set_db_rows_expiration_time.as_ref(),
+            input_data.set_partition_expiration_time.as_ref(),
+        );
+
         let result = crate::db_operations::read::rows::get_single_partition_multiple_rows(
             db_table.as_ref(),
             input_data.partition_key.as_ref(),
             row_keys,
+            update_expiration_time,
         )
         .await;
 
