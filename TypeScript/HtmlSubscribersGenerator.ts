@@ -36,11 +36,11 @@ class HtmlSubscribersGenerator {
 
 
     private static generateTablesHtml(tables: ITableModel[]): string {
-        let html = `<table class="table table-striped"><tr><th>Table</th><th>Partitions</th><th>Records</th><th>Indexed Records</th></tr>`;
+        let html = `<table class="table table-striped"><tr><th>Table</th><th>DataSize</th<th>Partitions</th><th>Records</th><th>Indexed Records</th></tr>`;
 
         for (let table of tables) {
 
-            html += '<tr><td>' + table.name + '</td><td>' + table.partitionsCount + '</td><td>' + table.recordsAmount + '</td><td>' + table.expirationIndex + '</td>'
+            html += '<tr><td>' + table.name + '</td><td>' + table.dataSize + '</td><td>' + table.partitionsCount + '</td><td>' + table.recordsAmount + '</td><td>' + table.expirationIndex + '</td>'
                 + '</tr>';
 
         }

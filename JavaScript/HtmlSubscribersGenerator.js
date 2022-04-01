@@ -23,10 +23,10 @@ var HtmlSubscribersGenerator = /** @class */ (function () {
         return html;
     };
     HtmlSubscribersGenerator.generateTablesHtml = function (tables) {
-        var html = "<table class=\"table table-striped\"><tr><th>Table</th><th>Partitions</th><th>Records</th><th>Indexed Records</th></tr>";
+        var html = "<table class=\"table table-striped\"><tr><th>Table</th><th>DataSize</th<th>Partitions</th><th>Records</th><th>Indexed Records</th></tr>";
         for (var _i = 0, tables_1 = tables; _i < tables_1.length; _i++) {
             var table = tables_1[_i];
-            html += '<tr><td>' + table.name + '</td><td>' + table.partitionsCount + '</td><td>' + table.recordsAmount + '</td><td>' + table.expirationIndex + '</td>'
+            html += '<tr><td>' + table.name + '</td><td>' + table.dataSize + '</td><td>' + table.partitionsCount + '</td><td>' + table.recordsAmount + '</td><td>' + table.expirationIndex + '</td>'
                 + '</tr>';
         }
         html += '</table>';
