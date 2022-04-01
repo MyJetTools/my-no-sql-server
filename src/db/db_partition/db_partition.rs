@@ -225,7 +225,7 @@ impl DbPartition {
     }
 
     pub fn get_expiration_index_rows_amount(&self) -> usize {
-        self.rows.len()
+        self.rows.rows_with_expiration_index_len()
     }
 
     //TODO - Продолжить ревьювить content рассчет Content Size

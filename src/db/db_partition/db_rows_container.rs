@@ -29,6 +29,10 @@ impl DbRowsContainer {
         self.data.len()
     }
 
+    pub fn rows_with_expiration_index_len(&self) -> usize {
+        self.rows_with_expiration_index.len()
+    }
+
     pub fn get_rows_to_expire(&self, now: DateTimeAsMicroseconds) -> Option<Vec<String>> {
         let mut keys = LazyVec::new();
         for expiration_time in self.rows_with_expiration_index.keys() {
