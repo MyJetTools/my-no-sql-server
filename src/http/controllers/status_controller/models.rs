@@ -56,7 +56,7 @@ impl StatusModel {
 
             let table_model = TableModel {
                 name: table.name.clone(),
-                partitions_count: read_access.partitions.len(),
+                partitions_count: metrics.partitions_amount,
                 data_size: metrics.table_size,
                 expiration_index_records_amount: metrics.expiration_index_records_amount,
                 records_amount: metrics.records_amount,

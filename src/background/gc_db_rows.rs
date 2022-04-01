@@ -82,7 +82,12 @@ async fn get_data_to_expire(app: &AppContext, now: DateTimeAsMicroseconds) -> Da
         }
 
         let mut db_rows_to_expire = LazyHashMap::new();
+
         for (partition_key, db_partition) in &table_read_access.partitions {
+            if db_partition.get_rows_amount() == 0 {
+                tables_with_partitions_to_expire
+                    .push((table.clone(), vec![partition_key.to_string()]));
+            }
             if let Some(rows_to_expire) = db_partition.get_rows_to_expire(now) {
                 db_rows_to_expire.insert(partition_key.to_string(), rows_to_expire);
             }
