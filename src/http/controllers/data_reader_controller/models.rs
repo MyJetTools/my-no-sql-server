@@ -36,6 +36,9 @@ pub struct PingInputModel {
 pub struct GetChangesInputModel {
     #[http_header(name = "session"; description = "Id of session")]
     pub session_id: String,
+
+    #[http_body(description = "Update model")]
+    pub body: Vec<u8>,
 }
 
 #[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
@@ -59,4 +62,29 @@ pub struct DeleteRowsHttpContract {
     pub partition_key: String,
     #[serde(rename = "rk")]
     pub row_keys: Vec<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
+pub struct GetChangesBodyModel {
+    #[serde(rename = "uet")]
+    pub update_expiration_time: Vec<UpdateExpirationDateTimeByTable>,
+}
+
+#[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
+pub struct UpdateExpirationDateTimeByTable {
+    #[serde(rename = "tableName")]
+    pub table_name: String,
+    pub items: Vec<UpdateExpirationDateTime>,
+}
+
+#[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
+pub struct UpdateExpirationDateTime {
+    #[serde(rename = "pk")]
+    pub partition_key: String,
+    #[serde(rename = "rk")]
+    pub row_keys: Vec<String>,
+    #[serde(rename = "ret")]
+    pub set_db_rows_expiration_time: Option<String>,
+    #[serde(rename = "pet")]
+    pub set_db_partition_expiration_time: Option<String>,
 }

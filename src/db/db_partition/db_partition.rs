@@ -166,6 +166,25 @@ impl DbPartition {
         result.get_result()
     }
 
+    pub fn get_rows_and_update_expiration_time(
+        &mut self,
+        row_keys: &[String],
+        update_expiration_time: &UpdateExpirationTimeModel,
+    ) -> Option<Vec<Arc<DbRow>>> {
+        let mut result = LazyVec::new();
+
+        for row_key in row_keys {
+            if let Some(db_row) = self
+                .rows
+                .get_and_update_expiration_time(row_key, update_expiration_time)
+            {
+                result.push(db_row);
+            }
+        }
+
+        result.get_result()
+    }
+
     pub fn get_all_rows<'s>(
         &'s self,
         update_last_read_moment: Option<DateTimeAsMicroseconds>,

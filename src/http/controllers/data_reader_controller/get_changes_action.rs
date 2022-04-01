@@ -9,10 +9,12 @@ use my_http_server_controllers::controllers::{
 use crate::{
     app::AppContext,
     data_readers::{http_connection::HttpPayload, DataReaderConnection},
+    db::UpdateExpirationTimeModel,
+    db_sync::EventSource,
     http::http_sessions::HttpSessionsSupport,
 };
 
-use super::models::GetChangesInputModel;
+use super::models::{GetChangesBodyModel, GetChangesInputModel, UpdateExpirationDateTime};
 
 pub struct GetChangesAction {
     app: Arc<AppContext>,
@@ -53,6 +55,17 @@ impl PostAction for GetChangesAction {
             .get_http_session(input_data.session_id.as_str())
             .await?;
 
+        if let Ok(body) = serde_json::from_slice::<GetChangesBodyModel>(&input_data.body) {
+            for update_model in &body.update_expiration_time {
+                update_expiration_time(
+                    self.app.as_ref(),
+                    update_model.table_name.as_str(),
+                    &update_model.items,
+                )
+                .await;
+            }
+        }
+
         if let DataReaderConnection::Http(info) = &data_reader.connection {
             let result = info.new_request().await?;
             match result {
@@ -75,5 +88,38 @@ impl PostAction for GetChangesAction {
             content: "Only HTTP sessions are supported".to_string().into_bytes(),
             write_telemetry: true,
         });
+    }
+}
+
+async fn update_expiration_time(
+    app: &AppContext,
+    table_name: &str,
+    items: &[UpdateExpirationDateTime],
+) {
+    let db_table = app.db.get_table(table_name).await;
+    if db_table.is_none() {
+        return;
+    }
+
+    let db_table = db_table.unwrap();
+    for item in items {
+        let src = EventSource::as_client_request(app);
+
+        let update_expiration = UpdateExpirationTimeModel::new(
+            item.set_db_rows_expiration_time.as_ref(),
+            item.set_db_partition_expiration_time.as_ref(),
+        );
+
+        if let Some(update_expiration) = &update_expiration {
+            crate::db_operations::write::update_expiration_time(
+                app,
+                db_table.as_ref(),
+                item.partition_key.as_ref(),
+                &item.row_keys,
+                update_expiration,
+                src,
+            )
+            .await;
+        }
     }
 }
