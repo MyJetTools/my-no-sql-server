@@ -9,6 +9,19 @@ use super::{non_initialized::NonInitializedModel, status_bar_model::StatusBarMod
 pub struct NodeModel {}
 
 #[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
+pub struct TableModel {
+    pub name: String,
+    #[serde(rename = "partitionsCount")]
+    pub partitions_count: usize,
+    #[serde(rename = "dataSize")]
+    pub data_size: usize,
+    #[serde(rename = "recordsAmount")]
+    pub records_amount: usize,
+    #[serde(rename = "expirationIndex")]
+    pub expiration_index_records_amount: usize,
+}
+
+#[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
 pub struct ReaderModel {
     id: String,
     pub name: String,
@@ -32,20 +45,38 @@ pub struct StatusModel {
 impl StatusModel {
     pub async fn new(app: &AppContext) -> Self {
         let (readers, tcp, http) = get_readers(app).await;
-        let tables_amount = app.db.get_tables_amount().await;
+        let tables = app.db.get_tables().await;
+
+        let mut tables_model = Vec::new();
+
+        for table in &tables {
+            let read_access = table.data.read().await;
+
+            let metrics = read_access.get_metrics();
+
+            let table_model = TableModel {
+                name: table.name.clone(),
+                partitions_count: read_access.partitions.len(),
+                data_size: metrics.table_size,
+                expiration_index_records_amount: metrics.expiration_index_records_amount,
+                records_amount: metrics.records_amount,
+            };
+
+            tables_model.push(table_model);
+        }
 
         if app.states.is_initialized() {
             return Self {
                 not_initialized: None,
-                initialized: Some(InitializedModel::new(readers)),
-                status_bar: StatusBarModel::new(app, tcp, http, tables_amount),
+                initialized: Some(InitializedModel::new(readers, tables_model)),
+                status_bar: StatusBarModel::new(app, tcp, http, tables.len()),
             };
         }
 
         return Self {
             not_initialized: Some(NonInitializedModel::new(app).await),
             initialized: None,
-            status_bar: StatusBarModel::new(app, tcp, http, tables_amount),
+            status_bar: StatusBarModel::new(app, tcp, http, tables.len()),
         };
     }
 }
@@ -53,13 +84,15 @@ impl StatusModel {
 pub struct InitializedModel {
     pub nodes: Vec<NodeModel>,
     pub readers: Vec<ReaderModel>,
+    pub tables: Vec<TableModel>,
 }
 
 impl InitializedModel {
-    pub fn new(readers: Vec<ReaderModel>) -> Self {
+    pub fn new(readers: Vec<ReaderModel>, tables: Vec<TableModel>) -> Self {
         Self {
             nodes: vec![],
             readers,
+            tables,
         }
     }
 }

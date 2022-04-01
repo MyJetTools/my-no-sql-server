@@ -26,6 +26,8 @@ pub struct DbTableMetrics {
     pub table_size: usize,
     pub partitions_amount: usize,
     pub persist_amount: usize,
+    pub records_amount: usize,
+    pub expiration_index_records_amount: usize,
 }
 
 impl DbTable {
@@ -39,17 +41,12 @@ impl DbTable {
 
     pub async fn get_metrics(&self) -> DbTableMetrics {
         let read_access = self.data.read().await;
-
-        return DbTableMetrics {
-            table_size: read_access.get_table_size(),
-            partitions_amount: read_access.get_partitions_amount(),
-            persist_amount: read_access.data_to_persist.persist_amount(),
-        };
+        read_access.get_metrics()
     }
 
     pub async fn get_table_size(&self) -> usize {
         let read_access = self.data.read().await;
-        return read_access.get_table_size();
+        return read_access.get_calculated_metrics().data_size;
     }
 
     pub async fn get_partitions_amount(&self) -> usize {

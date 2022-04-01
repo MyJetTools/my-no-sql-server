@@ -45,6 +45,7 @@ interface IStatus {
 interface IInitializedStatus {
     readers: IReaderStatus[],
     nodes: INodeStatus[]
+    tables: ITableModel[]
 }
 
 interface IStatusBarModel {
@@ -54,4 +55,12 @@ interface IStatusBarModel {
     httpConnections: number;
     location: ILocationStatus,
     masterNode: string,
+}
+
+interface ITableModel {
+    name: number;
+    partitionsCount: number;
+    dataSize: number;
+    recordsAmount: number;
+    expirationIndex: number;
 }

@@ -12,7 +12,15 @@ use crate::{
     persist_operations::data_to_persist::DataToPersist,
 };
 
+use super::DbTableMetrics;
+
 pub type TPartitions = BTreeMap<String, DbPartition>;
+
+pub struct CalculatedMetrics {
+    pub data_size: usize,
+    pub records_count: usize,
+    pub expiration_index_records_count: usize,
+}
 
 pub struct DbTableData {
     pub name: String,
@@ -68,14 +76,21 @@ impl DbTableData {
         self.partitions.len()
     }
 
-    pub fn get_table_size(&self) -> usize {
-        let mut table_size = 0;
+    pub fn get_calculated_metrics(&self) -> CalculatedMetrics {
+        let mut result = CalculatedMetrics {
+            data_size: 0,
+            expiration_index_records_count: 0,
+            records_count: 0,
+        };
 
         for db_partition in self.partitions.values() {
-            table_size += db_partition.get_content_size();
+            result.data_size += db_partition.get_content_size();
+            result.records_count += db_partition.get_rows_amount();
+            result.expiration_index_records_count +=
+                db_partition.get_expiration_index_rows_amount();
         }
 
-        table_size
+        result
     }
 
     pub fn get_all_rows<'s>(&'s self) -> Vec<&Arc<DbRow>> {
@@ -157,6 +172,17 @@ impl DbTableData {
         }
 
         result
+    }
+
+    pub fn get_metrics(&self) -> DbTableMetrics {
+        let calculated_metrics = self.get_calculated_metrics();
+        DbTableMetrics {
+            table_size: calculated_metrics.data_size,
+            partitions_amount: self.get_partitions_amount(),
+            persist_amount: self.data_to_persist.persist_amount(),
+            records_amount: calculated_metrics.records_count,
+            expiration_index_records_amount: calculated_metrics.expiration_index_records_count,
+        }
     }
 }
 

@@ -10,7 +10,9 @@ class HtmlSubscribersGenerator {
         return '<h3>Connected Nodes</h3>'
             + this.generateNodesHtml(data.nodes)
             + '<h3>Readers</h3>'
-            + this.generateReadersHtml(data.readers);
+            + this.generateReadersHtml(data.readers)
+            + '<h3>Tables</h3>'
+            + this.generateTablesHtml(data.tables);
     }
 
 
@@ -32,6 +34,21 @@ class HtmlSubscribersGenerator {
         return html;
     }
 
+
+    private static generateTablesHtml(tables: ITableModel[]): string {
+        let html = `<table class="table table-striped"><tr><th>Table</th><th>Partitions</th><th>Records</th><th>Indexed Records</th></tr>`;
+
+        for (let table of tables) {
+
+            html += '<tr><td>' + table.name + '</td><td>' + table.partitionsCount + '</td><td>' + table.recordsAmount + '</td><td>' + table.expirationIndex + '</td>'
+                + '</tr>';
+
+        }
+
+        html += '</table>';
+
+        return html;
+    }
     private static generateNodesHtml(data: INodeStatus[]): string {
         let html = `<table class="table table-striped"><tr><th>Location</th><th>Connected</th><th>LastAccess</th><th>Compress</th><th>Latency</th></tr>`;
 
