@@ -12,6 +12,8 @@ class HtmlStatusBar {
     private static tcpConnections: number;
     private static httpConnections: number;
 
+    private static syncQueueSize: number;
+
 
     public static layout(): string {
         return '<div id="status-bar">' +
@@ -40,6 +42,9 @@ class HtmlStatusBar {
             '<td><div class="statusbar-separator"></div></td>' +
 
             '<td>Persist queue: <b id="persist-queue" style="text-shadow: 0 0 2px white;"></b></td>' +
+            '<td><div class="statusbar-separator"></div></td>' +
+
+            '<td>Sync queue: <b id="sync-queue-size" style="text-shadow: 0 0 2px white;"></b></td>' +
             '<td><div class="statusbar-separator"></div></td>' +
 
             '<td>Connected to master node: <b id="master-node" style="text-shadow: 0 0 1px white;"></b></td>' +
@@ -95,6 +100,11 @@ class HtmlStatusBar {
         if (this.persistAmount != data.persistAmount) {
             this.persistAmount = data.persistAmount;
             document.getElementById('persist-queue').innerHTML = this.persistAmount.toString()
+        }
+
+        if (this.syncQueueSize != data.syncQueueSize) {
+            this.syncQueueSize = data.syncQueueSize;
+            document.getElementById('sync-queue-size').innerHTML = this.syncQueueSize.toString()
         }
     }
 

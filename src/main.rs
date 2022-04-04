@@ -38,7 +38,6 @@ pub mod mynosqlserver_grpc {
 
 #[tokio::main]
 async fn main() {
-    let (transactions_sender, transactions_receiver) = tokio::sync::mpsc::unbounded_channel();
     let settings = settings_reader::read_settings().await;
 
     let settings = Arc::new(settings);
@@ -51,10 +50,14 @@ async fn main() {
 
     let persist_io = settings.get_persist_io(logs.clone(), app_insights.clone());
 
+    let mut sync_events_dispatcher = EventsDispatcherProduction::new();
+
+    let sync_events_reader = sync_events_dispatcher.get_events_reader();
+
     let app = AppContext::new(
         logs.clone(),
         settings,
-        Box::new(EventsDispatcherProduction::new(transactions_sender)),
+        Box::new(sync_events_dispatcher),
         Arc::new(persist_io),
     );
 
@@ -86,7 +89,7 @@ async fn main() {
 
     background_tasks.push(tokio::task::spawn(crate::background::sync::start(
         app.clone(),
-        transactions_receiver,
+        sync_events_reader,
     )));
 
     crate::http::start_up::setup_server(app.clone(), app_insights.clone());

@@ -55,6 +55,7 @@ interface IStatusBarModel {
     httpConnections: number;
     location: ILocationStatus,
     masterNode: string,
+    syncQueueSize: number
 }
 
 interface ITableModel {
