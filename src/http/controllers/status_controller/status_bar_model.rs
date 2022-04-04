@@ -22,7 +22,7 @@ pub struct StatusBarModel {
     pub http_connections: usize,
     #[serde(rename = "masterNode")]
     pub master_node: Option<String>,
-    #[serde(rename = "syncQueueSizes")]
+    #[serde(rename = "syncQueueSize")]
     pub sync_queue_size: usize,
 }
 
