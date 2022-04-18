@@ -1,15 +1,24 @@
 use std::sync::Arc;
 
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
-use my_http_server_controllers::controllers::{
-    actions::GetAction,
-    documentation::{data_types::HttpDataType, out_results::HttpResult, HttpActionDescription},
-};
 
-use crate::{app::AppContext, http::contracts::response};
+use my_swagger::http_route;
 
-use super::models::GetPartitionsAmountContract;
+use crate::app::AppContext;
 
+use super::models::GetTableSizeContract;
+
+#[http_route(
+    method: "GET",
+    route: "/Tables/TableSize",
+    input_data: "GetTableSizeContract",
+    description: "Get Table size",
+    controller: "Tables",
+    result:[
+        {status_code: 200, description: "Size of table", model: "Long"},
+        {status_code: 400, description: "Table not found"},
+    ]
+)]
 pub struct GetTableSizeAction {
     app: Arc<AppContext>,
 }
@@ -20,44 +29,18 @@ impl GetTableSizeAction {
     }
 }
 
-#[async_trait::async_trait]
-impl GetAction for GetTableSizeAction {
-    fn get_route(&self) -> &str {
-        "/Tables/TableSize"
-    }
+async fn handle_request(
+    action: &GetTableSizeAction,
+    input_data: GetTableSizeContract,
+    _ctx: &HttpContext,
+) -> Result<HttpOkResult, HttpFailResult> {
+    let db_table =
+        crate::db_operations::read::table::get(action.app.as_ref(), input_data.table_name.as_str())
+            .await?;
 
-    fn get_description(&self) -> Option<HttpActionDescription> {
-        HttpActionDescription {
-            controller_name: super::consts::CONTROLLER_NAME,
-            description: "Get Table size",
+    let partitions_amount = db_table.get_table_size().await;
 
-            input_params: GetPartitionsAmountContract::get_input_params().into(),
-            results: vec![
-                HttpResult {
-                    http_code: 200,
-                    nullable: true,
-                    description: "Table size".to_string(),
-                    data_type: HttpDataType::as_long(),
-                },
-                response::table_not_found(),
-            ],
-        }
+    HttpOutput::as_text(format!("{}", partitions_amount))
+        .into_ok_result(true)
         .into()
-    }
-
-    async fn handle_request(&self, ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
-        let input_data = GetPartitionsAmountContract::parse_http_input(ctx).await?;
-
-        let db_table = crate::db_operations::read::table::get(
-            self.app.as_ref(),
-            input_data.table_name.as_str(),
-        )
-        .await?;
-
-        let partitions_amount = db_table.get_table_size().await;
-
-        HttpOutput::as_text(format!("{}", partitions_amount))
-            .into_ok_result(true)
-            .into()
-    }
 }

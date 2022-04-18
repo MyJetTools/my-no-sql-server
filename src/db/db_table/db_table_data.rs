@@ -252,7 +252,7 @@ impl DbTableData {
     pub fn remove_row(
         &mut self,
         partition_key: &str,
-        row_key: &String,
+        row_key: &str,
         delete_empty_partition: bool,
         now: &JsonTimeStamp,
     ) -> Option<(Arc<DbRow>, bool)> {

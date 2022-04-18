@@ -3,7 +3,7 @@ mod as_html;
 pub mod builder;
 pub mod bulk;
 pub mod data_reader_controller;
-pub mod gc;
+pub mod gc_controller;
 pub mod home_controller;
 
 pub mod logs_controller;

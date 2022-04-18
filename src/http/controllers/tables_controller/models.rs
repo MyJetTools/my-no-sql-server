@@ -4,6 +4,12 @@ use serde::{Deserialize, Serialize};
 use crate::{db::DbTable, db_sync::DataSynchronizationPeriod};
 
 #[derive(MyHttpInput)]
+pub struct GetTableSizeContract {
+    #[http_query(name = "tableName"; description = "Name of a table")]
+    pub table_name: String,
+}
+
+#[derive(MyHttpInput)]
 pub struct GetPartitionsAmountContract {
     #[http_query(name = "tableName"; description = "Name of a table")]
     pub table_name: String,
@@ -59,6 +65,7 @@ pub struct CreateTableCotnract {
     #[http_query(name = "syncPeriod"; description = "Synchronization period"; default="Sec5")]
     pub sync_period: DataSynchronizationPeriod,
 }
+
 #[derive(MyHttpInput)]
 pub struct TableMigrationInputContract {
     #[http_query(name = "remoteUrl"; description = "Url of the remote MyNoSqlServer we are going to copy data from")]
