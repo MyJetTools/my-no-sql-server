@@ -5,6 +5,8 @@ pub async fn save_table_attributes(
     table_name: &str,
     attrs: &DbTableAttributesSnapshot,
 ) {
+    app.persist_io.create_table_folder(table_name).await;
+
     let content = serializers::table_attrs::serialize(attrs);
 
     app.persist_io
