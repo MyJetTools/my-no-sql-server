@@ -1,7 +1,6 @@
 use flurl::FlUrl;
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput, WebContentType};
 
-use my_swagger::http_route;
 use std::sync::Arc;
 
 use crate::{
@@ -13,7 +12,7 @@ use crate::{
 
 use super::models::TableMigrationInputContract;
 
-#[http_route(
+#[my_http_server_swagger::http_route(
     method: "POST",
     route: "/Tables/MigrateFrom",
     input_data: "TableMigrationInputContract",

@@ -1,4 +1,3 @@
-use my_swagger::http_route;
 use std::sync::Arc;
 
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
@@ -7,7 +6,7 @@ use crate::{app::AppContext, db_sync::EventSource};
 
 use super::models::CleanTableContract;
 
-#[http_route(
+#[my_http_server_swagger::http_route(
     method: "PUT",
     route: "/Tables/Clean",
     input_data: "CleanTableContract",
@@ -26,7 +25,6 @@ impl CleanTableAction {
         Self { app }
     }
 }
-
 async fn handle_request(
     action: &CleanTableAction,
     input_data: CleanTableContract,

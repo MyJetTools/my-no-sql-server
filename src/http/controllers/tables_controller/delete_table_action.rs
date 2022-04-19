@@ -1,4 +1,3 @@
-use my_swagger::http_route;
 use std::sync::Arc;
 
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
@@ -7,7 +6,7 @@ use crate::{app::AppContext, db_sync::EventSource};
 
 use super::{super::super::contracts::input_params::*, models::DeleteTableContract};
 
-#[http_route(
+#[my_http_server_swagger::http_route(
     method: "DELETE",
     route: "/Tables/Delete",
     input_data: "DeleteTableContract",

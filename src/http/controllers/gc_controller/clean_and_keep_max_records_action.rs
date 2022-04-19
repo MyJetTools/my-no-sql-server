@@ -1,13 +1,12 @@
 use std::sync::Arc;
 
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
-use my_swagger::http_route;
 
 use crate::{app::AppContext, db_sync::EventSource};
 
 use super::models::CleanPartitionAndKeepMaxRowsAmountInputContract;
 
-#[http_route(
+#[my_http_server_swagger::http_route(
     method: "POST",
     route: "/GarbageCollector/CleanAndKeepMaxRecords",
     description: "After operation some rows are going to be deleted to make sure we keep maximum rows amount required",

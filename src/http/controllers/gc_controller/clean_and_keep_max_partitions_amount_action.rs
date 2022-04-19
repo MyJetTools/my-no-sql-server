@@ -2,13 +2,11 @@ use std::sync::Arc;
 
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 
-use my_swagger::http_route;
-
 use crate::{app::AppContext, db_sync::EventSource};
 
 use super::models::CleanAndKeepMaxPartitionsAmountInputContract;
 
-#[http_route(
+#[my_http_server_swagger::http_route(
     method: "POST",
     route: "/GarbageCollector/CleanAndKeepMaxPartitions",
     description: "After operation some partitions can be deleted to make sure we keep maximum partitions amount required",

@@ -1,11 +1,10 @@
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
-use my_swagger::http_route;
 
 use super::models::GetPartitionsAmountContract;
 use crate::app::AppContext;
 use std::{result::Result, sync::Arc};
 
-#[http_route(
+#[my_http_server_swagger::http_route(
     method: "GET",
     route: "/Tables/PartitionsCount",
     input_data: "GetPartitionsAmountContract",

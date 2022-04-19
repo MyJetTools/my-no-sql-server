@@ -2,13 +2,11 @@ use std::sync::Arc;
 
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 
-use my_swagger::http_route;
-
 use crate::app::AppContext;
 
 use super::models::GetTableSizeContract;
 
-#[http_route(
+#[my_http_server_swagger::http_route(
     method: "GET",
     route: "/Tables/TableSize",
     input_data: "GetTableSizeContract",
