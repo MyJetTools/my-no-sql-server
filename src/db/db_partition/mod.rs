@@ -1,3 +1,4 @@
 mod db_partition;
-
-pub use db_partition::DbPartition;
+mod db_rows_container;
+pub use db_partition::{DbPartition, UpdatePartitionReadMoment};
+pub use db_rows_container::DbRowsContainer;

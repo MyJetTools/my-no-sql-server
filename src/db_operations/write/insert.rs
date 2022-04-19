@@ -4,7 +4,7 @@ use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
     app::AppContext,
-    db::{DbRow, DbTable},
+    db::{DbRow, DbTable, UpdatePartitionReadMoment},
     db_json_entity::JsonTimeStamp,
     db_operations::DbOperationError,
     db_sync::{states::UpdateRowsSyncData, EventSource, SyncEvent},
@@ -25,7 +25,10 @@ pub async fn validate_before(
 
     let partition = partition.unwrap();
 
-    if partition.get_row(row_key).is_some() {
+    if partition
+        .get_row(row_key, UpdatePartitionReadMoment::None)
+        .is_some()
+    {
         return Err(DbOperationError::RecordAlreadyExists);
     }
 

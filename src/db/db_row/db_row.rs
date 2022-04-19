@@ -28,7 +28,7 @@ impl DbRow {
             partition_key,
             row_key,
             data,
-            expires: expires_to_atomic(expires),
+            expires: AtomicI64::new(expires_to_i64(expires)),
             time_stamp: time_stamp.as_str().to_string(),
             last_read_access,
         }
@@ -39,7 +39,7 @@ impl DbRow {
     }
 
     pub fn get_expires(&self) -> Option<DateTimeAsMicroseconds> {
-        let result = self.expires.load(std::sync::atomic::Ordering::SeqCst);
+        let result = self.expires.load(std::sync::atomic::Ordering::Relaxed);
 
         if result == NULL_EXPIRES {
             return None;
@@ -47,18 +47,23 @@ impl DbRow {
 
         return Some(DateTimeAsMicroseconds::new(result));
     }
+
+    pub fn update_expires(&self, expires: Option<DateTimeAsMicroseconds>) {
+        self.expires
+            .store(expires_to_i64(expires), std::sync::atomic::Ordering::SeqCst);
+    }
 }
 
 const NULL_EXPIRES: i64 = 0;
 
-fn expires_to_atomic(expires: Option<DateTimeAsMicroseconds>) -> AtomicI64 {
+fn expires_to_i64(expires: Option<DateTimeAsMicroseconds>) -> i64 {
     if let Some(expires) = expires {
         if expires.unix_microseconds == NULL_EXPIRES {
-            return AtomicI64::new(NULL_EXPIRES + 1);
+            return NULL_EXPIRES + 1;
         }
 
-        return AtomicI64::new(expires.unix_microseconds);
+        return expires.unix_microseconds;
     }
 
-    return AtomicI64::new(NULL_EXPIRES);
+    NULL_EXPIRES
 }

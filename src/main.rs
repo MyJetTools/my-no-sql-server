@@ -1,7 +1,6 @@
 use app::{logs::Logs, AppContext, EventsDispatcherProduction};
 use background::{
-    data_gc::DataGcTimer, db_rows_expirator::DbRowsExpirator,
-    gc_http_sessions::GcHttpSessionsTimer, gc_partitions::GcPartitions,
+    gc_db_rows::GcDbRows, gc_http_sessions::GcHttpSessionsTimer, gc_multipart::GcMultipart,
     metrics_updater::MetricsUpdater, persist::PersistTimer,
 };
 use my_logger::MyLogger;
@@ -22,7 +21,6 @@ mod db_transactions;
 mod http;
 mod json;
 mod persist_operations;
-mod rows_with_expiration;
 mod tcp;
 
 mod background;
@@ -40,7 +38,6 @@ pub mod mynosqlserver_grpc {
 
 #[tokio::main]
 async fn main() {
-    let (transactions_sender, transactions_receiver) = tokio::sync::mpsc::unbounded_channel();
     let settings = settings_reader::read_settings().await;
 
     let settings = Arc::new(settings);
@@ -53,10 +50,14 @@ async fn main() {
 
     let persist_io = settings.get_persist_io(logs.clone(), app_insights.clone());
 
+    let mut sync_events_dispatcher = EventsDispatcherProduction::new();
+
+    let sync_events_reader = sync_events_dispatcher.get_events_reader();
+
     let app = AppContext::new(
         logs.clone(),
         settings,
-        Box::new(EventsDispatcherProduction::new(transactions_sender)),
+        Box::new(sync_events_dispatcher),
         Arc::new(persist_io),
     );
 
@@ -78,14 +79,9 @@ async fn main() {
         Arc::new(GcHttpSessionsTimer::new(app.clone())),
     );
 
-    timer_10s.register_timer(
-        "DbRowsExpirator",
-        Arc::new(DbRowsExpirator::new(app.clone())),
-    );
-
     let mut timer_30s = MyTimer::new(Duration::from_secs(30));
-    timer_30s.register_timer("GcPartitions", Arc::new(GcPartitions::new(app.clone())));
-    timer_30s.register_timer("DataGc", Arc::new(DataGcTimer::new(app.clone())));
+    timer_30s.register_timer("GcDbRows", Arc::new(GcDbRows::new(app.clone())));
+    timer_30s.register_timer("GcMultipart", Arc::new(GcMultipart::new(app.clone())));
 
     timer_1s.start(app.clone(), app.clone());
     timer_10s.start(app.clone(), app.clone());
@@ -93,7 +89,7 @@ async fn main() {
 
     background_tasks.push(tokio::task::spawn(crate::background::sync::start(
         app.clone(),
-        transactions_receiver,
+        sync_events_reader,
     )));
 
     crate::http::start_up::setup_server(app.clone(), app_insights.clone());

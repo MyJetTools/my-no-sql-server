@@ -5,7 +5,9 @@ var HtmlSubscribersGenerator = /** @class */ (function () {
         return '<h3>Connected Nodes</h3>'
             + this.generateNodesHtml(data.nodes)
             + '<h3>Readers</h3>'
-            + this.generateReadersHtml(data.readers);
+            + this.generateReadersHtml(data.readers)
+            + '<h3>Tables</h3>'
+            + this.generateTablesHtml(data.tables);
     };
     HtmlSubscribersGenerator.generateReadersHtml = function (data) {
         var html = "<table class=\"table table-striped\"><tr><th>Id</th><th>Client</th><th>Ip</th><th>tables</th><th></th></tr>";
@@ -17,6 +19,26 @@ var HtmlSubscribersGenerator = /** @class */ (function () {
                 '<div><b>L:</b>' + itm.lastIncomingTime + '</div>' +
                 '</td></tr>';
         }
+        html += '</table>';
+        return html;
+    };
+    HtmlSubscribersGenerator.generateTablesHtml = function (tables) {
+        var html = "<table class=\"table table-striped\"><tr><th>Table</th><th>DataSize</th><th>Partitions</th><th>Records</th><th>Indexed Records</th></tr>";
+        var total_size = 0;
+        var total_partitions = 0;
+        var total_records = 0;
+        var total_indexed_records = 0;
+        for (var _i = 0, tables_1 = tables; _i < tables_1.length; _i++) {
+            var table = tables_1[_i];
+            html += '<tr><td>' + table.name + '</td><td>' + table.dataSize + '</td><td>' + table.partitionsCount + '</td><td>' + table.recordsAmount + '</td><td>' + table.expirationIndex + '</td>'
+                + '</tr>';
+            total_size += table.dataSize;
+            total_partitions += table.partitionsCount;
+            total_records += table.recordsAmount;
+            total_indexed_records += table.expirationIndex;
+        }
+        html += '<tr style="font-weight: bold; background-color:black; color:white;"><td>Total</td><td>DataSize: ' + total_size + '</td><td>Partitions: ' + total_partitions + '</td><td>Records: ' + total_records + '</td><td>Indexed records: ' + total_indexed_records + '</td>'
+            + '</tr>';
         html += '</table>';
         return html;
     };

@@ -14,7 +14,13 @@ pub struct GetHighestRowsAndBelowInputContract {
     pub row_key: String,
 
     #[http_query(name = "maxAmount"; description = "Limit amount of records we are going to get")]
-    pub max_amount: usize,
+    pub max_amount: Option<usize>,
+
+    #[http_header(name ="setPartitionExpirationTime" description = "Set Partition Expiration time")]
+    pub set_partition_expiration_time: Option<String>,
+
+    #[http_header(name ="setRowsExpirationTime" description = "Set Found DbRows Expiration time")]
+    pub set_db_rows_expiration_time: Option<String>,
 }
 
 #[derive(MyHttpInput)]
@@ -27,6 +33,12 @@ pub struct GetSinglePartitionMultipleRowsActionInputContract {
 
     #[http_body(description = "Row keys")]
     pub body: Vec<u8>,
+
+    #[http_header(name ="setPartitionExpirationTime" description = "Set Partition Expiration time")]
+    pub set_partition_expiration_time: Option<String>,
+
+    #[http_header(name ="setRowsExpirationTime" description = "Set Found DbRows Expiration time")]
+    pub set_db_rows_expiration_time: Option<String>,
 }
 
 #[derive(MyHttpInput)]

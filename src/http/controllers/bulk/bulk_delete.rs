@@ -61,12 +61,12 @@ impl PostAction for BulkDeleteControllerAction {
 
         let now = JsonTimeStamp::now();
 
-        crate::db_operations::write::bulk_delete::execute(
+        crate::db_operations::write::bulk_delete(
             self.app.as_ref(),
             db_table.as_ref(),
             rows_to_delete,
             event_src,
-            &now,
+            now.date_time,
             input_data.sync_period.get_sync_moment(),
         )
         .await;

@@ -10,7 +10,9 @@ class HtmlSubscribersGenerator {
         return '<h3>Connected Nodes</h3>'
             + this.generateNodesHtml(data.nodes)
             + '<h3>Readers</h3>'
-            + this.generateReadersHtml(data.readers);
+            + this.generateReadersHtml(data.readers)
+            + '<h3>Tables</h3>'
+            + this.generateTablesHtml(data.tables);
     }
 
 
@@ -32,6 +34,34 @@ class HtmlSubscribersGenerator {
         return html;
     }
 
+
+    private static generateTablesHtml(tables: ITableModel[]): string {
+        let html = `<table class="table table-striped"><tr><th>Table</th><th>DataSize</th><th>Partitions</th><th>Records</th><th>Indexed Records</th></tr>`;
+
+        let total_size = 0;
+        let total_partitions = 0;
+        let total_records = 0;
+        let total_indexed_records = 0;
+        for (let table of tables) {
+
+            html += '<tr><td>' + table.name + '</td><td>' + table.dataSize + '</td><td>' + table.partitionsCount + '</td><td>' + table.recordsAmount + '</td><td>' + table.expirationIndex + '</td>'
+                + '</tr>';
+
+
+            total_size += table.dataSize;
+            total_partitions += table.partitionsCount;
+            total_records += table.recordsAmount;
+            total_indexed_records += table.expirationIndex;
+
+        }
+
+        html += '<tr style="font-weight: bold; background-color:black; color:white;"><td>Total</td><td>DataSize: ' + total_size + '</td><td>Partitions: ' + total_partitions + '</td><td>Records: ' + total_records + '</td><td>Indexed records: ' + total_indexed_records + '</td>'
+            + '</tr>';
+
+        html += '</table>';
+
+        return html;
+    }
     private static generateNodesHtml(data: INodeStatus[]): string {
         let html = `<table class="table table-striped"><tr><th>Location</th><th>Connected</th><th>LastAccess</th><th>Compress</th><th>Latency</th></tr>`;
 

@@ -5,6 +5,7 @@ use my_http_server_controllers::controllers::actions::{DeleteAction, GetAction, 
 use my_http_server_controllers::controllers::documentation::out_results::HttpResult;
 use my_http_server_controllers::controllers::documentation::HttpActionDescription;
 
+use crate::db::UpdateExpirationTimeModel;
 use crate::db_json_entity::{DbJsonEntity, JsonTimeStamp};
 
 use crate::db_operations;
@@ -53,51 +54,60 @@ impl GetAction for RowAction {
     }
 
     async fn handle_request(&self, ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
-        let http_input = GetRowInputModel::parse_http_input(ctx).await?;
+        let input_data = GetRowInputModel::parse_http_input(ctx).await?;
 
         let db_table = crate::db_operations::read::table::get(
             self.app.as_ref(),
-            http_input.table_name.as_ref(),
+            input_data.table_name.as_ref(),
         )
         .await?;
 
-        if let Some(partition_key) = http_input.partition_key.as_ref() {
-            if let Some(row_key) = http_input.row_key.as_ref() {
-                let result = crate::db_operations::read::rows::get_row(
+        let update_expiration = UpdateExpirationTimeModel::new(
+            input_data.set_db_rows_expiration_time.as_ref(),
+            input_data.set_partition_expiration_time.as_ref(),
+        );
+
+        if let Some(partition_key) = input_data.partition_key.as_ref() {
+            if let Some(row_key) = input_data.row_key.as_ref() {
+                let result = crate::db_operations::read::rows::get_single(
                     db_table.as_ref(),
                     partition_key,
                     row_key,
+                    update_expiration,
                 )
                 .await?;
 
                 return Ok(result.into());
             } else {
-                let result = crate::db_operations::read::rows::get_all_rows_by_partition_key(
+                let result = crate::db_operations::read::rows::get_all_by_partition_key(
                     db_table.as_ref(),
                     partition_key,
-                    http_input.limit,
-                    http_input.skip,
+                    input_data.limit,
+                    input_data.skip,
+                    update_expiration,
                 )
                 .await;
 
                 return Ok(result.into());
             }
         } else {
-            if let Some(row_key) = http_input.row_key.as_ref() {
-                let result = crate::db_operations::read::rows::get_all_rows_by_row_key(
+            if let Some(row_key) = input_data.row_key.as_ref() {
+                let result = crate::db_operations::read::rows::get_all_by_row_key(
                     db_table.as_ref(),
                     row_key,
-                    http_input.limit,
-                    http_input.skip,
+                    input_data.limit,
+                    input_data.skip,
+                    update_expiration,
                 )
                 .await;
 
                 return Ok(result.into());
             } else {
-                let result = crate::db_operations::read::rows::get_all_table_rows(
+                let result = crate::db_operations::read::rows::get_all(
                     db_table.as_ref(),
-                    http_input.limit,
-                    http_input.skip,
+                    input_data.limit,
+                    input_data.skip,
+                    update_expiration,
                 )
                 .await;
 
@@ -149,7 +159,7 @@ impl DeleteAction for RowAction {
             self.app.as_ref(),
             db_table,
             http_input.partition_key.as_ref(),
-            http_input.row_key.as_ref(),
+            http_input.row_key.as_str(),
             event_src,
             &now,
             http_input.sync_period.get_sync_moment(),

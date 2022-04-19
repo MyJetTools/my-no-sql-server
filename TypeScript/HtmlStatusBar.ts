@@ -6,10 +6,13 @@ class HtmlStatusBar {
     private static masterNode: string;
     private static tablesAmount: number;
 
-    private static persistenceQueue: number;
+    private static persistAmount: number;
 
 
     private static tcpConnections: number;
+    private static httpConnections: number;
+
+    private static syncQueueSize: number;
 
 
     public static layout(): string {
@@ -34,13 +37,23 @@ class HtmlStatusBar {
             '<td>Tcp: <b id="tcp-connections" style="text-shadow: 0 0 2px white;"></b></td>' +
             '<td><div class="statusbar-separator"></div></td>' +
 
+
+            '<td>Http: <b id="http-connections" style="text-shadow: 0 0 2px white;"></b></td>' +
+            '<td><div class="statusbar-separator"></div></td>' +
+
+            '<td>Persist queue: <b id="persist-queue" style="text-shadow: 0 0 2px white;"></b></td>' +
+            '<td><div class="statusbar-separator"></div></td>' +
+
+            '<td>Sync queue: <b id="sync-queue-size" style="text-shadow: 0 0 2px white;"></b></td>' +
+            '<td><div class="statusbar-separator"></div></td>' +
+
             '<td>Connected to master node: <b id="master-node" style="text-shadow: 0 0 1px white;"></b></td>' +
             '<td><div class="statusbar-separator"></div></td>' +
 
             '</tr></table></div>';
     }
 
-    public static updateStatusbar(data: IInitializedStatus) {
+    public static updateStatusbar(data: IStatusBarModel) {
 
 
         if (this.tablesAmount != data.tablesAmount) {
@@ -77,6 +90,21 @@ class HtmlStatusBar {
         if (this.tcpConnections != data.tcpConnections) {
             this.tcpConnections = data.tcpConnections;
             document.getElementById('tcp-connections').innerHTML = this.tcpConnections.toString()
+        }
+
+        if (this.httpConnections != data.httpConnections) {
+            this.httpConnections = data.httpConnections;
+            document.getElementById('http-connections').innerHTML = this.httpConnections.toString()
+        }
+
+        if (this.persistAmount != data.persistAmount) {
+            this.persistAmount = data.persistAmount;
+            document.getElementById('persist-queue').innerHTML = this.persistAmount.toString()
+        }
+
+        if (this.syncQueueSize != data.syncQueueSize) {
+            this.syncQueueSize = data.syncQueueSize;
+            document.getElementById('sync-queue-size').innerHTML = this.syncQueueSize.toString()
         }
     }
 

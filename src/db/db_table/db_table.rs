@@ -25,6 +25,9 @@ pub struct DbTable {
 pub struct DbTableMetrics {
     pub table_size: usize,
     pub partitions_amount: usize,
+    pub persist_amount: usize,
+    pub records_amount: usize,
+    pub expiration_index_records_amount: usize,
 }
 
 impl DbTable {
@@ -38,11 +41,12 @@ impl DbTable {
 
     pub async fn get_metrics(&self) -> DbTableMetrics {
         let read_access = self.data.read().await;
+        read_access.get_metrics()
+    }
 
-        return DbTableMetrics {
-            table_size: read_access.table_size,
-            partitions_amount: read_access.get_partitions_amount(),
-        };
+    pub async fn get_table_size(&self) -> usize {
+        let read_access = self.data.read().await;
+        return read_access.get_calculated_metrics().data_size;
     }
 
     pub async fn get_partitions_amount(&self) -> usize {
@@ -55,17 +59,12 @@ impl DbTable {
         read_access.get_table_as_json_array()
     }
 
-    pub async fn get_expired_rows(&self, now: DateTimeAsMicroseconds) -> Option<Vec<Arc<DbRow>>> {
-        let mut write_access = self.data.write().await;
-        write_access.get_expired_rows_up_to(now)
-    }
-
     pub async fn get_all_as_vec_dequeue(&self) -> VecDeque<Arc<DbRow>> {
         let read_access = self.data.read().await;
 
         let mut result = VecDeque::new();
 
-        for db_row in read_access.iterate_all_rows() {
+        for db_row in read_access.get_all_rows() {
             result.push_back(db_row.clone());
         }
 

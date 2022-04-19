@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    db::{DbRow, DbTable},
+    db::{DbRow, DbTable, UpdatePartitionReadMoment},
     db_json_entity::JsonTimeStamp,
 };
 
@@ -42,9 +42,8 @@ pub async fn get_as_partition_key_and_row_key(
 
     let db_partition = read_access.get_partition(partition_key)?;
 
-    let db_row = db_partition.get_row_and_clone(row_key)?;
+    let db_row = db_partition.get_row_and_clone(row_key, Some(now.date_time))?;
 
-    db_partition.last_read_access.update(now.date_time);
     db_row.last_read_access.update(now.date_time);
 
     Some(db_row)
@@ -61,7 +60,8 @@ async fn get_as_partition_key_only(
 
     let db_partition = read_access.get_partition(partition_key)?;
 
-    let db_row_filter = DbRowsFilter::new(db_partition.rows.values(), limit, skip);
+    let db_row_filter =
+        DbRowsFilter::new(db_partition.get_all_rows(Some(now.date_time)), limit, skip);
 
     let mut result = None;
 
@@ -91,7 +91,10 @@ async fn get_as_row_key_only(
     let mut data_by_row = Vec::new();
 
     for partition in read_access.get_partitions() {
-        let get_row_result = partition.rows.get(row_key);
+        let get_row_result = partition.get_row(
+            row_key,
+            UpdatePartitionReadMoment::UpdateIfElementIsFound(now.date_time),
+        );
 
         if let Some(db_row) = get_row_result {
             data_by_row.push(db_row);
@@ -122,7 +125,7 @@ async fn get_all(
 ) -> Option<Vec<Arc<DbRow>>> {
     let read_access = table.data.read().await;
 
-    let db_row_filter = DbRowsFilter::new(read_access.iterate_all_rows(), limit, skip);
+    let db_row_filter = DbRowsFilter::new(read_access.get_all_rows().into_iter(), limit, skip);
 
     let mut result = None;
 

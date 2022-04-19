@@ -10,11 +10,17 @@ pub fn build(app: Arc<AppContext>) -> ControllersMiddleware {
     let api_controller = super::api::ApiController::new();
     result.register_get_action(Arc::new(api_controller));
 
-    let tables_controller = Arc::new(super::tables_controller::TablesController::new(app.clone()));
-    result.register_get_action(tables_controller.clone());
+    result.register_get_action(Arc::new(super::tables_controller::GetListAction::new(
+        app.clone(),
+    )));
 
-    result.register_put_action(tables_controller.clone());
-    result.register_delete_action(tables_controller);
+    result.register_put_action(Arc::new(super::tables_controller::CleanTableAction::new(
+        app.clone(),
+    )));
+
+    result.register_delete_action(Arc::new(super::tables_controller::DeleteTableAction::new(
+        app.clone(),
+    )));
 
     let crate_table_action = Arc::new(super::tables_controller::CreateTableAction::new(
         app.clone(),
@@ -32,6 +38,12 @@ pub fn build(app: Arc<AppContext>) -> ControllersMiddleware {
     );
 
     result.register_get_action(get_partitions_count_action);
+
+    let get_table_size_action = Arc::new(super::tables_controller::GetTableSizeAction::new(
+        app.clone(),
+    ));
+
+    result.register_get_action(get_table_size_action);
 
     let tables_controller = Arc::new(super::tables_controller::MigrationAction::new(app.clone()));
     result.register_post_action(tables_controller);
@@ -89,12 +101,12 @@ pub fn build(app: Arc<AppContext>) -> ControllersMiddleware {
         super::bulk::BlukInsertOrReplaceControllerAction::new(app.clone()),
     ));
 
-    result.register_post_action(Arc::new(super::gc::CleanAndKeepMaxPartitionsAmount::new(
-        app.clone(),
-    )));
+    result.register_post_action(Arc::new(
+        super::gc_controller::CleanAndKeepMaxPartitionsAmountAction::new(app.clone()),
+    ));
 
     result.register_post_action(Arc::new(
-        super::gc::CleanPartitionAndKepMaxRecordsControllerAction::new(app.clone()),
+        super::gc_controller::CleanPartitionAndKepMaxRecordsControllerAction::new(app.clone()),
     ));
 
     result.register_post_action(Arc::new(super::row_controller::InsertRowAction::new(

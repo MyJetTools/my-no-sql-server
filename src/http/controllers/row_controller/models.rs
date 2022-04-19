@@ -78,6 +78,12 @@ pub struct GetRowInputModel {
 
     #[http_query(name = "skip"; description = "Skip amount of records before start collecting them")]
     pub skip: Option<usize>,
+
+    #[http_header(name ="setPartitionExpirationTime" description = "Set Partition Expiration time")]
+    pub set_partition_expiration_time: Option<String>,
+
+    #[http_header(name ="setRowsExpirationTime" description = "Set Found DbRows Expiration time")]
+    pub set_db_rows_expiration_time: Option<String>,
 }
 
 #[derive(MyHttpInput)]

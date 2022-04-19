@@ -25,6 +25,17 @@ pub struct DataToPersist {
 }
 
 impl DataToPersist {
+    pub fn persist_amount(&self) -> usize {
+        let mut result = if self.persist_attrs { 1 } else { 0 };
+        result += self.partitions.len();
+
+        if self.persisit_whole_table.is_some() {
+            result += 1;
+        };
+
+        result
+    }
+
     pub fn new() -> Self {
         Self {
             persisit_whole_table: None,

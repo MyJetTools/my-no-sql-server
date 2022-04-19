@@ -3,15 +3,22 @@ use my_http_server_swagger::*;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 use serde::{Deserialize, Serialize};
 
-use super::non_initialized::NonInitializedModel;
+use super::{non_initialized::NonInitializedModel, status_bar_model::StatusBarModel};
 
 #[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
 pub struct NodeModel {}
 
 #[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
-pub struct LocationModel {
-    pub id: String,
-    pub compress: bool,
+pub struct TableModel {
+    pub name: String,
+    #[serde(rename = "partitionsCount")]
+    pub partitions_count: usize,
+    #[serde(rename = "dataSize")]
+    pub data_size: usize,
+    #[serde(rename = "recordsAmount")]
+    pub records_amount: usize,
+    #[serde(rename = "expirationIndex")]
+    pub expiration_index_records_amount: usize,
 }
 
 #[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
@@ -27,57 +34,65 @@ pub struct ReaderModel {
 }
 #[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
 pub struct StatusModel {
-    #[serde(rename = "notInitialized")]
+    #[serde(rename = "notInitialized", skip_serializing_if = "Option::is_none")]
     not_initialized: Option<NonInitializedModel>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     initialized: Option<InitializedModel>,
+    #[serde(rename = "statusBar")]
+    status_bar: StatusBarModel,
 }
 
 impl StatusModel {
     pub async fn new(app: &AppContext) -> Self {
+        let (readers, tcp, http) = get_readers(app).await;
+        let tables = app.db.get_tables().await;
+
+        let mut tables_model = Vec::new();
+
+        for table in &tables {
+            let read_access = table.data.read().await;
+
+            let metrics = read_access.get_metrics();
+
+            let table_model = TableModel {
+                name: table.name.clone(),
+                partitions_count: metrics.partitions_amount,
+                data_size: metrics.table_size,
+                expiration_index_records_amount: metrics.expiration_index_records_amount,
+                records_amount: metrics.records_amount,
+            };
+
+            tables_model.push(table_model);
+        }
+
         if app.states.is_initialized() {
             return Self {
                 not_initialized: None,
-                initialized: Some(InitializedModel::new(app).await),
+                initialized: Some(InitializedModel::new(readers, tables_model)),
+                status_bar: StatusBarModel::new(app, tcp, http, tables.len()),
             };
         }
 
         return Self {
             not_initialized: Some(NonInitializedModel::new(app).await),
             initialized: None,
+            status_bar: StatusBarModel::new(app, tcp, http, tables.len()),
         };
     }
 }
 #[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
 pub struct InitializedModel {
-    pub location: LocationModel,
-    #[serde(rename = "masterNode")]
-    pub master_node: Option<String>,
     pub nodes: Vec<NodeModel>,
     pub readers: Vec<ReaderModel>,
-    #[serde(rename = "tcpConnections")]
-    pub tcp_connections: usize,
-    #[serde(rename = "tablesAmount")]
-    pub tables_amount: usize,
-    #[serde(rename = "httpConnections")]
-    pub http_connections: usize,
+    pub tables: Vec<TableModel>,
 }
 
 impl InitializedModel {
-    pub async fn new(app: &AppContext) -> Self {
-        let readers = get_readers(app).await;
-        let tables_amount = app.db.get_tables_amount().await;
-
+    pub fn new(readers: Vec<ReaderModel>, tables: Vec<TableModel>) -> Self {
         Self {
-            location: LocationModel {
-                id: app.settings.location.to_string(),
-                compress: app.settings.compress_data,
-            },
-            master_node: None,
             nodes: vec![],
-            readers: readers.0,
-            tcp_connections: readers.1,
-            http_connections: readers.2,
-            tables_amount,
+            readers,
+            tables,
         }
     }
 }

@@ -19,12 +19,21 @@ impl MyTimerTick for MetricsUpdater {
     async fn tick(&self) {
         let tables = self.app.db.get_tables().await;
 
+        let mut persist_amount = 0;
+
         for db_table in tables {
             let table_metrics = db_table.get_metrics().await;
+
+            persist_amount += table_metrics.persist_amount;
 
             self.app
                 .metrics
                 .update_table_metrics(db_table.name.as_str(), &table_metrics);
         }
+
+        let sync_queue_size = self.app.events_dispatcher.get_events_queue_size();
+        self.app.metrics.updated_sync_queue_size(sync_queue_size);
+
+        self.app.update_persist_amount(persist_amount);
     }
 }

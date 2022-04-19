@@ -124,9 +124,6 @@ impl Logs {
                 err_ctx: None,
             };
 
-            if let SystemProcess::PersistOperation = process {
-                print_to_console(&item);
-            }
             add(logs_data, item).await;
         });
     }
@@ -232,23 +229,39 @@ fn gc_logs(items: &mut Vec<Arc<LogItem>>) {
     }
 }
 
+fn should_log_be_printed(item: &LogItem) -> bool {
+    match &item.level {
+        LogLevel::Info => {}
+        LogLevel::Error => {
+            return true;
+        }
+        LogLevel::FatalError => {
+            return true;
+        }
+    }
+
+    match &item.process {
+        SystemProcess::System => {
+            return true;
+        }
+        SystemProcess::TcpSocket => {}
+        SystemProcess::PersistOperation => {}
+        SystemProcess::TableOperation => {}
+        SystemProcess::Init => {
+            return true;
+        }
+        SystemProcess::Timer => {}
+    }
+
+    return false;
+}
+
 async fn add(logs_data: Arc<RwLock<LogsData>>, item: LogItem) {
     let item = Arc::new(item);
     let mut wirte_access = logs_data.write().await;
 
-    match &item.level {
-        LogLevel::Info => {}
-        LogLevel::Error => print_to_console(&item),
-        LogLevel::FatalError => print_to_console(&item),
-    }
-
-    match &item.process {
-        SystemProcess::System => print_to_console(&item),
-        SystemProcess::TcpSocket => {}
-        SystemProcess::PersistOperation => {}
-        SystemProcess::TableOperation => {}
-        SystemProcess::Init => print_to_console(&item),
-        SystemProcess::Timer => {}
+    if should_log_be_printed(&item) {
+        print_to_console(&item);
     }
 
     let process_id = item.as_ref().process.as_u8();

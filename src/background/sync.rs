@@ -1,12 +1,14 @@
 use std::sync::Arc;
 
-use tokio::sync::mpsc;
+use crate::{
+    app::{AppContext, SyncEventsReader},
+    data_readers::DataReaderConnection,
+    db_sync::SyncEvent,
+};
 
-use crate::{app::AppContext, data_readers::DataReaderConnection, db_sync::SyncEvent};
-
-pub async fn start(app: Arc<AppContext>, mut rx: mpsc::UnboundedReceiver<SyncEvent>) {
+pub async fn start(app: Arc<AppContext>, mut sync_events_reader: SyncEventsReader) {
     while !app.states.is_shutting_down() {
-        if let Some(sync_event) = rx.recv().await {
+        if let Some(sync_event) = sync_events_reader.get_next_event().await {
             handle_event(app.as_ref(), &sync_event).await;
         }
     }

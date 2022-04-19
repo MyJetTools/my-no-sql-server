@@ -15,6 +15,10 @@ impl DbRowsByPartitionsSnapshot {
         }
     }
 
+    pub fn has_elements(&self) -> bool {
+        self.partitions.len() > 0
+    }
+
     pub fn add_row(&mut self, db_row: Arc<DbRow>) {
         if !self.partitions.contains_key(&db_row.partition_key) {
             self.partitions

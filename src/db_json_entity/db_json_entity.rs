@@ -7,7 +7,7 @@ use crate::{
     json::{array_parser::ArrayToJsonObjectsSplitter, JsonFirstLineReader},
 };
 
-use super::{date_time_injector::TimeStampValuePosition, utils::JsonTimeStamp, DbEntityParseFail};
+use super::{date_time_injector::TimeStampValuePosition, DbEntityParseFail, JsonTimeStamp};
 
 pub struct DbJsonEntity<'s> {
     pub partition_key: &'s str,
@@ -157,5 +157,26 @@ fn compile_row_content(
         );
     } else {
         return super::date_time_injector::inject(raw, time_stamp);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::DbJsonEntity;
+
+    #[test]
+    pub fn parse_expires_with_z() {
+        let src_json = r#"{"TwoFaMethods": {},
+            "PartitionKey": "ff95cdae9f7e4f1a847f6b83ad68b495",
+            "RowKey": "6c09c7f0e44d4ef79cfdd4252ebd54ab",
+            "TimeStamp": "2022-03-17T09:28:27.5923",
+            "Expires": "2022-03-17T13:28:29.6537478Z"
+          }"#;
+
+        let entity = DbJsonEntity::parse(src_json.as_bytes()).unwrap();
+
+        let expires = entity.expires.as_ref().unwrap();
+
+        assert_eq!("2022-03-17T13:28:29.653747", &expires.to_rfc3339()[..26]);
     }
 }

@@ -31,7 +31,7 @@ pub fn deserialize(raw: &[u8]) -> Result<DbPartition, String> {
             db_entity.to_db_row(&time_stamp)
         };
 
-        db_partition.insert(Arc::new(db_row));
+        db_partition.insert_row(Arc::new(db_row), None);
     }
     Ok(db_partition)
 }

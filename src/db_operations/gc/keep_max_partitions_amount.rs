@@ -4,11 +4,12 @@ use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
     app::AppContext,
-    db::DbTable,
+    db::{DbTable, DbTableData},
     db_sync::{states::InitPartitionsSyncData, EventSource, SyncEvent},
 };
 
-pub async fn execute(
+//TODO - Use Method from TableData
+pub async fn keep_max_partitions_amount(
     app: &AppContext,
     db_table: Arc<DbTable>,
     max_partitions_amount: usize,
@@ -23,6 +24,24 @@ pub async fn execute(
 
     let mut table_data = db_table.data.write().await;
 
+    gc_partitions(
+        app,
+        db_table.as_ref(),
+        &mut table_data,
+        event_src,
+        max_partitions_amount,
+        persist_moment,
+    );
+}
+
+pub fn gc_partitions(
+    app: &AppContext,
+    db_table: &DbTable,
+    table_data: &mut DbTableData,
+    event_src: EventSource,
+    max_partitions_amount: usize,
+    persist_moment: DateTimeAsMicroseconds,
+) {
     let mut sync_state =
         InitPartitionsSyncData::new(&table_data, event_src, db_table.attributes.get_persist());
 
