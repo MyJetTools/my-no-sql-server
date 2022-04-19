@@ -1,9 +1,9 @@
-mod bulk_delete;
-mod clean_and_bulk_insert;
+mod bulk_delete_action;
+mod clean_and_bulk_insert_action;
 mod consts;
-mod insert_or_replace;
+mod insert_or_replace_action;
 mod models;
 
-pub use bulk_delete::BulkDeleteControllerAction;
-pub use clean_and_bulk_insert::CleanAndBulkInsertControllerAction;
-pub use insert_or_replace::BlukInsertOrReplaceControllerAction;
+pub use bulk_delete_action::BulkDeleteControllerAction;
+pub use clean_and_bulk_insert_action::CleanAndBulkInsertControllerAction;
+pub use insert_or_replace_action::BlukInsertOrReplaceControllerAction;
