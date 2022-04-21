@@ -36,13 +36,19 @@ impl BlobContentCache {
     }
 
     pub async fn create_table(&self, table_name: &str, attr: &DbTableAttributesSnapshot) {
-        let table_data = PersistedTableData::new(attr);
+        let table_data = PersistedTableData::new(attr.clone());
         let mut write_access = self.data_by_table.write().await;
         write_access.insert(table_name.to_string(), table_data);
     }
 
     pub async fn update_table_attributes(&self, table_name: &str, attr: DbTableAttributesSnapshot) {
         let mut write_access = self.data_by_table.write().await;
+
+        if !write_access.contains_key(table_name) {
+            let table_data = PersistedTableData::new(attr.clone());
+            write_access.insert(table_name.to_string(), table_data);
+        }
+
         let data = write_access.get_mut(table_name).unwrap();
         data.attr = attr;
     }
