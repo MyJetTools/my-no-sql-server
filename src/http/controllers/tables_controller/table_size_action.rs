@@ -32,6 +32,8 @@ async fn handle_request(
     input_data: GetTableSizeContract,
     _ctx: &HttpContext,
 ) -> Result<HttpOkResult, HttpFailResult> {
+    crate::db_operations::check_app_states(action.app.as_ref())?;
+
     let db_table =
         crate::db_operations::read::table::get(action.app.as_ref(), input_data.table_name.as_str())
             .await?;

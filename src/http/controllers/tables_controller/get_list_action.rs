@@ -29,6 +29,7 @@ async fn handle_request(
     action: &GetListAction,
     _ctx: &mut HttpContext,
 ) -> Result<HttpOkResult, HttpFailResult> {
+    crate::db_operations::check_app_states(action.app.as_ref())?;
     let tables = action.app.db.get_tables().await;
 
     let mut response: Vec<TableContract> = vec![];
