@@ -34,6 +34,12 @@ impl From<DbOperationError> for HttpFailResult {
                 content: format!("Record not found").into_bytes(),
                 write_telemetry: false,
             },
+            DbOperationError::ApplicationIsNotInitializedYet => HttpFailResult {
+                content_type: WebContentType::Json,
+                status_code: 503,
+                content: format!("Application is not initialized yet").into_bytes(),
+                write_telemetry: false,
+            },
             DbOperationError::OptimisticConcurencyUpdateFails => HttpFailResult {
                 content_type: WebContentType::Json,
                 status_code: 409,

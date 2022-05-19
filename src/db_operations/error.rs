@@ -7,4 +7,5 @@ pub enum DbOperationError {
     RecordNotFound,
     OptimisticConcurencyUpdateFails,
     TableNameValidationError(String),
+    ApplicationIsNotInitializedYet,
 }

@@ -8,6 +8,8 @@ pub struct PrometheusMetrics {
     table_size: IntGaugeVec,
     persist_amount: IntGaugeVec,
     sync_queue_size: IntGauge,
+    tcp_connections_count: IntGauge,
+    tcp_connections_changes: IntGauge,
 }
 
 const TABLE_NAME: &str = "table_name";
@@ -18,6 +20,8 @@ impl PrometheusMetrics {
         let table_size = create_table_size_gauge();
         let persist_amount = create_persist_amount_gauge();
         let sync_queue_size = create_sync_queue_size_gauge();
+        let tcp_connections_count = create_tcp_connections_count();
+        let tcp_connections_changes = create_tcp_connections_changes();
 
         registry
             .register(Box::new(partitions_amount.clone()))
@@ -29,12 +33,22 @@ impl PrometheusMetrics {
             .register(Box::new(sync_queue_size.clone()))
             .unwrap();
 
+        registry
+            .register(Box::new(tcp_connections_count.clone()))
+            .unwrap();
+
+        registry
+            .register(Box::new(tcp_connections_changes.clone()))
+            .unwrap();
+
         return Self {
             registry,
             partitions_amount,
             table_size,
             persist_amount,
             sync_queue_size,
+            tcp_connections_count,
+            tcp_connections_changes,
         };
     }
 
@@ -57,6 +71,16 @@ impl PrometheusMetrics {
 
     pub fn updated_sync_queue_size(&self, sync_queue_size: usize) {
         self.sync_queue_size.set(sync_queue_size as i64);
+    }
+
+    pub fn mark_new_tcp_connection(&self) {
+        self.tcp_connections_count.inc();
+        self.tcp_connections_changes.inc();
+    }
+
+    pub fn mark_new_tcp_disconnection(&self) {
+        self.tcp_connections_count.dec();
+        self.tcp_connections_changes.inc();
     }
 
     pub fn build(&self) -> String {
@@ -95,4 +119,12 @@ fn create_persist_amount_gauge() -> IntGaugeVec {
 
 fn create_sync_queue_size_gauge() -> IntGauge {
     IntGauge::new("sync_queue_size", "Sync queue size").unwrap()
+}
+
+fn create_tcp_connections_count() -> IntGauge {
+    IntGauge::new("tcp_connections_count", "TCP Connections count").unwrap()
+}
+
+fn create_tcp_connections_changes() -> IntGauge {
+    IntGauge::new("tcp_connections_changes", "TCP Connections chagnes").unwrap()
 }
