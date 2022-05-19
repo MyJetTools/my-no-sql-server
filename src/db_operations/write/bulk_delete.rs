@@ -5,6 +5,7 @@ use rust_extensions::date_time::DateTimeAsMicroseconds;
 use crate::{
     app::AppContext,
     db::DbTable,
+    db_operations::DbOperationError,
     db_sync::{states::DeleteRowsEventSyncData, EventSource, SyncEvent},
 };
 
@@ -15,7 +16,9 @@ pub async fn bulk_delete(
     event_src: EventSource,
     now: DateTimeAsMicroseconds,
     persist_moment: DateTimeAsMicroseconds,
-) {
+) -> Result<(), DbOperationError> {
+    super::super::check_app_states(app)?;
+
     let mut table_data = db_table.data.write().await;
 
     let mut sync_data =
@@ -40,4 +43,6 @@ pub async fn bulk_delete(
 
     app.events_dispatcher
         .dispatch(SyncEvent::DeleteRows(sync_data));
+
+    Ok(())
 }

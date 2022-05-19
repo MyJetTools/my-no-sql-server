@@ -42,7 +42,7 @@ async fn handle_request(
         input_data.persist,
         event_src,
     )
-    .await;
+    .await?;
 
     HttpOutput::Empty.into_ok_result(true).into()
 }

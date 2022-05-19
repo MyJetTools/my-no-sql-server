@@ -24,6 +24,8 @@ pub async fn create(
     event_src: EventSource,
     persist_moment: DateTimeAsMicroseconds,
 ) -> Result<Arc<DbTable>, DbOperationError> {
+    super::super::check_app_states(app)?;
+
     validation::validate_table_name(table_name)?;
 
     let now = DateTimeAsMicroseconds::now();
@@ -106,6 +108,7 @@ pub async fn create_if_not_exist(
     event_src: EventSource,
     persist_moment: DateTimeAsMicroseconds,
 ) -> Result<Arc<DbTable>, DbOperationError> {
+    super::super::check_app_states(app)?;
     validation::validate_table_name(table_name)?;
 
     let db_table = get_or_create(
@@ -125,7 +128,7 @@ pub async fn create_if_not_exist(
         max_partitions_amount,
         event_src,
     )
-    .await;
+    .await?;
 
     Ok(db_table)
 }
@@ -135,9 +138,11 @@ pub async fn update_persist_state(
     db_table: Arc<DbTable>,
     persist: bool,
     event_src: EventSource,
-) {
+) -> Result<(), DbOperationError> {
+    super::super::check_app_states(app)?;
     let max_partitions_amount = db_table.attributes.get_max_partitions_amount();
-    set_table_attrubutes(app, db_table, persist, max_partitions_amount, event_src).await;
+    set_table_attrubutes(app, db_table, persist, max_partitions_amount, event_src).await?;
+    Ok(())
 }
 
 pub async fn set_table_attrubutes(
@@ -147,11 +152,12 @@ pub async fn set_table_attrubutes(
     persist: bool,
     max_partitions_amount: Option<usize>,
     event_src: EventSource,
-) {
+) -> Result<(), DbOperationError> {
+    super::super::check_app_states(app)?;
     let result = db_table.attributes.update(persist, max_partitions_amount);
 
     if !result {
-        return;
+        return Ok(());
     }
 
     app.events_dispatcher
@@ -169,6 +175,8 @@ pub async fn set_table_attrubutes(
 
     let mut table_access = db_table.data.write().await;
     table_access.data_to_persist.mark_persist_attrs();
+
+    Ok(())
 }
 
 pub async fn delete(
@@ -177,6 +185,7 @@ pub async fn delete(
     event_src: EventSource,
     persist_moment: DateTimeAsMicroseconds,
 ) -> Result<(), DbOperationError> {
+    super::super::check_app_states(app.as_ref())?;
     let result = app.db.delete_table(table_name.as_str()).await;
 
     if result.is_none() {

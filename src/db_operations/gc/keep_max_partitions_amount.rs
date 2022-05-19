@@ -5,6 +5,7 @@ use rust_extensions::date_time::DateTimeAsMicroseconds;
 use crate::{
     app::AppContext,
     db::{DbTable, DbTableData},
+    db_operations::DbOperationError,
     db_sync::{states::InitPartitionsSyncData, EventSource, SyncEvent},
 };
 
@@ -15,11 +16,13 @@ pub async fn keep_max_partitions_amount(
     max_partitions_amount: usize,
     event_src: EventSource,
     persist_moment: DateTimeAsMicroseconds,
-) {
+) -> Result<(), DbOperationError> {
+    super::super::check_app_states(app)?;
+
     let partitions_amount = db_table.get_partitions_amount().await;
 
     if partitions_amount <= max_partitions_amount {
-        return;
+        return Ok(());
     }
 
     let mut table_data = db_table.data.write().await;
@@ -31,7 +34,9 @@ pub async fn keep_max_partitions_amount(
         event_src,
         max_partitions_amount,
         persist_moment,
-    );
+    )?;
+
+    Ok(())
 }
 
 pub fn gc_partitions(
@@ -41,7 +46,9 @@ pub fn gc_partitions(
     event_src: EventSource,
     max_partitions_amount: usize,
     persist_moment: DateTimeAsMicroseconds,
-) {
+) -> Result<(), DbOperationError> {
+    super::super::check_app_states(app)?;
+
     let mut sync_state =
         InitPartitionsSyncData::new(&table_data, event_src, db_table.attributes.get_persist());
 
@@ -59,4 +66,6 @@ pub fn gc_partitions(
         app.events_dispatcher
             .dispatch(SyncEvent::InitPartitions(sync_state));
     }
+
+    Ok(())
 }

@@ -74,7 +74,7 @@ impl PostAction for InsertOrReplaceAction {
             &now,
             input_data.sync_period.get_sync_moment(),
         )
-        .await
+        .await?
         .into();
 
         result.into()

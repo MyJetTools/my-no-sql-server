@@ -1,17 +1,24 @@
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-use crate::db::{DbTable, UpdateExpirationTimeModel};
+use crate::{
+    app::AppContext,
+    db::{DbTable, UpdateExpirationTimeModel},
+    db_operations::DbOperationError,
+};
 
 use super::super::{read_filter, ReadOperationResult};
 
 pub async fn get_all_by_partition_key(
+    app: &AppContext,
     table: &DbTable,
     partition_key: &str,
     limit: Option<usize>,
     skip: Option<usize>,
     update_expiration_time: Option<UpdateExpirationTimeModel>,
-) -> ReadOperationResult {
-    if let Some(update_expiration_time) = update_expiration_time {
+) -> Result<ReadOperationResult, DbOperationError> {
+    super::super::super::check_app_states(app)?;
+
+    let result = if let Some(update_expiration_time) = update_expiration_time {
         get_all_by_partition_key_and_update_expiration_time(
             table,
             partition_key,
@@ -22,7 +29,9 @@ pub async fn get_all_by_partition_key(
         .await
     } else {
         get_all_by_partition_key_and_no_updates(table, partition_key, limit, skip).await
-    }
+    };
+
+    Ok(result)
 }
 
 pub async fn get_all_by_partition_key_and_no_updates(

@@ -10,6 +10,7 @@ use crate::{
     app::AppContext,
     data_readers::{http_connection::HttpPayload, DataReaderConnection},
     db::UpdateExpirationTimeModel,
+    db_operations::DbOperationError,
     db_sync::EventSource,
     http::http_sessions::HttpSessionsSupport,
 };
@@ -62,7 +63,7 @@ impl PostAction for GetChangesAction {
                     update_model.table_name.as_str(),
                     &update_model.items,
                 )
-                .await;
+                .await?;
             }
         }
 
@@ -95,10 +96,10 @@ async fn update_expiration_time(
     app: &AppContext,
     table_name: &str,
     items: &[UpdateExpirationDateTime],
-) {
+) -> Result<(), DbOperationError> {
     let db_table = app.db.get_table(table_name).await;
     if db_table.is_none() {
-        return;
+        return Ok(());
     }
 
     let db_table = db_table.unwrap();
@@ -119,7 +120,9 @@ async fn update_expiration_time(
                 update_expiration,
                 src,
             )
-            .await;
+            .await?;
         }
     }
+
+    Ok(())
 }

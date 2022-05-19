@@ -6,6 +6,7 @@ use crate::{
     app::AppContext,
     db::{DbRow, DbTable},
     db_json_entity::JsonTimeStamp,
+    db_operations::DbOperationError,
     db_sync::{states::UpdateRowsSyncData, EventSource, SyncEvent},
 };
 
@@ -16,7 +17,9 @@ pub async fn execute(
     event_src: EventSource,
     now: &JsonTimeStamp,
     persist_moment: DateTimeAsMicroseconds,
-) {
+) -> Result<(), DbOperationError> {
+    super::super::check_app_states(app)?;
+
     let mut table_data = db_table.data.write().await;
 
     let mut update_rows_state =
@@ -36,4 +39,6 @@ pub async fn execute(
 
     app.events_dispatcher
         .dispatch(SyncEvent::UpdateRows(update_rows_state));
+
+    Ok(())
 }

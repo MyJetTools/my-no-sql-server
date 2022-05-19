@@ -6,6 +6,7 @@ use crate::{
     app::AppContext,
     db::DbTable,
     db_json_entity::JsonTimeStamp,
+    db_operations::DbOperationError,
     db_sync::{states::DeleteRowsEventSyncData, EventSource, SyncEvent},
 };
 
@@ -19,13 +20,14 @@ pub async fn execute(
     event_src: EventSource,
     now: &JsonTimeStamp,
     persist_moment: DateTimeAsMicroseconds,
-) -> WriteOperationResult {
+) -> Result<WriteOperationResult, DbOperationError> {
+    super::super::check_app_states(app)?;
     let mut table_data = db_table.data.write().await;
 
     let remove_row_result = table_data.remove_row(partition_key, row_key, true, now);
 
     if remove_row_result.is_none() {
-        return WriteOperationResult::Empty;
+        return Ok(WriteOperationResult::Empty);
     }
 
     let (removed_row, partition_is_empty) = remove_row_result.unwrap();
@@ -46,5 +48,6 @@ pub async fn execute(
     app.events_dispatcher
         .dispatch(SyncEvent::DeleteRows(sync_data));
 
-    WriteOperationResult::SingleRow(removed_row).into()
+    let result = WriteOperationResult::SingleRow(removed_row).into();
+    Ok(result)
 }

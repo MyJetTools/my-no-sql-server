@@ -1,35 +1,45 @@
 use std::sync::Arc;
 
 use crate::{
+    app::AppContext,
     db::{DbRow, DbTable, UpdatePartitionReadMoment},
     db_json_entity::JsonTimeStamp,
+    db_operations::DbOperationError,
 };
 
 use super::read_filter::DbRowsFilter;
 
 pub async fn execute(
+    app: &AppContext,
     table: &DbTable,
     partition_key: Option<&String>,
     row_key: Option<&String>,
     limit: Option<usize>,
     skip: Option<usize>,
     now: &JsonTimeStamp,
-) -> Option<Vec<Arc<DbRow>>> {
+) -> Result<Option<Vec<Arc<DbRow>>>, DbOperationError> {
+    super::super::check_app_states(app)?;
+
     if let Some(partition_key) = partition_key {
         if let Some(row_key) = row_key {
-            let result =
-                get_as_partition_key_and_row_key(table, partition_key, row_key, now).await?;
-            return Some(vec![result]);
+            match get_as_partition_key_and_row_key(table, partition_key, row_key, now).await {
+                Some(result) => {
+                    return Ok(Some(vec![result]));
+                }
+                None => {
+                    return Ok(None);
+                }
+            }
         } else {
-            return get_as_partition_key_only(table, partition_key, limit, skip, now).await;
+            return Ok(get_as_partition_key_only(table, partition_key, limit, skip, now).await);
         }
     }
 
     if let Some(row_key) = row_key {
-        return get_as_row_key_only(table, row_key, limit, skip, now).await;
+        return Ok(get_as_row_key_only(table, row_key, limit, skip, now).await);
     }
 
-    return get_all(table, limit, skip, now).await;
+    return Ok(get_all(table, limit, skip, now).await);
 }
 
 pub async fn get_as_partition_key_and_row_key(

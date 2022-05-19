@@ -11,10 +11,12 @@ use crate::{
 };
 
 pub async fn validate_before(
+    app: &AppContext,
     db_table: &DbTable,
     partition_key: &str,
     row_key: &str,
 ) -> Result<(), DbOperationError> {
+    super::super::check_app_states(app)?;
     let read_access = db_table.data.read().await;
 
     let partition = read_access.get_partition(partition_key);

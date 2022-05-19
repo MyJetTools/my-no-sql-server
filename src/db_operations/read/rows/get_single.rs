@@ -1,6 +1,7 @@
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
+    app::AppContext,
     db::{DbTable, UpdateExpirationTimeModel, UpdatePartitionReadMoment},
     db_operations::DbOperationError,
 };
@@ -8,11 +9,14 @@ use crate::{
 use super::super::ReadOperationResult;
 
 pub async fn get_single(
+    app: &AppContext,
     table: &DbTable,
     partition_key: &str,
     row_key: &str,
     update_expiration_time: Option<UpdateExpirationTimeModel>,
 ) -> Result<ReadOperationResult, DbOperationError> {
+    super::super::super::check_app_states(app)?;
+
     if let Some(update_expiration_time) = update_expiration_time {
         get_single_and_update_expiration_time(
             table,

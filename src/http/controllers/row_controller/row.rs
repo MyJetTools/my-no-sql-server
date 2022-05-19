@@ -70,6 +70,7 @@ impl GetAction for RowAction {
         if let Some(partition_key) = input_data.partition_key.as_ref() {
             if let Some(row_key) = input_data.row_key.as_ref() {
                 let result = crate::db_operations::read::rows::get_single(
+                    self.app.as_ref(),
                     db_table.as_ref(),
                     partition_key,
                     row_key,
@@ -80,36 +81,39 @@ impl GetAction for RowAction {
                 return Ok(result.into());
             } else {
                 let result = crate::db_operations::read::rows::get_all_by_partition_key(
+                    self.app.as_ref(),
                     db_table.as_ref(),
                     partition_key,
                     input_data.limit,
                     input_data.skip,
                     update_expiration,
                 )
-                .await;
+                .await?;
 
                 return Ok(result.into());
             }
         } else {
             if let Some(row_key) = input_data.row_key.as_ref() {
                 let result = crate::db_operations::read::rows::get_all_by_row_key(
+                    self.app.as_ref(),
                     db_table.as_ref(),
                     row_key,
                     input_data.limit,
                     input_data.skip,
                     update_expiration,
                 )
-                .await;
+                .await?;
 
                 return Ok(result.into());
             } else {
                 let result = crate::db_operations::read::rows::get_all(
+                    self.app.as_ref(),
                     db_table.as_ref(),
                     input_data.limit,
                     input_data.skip,
                     update_expiration,
                 )
-                .await;
+                .await?;
 
                 return Ok(result.into());
             }
@@ -164,7 +168,7 @@ impl DeleteAction for RowAction {
             &now,
             http_input.sync_period.get_sync_moment(),
         )
-        .await
+        .await?
         .into();
 
         result.into()
@@ -211,6 +215,7 @@ impl PutAction for RowAction {
         let db_json_entity = DbJsonEntity::parse(input_data.body.as_ref())?;
 
         crate::db_operations::write::replace::validate_before(
+            self.app.as_ref(),
             db_table.as_ref(),
             db_json_entity.partition_key,
             db_json_entity.row_key,

@@ -1,18 +1,25 @@
 use my_json::json_writer::JsonArrayWriter;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-use crate::db::{DbTable, UpdateExpirationTimeModel};
+use crate::{
+    app::AppContext,
+    db::{DbTable, UpdateExpirationTimeModel},
+    db_operations::DbOperationError,
+};
 
 use super::ReadOperationResult;
 
 pub async fn get_highest_row_and_below(
+    app: &AppContext,
     db_table: &DbTable,
     partition_key: &str,
     row_key: &String,
     limit: Option<usize>,
     update_expiration_time: Option<UpdateExpirationTimeModel>,
-) -> ReadOperationResult {
-    if let Some(update_expiration_time) = update_expiration_time {
+) -> Result<ReadOperationResult, DbOperationError> {
+    super::super::check_app_states(app)?;
+
+    let result = if let Some(update_expiration_time) = update_expiration_time {
         get_highest_row_and_below_and_update_expiration_time(
             db_table,
             partition_key,
@@ -29,7 +36,9 @@ pub async fn get_highest_row_and_below(
             limit,
         )
         .await
-    }
+    };
+
+    Ok(result)
 }
 
 async fn get_highest_row_and_below_with_no_expiration_time_update(

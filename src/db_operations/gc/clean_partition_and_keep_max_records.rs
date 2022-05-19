@@ -3,6 +3,7 @@ use rust_extensions::date_time::DateTimeAsMicroseconds;
 use crate::{
     app::AppContext,
     db::DbTable,
+    db_operations::DbOperationError,
     db_sync::{states::DeleteRowsEventSyncData, EventSource, SyncEvent},
 };
 
@@ -13,13 +14,15 @@ pub async fn execute(
     max_rows_amount: usize,
     event_source: EventSource,
     sync_moment: DateTimeAsMicroseconds,
-) {
+) -> Result<(), DbOperationError> {
+    super::super::check_app_states(app)?;
+
     let mut table_data = db_table.data.write().await;
 
     let partition = table_data.get_partition_mut(partition_key);
 
     if partition.is_none() {
-        return;
+        return Ok(());
     }
 
     let partition = partition.unwrap();
@@ -42,4 +45,6 @@ pub async fn execute(
         app.events_dispatcher
             .dispatch(SyncEvent::DeleteRows(sync_data));
     }
+
+    Ok(())
 }

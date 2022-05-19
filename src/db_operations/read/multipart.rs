@@ -3,6 +3,8 @@ use crate::{app::AppContext, db_operations::DbOperationError};
 use super::ReadOperationResult;
 
 pub async fn start_read_all(app: &AppContext, table_name: &str) -> Result<i64, DbOperationError> {
+    super::super::check_app_states(app)?;
+
     let db_table = super::table::get(app, table_name).await?;
 
     let entities = db_table.get_all_as_vec_dequeue().await;

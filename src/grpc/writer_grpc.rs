@@ -73,7 +73,8 @@ impl Writer for MyNoSqlServerWriterGrpcSerice {
             max_partitions_amount,
             event_src,
         )
-        .await;
+        .await
+        .unwrap();
 
         return Ok(tonic::Response::new(()));
     }
@@ -109,6 +110,7 @@ impl Writer for MyNoSqlServerWriterGrpcSerice {
         let date_time = JsonTimeStamp::now();
 
         let db_rows = crate::db_operations::read::get_rows_as_vec::execute(
+            self.app.as_ref(),
             db_table.as_ref(),
             partition_key,
             row_key,
@@ -116,7 +118,8 @@ impl Writer for MyNoSqlServerWriterGrpcSerice {
             skip,
             &date_time,
         )
-        .await;
+        .await
+        .unwrap();
 
         tokio::spawn(async move {
             if let Some(db_rows) = db_rows {

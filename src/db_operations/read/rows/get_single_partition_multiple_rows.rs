@@ -1,17 +1,24 @@
 use my_json::json_writer::JsonArrayWriter;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-use crate::db::{DbTable, UpdateExpirationTimeModel, UpdatePartitionReadMoment};
+use crate::{
+    app::AppContext,
+    db::{DbTable, UpdateExpirationTimeModel, UpdatePartitionReadMoment},
+    db_operations::DbOperationError,
+};
 
 use super::super::ReadOperationResult;
 
 pub async fn get_single_partition_multiple_rows(
+    app: &AppContext,
     table: &DbTable,
     partition_key: &str,
     row_keys: Vec<String>,
     update_expiration_time: Option<UpdateExpirationTimeModel>,
-) -> ReadOperationResult {
-    if let Some(update_expiration_time) = update_expiration_time {
+) -> Result<ReadOperationResult, DbOperationError> {
+    super::super::super::check_app_states(app)?;
+
+    let result = if let Some(update_expiration_time) = update_expiration_time {
         get_single_partition_multiple_rows_with_expiration_time_update(
             table,
             partition_key,
@@ -26,7 +33,9 @@ pub async fn get_single_partition_multiple_rows(
             row_keys,
         )
         .await
-    }
+    };
+
+    Ok(result)
 }
 
 pub async fn get_single_partition_multiple_rows_with_no_expiration_time_update(

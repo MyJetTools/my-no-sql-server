@@ -19,6 +19,7 @@ pub async fn execute(
     now: &JsonTimeStamp,
     persist_moment: DateTimeAsMicroseconds,
 ) -> Result<(), DbOperationError> {
+    super::super::check_app_states(app)?;
     let mut table_data = db_table.data.write().await;
 
     table_data.remove_partition(partition_key);

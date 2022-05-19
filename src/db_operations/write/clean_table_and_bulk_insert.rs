@@ -15,6 +15,7 @@ pub async fn execute(
     event_src: Option<EventSource>,
     now: &JsonTimeStamp,
 ) -> Result<(), DbOperationError> {
+    super::super::check_app_states(app)?;
     let mut table_data = db_table.data.write().await;
 
     table_data.clean_table();

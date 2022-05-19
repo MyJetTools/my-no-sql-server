@@ -68,12 +68,13 @@ impl PostAction for GetSinglePartitionMultipleRowsAction {
         );
 
         let result = crate::db_operations::read::rows::get_single_partition_multiple_rows(
+            self.app.as_ref(),
             db_table.as_ref(),
             input_data.partition_key.as_ref(),
             row_keys,
             update_expiration_time,
         )
-        .await;
+        .await?;
 
         Ok(result.into())
     }

@@ -69,7 +69,7 @@ async fn handle_request(
         &now,
         crate::db_sync::DataSynchronizationPeriod::Sec5.get_sync_moment(),
     )
-    .await;
+    .await?;
 
     Ok(HttpOutput::Content {
         headers: None,

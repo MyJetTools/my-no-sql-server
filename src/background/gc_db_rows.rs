@@ -3,7 +3,7 @@ use std::{collections::HashMap, sync::Arc};
 use rust_extensions::{date_time::DateTimeAsMicroseconds, MyTimerTick};
 
 use crate::{
-    app::AppContext,
+    app::{logs::SystemProcess, AppContext},
     db::DbTable,
     db_sync::EventSource,
     utils::{LazyHashMap, LazyVec},
@@ -33,7 +33,7 @@ impl MyTimerTick for GcDbRows {
         if let Some(partitions_to_expire) = data_to_expire.partitions_to_expire {
             let now = DateTimeAsMicroseconds::now();
             for (db_table, partitions) in partitions_to_expire {
-                crate::db_operations::write::delete_partitions(
+                let result = crate::db_operations::write::delete_partitions(
                     self.app.as_ref(),
                     db_table.as_ref(),
                     partitions,
@@ -41,13 +41,25 @@ impl MyTimerTick for GcDbRows {
                     now,
                 )
                 .await;
+
+                if let Err(err) = result {
+                    if !err.is_app_is_not_initialized() {
+                        self.app.logs.add_error(
+                            Some(db_table.name.to_string()),
+                            SystemProcess::Timer,
+                            "GcDbRows_timerTick".to_string(),
+                            "Error Executon operation Delete Partitions".to_string(),
+                            Some(format!("{:?}", err)),
+                        )
+                    }
+                }
             }
         }
 
         if let Some(db_rows_to_expire) = data_to_expire.db_rows_to_expire {
             let now = DateTimeAsMicroseconds::now();
             for (db_table, db_rows_to_expire) in db_rows_to_expire {
-                crate::db_operations::write::bulk_delete(
+                let result = crate::db_operations::write::bulk_delete(
                     self.app.as_ref(),
                     db_table.as_ref(),
                     db_rows_to_expire,
@@ -56,6 +68,18 @@ impl MyTimerTick for GcDbRows {
                     now,
                 )
                 .await;
+
+                if let Err(err) = result {
+                    if !err.is_app_is_not_initialized() {
+                        self.app.logs.add_error(
+                            Some(db_table.name.to_string()),
+                            SystemProcess::Timer,
+                            "GcDbRows_timerTick".to_string(),
+                            "Error Executon operation BulkDelete".to_string(),
+                            Some(format!("{:?}", err)),
+                        )
+                    }
+                }
             }
         }
     }

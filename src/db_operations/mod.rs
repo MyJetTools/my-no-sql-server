@@ -1,3 +1,4 @@
+mod check_app_states;
 mod error;
 pub mod gc;
 pub mod multipart;
@@ -5,4 +6,5 @@ pub mod read;
 pub mod transactions;
 pub mod validation;
 pub mod write;
+pub use check_app_states::check_app_states;
 pub use error::DbOperationError;

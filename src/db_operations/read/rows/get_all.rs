@@ -2,23 +2,29 @@ use my_json::json_writer::JsonArrayWriter;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
+    app::AppContext,
     db::{DbTable, UpdateExpirationTimeModel},
-    db_operations::read::read_filter::DbRowsFilter,
+    db_operations::{read::read_filter::DbRowsFilter, DbOperationError},
 };
 
 use super::super::ReadOperationResult;
 
 pub async fn get_all(
+    app: &AppContext,
     table: &DbTable,
     limit: Option<usize>,
     skip: Option<usize>,
     update_expiration_time: Option<UpdateExpirationTimeModel>,
-) -> ReadOperationResult {
-    if let Some(update_expiration_time) = update_expiration_time {
+) -> Result<ReadOperationResult, DbOperationError> {
+    super::super::super::check_app_states(app)?;
+
+    let result = if let Some(update_expiration_time) = update_expiration_time {
         get_all_and_update_expiration_time(table, limit, skip, &update_expiration_time).await
     } else {
         get_all_and_no_expiration_time_update(table, limit, skip).await
-    }
+    };
+
+    Ok(result)
 }
 
 async fn get_all_and_no_expiration_time_update(

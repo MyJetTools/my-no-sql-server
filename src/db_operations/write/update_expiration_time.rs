@@ -3,6 +3,7 @@ use rust_extensions::date_time::DateTimeAsMicroseconds;
 use crate::{
     app::AppContext,
     db::{DbTable, UpdateExpirationTimeModel, UpdatePartitionReadMoment},
+    db_operations::DbOperationError,
     db_sync::{states::UpdateRowsSyncData, EventSource, SyncEvent},
 };
 
@@ -13,7 +14,9 @@ pub async fn update_expiration_time(
     row_keys: &[String],
     update_expiration_time: &UpdateExpirationTimeModel,
     event_src: EventSource,
-) {
+) -> Result<(), DbOperationError> {
+    super::super::check_app_states(app)?;
+
     let now = DateTimeAsMicroseconds::now();
     let mut table_data = db_table.data.write().await;
 
@@ -23,7 +26,7 @@ pub async fn update_expiration_time(
     let db_partition = table_data.get_partition_mut(partition_key);
 
     if db_partition.is_none() {
-        return;
+        return Ok(());
     }
 
     let db_partition = db_partition.unwrap();
@@ -44,4 +47,6 @@ pub async fn update_expiration_time(
         app.events_dispatcher
             .dispatch(SyncEvent::UpdateRows(update_sync_data));
     }
+
+    Ok(())
 }

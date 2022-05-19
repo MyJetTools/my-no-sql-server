@@ -74,13 +74,14 @@ impl GetAction for GetHighestRowAndBelowAction {
         );
 
         let result = crate::db_operations::read::get_highest_row_and_below(
+            self.app.as_ref(),
             db_table.as_ref(),
             input_data.partition_key.as_ref(),
             &input_data.row_key,
             limit,
             update_expiration,
         )
-        .await;
+        .await?;
 
         Ok(result.into())
     }

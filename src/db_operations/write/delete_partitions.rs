@@ -3,6 +3,7 @@ use rust_extensions::date_time::DateTimeAsMicroseconds;
 use crate::{
     app::AppContext,
     db::DbTable,
+    db_operations::DbOperationError,
     db_sync::{states::InitPartitionsSyncData, EventSource, SyncEvent},
 };
 
@@ -12,7 +13,8 @@ pub async fn delete_partitions(
     partition_keys: Vec<String>,
     event_src: EventSource,
     persist_moment: DateTimeAsMicroseconds,
-) {
+) -> Result<(), DbOperationError> {
+    super::super::check_app_states(app)?;
     let mut table_write_access = db_table.data.write().await;
 
     let mut sync_data = InitPartitionsSyncData::new(
@@ -35,4 +37,6 @@ pub async fn delete_partitions(
 
     app.events_dispatcher
         .dispatch(SyncEvent::InitPartitions(sync_data));
+
+    Ok(())
 }

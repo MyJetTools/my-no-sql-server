@@ -15,11 +15,14 @@ use super::WriteOperationResult;
 
 #[inline]
 pub async fn validate_before(
+    app: &AppContext,
     db_table: &DbTable,
     partition_key: &str,
     row_key: &str,
     entity_timestamp: Option<&str>,
 ) -> Result<(), DbOperationError> {
+    super::super::check_app_states(app)?;
+
     if entity_timestamp.is_none() {
         return Err(DbOperationError::TimeStampFieldRequires);
     }

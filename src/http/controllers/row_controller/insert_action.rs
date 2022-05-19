@@ -60,6 +60,7 @@ impl PostAction for InsertRowAction {
         let db_json_entity = DbJsonEntity::parse(input_data.body.as_slice())?;
 
         crate::db_operations::write::insert::validate_before(
+            self.app.as_ref(),
             db_table.as_ref(),
             db_json_entity.partition_key,
             db_json_entity.row_key,

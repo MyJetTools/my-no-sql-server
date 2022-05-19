@@ -44,7 +44,7 @@ pub async fn commit(
                         event_src.clone(),
                         persist_moment,
                     )
-                    .await;
+                    .await?;
                 }
                 TransactionalOperationStep::DeletePartitions {
                     table_name,
@@ -58,7 +58,7 @@ pub async fn commit(
                         event_src.clone(),
                         persist_moment,
                     )
-                    .await;
+                    .await?;
                 }
                 TransactionalOperationStep::DeleteRows {
                     table_name,
@@ -76,7 +76,7 @@ pub async fn commit(
                         now.date_time,
                         persist_moment,
                     )
-                    .await;
+                    .await?;
                 }
                 TransactionalOperationStep::UpdateRows(state) => {
                     let db_table = tables.get(state.table_name.as_str()).unwrap();
@@ -88,7 +88,7 @@ pub async fn commit(
                         now,
                         persist_moment,
                     )
-                    .await;
+                    .await?;
                 }
             }
         }

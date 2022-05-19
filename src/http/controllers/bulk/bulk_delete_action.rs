@@ -54,7 +54,7 @@ async fn handle_request(
         now.date_time,
         input_data.sync_period.get_sync_moment(),
     )
-    .await;
+    .await?;
 
     HttpOutput::Empty.into_ok_result(true).into()
 }
