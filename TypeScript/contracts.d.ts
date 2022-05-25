@@ -66,4 +66,5 @@ interface ITableModel {
     expirationIndex: number;
     lastUpdateTime: number;
     lastPersistTime: number;
+    persistAmount: number;
 }

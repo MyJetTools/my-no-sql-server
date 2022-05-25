@@ -23,6 +23,8 @@ pub struct TableModel {
     pub last_update_time: i64,
     #[serde(rename = "lastPersistTime")]
     pub last_persist_time: i64,
+    #[serde(rename = "persistAmount")]
+    pub persist_amount: usize,
 }
 
 #[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
@@ -66,6 +68,7 @@ impl StatusModel {
                 records_amount: metrics.records_amount,
                 last_update_time: metrics.last_update_time.unix_microseconds,
                 last_persist_time: metrics.last_persist_time.unix_microseconds,
+                persist_amount: metrics.persist_amount,
             };
 
             tables_model.push(table_model);
