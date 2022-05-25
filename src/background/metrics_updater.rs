@@ -35,5 +35,11 @@ impl MyTimerTick for MetricsUpdater {
         self.app.metrics.updated_sync_queue_size(sync_queue_size);
 
         self.app.update_persist_amount(persist_amount);
+
+        let fatal_errors_count = self.app.logs.get_fatal_errors_amount();
+
+        self.app
+            .metrics
+            .update_fatal_errors_count(fatal_errors_count);
     }
 }

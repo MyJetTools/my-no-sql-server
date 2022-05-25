@@ -30,6 +30,7 @@ pub struct DbTableData {
     pub last_update_time: AtomicDateTimeAsMicroseconds,
     pub last_read_time: AtomicDateTimeAsMicroseconds,
     pub data_to_persist: DataToPersist,
+    pub last_persist_time: DateTimeAsMicroseconds,
 }
 
 impl DbTableData {
@@ -41,6 +42,7 @@ impl DbTableData {
             created,
             last_read_time: AtomicDateTimeAsMicroseconds::new(created.unix_microseconds),
             data_to_persist: DataToPersist::new(),
+            last_persist_time: DateTimeAsMicroseconds::now(),
         }
     }
 
@@ -182,7 +184,13 @@ impl DbTableData {
             persist_amount: self.data_to_persist.persist_amount(),
             records_amount: calculated_metrics.records_count,
             expiration_index_records_amount: calculated_metrics.expiration_index_records_count,
+            last_update_time: self.last_update_time.as_date_time(),
+            last_persist_time: self.last_persist_time,
         }
+    }
+
+    pub fn update_last_persist_time(&mut self) {
+        self.last_persist_time = DateTimeAsMicroseconds::now();
     }
 }
 

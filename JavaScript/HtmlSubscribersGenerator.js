@@ -23,22 +23,28 @@ var HtmlSubscribersGenerator = /** @class */ (function () {
         return html;
     };
     HtmlSubscribersGenerator.generateTablesHtml = function (tables) {
-        var html = "<table class=\"table table-striped\"><tr><th>Table</th><th>DataSize</th><th>Partitions</th><th>Records</th><th>Indexed Records</th></tr>";
+        var html = "<table class=\"table table-striped\"><tr><th>Table</th><th>DataSize</th><th>Partitions</th><th>Records</th><th>Indexed Records</th><th>Last update</th></tr>";
         var total_size = 0;
         var total_partitions = 0;
         var total_records = 0;
         var total_indexed_records = 0;
         for (var _i = 0, tables_1 = tables; _i < tables_1.length; _i++) {
             var table = tables_1[_i];
-            html += '<tr><td>' + table.name + '</td><td>' + table.dataSize + '</td><td>' + table.partitionsCount + '</td><td>' + table.recordsAmount + '</td><td>' + table.expirationIndex + '</td>'
-                + '</tr>';
+            var style = ' style="color:green" ';
+            if (table.lastPersistTime < table.lastUpdateTime) {
+                style = ' style="color:red" ';
+            }
+            var lastUpdateTime = new Date(table.lastUpdateTime / 1000);
+            var lastPersistTime = new Date(table.lastPersistTime / 1000);
+            html += '<tr><td>' + table.name + '</td><td>' + table.dataSize + '</td><td>' + table.partitionsCount + '</td><td>' + table.recordsAmount + '</td><td>' + table.expirationIndex + '</td>' +
+                '<td' + style + '><div>UpdateTime: ' + lastUpdateTime + '</div><div>PersistTime: ' + lastPersistTime + '</div></td></tr>';
             total_size += table.dataSize;
             total_partitions += table.partitionsCount;
             total_records += table.recordsAmount;
             total_indexed_records += table.expirationIndex;
         }
         html += '<tr style="font-weight: bold; background-color:black; color:white;"><td>Total</td><td>DataSize: ' + total_size + '</td><td>Partitions: ' + total_partitions + '</td><td>Records: ' + total_records + '</td><td>Indexed records: ' + total_indexed_records + '</td>'
-            + '</tr>';
+            + '<td></td></tr>';
         html += '</table>';
         return html;
     };

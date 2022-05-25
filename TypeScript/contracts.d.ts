@@ -64,4 +64,6 @@ interface ITableModel {
     dataSize: number;
     recordsAmount: number;
     expirationIndex: number;
+    lastUpdateTime: number;
+    lastPersistTime: number;
 }

@@ -28,6 +28,8 @@ pub struct DbTableMetrics {
     pub persist_amount: usize,
     pub records_amount: usize,
     pub expiration_index_records_amount: usize,
+    pub last_update_time: DateTimeAsMicroseconds,
+    pub last_persist_time: DateTimeAsMicroseconds,
 }
 
 impl DbTable {
@@ -69,6 +71,11 @@ impl DbTable {
         }
 
         result
+    }
+
+    pub async fn update_last_persist_time(&self) {
+        let mut write_access = self.data.write().await;
+        write_access.update_last_persist_time();
     }
 
     pub async fn get_what_to_persist(&self, is_shutting_down: bool) -> Option<PersistResult> {

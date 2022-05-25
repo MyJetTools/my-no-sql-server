@@ -10,6 +10,7 @@ pub struct PrometheusMetrics {
     sync_queue_size: IntGauge,
     tcp_connections_count: IntGauge,
     tcp_connections_changes: IntGaugeVec,
+    fatal_errors_count: IntGauge,
 }
 
 const TABLE_NAME: &str = "table_name";
@@ -23,6 +24,7 @@ impl PrometheusMetrics {
         let sync_queue_size = create_sync_queue_size_gauge();
         let tcp_connections_count = create_tcp_connections_count();
         let tcp_connections_changes = create_tcp_connections_changes();
+        let fatal_errors_count = create_fatal_errors_count();
 
         registry
             .register(Box::new(partitions_amount.clone()))
@@ -30,6 +32,10 @@ impl PrometheusMetrics {
 
         registry.register(Box::new(table_size.clone())).unwrap();
         registry.register(Box::new(persist_amount.clone())).unwrap();
+        registry
+            .register(Box::new(fatal_errors_count.clone()))
+            .unwrap();
+
         registry
             .register(Box::new(sync_queue_size.clone()))
             .unwrap();
@@ -50,6 +56,7 @@ impl PrometheusMetrics {
             sync_queue_size,
             tcp_connections_count,
             tcp_connections_changes,
+            fatal_errors_count,
         };
     }
 
@@ -86,6 +93,10 @@ impl PrometheusMetrics {
         self.tcp_connections_changes
             .with_label_values(&["disconnected"])
             .inc();
+    }
+
+    pub fn update_fatal_errors_count(&self, value: i64) {
+        self.fatal_errors_count.set(value);
     }
 
     pub fn build(&self) -> String {
@@ -126,6 +137,9 @@ fn create_sync_queue_size_gauge() -> IntGauge {
     IntGauge::new("sync_queue_size", "Sync queue size").unwrap()
 }
 
+fn create_fatal_errors_count() -> IntGauge {
+    IntGauge::new("fatal_erros_count", "Fatal errors count").unwrap()
+}
 fn create_tcp_connections_count() -> IntGauge {
     IntGauge::new("tcp_connections_count", "TCP Connections count").unwrap()
 }

@@ -1,4 +1,10 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::HashMap,
+    sync::{
+        atomic::{AtomicI64, Ordering},
+        Arc,
+    },
+};
 
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 use tokio::sync::RwLock;
@@ -90,6 +96,7 @@ struct LogsData {
 
 pub struct Logs {
     data: Arc<RwLock<LogsData>>,
+    fatal_errors_amount: AtomicI64,
 }
 
 impl Logs {
@@ -102,6 +109,7 @@ impl Logs {
 
         Self {
             data: Arc::new(RwLock::new(logs_data)),
+            fatal_errors_amount: AtomicI64::new(0),
         }
     }
 
@@ -128,6 +136,10 @@ impl Logs {
         });
     }
 
+    pub fn get_fatal_errors_amount(&self) -> i64 {
+        self.fatal_errors_amount.load(Ordering::Relaxed)
+    }
+
     pub fn add_error(
         &self,
         table: Option<String>,
@@ -137,6 +149,8 @@ impl Logs {
         err_ctx: Option<String>,
     ) {
         let logs_data = self.data.clone();
+        self.fatal_errors_amount.fetch_add(1, Ordering::SeqCst);
+
         tokio::spawn(async move {
             let item = LogItem {
                 date: DateTimeAsMicroseconds::now(),

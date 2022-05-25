@@ -19,6 +19,10 @@ pub struct TableModel {
     pub records_amount: usize,
     #[serde(rename = "expirationIndex")]
     pub expiration_index_records_amount: usize,
+    #[serde(rename = "lastUpdateTime")]
+    pub last_update_time: i64,
+    #[serde(rename = "lastPersistTime")]
+    pub last_persist_time: i64,
 }
 
 #[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
@@ -60,6 +64,8 @@ impl StatusModel {
                 data_size: metrics.table_size,
                 expiration_index_records_amount: metrics.expiration_index_records_amount,
                 records_amount: metrics.records_amount,
+                last_update_time: metrics.last_update_time.unix_microseconds,
+                last_persist_time: metrics.last_persist_time.unix_microseconds,
             };
 
             tables_model.push(table_model);
