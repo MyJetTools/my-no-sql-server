@@ -36,7 +36,7 @@ pub async fn delete_partitions(
     }
 
     app.events_dispatcher
-        .dispatch(SyncEvent::InitPartitions(sync_data));
+        .dispatch(db_table.into(), SyncEvent::InitPartitions(sync_data));
 
     Ok(())
 }

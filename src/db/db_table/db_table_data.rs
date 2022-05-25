@@ -12,7 +12,7 @@ use crate::{
     persist_operations::data_to_persist::DataToPersist,
 };
 
-use super::DbTableMetrics;
+use super::{DbTable, DbTableMetrics};
 
 pub type TPartitions = BTreeMap<String, DbPartition>;
 
@@ -27,7 +27,7 @@ pub struct DbTableData {
     pub partitions: TPartitions,
 
     pub created: DateTimeAsMicroseconds,
-    pub last_update_time: AtomicDateTimeAsMicroseconds,
+
     pub last_read_time: AtomicDateTimeAsMicroseconds,
     pub data_to_persist: DataToPersist,
     pub last_persist_time: DateTimeAsMicroseconds,
@@ -38,7 +38,7 @@ impl DbTableData {
         Self {
             name,
             partitions: BTreeMap::new(),
-            last_update_time: AtomicDateTimeAsMicroseconds::new(created.unix_microseconds),
+
             created,
             last_read_time: AtomicDateTimeAsMicroseconds::new(created.unix_microseconds),
             data_to_persist: DataToPersist::new(),
@@ -176,7 +176,7 @@ impl DbTableData {
         result
     }
 
-    pub fn get_metrics(&self) -> DbTableMetrics {
+    pub fn get_metrics(&self, db_table: &DbTable) -> DbTableMetrics {
         let calculated_metrics = self.get_calculated_metrics();
         DbTableMetrics {
             table_size: calculated_metrics.data_size,
@@ -184,8 +184,8 @@ impl DbTableData {
             persist_amount: self.data_to_persist.persist_amount(),
             records_amount: calculated_metrics.records_count,
             expiration_index_records_amount: calculated_metrics.expiration_index_records_count,
-            last_update_time: self.last_update_time.as_date_time(),
             last_persist_time: self.last_persist_time,
+            last_update_time: db_table.get_last_update_time(),
         }
     }
 

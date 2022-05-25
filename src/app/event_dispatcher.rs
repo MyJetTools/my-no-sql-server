@@ -3,12 +3,13 @@ use std::sync::{
     Arc,
 };
 
+use rust_extensions::date_time::DateTimeAsMicroseconds;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
-use crate::db_sync::SyncEvent;
+use crate::{db::DbTable, db_sync::SyncEvent};
 
 pub trait EventsDispatcher {
-    fn dispatch(&self, event: SyncEvent);
+    fn dispatch(&self, db_table: Option<&DbTable>, event: SyncEvent);
     fn get_events_queue_size(&self) -> usize;
 }
 
@@ -45,7 +46,11 @@ impl EventsDispatcherProduction {
 }
 
 impl EventsDispatcher for EventsDispatcherProduction {
-    fn dispatch(&self, event: SyncEvent) {
+    fn dispatch(&self, db_table: Option<&DbTable>, event: SyncEvent) {
+        if let Some(db_table) = db_table {
+            db_table.set_last_update_time(DateTimeAsMicroseconds::now());
+        }
+
         let result = self.events_sender.send(event);
         self.size.fetch_add(1, Ordering::SeqCst);
         if let Err(_) = result {

@@ -1,7 +1,7 @@
 use std::{collections::VecDeque, sync::Arc};
 
 use my_json::json_writer::JsonArrayWriter;
-use rust_extensions::date_time::DateTimeAsMicroseconds;
+use rust_extensions::date_time::{AtomicDateTimeAsMicroseconds, DateTimeAsMicroseconds};
 use tokio::sync::RwLock;
 
 use crate::{
@@ -20,6 +20,7 @@ pub struct DbTable {
     pub name: String,
     pub data: RwLock<DbTableData>,
     pub attributes: DbTableAttributes,
+    last_update_time: AtomicDateTimeAsMicroseconds,
 }
 
 pub struct DbTableMetrics {
@@ -34,16 +35,26 @@ pub struct DbTableMetrics {
 
 impl DbTable {
     pub fn new(data: DbTableData, attributes: DbTableAttributesSnapshot) -> Self {
+        let created = data.created.unix_microseconds;
         DbTable {
             attributes: attributes.into(),
             name: data.name.to_string(),
             data: RwLock::new(data),
+            last_update_time: AtomicDateTimeAsMicroseconds::new(created),
         }
     }
 
     pub async fn get_metrics(&self) -> DbTableMetrics {
         let read_access = self.data.read().await;
-        read_access.get_metrics()
+        read_access.get_metrics(self)
+    }
+
+    pub fn get_last_update_time(&self) -> DateTimeAsMicroseconds {
+        self.last_update_time.as_date_time()
+    }
+
+    pub fn set_last_update_time(&self, value: DateTimeAsMicroseconds) {
+        self.last_update_time.update(value);
     }
 
     pub async fn get_table_size(&self) -> usize {
@@ -87,13 +98,14 @@ impl DbTable {
     }
 
     pub async fn get_table_snapshot(&self) -> DbTableSnapshot {
+        let last_update_time = self.get_last_update_time();
         let read_access = self.data.read().await;
         let read_access: &DbTableData = &read_access;
 
         DbTableSnapshot {
             attr: self.attributes.get_snapshot(),
             created: read_access.created,
-            last_update: read_access.last_update_time.as_date_time(),
+            last_update_time,
             by_partition: read_access.into(),
         }
     }

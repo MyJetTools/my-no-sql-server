@@ -37,8 +37,12 @@ pub async fn execute(
             .mark_partition_to_persist(partition_key.as_str(), persist_moment);
     }
 
-    app.events_dispatcher
-        .dispatch(SyncEvent::UpdateRows(update_rows_state));
+    db_table.set_last_update_time(DateTimeAsMicroseconds::now());
+
+    app.events_dispatcher.dispatch(
+        db_table.as_ref().into(),
+        SyncEvent::UpdateRows(update_rows_state),
+    );
 
     Ok(())
 }

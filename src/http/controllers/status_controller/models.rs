@@ -56,7 +56,7 @@ impl StatusModel {
         for table in &tables {
             let read_access = table.data.read().await;
 
-            let metrics = read_access.get_metrics();
+            let metrics = read_access.get_metrics(table.as_ref());
 
             let table_model = TableModel {
                 name: table.name.clone(),

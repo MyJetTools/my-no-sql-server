@@ -42,7 +42,7 @@ pub async fn bulk_delete(
     }
 
     app.events_dispatcher
-        .dispatch(SyncEvent::DeleteRows(sync_data));
+        .dispatch(db_table.into(), SyncEvent::DeleteRows(sync_data));
 
     Ok(())
 }

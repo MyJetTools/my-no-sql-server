@@ -10,12 +10,16 @@ use super::DbPartitionSnapshot;
 pub struct DbTableSnapshot {
     pub attr: DbTableAttributesSnapshot,
     pub created: DateTimeAsMicroseconds,
-    pub last_update: DateTimeAsMicroseconds,
+    pub last_update_time: DateTimeAsMicroseconds,
     pub by_partition: BTreeMap<String, DbPartitionSnapshot>,
 }
 
 impl DbTableSnapshot {
-    pub fn new(table_data: &DbTableData, attr: DbTableAttributesSnapshot) -> Self {
+    pub fn new(
+        last_update_time: DateTimeAsMicroseconds,
+        table_data: &DbTableData,
+        attr: DbTableAttributesSnapshot,
+    ) -> Self {
         let mut by_partition = BTreeMap::new();
 
         for (partition_key, db_partition) in &table_data.partitions {
@@ -25,7 +29,7 @@ impl DbTableSnapshot {
         Self {
             attr,
             created: table_data.created,
-            last_update: table_data.last_update_time.as_date_time(),
+            last_update_time,
             by_partition,
         }
     }

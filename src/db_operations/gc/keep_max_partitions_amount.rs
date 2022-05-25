@@ -64,7 +64,7 @@ pub fn gc_partitions(
             sync_state.add(partition_key, None);
         }
         app.events_dispatcher
-            .dispatch(SyncEvent::InitPartitions(sync_state));
+            .dispatch(db_table.into(), SyncEvent::InitPartitions(sync_state));
     }
 
     Ok(())

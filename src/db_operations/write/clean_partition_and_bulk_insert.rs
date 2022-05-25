@@ -40,7 +40,7 @@ pub async fn execute(
     );
 
     app.events_dispatcher
-        .dispatch(SyncEvent::InitPartitions(state));
+        .dispatch(db_table.as_ref().into(), SyncEvent::InitPartitions(state));
 
     Ok(())
 }

@@ -25,11 +25,15 @@ pub async fn execute(
     }
 
     if let Some(event_src) = event_src {
-        let sync_data =
-            InitTableEventSyncData::new(&table_data, db_table.attributes.get_snapshot(), event_src);
+        let sync_data = InitTableEventSyncData::new(
+            db_table.as_ref(),
+            &table_data,
+            db_table.attributes.get_snapshot(),
+            event_src,
+        );
 
         app.events_dispatcher
-            .dispatch(SyncEvent::InitTable(sync_data));
+            .dispatch(db_table.as_ref().into(), SyncEvent::InitTable(sync_data));
     }
 
     Ok(())

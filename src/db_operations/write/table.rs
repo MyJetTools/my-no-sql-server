@@ -44,11 +44,13 @@ pub async fn create(
                     .mark_table_to_persist(persist_moment);
 
                 let state = InitTableEventSyncData::new(
+                    db_table.as_ref(),
                     &table_data,
                     db_table.attributes.get_snapshot(),
                     event_src,
                 );
-                app.events_dispatcher.dispatch(SyncEvent::InitTable(state));
+                app.events_dispatcher
+                    .dispatch(db_table.as_ref().into(), SyncEvent::InitTable(state));
             }
 
             return Ok(db_table);
@@ -78,12 +80,14 @@ async fn get_or_create(
             {
                 let mut table_data = db_table.data.write().await;
                 let state = InitTableEventSyncData::new(
+                    db_table.as_ref(),
                     &table_data,
                     db_table.attributes.get_snapshot(),
                     event_src,
                 );
 
-                app.events_dispatcher.dispatch(SyncEvent::InitTable(state));
+                app.events_dispatcher
+                    .dispatch(db_table.as_ref().into(), SyncEvent::InitTable(state));
 
                 table_data
                     .data_to_persist
@@ -160,18 +164,18 @@ pub async fn set_table_attrubutes(
         return Ok(());
     }
 
-    app.events_dispatcher
-        .dispatch(SyncEvent::UpdateTableAttributes(
-            UpdateTableAttributesSyncData {
-                table_data: SyncTableData {
-                    table_name: db_table.name.to_string(),
-                    persist,
-                },
-                event_src,
+    app.events_dispatcher.dispatch(
+        db_table.as_ref().into(),
+        SyncEvent::UpdateTableAttributes(UpdateTableAttributesSyncData {
+            table_data: SyncTableData {
+                table_name: db_table.name.to_string(),
                 persist,
-                max_partitions_amount,
             },
-        ));
+            event_src,
+            persist,
+            max_partitions_amount,
+        }),
+    );
 
     let mut table_access = db_table.data.write().await;
     table_access.data_to_persist.mark_persist_attrs();
@@ -201,12 +205,14 @@ pub async fn delete(
             .data_to_persist
             .mark_table_to_persist(persist_moment);
 
-        app.events_dispatcher
-            .dispatch(SyncEvent::DeleteTable(DeleteTableSyncData::new(
+        app.events_dispatcher.dispatch(
+            db_table.as_ref().into(),
+            SyncEvent::DeleteTable(DeleteTableSyncData::new(
                 &table_data,
                 event_src,
                 db_table.attributes.get_persist(),
-            )));
+            )),
+        );
     }
 
     let app = app.clone();

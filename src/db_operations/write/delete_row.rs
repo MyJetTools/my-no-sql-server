@@ -46,7 +46,7 @@ pub async fn execute(
     }
 
     app.events_dispatcher
-        .dispatch(SyncEvent::DeleteRows(sync_data));
+        .dispatch(db_table.as_ref().into(), SyncEvent::DeleteRows(sync_data));
 
     let result = WriteOperationResult::SingleRow(removed_row).into();
     Ok(result)

@@ -28,11 +28,13 @@ pub async fn subscribe(
 
     data_reader.subscribe(db_table.clone()).await;
 
-    app.events_dispatcher
-        .dispatch(SyncEvent::TableFirstInit(TableFirstInitSyncData {
+    app.events_dispatcher.dispatch(
+        None,
+        SyncEvent::TableFirstInit(TableFirstInitSyncData {
             db_table,
             data_reader,
-        }));
+        }),
+    );
 
     Ok(())
 }

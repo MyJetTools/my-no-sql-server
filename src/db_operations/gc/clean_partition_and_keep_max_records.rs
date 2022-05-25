@@ -43,7 +43,7 @@ pub async fn execute(
         sync_data.add_deleted_rows(partition_key, &gced_rows);
 
         app.events_dispatcher
-            .dispatch(SyncEvent::DeleteRows(sync_data));
+            .dispatch(db_table.into(), SyncEvent::DeleteRows(sync_data));
     }
 
     Ok(())
