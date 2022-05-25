@@ -70,7 +70,9 @@ async fn main() {
     crate::persist_operations::data_initializer::init_tables(app.clone()).await;
     let mut timer_1s = MyTimer::new(Duration::from_secs(1));
 
-    timer_1s.register_timer("Persist", Arc::new(PersistTimer::new(app.clone())));
+    let mut persist_timer = MyTimer::new(Duration::from_secs(1));
+
+    persist_timer.register_timer("Persist", Arc::new(PersistTimer::new(app.clone())));
     timer_1s.register_timer("MetricsUpdated", Arc::new(MetricsUpdater::new(app.clone())));
 
     let mut timer_10s = MyTimer::new(Duration::from_secs(10));
@@ -86,6 +88,7 @@ async fn main() {
     timer_1s.start(app.clone(), app.clone());
     timer_10s.start(app.clone(), app.clone());
     timer_30s.start(app.clone(), app.clone());
+    persist_timer.start(app.clone(), app.clone());
 
     background_tasks.push(tokio::task::spawn(crate::background::sync::start(
         app.clone(),
