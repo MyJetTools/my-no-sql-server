@@ -9,10 +9,11 @@ pub struct PrometheusMetrics {
     persist_amount: IntGaugeVec,
     sync_queue_size: IntGauge,
     tcp_connections_count: IntGauge,
-    tcp_connections_changes: IntGauge,
+    tcp_connections_changes: IntGaugeVec,
 }
 
 const TABLE_NAME: &str = "table_name";
+const TCP_METRIC: &str = "tcp_metric";
 impl PrometheusMetrics {
     pub fn new() -> Self {
         let registry = Registry::new();
@@ -75,12 +76,16 @@ impl PrometheusMetrics {
 
     pub fn mark_new_tcp_connection(&self) {
         self.tcp_connections_count.inc();
-        self.tcp_connections_changes.inc();
+        self.tcp_connections_changes
+            .with_label_values(&["connected"])
+            .inc();
     }
 
     pub fn mark_new_tcp_disconnection(&self) {
         self.tcp_connections_count.dec();
-        self.tcp_connections_changes.inc();
+        self.tcp_connections_changes
+            .with_label_values(&["disconnected"])
+            .inc();
     }
 
     pub fn build(&self) -> String {
@@ -125,6 +130,9 @@ fn create_tcp_connections_count() -> IntGauge {
     IntGauge::new("tcp_connections_count", "TCP Connections count").unwrap()
 }
 
-fn create_tcp_connections_changes() -> IntGauge {
-    IntGauge::new("tcp_connections_changes", "TCP Connections chagnes").unwrap()
+fn create_tcp_connections_changes() -> IntGaugeVec {
+    let gauge_opts = Opts::new(format!("tcp_changes_count"), format!("Tcp Changes Count"));
+
+    let lables = &[TCP_METRIC];
+    IntGaugeVec::new(gauge_opts, lables).unwrap()
 }
