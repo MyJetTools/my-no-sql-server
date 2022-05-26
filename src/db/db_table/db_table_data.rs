@@ -4,9 +4,11 @@ use rust_extensions::date_time::{AtomicDateTimeAsMicroseconds, DateTimeAsMicrose
 use std::{
     collections::{btree_map::Values, BTreeMap, HashMap},
     sync::Arc,
+    time::Duration,
 };
 
 use crate::{
+    app::PersistHistoryDuration,
     db::{db_snapshots::DbPartitionSnapshot, DbPartition, DbRow, UpdateExpirationTimeModel},
     db_json_entity::JsonTimeStamp,
     persist_operations::data_to_persist::DataToPersist,
@@ -31,6 +33,8 @@ pub struct DbTableData {
     pub last_read_time: AtomicDateTimeAsMicroseconds,
     pub data_to_persist: DataToPersist,
     pub last_persist_time: DateTimeAsMicroseconds,
+
+    pub persist_history_duration: PersistHistoryDuration,
 }
 
 impl DbTableData {
@@ -43,6 +47,7 @@ impl DbTableData {
             last_read_time: AtomicDateTimeAsMicroseconds::new(created.unix_microseconds),
             data_to_persist: DataToPersist::new(),
             last_persist_time: DateTimeAsMicroseconds::now(),
+            persist_history_duration: PersistHistoryDuration::new(),
         }
     }
 
@@ -187,11 +192,17 @@ impl DbTableData {
             last_persist_time: self.last_persist_time,
             last_update_time: db_table.get_last_update_time(),
             next_persist_time: self.data_to_persist.get_next_persist_time(),
+            last_persist_duration: self.persist_history_duration.get(),
         }
     }
 
     pub fn update_last_persist_time(&mut self) {
         self.last_persist_time = DateTimeAsMicroseconds::now();
+    }
+
+    pub fn update_last_persist_duration(&mut self, duration: Duration) {
+        self.persist_history_duration
+            .add(duration.as_micros() as usize);
     }
 }
 

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use rust_extensions::MyTimerTick;
+use rust_extensions::{MyTimerTick, StopWatch};
 
 use crate::{
     app::{logs::SystemProcess, AppContext},
@@ -36,8 +36,16 @@ impl MyTimerTick for PersistTimer {
 
         for db_table in tables {
             if let Some(persist_result) = db_table.get_what_to_persist(is_shutting_down).await {
+                let mut sw = StopWatch::new();
+                sw.start();
                 let result =
                     tokio::spawn(persist(self.app.clone(), db_table.clone(), persist_result)).await;
+
+                sw.pause();
+
+                db_table
+                    .update_last_persist_time(result.is_ok(), sw.duration())
+                    .await;
 
                 if let Err(err) = result {
                     self.app.logs.add_fatal_error(
@@ -62,12 +70,9 @@ async fn persist(app: Arc<AppContext>, db_table: Arc<DbTable>, persist_result: P
                 &attrs,
             )
             .await;
-            db_table.update_last_persist_time().await;
         }
         PersistResult::PersistTable => {
             crate::persist_operations::sync::save_table(app.as_ref(), db_table.as_ref()).await;
-
-            db_table.update_last_persist_time().await;
         }
         PersistResult::PersistPartition(partition_key) => {
             crate::persist_operations::sync::save_partition(
@@ -76,7 +81,6 @@ async fn persist(app: Arc<AppContext>, db_table: Arc<DbTable>, persist_result: P
                 partition_key.as_str(),
             )
             .await;
-            db_table.update_last_persist_time().await;
         }
     }
 }

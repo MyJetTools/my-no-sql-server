@@ -4,6 +4,7 @@ use std::{
         atomic::{AtomicBool, Ordering},
         Arc,
     },
+    time::Duration,
 };
 
 use my_json::json_writer::JsonArrayWriter;
@@ -44,6 +45,7 @@ pub struct DbTableMetrics {
     pub last_update_time: DateTimeAsMicroseconds,
     pub last_persist_time: DateTimeAsMicroseconds,
     pub next_persist_time: Option<DateTimeAsMicroseconds>,
+    pub last_persist_duration: Vec<usize>,
 }
 
 impl DbTable {
@@ -99,9 +101,13 @@ impl DbTable {
         result
     }
 
-    pub async fn update_last_persist_time(&self) {
+    pub async fn update_last_persist_time(&self, success: bool, duration: Duration) {
         let mut write_access = self.data.write().await;
-        write_access.update_last_persist_time();
+        if success {
+            write_access.update_last_persist_time();
+        }
+
+        write_access.update_last_persist_duration(duration)
     }
 
     pub fn persist_using_common_thread(&self) -> bool {

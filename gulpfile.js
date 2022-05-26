@@ -6,6 +6,8 @@ var concat = require('gulp-concat');
 gulp.task('default', function () {
     return gulp
         .src(['./JavaScript/HtmlDialog.js',
+            './JavaScript/Utils.js',
+            './JavaScript/HtmlGraph.js',
             './JavaScript/HtmlStatusBar.js',
             './JavaScript/HtmlMain.js',
             './JavaScript/HtmlSubscribersGenerator.js',

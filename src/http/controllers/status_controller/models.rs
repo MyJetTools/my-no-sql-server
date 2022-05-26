@@ -23,6 +23,8 @@ pub struct TableModel {
     pub last_update_time: i64,
     #[serde(rename = "lastPersistTime")]
     pub last_persist_time: i64,
+    #[serde(rename = "lastPersistDuration")]
+    pub last_persist_duration: Vec<usize>,
     #[serde(rename = "nextPersistTime")]
     pub next_persist_time: Option<i64>,
     #[serde(rename = "persistAmount")]
@@ -74,6 +76,7 @@ impl StatusModel {
                 last_persist_time: metrics.last_persist_time.unix_microseconds,
                 persist_amount: metrics.persist_amount,
                 has_common_thread: table.persist_using_common_thread(),
+                last_persist_duration: metrics.last_persist_duration,
                 next_persist_time: if let Some(next_persist_time) = metrics.next_persist_time {
                     Some(next_persist_time.unix_microseconds)
                 } else {
