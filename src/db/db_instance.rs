@@ -33,6 +33,19 @@ impl DbInstance {
             .collect();
     }
 
+    pub async fn get_tables_with_common_persist_thread(&self) -> Vec<Arc<DbTable>> {
+        let read_access = self.tables.read().await;
+
+        let mut result = Vec::new();
+
+        for db_table in read_access.values() {
+            if db_table.persist_using_common_thread() {}
+            result.push(db_table.clone());
+        }
+
+        result
+    }
+
     pub async fn get_table(&self, table_name: &str) -> Option<Arc<DbTable>> {
         let read_access = self.tables.read().await;
 

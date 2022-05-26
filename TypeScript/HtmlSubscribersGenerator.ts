@@ -42,7 +42,7 @@ class HtmlSubscribersGenerator {
         let total_partitions = 0;
         let total_records = 0;
         let total_indexed_records = 0;
-        for (let table of tables) {
+        for (let table of tables.sort(itm => itm.name ? 1 : -1)) {
 
             let style = ' style="color:green" ';
 
@@ -53,8 +53,15 @@ class HtmlSubscribersGenerator {
             let lastUpdateTime = new Date(table.lastUpdateTime / 1000);
             let lastPersistTime = new Date(table.lastPersistTime / 1000);
 
+            let lineColor = "";
 
-            html += '<tr><td>' + table.name + '</td><td>' + table.persistAmount + '</td><td>' + table.dataSize + '</td><td>' + table.partitionsCount + '</td><td>' + table.recordsAmount + '</td><td>' + table.expirationIndex + '</td>' +
+            if (!table.hasCommonThread) {
+                lineColor = ' style="background-color: #8bc34a4f" ';
+
+            }
+
+
+            html += '<tr ' + lineColor + '><td>' + table.name + '</td><td>' + table.persistAmount + '</td><td>' + table.dataSize + '</td><td>' + table.partitionsCount + '</td><td>' + table.recordsAmount + '</td><td>' + table.expirationIndex + '</td>' +
                 '<td' + style + '><div>UpdateTime: ' + lastUpdateTime.toISOString() + '</div><div>PersistTime: ' + lastPersistTime.toISOString() + '</div></td></tr>';
 
 

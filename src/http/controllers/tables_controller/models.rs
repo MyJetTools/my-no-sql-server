@@ -85,3 +85,9 @@ pub struct DeleteTableContract {
     #[http_header(name = "apikey"; description = "Api Key protecting the table to be deleted")]
     pub api_key: String,
 }
+
+#[derive(MyHttpInput)]
+pub struct SpawnPersistThreadInputContract {
+    #[http_query(name = "tableName"; description = "Name of a table")]
+    pub table_name: String,
+}

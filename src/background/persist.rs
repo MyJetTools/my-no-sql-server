@@ -8,13 +8,19 @@ use crate::{
     persist_operations::data_to_persist::PersistResult,
 };
 
+pub enum TimerType {
+    Dedicated(Arc<DbTable>),
+    Common,
+}
+
 pub struct PersistTimer {
     app: Arc<AppContext>,
+    timer_type: TimerType,
 }
 
 impl PersistTimer {
-    pub fn new(app: Arc<AppContext>) -> Self {
-        Self { app }
+    pub fn new(app: Arc<AppContext>, timer_type: TimerType) -> Self {
+        Self { app, timer_type }
     }
 }
 
@@ -23,7 +29,10 @@ impl MyTimerTick for PersistTimer {
     async fn tick(&self) {
         let is_shutting_down = self.app.states.is_shutting_down();
 
-        let tables = self.app.db.get_tables().await;
+        let tables = match &self.timer_type {
+            TimerType::Dedicated(db_table) => vec![db_table.clone()],
+            TimerType::Common => self.app.db.get_tables_with_common_persist_thread().await,
+        };
 
         for db_table in tables {
             if let Some(persist_result) = db_table.get_what_to_persist(is_shutting_down).await {

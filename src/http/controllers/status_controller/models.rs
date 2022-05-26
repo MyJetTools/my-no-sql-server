@@ -25,6 +25,8 @@ pub struct TableModel {
     pub last_persist_time: i64,
     #[serde(rename = "persistAmount")]
     pub persist_amount: usize,
+    #[serde(rename = "hasCommonThread")]
+    pub has_common_thread: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
@@ -69,6 +71,7 @@ impl StatusModel {
                 last_update_time: metrics.last_update_time.unix_microseconds,
                 last_persist_time: metrics.last_persist_time.unix_microseconds,
                 persist_amount: metrics.persist_amount,
+                has_common_thread: table.persist_using_common_thread(),
             };
 
             tables_model.push(table_model);

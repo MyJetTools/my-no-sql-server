@@ -28,15 +28,19 @@ var HtmlSubscribersGenerator = /** @class */ (function () {
         var total_partitions = 0;
         var total_records = 0;
         var total_indexed_records = 0;
-        for (var _i = 0, tables_1 = tables; _i < tables_1.length; _i++) {
-            var table = tables_1[_i];
+        for (var _i = 0, _a = tables.sort(function (itm) { return itm.name ? 1 : -1; }); _i < _a.length; _i++) {
+            var table = _a[_i];
             var style = ' style="color:green" ';
             if (table.lastPersistTime < table.lastUpdateTime) {
                 style = ' style="color:red" ';
             }
             var lastUpdateTime = new Date(table.lastUpdateTime / 1000);
             var lastPersistTime = new Date(table.lastPersistTime / 1000);
-            html += '<tr><td>' + table.name + '</td><td>' + table.persistAmount + '</td><td>' + table.dataSize + '</td><td>' + table.partitionsCount + '</td><td>' + table.recordsAmount + '</td><td>' + table.expirationIndex + '</td>' +
+            var lineColor = "";
+            if (!table.hasCommonThread) {
+                lineColor = ' style="background-color: #8bc34a4f" ';
+            }
+            html += '<tr ' + lineColor + '><td>' + table.name + '</td><td>' + table.persistAmount + '</td><td>' + table.dataSize + '</td><td>' + table.partitionsCount + '</td><td>' + table.recordsAmount + '</td><td>' + table.expirationIndex + '</td>' +
                 '<td' + style + '><div>UpdateTime: ' + lastUpdateTime.toISOString() + '</div><div>PersistTime: ' + lastPersistTime.toISOString() + '</div></td></tr>';
             total_size += table.dataSize;
             total_partitions += table.partitionsCount;

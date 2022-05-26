@@ -1,7 +1,10 @@
 use app::{logs::Logs, AppContext, EventsDispatcherProduction};
 use background::{
-    gc_db_rows::GcDbRows, gc_http_sessions::GcHttpSessionsTimer, gc_multipart::GcMultipart,
-    metrics_updater::MetricsUpdater, persist::PersistTimer,
+    gc_db_rows::GcDbRows,
+    gc_http_sessions::GcHttpSessionsTimer,
+    gc_multipart::GcMultipart,
+    metrics_updater::MetricsUpdater,
+    persist::{PersistTimer, TimerType},
 };
 use my_logger::MyLogger;
 use my_no_sql_tcp_shared::MyNoSqlReaderTcpSerializer;
@@ -72,7 +75,10 @@ async fn main() {
 
     let mut persist_timer = MyTimer::new(Duration::from_secs(1));
 
-    persist_timer.register_timer("Persist", Arc::new(PersistTimer::new(app.clone())));
+    persist_timer.register_timer(
+        "Persist",
+        Arc::new(PersistTimer::new(app.clone(), TimerType::Common)),
+    );
     timer_1s.register_timer("MetricsUpdated", Arc::new(MetricsUpdater::new(app.clone())));
 
     let mut timer_10s = MyTimer::new(Duration::from_secs(10));

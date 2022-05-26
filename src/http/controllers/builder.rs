@@ -117,6 +117,10 @@ pub fn build(app: Arc<AppContext>) -> ControllersMiddleware {
         app.clone(),
     )));
 
+    result.register_post_action(Arc::new(
+        super::tables_controller::SpawnPersistThreadAction::new(app.clone()),
+    ));
+
     result.register_post_action(Arc::new(super::row_controller::InsertOrReplaceAction::new(
         app.clone(),
     )));

@@ -1,8 +1,17 @@
-use std::{collections::VecDeque, sync::Arc};
+use std::{
+    collections::VecDeque,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
+};
 
 use my_json::json_writer::JsonArrayWriter;
-use rust_extensions::date_time::{AtomicDateTimeAsMicroseconds, DateTimeAsMicroseconds};
-use tokio::sync::RwLock;
+use rust_extensions::{
+    date_time::{AtomicDateTimeAsMicroseconds, DateTimeAsMicroseconds},
+    MyTimer,
+};
+use tokio::sync::{Mutex, RwLock};
 
 use crate::{
     db::{
@@ -21,6 +30,9 @@ pub struct DbTable {
     pub data: RwLock<DbTableData>,
     pub attributes: DbTableAttributes,
     last_update_time: AtomicDateTimeAsMicroseconds,
+
+    pub common_persist_thread: AtomicBool,
+    pub dedicated_thread: Mutex<Option<MyTimer>>,
 }
 
 pub struct DbTableMetrics {
@@ -41,6 +53,8 @@ impl DbTable {
             name: data.name.to_string(),
             data: RwLock::new(data),
             last_update_time: AtomicDateTimeAsMicroseconds::new(created),
+            common_persist_thread: AtomicBool::new(true),
+            dedicated_thread: Mutex::new(None),
         }
     }
 
@@ -87,6 +101,10 @@ impl DbTable {
     pub async fn update_last_persist_time(&self) {
         let mut write_access = self.data.write().await;
         write_access.update_last_persist_time();
+    }
+
+    pub fn persist_using_common_thread(&self) -> bool {
+        self.common_persist_thread.load(Ordering::Relaxed)
     }
 
     pub async fn get_what_to_persist(&self, is_shutting_down: bool) -> Option<PersistResult> {

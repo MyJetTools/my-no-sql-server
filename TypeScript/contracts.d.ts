@@ -67,4 +67,5 @@ interface ITableModel {
     lastUpdateTime: number;
     lastPersistTime: number;
     persistAmount: number;
+    hasCommonThread: boolean;
 }
