@@ -29,32 +29,42 @@ impl MyTimerTick for PersistTimer {
     async fn tick(&self) {
         let is_shutting_down = self.app.states.is_shutting_down();
 
-        let tables = match &self.timer_type {
-            TimerType::Dedicated(db_table) => vec![db_table.clone()],
-            TimerType::Common => self.app.db.get_tables_with_common_persist_thread().await,
-        };
+        loop {
+            let tables = match &self.timer_type {
+                TimerType::Dedicated(db_table) => vec![db_table.clone()],
+                TimerType::Common => self.app.db.get_tables_with_common_persist_thread().await,
+            };
 
-        for db_table in tables {
-            if let Some(persist_result) = db_table.get_what_to_persist(is_shutting_down).await {
-                let mut sw = StopWatch::new();
-                sw.start();
-                let result =
-                    tokio::spawn(persist(self.app.clone(), db_table.clone(), persist_result)).await;
+            let mut has_something_to_persist = false;
 
-                sw.pause();
+            for db_table in tables {
+                if let Some(persist_result) = db_table.get_what_to_persist(is_shutting_down).await {
+                    has_something_to_persist = true;
+                    let mut sw = StopWatch::new();
+                    sw.start();
+                    let result =
+                        tokio::spawn(persist(self.app.clone(), db_table.clone(), persist_result))
+                            .await;
 
-                db_table
-                    .update_last_persist_time(result.is_ok(), sw.duration())
-                    .await;
+                    sw.pause();
 
-                if let Err(err) = result {
-                    self.app.logs.add_fatal_error(
-                        Some(db_table.name.to_string()),
-                        SystemProcess::PersistOperation,
-                        "PersistTimer".to_string(),
-                        format!("Can not persist messages {:?}", err),
-                    )
+                    db_table
+                        .update_last_persist_time(result.is_ok(), sw.duration())
+                        .await;
+
+                    if let Err(err) = result {
+                        self.app.logs.add_fatal_error(
+                            Some(db_table.name.to_string()),
+                            SystemProcess::PersistOperation,
+                            "PersistTimer".to_string(),
+                            format!("Can not persist messages {:?}", err),
+                        )
+                    }
                 }
+            }
+
+            if !has_something_to_persist {
+                break;
             }
         }
     }
