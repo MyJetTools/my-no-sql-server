@@ -38,7 +38,7 @@ var HtmlSubscribersGenerator = /** @class */ (function () {
             var lastPersistTime = new Date(table.lastPersistTime / 1000);
             var nextPersistTime = "---";
             if (table.nextPersistTime) {
-                var as_time = new Date(table.lastPersistTime / 1000);
+                var as_time = new Date(table.nextPersistTime / 1000);
                 nextPersistTime = as_time.toISOString();
             }
             var lineColor = "";

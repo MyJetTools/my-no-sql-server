@@ -56,7 +56,7 @@ class HtmlSubscribersGenerator {
             let nextPersistTime = "---";
 
             if (table.nextPersistTime) {
-                let as_time = new Date(table.lastPersistTime / 1000);
+                let as_time = new Date(table.nextPersistTime / 1000);
                 nextPersistTime = as_time.toISOString();
             }
 
