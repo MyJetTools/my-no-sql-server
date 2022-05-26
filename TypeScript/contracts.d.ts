@@ -66,6 +66,7 @@ interface ITableModel {
     expirationIndex: number;
     lastUpdateTime: number;
     lastPersistTime: number;
+    nextPersistTime: number;
     persistAmount: number;
     hasCommonThread: boolean;
 }

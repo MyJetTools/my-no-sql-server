@@ -53,6 +53,13 @@ class HtmlSubscribersGenerator {
             let lastUpdateTime = new Date(table.lastUpdateTime / 1000);
             let lastPersistTime = new Date(table.lastPersistTime / 1000);
 
+            let nextPersistTime = "---";
+
+            if (table.nextPersistTime) {
+                let as_time = new Date(table.lastPersistTime / 1000);
+                nextPersistTime = as_time.toISOString();
+            }
+
             let lineColor = "";
 
             if (!table.hasCommonThread) {
@@ -62,7 +69,7 @@ class HtmlSubscribersGenerator {
 
 
             html += '<tr ' + lineColor + '><td>' + table.name + '</td><td>' + table.persistAmount + '</td><td>' + table.dataSize + '</td><td>' + table.partitionsCount + '</td><td>' + table.recordsAmount + '</td><td>' + table.expirationIndex + '</td>' +
-                '<td' + style + '><div>UpdateTime: ' + lastUpdateTime.toISOString() + '</div><div>PersistTime: ' + lastPersistTime.toISOString() + '</div></td></tr>';
+                '<td' + style + '><div>UpdateTime: ' + lastUpdateTime.toISOString() + '</div><div>PersistTime: ' + lastPersistTime.toISOString() + '</div><div>NextPersist: ' + nextPersistTime + '</div></td></tr>';
 
 
             total_size += table.dataSize;

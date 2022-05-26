@@ -36,12 +36,17 @@ var HtmlSubscribersGenerator = /** @class */ (function () {
             }
             var lastUpdateTime = new Date(table.lastUpdateTime / 1000);
             var lastPersistTime = new Date(table.lastPersistTime / 1000);
+            var nextPersistTime = "---";
+            if (table.nextPersistTime) {
+                var as_time = new Date(table.lastPersistTime / 1000);
+                nextPersistTime = as_time.toISOString();
+            }
             var lineColor = "";
             if (!table.hasCommonThread) {
                 lineColor = ' style="background-color: #8bc34a4f" ';
             }
             html += '<tr ' + lineColor + '><td>' + table.name + '</td><td>' + table.persistAmount + '</td><td>' + table.dataSize + '</td><td>' + table.partitionsCount + '</td><td>' + table.recordsAmount + '</td><td>' + table.expirationIndex + '</td>' +
-                '<td' + style + '><div>UpdateTime: ' + lastUpdateTime.toISOString() + '</div><div>PersistTime: ' + lastPersistTime.toISOString() + '</div></td></tr>';
+                '<td' + style + '><div>UpdateTime: ' + lastUpdateTime.toISOString() + '</div><div>PersistTime: ' + lastPersistTime.toISOString() + '</div><div>NextPersist: ' + nextPersistTime + '</div></td></tr>';
             total_size += table.dataSize;
             total_partitions += table.partitionsCount;
             total_records += table.recordsAmount;

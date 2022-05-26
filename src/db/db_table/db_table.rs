@@ -43,6 +43,7 @@ pub struct DbTableMetrics {
     pub expiration_index_records_amount: usize,
     pub last_update_time: DateTimeAsMicroseconds,
     pub last_persist_time: DateTimeAsMicroseconds,
+    pub next_persist_time: Option<DateTimeAsMicroseconds>,
 }
 
 impl DbTable {

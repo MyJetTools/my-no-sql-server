@@ -94,6 +94,29 @@ impl DataToPersist {
         None
     }
 
+    pub fn get_next_persist_time(&self) -> Option<DateTimeAsMicroseconds> {
+        if let Some(persisit_whole_table) = self.persisit_whole_table {
+            return Some(persisit_whole_table);
+        }
+
+        let mut result: Option<DateTimeAsMicroseconds> = None;
+
+        for partition_dt in self.partitions.values() {
+            match result.clone() {
+                Some(current_result) => {
+                    if current_result.unix_microseconds > partition_dt.unix_microseconds {
+                        result = Some(*partition_dt)
+                    }
+                }
+                None => {
+                    result = Some(*partition_dt);
+                }
+            }
+        }
+
+        result
+    }
+
     pub fn get_what_to_persist(
         &mut self,
         now: DateTimeAsMicroseconds,

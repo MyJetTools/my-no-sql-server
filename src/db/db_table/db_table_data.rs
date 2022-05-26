@@ -186,6 +186,7 @@ impl DbTableData {
             expiration_index_records_amount: calculated_metrics.expiration_index_records_count,
             last_persist_time: self.last_persist_time,
             last_update_time: db_table.get_last_update_time(),
+            next_persist_time: self.data_to_persist.get_next_persist_time(),
         }
     }
 
