@@ -37,14 +37,14 @@ var HtmlSubscribersGenerator = /** @class */ (function () {
             var lastUpdateTime = new Date(table.lastUpdateTime / 1000);
             var lastPersistTime = new Date(table.lastPersistTime / 1000);
             html += '<tr><td>' + table.name + '</td><td>' + table.persistAmount + '</td><td>' + table.dataSize + '</td><td>' + table.partitionsCount + '</td><td>' + table.recordsAmount + '</td><td>' + table.expirationIndex + '</td>' +
-                '<td' + style + '><div>UpdateTime: ' + lastUpdateTime + '</div><div>PersistTime: ' + lastPersistTime + '</div></td></tr>';
+                '<td' + style + '><div>UpdateTime: ' + lastUpdateTime.toISOString() + '</div><div>PersistTime: ' + lastPersistTime.toISOString() + '</div></td></tr>';
             total_size += table.dataSize;
             total_partitions += table.partitionsCount;
             total_records += table.recordsAmount;
             total_indexed_records += table.expirationIndex;
         }
-        html += '<tr style="font-weight: bold; background-color:black; color:white;"><td>Total</td><td>DataSize: ' + total_size + '</td><td>Partitions: ' + total_partitions + '</td><td>Records: ' + total_records + '</td><td>Indexed records: ' + total_indexed_records + '</td>'
-            + '<td></td><td></td></tr>';
+        html += '<tr style="font-weight: bold; background-color:black; color:white;"><td>Total</td><td></td><td>DataSize: ' + total_size + '</td><td>Partitions: ' + total_partitions + '</td><td>Records: ' + total_records + '</td><td>Indexed records: ' + total_indexed_records + '</td>'
+            + '<td></td></tr>';
         html += '</table>';
         return html;
     };

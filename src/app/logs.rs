@@ -71,6 +71,15 @@ pub enum LogLevel {
     Error,
     FatalError,
 }
+
+impl LogLevel {
+    pub fn is_fatal_error(&self) -> bool {
+        match self {
+            LogLevel::FatalError => true,
+            _ => false,
+        }
+    }
+}
 #[derive(Debug, Clone)]
 pub struct LogItem {
     pub date: DateTimeAsMicroseconds,
@@ -92,6 +101,7 @@ struct LogsData {
     items: Vec<Arc<LogItem>>,
     items_by_table: HashMap<String, Vec<Arc<LogItem>>>,
     items_by_process: HashMap<u8, Vec<Arc<LogItem>>>,
+    fatal_errors: Vec<Arc<LogItem>>,
 }
 
 pub struct Logs {
@@ -105,6 +115,7 @@ impl Logs {
             items: Vec::new(),
             items_by_table: HashMap::new(),
             items_by_process: HashMap::new(),
+            fatal_errors: Vec::new(),
         };
 
         Self {
@@ -140,6 +151,16 @@ impl Logs {
         self.fatal_errors_amount.load(Ordering::Relaxed)
     }
 
+    pub async fn get_fatal_errors(&self) -> Option<Vec<Arc<LogItem>>> {
+        let data = self.data.read().await;
+        if data.fatal_errors.is_empty() {
+            return None;
+        }
+
+        let result = data.fatal_errors.clone();
+        return result.into();
+    }
+
     pub fn add_error(
         &self,
         table: Option<String>,
@@ -149,7 +170,6 @@ impl Logs {
         err_ctx: Option<String>,
     ) {
         let logs_data = self.data.clone();
-        self.fatal_errors_amount.fetch_add(1, Ordering::SeqCst);
 
         tokio::spawn(async move {
             let item = LogItem {
@@ -166,13 +186,21 @@ impl Logs {
         });
     }
 
-    pub fn add_fatal_error(&self, process: SystemProcess, process_name: String, message: String) {
+    pub fn add_fatal_error(
+        &self,
+        table: Option<String>,
+        process: SystemProcess,
+        process_name: String,
+        message: String,
+    ) {
         let logs_data = self.data.clone();
+        self.fatal_errors_amount.fetch_add(1, Ordering::SeqCst);
+
         tokio::spawn(async move {
             let item = LogItem {
                 date: DateTimeAsMicroseconds::now(),
                 level: LogLevel::FatalError,
-                table: None,
+                table,
                 process_name,
                 process,
                 message: message,
@@ -276,6 +304,13 @@ async fn add(logs_data: Arc<RwLock<LogsData>>, item: LogItem) {
 
     if should_log_be_printed(&item) {
         print_to_console(&item);
+    }
+
+    if item.level.is_fatal_error() {
+        wirte_access.fatal_errors.push(item.clone());
+        while wirte_access.fatal_errors.len() > 100 {
+            wirte_access.fatal_errors.remove(0);
+        }
     }
 
     let process_id = item.as_ref().process.as_u8();

@@ -10,6 +10,10 @@ pub fn build(app: Arc<AppContext>) -> ControllersMiddleware {
     let api_controller = super::api::ApiController::new();
     result.register_get_action(Arc::new(api_controller));
 
+    result.register_get_action(Arc::new(super::logs_controller::GetFatalErrorsAction::new(
+        app.clone(),
+    )));
+
     result.register_get_action(Arc::new(super::tables_controller::GetListAction::new(
         app.clone(),
     )));

@@ -36,6 +36,7 @@ impl MyLoggerReader for TcpServerLogger {
             }
             my_logger::LogLevel::FatalError => {
                 self.logger.add_fatal_error(
+                    None,
                     SystemProcess::TcpSocket,
                     log_event.process,
                     log_event.message,

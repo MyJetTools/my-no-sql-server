@@ -105,6 +105,6 @@ impl MyTimerLogger for AppContext {
 
     fn write_error(&self, timer_id: String, message: String) {
         self.logs
-            .add_fatal_error(SystemProcess::Timer, timer_id, message);
+            .add_fatal_error(None, SystemProcess::Timer, timer_id, message);
     }
 }

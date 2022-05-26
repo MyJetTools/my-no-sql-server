@@ -31,12 +31,11 @@ impl MyTimerTick for PersistTimer {
                     tokio::spawn(persist(self.app.clone(), db_table.clone(), persist_result)).await;
 
                 if let Err(err) = result {
-                    self.app.logs.add_error(
+                    self.app.logs.add_fatal_error(
                         Some(db_table.name.to_string()),
                         SystemProcess::PersistOperation,
                         "PersistTimer".to_string(),
-                        "Panic during persist operation".to_string(),
-                        Some(format!("{:?}", err)),
+                        format!("Can not persist messages {:?}", err),
                     )
                 }
             }

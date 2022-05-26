@@ -55,7 +55,7 @@ class HtmlSubscribersGenerator {
 
 
             html += '<tr><td>' + table.name + '</td><td>' + table.persistAmount + '</td><td>' + table.dataSize + '</td><td>' + table.partitionsCount + '</td><td>' + table.recordsAmount + '</td><td>' + table.expirationIndex + '</td>' +
-                '<td' + style + '><div>UpdateTime: ' + lastUpdateTime + '</div><div>PersistTime: ' + lastPersistTime + '</div></td></tr>';
+                '<td' + style + '><div>UpdateTime: ' + lastUpdateTime.toISOString() + '</div><div>PersistTime: ' + lastPersistTime.toISOString() + '</div></td></tr>';
 
 
             total_size += table.dataSize;
