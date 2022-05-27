@@ -52,6 +52,12 @@ impl PostAction for InsertOrReplaceAction {
     async fn handle_request(&self, ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
         let input_data = InsertOrReplaceInputContract::parse_http_input(ctx).await?;
 
+        let q = ctx.request.get_query_string().unwrap();
+
+        let param = q.get_optional("syncPeriod").unwrap().as_string().unwrap();
+
+        println!("{:?}", param);
+
         let db_table = crate::db_operations::read::table::get(
             self.app.as_ref(),
             input_data.table_name.as_str(),
