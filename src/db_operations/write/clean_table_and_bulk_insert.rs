@@ -1,5 +1,7 @@
 use std::{collections::BTreeMap, sync::Arc};
 
+use rust_extensions::date_time::DateTimeAsMicroseconds;
+
 use crate::{
     app::AppContext,
     db::{DbRow, DbTable},
@@ -14,6 +16,7 @@ pub async fn execute(
     entities: BTreeMap<String, Vec<Arc<DbRow>>>,
     event_src: Option<EventSource>,
     now: &JsonTimeStamp,
+    persist_moment: DateTimeAsMicroseconds,
 ) -> Result<(), DbOperationError> {
     super::super::check_app_states(app)?;
     let mut table_data = db_table.data.write().await;
@@ -23,6 +26,10 @@ pub async fn execute(
     for (partition_key, db_rows) in entities {
         table_data.bulk_insert_or_replace(partition_key.as_str(), &db_rows, now);
     }
+
+    table_data
+        .data_to_persist
+        .mark_table_to_persist(persist_moment);
 
     if let Some(event_src) = event_src {
         let sync_data = InitTableEventSyncData::new(

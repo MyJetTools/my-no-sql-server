@@ -65,6 +65,7 @@ async fn handle_request(
                 rows_by_partition,
                 Some(event_src),
                 &now,
+                input_data.sync_period.get_sync_moment(),
             )
             .await?;
         }
