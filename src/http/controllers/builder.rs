@@ -187,5 +187,9 @@ pub fn build(app: Arc<AppContext>) -> ControllersMiddleware {
         app.clone(),
     )));
 
+    let force_persist_action = super::persist_controller::ForcePersistAction::new(app.clone());
+
+    result.register_post_action(Arc::new(force_persist_action));
+
     result
 }

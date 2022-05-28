@@ -1,14 +1,12 @@
 use app::{logs::Logs, AppContext, EventsDispatcherProduction};
 use background::{
-    gc_db_rows::GcDbRows,
-    gc_http_sessions::GcHttpSessionsTimer,
-    gc_multipart::GcMultipart,
-    metrics_updater::MetricsUpdater,
-    persist::{PersistTimer, TimerType},
+    gc_db_rows::GcDbRows, gc_http_sessions::GcHttpSessionsTimer, gc_multipart::GcMultipart,
+    metrics_updater::MetricsUpdater, persist::PersistTimer,
 };
 use my_logger::MyLogger;
 use my_no_sql_tcp_shared::MyNoSqlReaderTcpSerializer;
 use my_tcp_sockets::TcpServer;
+use operations::PersistType;
 use rust_extensions::MyTimer;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tcp::{TcpServerEvents, TcpServerLogger};
@@ -77,7 +75,7 @@ async fn main() {
 
     persist_timer.register_timer(
         "Persist",
-        Arc::new(PersistTimer::new(app.clone(), TimerType::Common)),
+        Arc::new(PersistTimer::new(app.clone(), PersistType::Common)),
     );
     timer_1s.register_timer("MetricsUpdated", Arc::new(MetricsUpdater::new(app.clone())));
 

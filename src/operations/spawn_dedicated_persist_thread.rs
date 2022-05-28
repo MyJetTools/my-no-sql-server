@@ -5,11 +5,9 @@ use std::{
 
 use rust_extensions::MyTimer;
 
-use crate::{
-    app::AppContext,
-    background::persist::{PersistTimer, TimerType},
-    db::DbTable,
-};
+use crate::{app::AppContext, background::persist::PersistTimer, db::DbTable};
+
+use super::PersistType;
 
 pub async fn spawn_dedicated_persist_thread(
     app: &Arc<AppContext>,
@@ -33,7 +31,7 @@ pub async fn spawn_dedicated_persist_thread(
         timer_name.as_str(),
         Arc::new(PersistTimer::new(
             app.clone(),
-            TimerType::Dedicated(db_table.clone()),
+            PersistType::Dedicated(db_table.clone()),
         )),
     );
 
