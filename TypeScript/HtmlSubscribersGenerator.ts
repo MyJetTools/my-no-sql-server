@@ -2,9 +2,6 @@
 
 class HtmlSubscribersGenerator {
 
-
-
-
     public static generateHtml(data: IInitializedStatus): string {
 
         return '<h3>Connected Nodes</h3>'
@@ -42,7 +39,7 @@ class HtmlSubscribersGenerator {
         let total_partitions = 0;
         let total_records = 0;
         let total_indexed_records = 0;
-        for (let table of tables.sort(itm => itm.name ? 1 : -1)) {
+        for (let table of tables.sort((a, b) => a.name > b.name ? 1 : -1)) {
 
             let style = ' style="color:green" ';
 

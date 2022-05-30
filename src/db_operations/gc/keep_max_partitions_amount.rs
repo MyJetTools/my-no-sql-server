@@ -12,7 +12,7 @@ use crate::{
 //TODO - Use Method from TableData
 pub async fn keep_max_partitions_amount(
     app: &AppContext,
-    db_table: Arc<DbTable>,
+    db_table: &Arc<DbTable>,
     max_partitions_amount: usize,
     event_src: EventSource,
     persist_moment: DateTimeAsMicroseconds,

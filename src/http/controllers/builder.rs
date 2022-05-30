@@ -4,7 +4,7 @@ use my_http_server_controllers::controllers::ControllersMiddleware;
 
 use crate::app::AppContext;
 
-pub fn build(app: Arc<AppContext>) -> ControllersMiddleware {
+pub fn build(app: &Arc<AppContext>) -> ControllersMiddleware {
     let mut result = ControllersMiddleware::new();
 
     let api_controller = super::api::ApiController::new();
@@ -190,6 +190,10 @@ pub fn build(app: Arc<AppContext>) -> ControllersMiddleware {
     let force_persist_action = super::persist_controller::ForcePersistAction::new(app.clone());
 
     result.register_post_action(Arc::new(force_persist_action));
+
+    result.register_get_action(Arc::new(super::status_controller::RequestsAction::new(
+        app.clone(),
+    )));
 
     result
 }

@@ -1,4 +1,4 @@
-use crate::app::AppContext;
+use crate::app::{AppContext, RequestMetric};
 use my_http_server_swagger::*;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 use serde::{Deserialize, Serialize};
@@ -150,4 +150,31 @@ async fn get_readers(app: &AppContext) -> (Vec<ReaderModel>, usize, usize) {
     }
 
     (result, tcp_count, http_count)
+}
+
+#[derive(MyHttpInput)]
+pub struct RequestActionInputContract {
+    #[http_query(name = "tableName"; description = "Name of a table")]
+    pub table_name: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
+pub struct RequestContract {
+    pub moment: String,
+    pub action: String,
+    pub duration: String,
+    pub status_code: u16,
+    pub size: usize,
+}
+
+impl RequestContract {
+    pub fn from(src: RequestMetric) -> Self {
+        Self {
+            moment: src.moment.to_rfc3339(),
+            action: src.name,
+            duration: format!("{:?}", src.duration),
+            status_code: src.status_code,
+            size: src.result_size,
+        }
+    }
 }

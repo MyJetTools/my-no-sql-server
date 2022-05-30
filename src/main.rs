@@ -31,8 +31,6 @@ mod persist_io;
 mod settings_reader;
 mod utils;
 
-use my_app_insights::AppInsightsTelemetry;
-
 pub mod mynosqlserver_grpc {
     tonic::include_proto!("mynosqlserver");
 }
@@ -45,11 +43,9 @@ async fn main() {
 
     let mut background_tasks = Vec::new();
 
-    let app_insights = Arc::new(AppInsightsTelemetry::new("my-no-sql-server".to_string()));
-
     let logs = Arc::new(Logs::new());
 
-    let persist_io = settings.get_persist_io(logs.clone(), app_insights.clone());
+    let persist_io = settings.get_persist_io(logs.clone());
 
     let mut sync_events_dispatcher = EventsDispatcherProduction::new();
 
@@ -99,7 +95,7 @@ async fn main() {
         sync_events_reader,
     )));
 
-    crate::http::start_up::setup_server(app.clone(), app_insights.clone());
+    crate::http::start_up::setup_server(&app);
 
     let tcp_server = TcpServer::new_with_logger(
         "MyNoSqlReader".to_string(),
@@ -122,8 +118,6 @@ async fn main() {
         app.states.shutting_down.clone(),
     )
     .unwrap();
-
-    app_insights.start(app.clone()).await;
 
     shut_down_task(app).await;
 

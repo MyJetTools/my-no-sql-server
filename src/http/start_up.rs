@@ -1,19 +1,16 @@
 use std::{net::SocketAddr, sync::Arc};
 
-use my_app_insights::AppInsightsTelemetry;
 use my_http_server::{middlewares::StaticFilesMiddleware, MyHttpServer};
-use my_http_server_app_insights::AppInsightsMiddleware;
 use my_http_server_controllers::swagger::SwaggerMiddleware;
 
 use crate::app::AppContext;
 
-pub fn setup_server(app: Arc<AppContext>, app_insights_telemetry: Arc<AppInsightsTelemetry>) {
+use super::controllers::request_metrics_writer::RequestMetricsWriter;
+
+pub fn setup_server(app: &Arc<AppContext>) {
     let mut http_server = MyHttpServer::new(SocketAddr::from(([0, 0, 0, 0], 5123)));
 
-    let controllers = Arc::new(crate::http::controllers::builder::build(app.clone()));
-
-    let app_insights_middleware = AppInsightsMiddleware::new(app_insights_telemetry.clone());
-    http_server.add_middleware(Arc::new(app_insights_middleware));
+    let controllers = Arc::new(crate::http::controllers::builder::build(app));
 
     let swagger_middleware = SwaggerMiddleware::new(
         controllers.clone(),
@@ -22,6 +19,7 @@ pub fn setup_server(app: Arc<AppContext>, app_insights_telemetry: Arc<AppInsight
     );
 
     http_server.add_middleware(Arc::new(swagger_middleware));
+    http_server.add_middleware(Arc::new(RequestMetricsWriter::new(app.clone())));
     http_server.add_middleware(controllers);
 
     http_server.add_middleware(Arc::new(StaticFilesMiddleware::new(None)));

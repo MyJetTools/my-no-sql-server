@@ -1,4 +1,3 @@
-use my_app_insights::AppInsightsTelemetry;
 use my_azure_storage_sdk::AzureStorageConnection;
 use serde::{Deserialize, Serialize};
 use std::{env, sync::Arc};
@@ -31,15 +30,8 @@ pub struct SettingsModel {
 }
 
 impl SettingsModel {
-    pub fn get_persist_io(
-        &self,
-        logs: Arc<Logs>,
-        telemetry: Arc<AppInsightsTelemetry>,
-    ) -> AzureBlobsPersistIo {
-        let mut conn_string =
-            AzureStorageConnection::from_conn_string(self.persistence_dest.as_str());
-
-        conn_string.set_telemetry(telemetry);
+    pub fn get_persist_io(&self, logs: Arc<Logs>) -> AzureBlobsPersistIo {
+        let conn_string = AzureStorageConnection::from_conn_string(self.persistence_dest.as_str());
 
         AzureBlobsPersistIo::new(Arc::new(conn_string), logs)
     }

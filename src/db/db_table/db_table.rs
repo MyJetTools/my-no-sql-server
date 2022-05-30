@@ -15,6 +15,7 @@ use rust_extensions::{
 use tokio::sync::{Mutex, RwLock};
 
 use crate::{
+    app::RequestMetrics,
     db::{
         db_snapshots::{DbPartitionSnapshot, DbTableSnapshot},
         DbRow,
@@ -34,6 +35,8 @@ pub struct DbTable {
 
     pub common_persist_thread: AtomicBool,
     pub dedicated_thread: Mutex<Option<MyTimer>>,
+
+    pub request_metrics: RequestMetrics,
 }
 
 pub struct DbTableMetrics {
@@ -58,6 +61,7 @@ impl DbTable {
             last_update_time: AtomicDateTimeAsMicroseconds::new(created),
             common_persist_thread: AtomicBool::new(true),
             dedicated_thread: Mutex::new(None),
+            request_metrics: RequestMetrics::new(),
         }
     }
 

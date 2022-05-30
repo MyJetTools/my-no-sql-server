@@ -40,7 +40,7 @@ async fn handle_request(
 
     crate::db_operations::gc::keep_max_partitions_amount(
         action.app.as_ref(),
-        db_table,
+        &db_table,
         http_input.max_partitions_amount,
         event_src,
         http_input.sync_period.get_sync_moment(),

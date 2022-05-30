@@ -28,7 +28,7 @@ var HtmlSubscribersGenerator = /** @class */ (function () {
         var total_partitions = 0;
         var total_records = 0;
         var total_indexed_records = 0;
-        for (var _i = 0, _a = tables.sort(function (itm) { return itm.name ? 1 : -1; }); _i < _a.length; _i++) {
+        for (var _i = 0, _a = tables.sort(function (a, b) { return a.name > b.name ? 1 : -1; }); _i < _a.length; _i++) {
             var table = _a[_i];
             var style = ' style="color:green" ';
             if (table.lastPersistTime < table.lastUpdateTime) {
