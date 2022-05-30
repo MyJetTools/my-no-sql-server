@@ -11,10 +11,12 @@ pub struct PrometheusMetrics {
     tcp_connections_count: IntGauge,
     tcp_connections_changes: IntGaugeVec,
     fatal_errors_count: IntGauge,
+    persist_delay_in_seconds: IntGaugeVec,
 }
 
 const TABLE_NAME: &str = "table_name";
 const TCP_METRIC: &str = "tcp_metric";
+
 impl PrometheusMetrics {
     pub fn new() -> Self {
         let registry = Registry::new();
@@ -25,6 +27,8 @@ impl PrometheusMetrics {
         let tcp_connections_count = create_tcp_connections_count();
         let tcp_connections_changes = create_tcp_connections_changes();
         let fatal_errors_count = create_fatal_errors_count();
+
+        let persist_delay_in_seconds = create_persist_delay_in_seconds();
 
         registry
             .register(Box::new(partitions_amount.clone()))
@@ -48,6 +52,10 @@ impl PrometheusMetrics {
             .register(Box::new(tcp_connections_changes.clone()))
             .unwrap();
 
+        registry
+            .register(Box::new(persist_delay_in_seconds.clone()))
+            .unwrap();
+
         return Self {
             registry,
             partitions_amount,
@@ -57,6 +65,7 @@ impl PrometheusMetrics {
             tcp_connections_count,
             tcp_connections_changes,
             fatal_errors_count,
+            persist_delay_in_seconds,
         };
     }
 
@@ -75,6 +84,12 @@ impl PrometheusMetrics {
         self.persist_amount
             .with_label_values(&[table_name])
             .set(persist_amount_value);
+    }
+
+    pub fn update_persist_delay(&self, table_name: &str, persist_delay: i64) {
+        self.persist_delay_in_seconds
+            .with_label_values(&[table_name])
+            .set(persist_delay);
     }
 
     pub fn updated_sync_queue_size(&self, sync_queue_size: usize) {
@@ -142,6 +157,16 @@ fn create_fatal_errors_count() -> IntGauge {
 }
 fn create_tcp_connections_count() -> IntGauge {
     IntGauge::new("tcp_connections_count", "TCP Connections count").unwrap()
+}
+
+fn create_persist_delay_in_seconds() -> IntGaugeVec {
+    let gauge_opts = Opts::new(
+        format!("persist_delay_sec"),
+        format!("Current delay of persistence operation in seconds"),
+    );
+
+    let lables = &[TABLE_NAME];
+    IntGaugeVec::new(gauge_opts, lables).unwrap()
 }
 
 fn create_tcp_connections_changes() -> IntGaugeVec {

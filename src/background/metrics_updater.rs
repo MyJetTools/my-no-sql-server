@@ -26,9 +26,25 @@ impl MyTimerTick for MetricsUpdater {
 
             persist_amount += table_metrics.persist_amount;
 
+            let persist_delay = if table_metrics.last_persist_time.unix_microseconds
+                < table_metrics.last_update_time.unix_microseconds
+            {
+                let duration = table_metrics
+                    .last_update_time
+                    .duration_since(table_metrics.last_persist_time);
+
+                duration.as_secs() as i64
+            } else {
+                0
+            };
+
             self.app
                 .metrics
                 .update_table_metrics(db_table.name.as_str(), &table_metrics);
+
+            self.app
+                .metrics
+                .update_persist_delay(db_table.name.as_str(), persist_delay);
         }
 
         let sync_queue_size = self.app.events_dispatcher.get_events_queue_size();
