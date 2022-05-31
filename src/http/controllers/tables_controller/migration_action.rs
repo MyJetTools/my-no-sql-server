@@ -52,7 +52,7 @@ async fn handle_request(
         .await
         .unwrap();
 
-    let body = response.get_body().await.unwrap();
+    let body = response.receive_body().await.unwrap();
 
     let now = JsonTimeStamp::now();
     let rows_by_partition = DbJsonEntity::parse_as_btreemap(body.as_slice(), &now)?;
