@@ -34,7 +34,8 @@ impl TcpServerEvents {
                         format!("Connection name update to {}", name),
                         format!("ID: {}", connection.id),
                     );
-                    data_reader.set_name(name).await;
+                    data_reader.set_name(name.to_string()).await;
+                    connection.connection_name.update(name).await;
                 }
             }
 
