@@ -7,7 +7,7 @@ use crate::{
 };
 
 pub async fn start(app: Arc<AppContext>, mut sync_events_reader: SyncEventsReader) {
-    let time_out_duration = Duration::from_secs(1);
+    let time_out_duration = Duration::from_secs(4);
 
     while !app.states.is_shutting_down() {
         if let Some(sync_event) = sync_events_reader.get_next_event().await {
