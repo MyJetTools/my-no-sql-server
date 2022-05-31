@@ -1,15 +1,39 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use crate::{
-    app::{AppContext, SyncEventsReader},
+    app::{logs::SystemProcess, AppContext, SyncEventsReader},
     data_readers::DataReaderConnection,
     db_sync::SyncEvent,
 };
 
 pub async fn start(app: Arc<AppContext>, mut sync_events_reader: SyncEventsReader) {
+    let time_out_duration = Duration::from_secs(1);
+
     while !app.states.is_shutting_down() {
         if let Some(sync_event) = sync_events_reader.get_next_event().await {
-            handle_event(app.as_ref(), &sync_event).await;
+            let result =
+                tokio::time::timeout(time_out_duration, handle_event(app.as_ref(), &sync_event))
+                    .await;
+
+            if let Err(_) = result {
+                app.logs.add_fatal_error(
+                    None,
+                    SystemProcess::ReadersSync,
+                    "Sync Loop".to_string(),
+                    format!(
+                        "Handling event for table {} is timeouted. ",
+                        sync_event.get_table_name()
+                    ),
+                );
+            }
+        } else {
+            app.logs.add_fatal_error(
+                None,
+                SystemProcess::ReadersSync,
+                "Sync Loop".to_string(),
+                "Somehow we got empty event".to_string(),
+            );
+            tokio::time::sleep(time_out_duration).await;
         }
     }
 }

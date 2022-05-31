@@ -17,6 +17,7 @@ pub enum SystemProcess {
     TableOperation = 3,
     Init = 4,
     Timer = 5,
+    ReadersSync = 6,
 }
 
 impl SystemProcess {
@@ -293,6 +294,9 @@ fn should_log_be_printed(item: &LogItem) -> bool {
             return true;
         }
         SystemProcess::Timer => {}
+        SystemProcess::ReadersSync => {
+            return true;
+        }
     }
 
     return false;
