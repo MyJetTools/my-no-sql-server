@@ -15,23 +15,23 @@ pub fn deserialize(raw: &[u8]) -> Result<DbPartition, String> {
         }
 
         let db_entity_json = db_entity_json_result.unwrap();
-        let db_entity = DbJsonEntity::parse(db_entity_json);
 
-        if let Err(err) = db_entity {
-            return Err(format!("Can not parse DbJsonEntity: {:?}", err));
+        match DbJsonEntity::parse(db_entity_json) {
+            Ok(db_entity) => {
+                let db_row = if let Some(time_stamp) = db_entity.time_stamp {
+                    let time_stamp = JsonTimeStamp::parse_or_now(time_stamp);
+                    db_entity.restore_db_row(&time_stamp)
+                } else {
+                    let time_stamp = JsonTimeStamp::now();
+                    db_entity.to_db_row(&time_stamp)
+                };
+
+                db_partition.insert_row(Arc::new(db_row), None);
+            }
+            Err(err) => {
+                println!("Skipping entity. Reason {:?}", err);
+            }
         }
-
-        let db_entity = db_entity.unwrap();
-
-        let db_row = if let Some(time_stamp) = db_entity.time_stamp {
-            let time_stamp = JsonTimeStamp::parse_or_now(time_stamp);
-            db_entity.restore_db_row(&time_stamp)
-        } else {
-            let time_stamp = JsonTimeStamp::now();
-            db_entity.to_db_row(&time_stamp)
-        };
-
-        db_partition.insert_row(Arc::new(db_row), None);
     }
     Ok(db_partition)
 }
