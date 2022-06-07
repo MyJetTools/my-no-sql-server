@@ -4,6 +4,8 @@ use crate::json::JsonParseError;
 pub enum DbEntityParseFail {
     FieldPartitionKeyIsRequired,
     FieldRowKeyIsRequired,
+    FieldPartitionKeyCanNotBeNull,
+    FieldRowKeyCanNotBeNull,
     JsonParseError(JsonParseError),
     PartitionKeyIsTooLong,
 }

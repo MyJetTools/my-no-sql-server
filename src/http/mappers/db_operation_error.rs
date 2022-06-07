@@ -162,6 +162,36 @@ impl From<DbEntityParseFail> for HttpFailResult {
             DbEntityParseFail::JsonParseError(json_parse_error) => {
                 HttpFailResult::from(json_parse_error)
             }
+            DbEntityParseFail::FieldPartitionKeyCanNotBeNull => {
+                let err_model = OperationFailHttpContract {
+                    reason: OperationFailReason::RequieredEntityFieldIsMissing,
+                    message: format!("PartitionKey can not be null"),
+                };
+
+                let content = serde_json::to_vec(&err_model).unwrap();
+
+                Self {
+                    content_type: WebContentType::Json,
+                    status_code: OPERATION_FAIL_HTTP_STATUS_CODE,
+                    content,
+                    write_telemetry: true,
+                }
+            }
+            DbEntityParseFail::FieldRowKeyCanNotBeNull => {
+                let err_model = OperationFailHttpContract {
+                    reason: OperationFailReason::RequieredEntityFieldIsMissing,
+                    message: format!("RowKey can not be null"),
+                };
+
+                let content = serde_json::to_vec(&err_model).unwrap();
+
+                Self {
+                    content_type: WebContentType::Json,
+                    status_code: OPERATION_FAIL_HTTP_STATUS_CODE,
+                    content,
+                    write_telemetry: true,
+                }
+            }
         }
     }
 }

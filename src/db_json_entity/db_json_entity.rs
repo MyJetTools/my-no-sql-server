@@ -32,15 +32,15 @@ impl<'s> DbJsonEntity<'s> {
             let name = line.get_name()?;
 
             if name == super::consts::PARTITION_KEY {
-                partition_key = Some(line.get_value()?)
+                partition_key = Some(line.get_value()?);
             }
 
             if name == super::consts::ROW_KEY {
-                row_key = Some(line.get_value()?)
+                row_key = Some(line.get_value()?);
             }
 
             if name == super::consts::EXPIRES {
-                expires = line.get_value_as_date_time();
+                expires = line.get_value()?.as_date_time();
             }
 
             if name == super::consts::TIME_STAMP
@@ -53,12 +53,18 @@ impl<'s> DbJsonEntity<'s> {
                     value_end: line.value_end,
                 });
 
-                time_stamp = Some(line.get_value()?)
+                time_stamp = line.get_value()?.as_str();
             }
         }
 
         if partition_key.is_none() {
             return Err(DbEntityParseFail::FieldPartitionKeyIsRequired);
+        }
+
+        let partition_key = partition_key.unwrap().as_str();
+
+        if partition_key.is_none() {
+            return Err(DbEntityParseFail::FieldPartitionKeyCanNotBeNull);
         }
 
         let partition_key = partition_key.unwrap();
@@ -69,6 +75,12 @@ impl<'s> DbJsonEntity<'s> {
 
         if row_key.is_none() {
             return Err(DbEntityParseFail::FieldRowKeyIsRequired);
+        }
+
+        let row_key = row_key.unwrap().as_str();
+
+        if row_key.is_none() {
+            return Err(DbEntityParseFail::FieldRowKeyCanNotBeNull);
         }
 
         let result = Self {
@@ -162,6 +174,8 @@ fn compile_row_content(
 
 #[cfg(test)]
 mod tests {
+    use crate::db_json_entity::DbEntityParseFail;
+
     use super::DbJsonEntity;
 
     #[test]
@@ -178,5 +192,22 @@ mod tests {
         let expires = entity.expires.as_ref().unwrap();
 
         assert_eq!("2022-03-17T13:28:29.653747", &expires.to_rfc3339()[..26]);
+    }
+
+    #[test]
+    pub fn parse_with_partition_key_is_null() {
+        let src_json = r#"{"TwoFaMethods": {},
+            "PartitionKey": null,
+            "RowKey": "test",
+            "TimeStamp": "2022-03-17T09:28:27.5923",
+            "Expires": "2022-03-17T13:28:29.6537478Z"
+          }"#;
+
+        let result = DbJsonEntity::parse(src_json.as_bytes());
+
+        if let Err(DbEntityParseFail::FieldPartitionKeyCanNotBeNull) = result {
+        } else {
+            panic!("Should not be here")
+        }
     }
 }
