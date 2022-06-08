@@ -38,7 +38,7 @@ pub struct AppContext {
 
     pub states: GlobalStates,
 
-    pub events_dispatcher: Box<dyn EventsDispatcher + Send + Sync + 'static>,
+    pub events_dispatcher: EventsDispatcher,
     pub blob_content_cache: BlobContentCache,
     pub data_readers: DataReadersList,
 
@@ -53,7 +53,7 @@ impl AppContext {
     pub fn new(
         logs: Arc<Logs>,
         settings: Arc<SettingsModel>,
-        events_dispatcher: Box<dyn EventsDispatcher + Send + Sync + 'static>,
+        events_dispatcher: EventsDispatcher,
         persist_io: Arc<dyn PersistIoOperations + Send + Sync + 'static>,
     ) -> Self {
         AppContext {

@@ -1,4 +1,4 @@
-use app::{logs::Logs, AppContext, EventsDispatcherProduction};
+use app::{logs::Logs, AppContext, EventsDispatcher};
 use background::{
     gc_db_rows::GcDbRows, gc_http_sessions::GcHttpSessionsTimer, gc_multipart::GcMultipart,
     metrics_updater::MetricsUpdater, persist::PersistTimer,
@@ -47,14 +47,14 @@ async fn main() {
 
     let persist_io = settings.get_persist_io(logs.clone());
 
-    let mut sync_events_dispatcher = EventsDispatcherProduction::new();
+    let mut sync_events_dispatcher = EventsDispatcher::new();
 
     let sync_events_reader = sync_events_dispatcher.get_events_reader();
 
     let app = AppContext::new(
         logs.clone(),
         settings,
-        Box::new(sync_events_dispatcher),
+        sync_events_dispatcher,
         Arc::new(persist_io),
     );
 

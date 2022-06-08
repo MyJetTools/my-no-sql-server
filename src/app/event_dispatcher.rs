@@ -8,19 +8,14 @@ use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 use crate::{db::DbTable, db_sync::SyncEvent};
 
-pub trait EventsDispatcher {
-    fn dispatch(&self, db_table: Option<&DbTable>, event: SyncEvent);
-    fn get_events_queue_size(&self) -> usize;
-}
-
-pub struct EventsDispatcherProduction {
+pub struct EventsDispatcher {
     size: Arc<AtomicUsize>,
 
     events_receiver: Option<UnboundedReceiver<SyncEvent>>,
     events_sender: UnboundedSender<SyncEvent>,
 }
 
-impl EventsDispatcherProduction {
+impl EventsDispatcher {
     pub fn new() -> Self {
         let (events_sender, events_receiver) = tokio::sync::mpsc::unbounded_channel();
         Self {
@@ -43,10 +38,8 @@ impl EventsDispatcherProduction {
             events_receiver: events_receiver.unwrap(),
         }
     }
-}
 
-impl EventsDispatcher for EventsDispatcherProduction {
-    fn dispatch(&self, db_table: Option<&DbTable>, event: SyncEvent) {
+    pub fn dispatch(&self, db_table: Option<&DbTable>, event: SyncEvent) {
         if let Some(db_table) = db_table {
             db_table.set_last_update_time(DateTimeAsMicroseconds::now());
         }
@@ -58,7 +51,7 @@ impl EventsDispatcher for EventsDispatcherProduction {
         }
     }
 
-    fn get_events_queue_size(&self) -> usize {
+    pub fn get_events_queue_size(&self) -> usize {
         self.size.load(Ordering::Relaxed)
     }
 }

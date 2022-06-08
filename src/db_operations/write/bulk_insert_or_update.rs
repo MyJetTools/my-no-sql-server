@@ -25,8 +25,11 @@ pub async fn execute(
     let mut update_rows_state =
         UpdateRowsSyncData::new(&table_data, db_table.attributes.get_persist(), event_src);
 
+    let mut has_insert_or_replace = false;
+
     for (partition_key, db_rows) in rows_by_partition {
         table_data.bulk_insert_or_replace(&partition_key, &db_rows, now);
+        has_insert_or_replace = true;
 
         update_rows_state
             .rows_by_partition
@@ -37,12 +40,14 @@ pub async fn execute(
             .mark_partition_to_persist(partition_key.as_str(), persist_moment);
     }
 
-    db_table.set_last_update_time(DateTimeAsMicroseconds::now());
+    if has_insert_or_replace {
+        db_table.set_last_update_time(DateTimeAsMicroseconds::now());
 
-    app.events_dispatcher.dispatch(
-        db_table.as_ref().into(),
-        SyncEvent::UpdateRows(update_rows_state),
-    );
+        app.events_dispatcher.dispatch(
+            db_table.as_ref().into(),
+            SyncEvent::UpdateRows(update_rows_state),
+        );
+    }
 
     Ok(())
 }
