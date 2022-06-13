@@ -65,7 +65,7 @@ async fn load_table_file(
 
     let content = app
         .persist_io
-        .load_table_file(file_name.as_str(), &table_file)
+        .load_table_file(table_name, &table_file)
         .await;
 
     if let Some(content) = content.as_ref() {
