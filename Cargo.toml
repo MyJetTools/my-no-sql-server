@@ -1,6 +1,6 @@
 [package]
 name = "my_no_sql_server"
-version = "0.0.19-rc02"
+version = "0.0.19"
 authors = ["amigin <amigin@gmail.com>"]
 edition = "2021"
 
