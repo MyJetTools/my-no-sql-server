@@ -29,8 +29,11 @@ impl TableToLoad {
         }
     }
     pub async fn add_partitions_to_load(&self, partition_keys: Vec<String>) {
+        self.files_to_load
+            .fetch_add(partition_keys.len(), Ordering::SeqCst);
+
         let mut write_access = self.partitions.lock().await;
-        write_access.extend(partition_keys)
+        write_access.extend(partition_keys);
     }
 
     pub fn set_files_list_is_loaded(&self) {
@@ -60,7 +63,7 @@ impl TableToLoad {
     }
 
     pub fn inc_files_loaded(&self) {
-        self.initializing_is_started.fetch_add(1, Ordering::Relaxed);
+        self.files_loaded.fetch_add(1, Ordering::Relaxed);
     }
 
     fn update_initializing_is_started_if_needed(&self) {

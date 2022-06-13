@@ -31,7 +31,7 @@ interface INonInitializedModel {
 interface ITableLoadProgress {
     tableName: String,
     loaded: number,
-    partitions: number,
+    toLoad: number,
     secondsGone: number
 }
 
