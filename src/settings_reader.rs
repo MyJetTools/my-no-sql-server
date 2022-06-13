@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::{env, sync::Arc};
 use tokio::{fs::File, io::AsyncReadExt};
 
-use crate::{app::logs::Logs, persist_io::AzureBlobsPersistIo};
+use crate::{app::logs::Logs, persist_io::PersistIoOperations};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SettingsModel {
@@ -30,10 +30,9 @@ pub struct SettingsModel {
 }
 
 impl SettingsModel {
-    pub fn get_persist_io(&self, logs: Arc<Logs>) -> AzureBlobsPersistIo {
+    pub fn get_persist_io(&self, logs: Arc<Logs>) -> PersistIoOperations {
         let conn_string = AzureStorageConnection::from_conn_string(self.persistence_dest.as_str());
-
-        AzureBlobsPersistIo::new(Arc::new(conn_string), logs)
+        PersistIoOperations::new(Arc::new(conn_string), logs)
     }
 }
 

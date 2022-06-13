@@ -1,6 +1,6 @@
 use crate::db::{DbPartition, DbTableAttributesSnapshot};
 
-pub enum TableLoadItem {
+pub enum LoadedTableItem {
     TableAttributes(DbTableAttributesSnapshot),
     DbPartition {
         partition_key: String,
