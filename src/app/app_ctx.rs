@@ -11,7 +11,9 @@ use crate::{
     db_operations::multipart::MultipartList,
     db_transactions::ActiveTransactions,
     persist_io::PersistIoOperations,
-    persist_operations::{blob_content_cache::BlobContentCache, data_initializer::InitState},
+    persist_operations::{
+        blob_content_cache::BlobContentCache, data_initializer::load_tasks::InitState,
+    },
     settings_reader::SettingsModel,
 };
 
@@ -43,7 +45,7 @@ pub struct AppContext {
     pub data_readers: DataReadersList,
 
     pub multipart_list: MultipartList,
-    pub persist_io: Arc<dyn PersistIoOperations + Send + Sync + 'static>,
+    pub persist_io: PersistIoOperations,
     pub init_state: InitState,
     pub settings: Arc<SettingsModel>,
     persist_amount: AtomicUsize,
@@ -54,7 +56,7 @@ impl AppContext {
         logs: Arc<Logs>,
         settings: Arc<SettingsModel>,
         events_dispatcher: EventsDispatcher,
-        persist_io: Arc<dyn PersistIoOperations + Send + Sync + 'static>,
+        persist_io: PersistIoOperations,
     ) -> Self {
         AppContext {
             created: DateTimeAsMicroseconds::now(),

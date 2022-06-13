@@ -1,60 +1,60 @@
+use std::sync::Arc;
+
 use my_azure_storage_sdk::{
     blob_container::BlobContainersApi, sdk_azure::blobs::AzureBlobsListReader,
     AzureStorageConnection, AzureStorageConnectionData,
 };
 
-use crate::{app::logs::Logs, persist_io::TableFile};
+use crate::{app::logs::Logs, persist_operations::data_initializer::load_tasks::TableToLoad};
 
 pub async fn get_list_of_files(
     logs: &Logs,
     azure_connection: &AzureStorageConnection,
-    table_name: &str,
-) -> Vec<TableFile> {
-    let file_names = match azure_connection {
+    table_to_load: &Arc<TableToLoad>,
+) {
+    match azure_connection {
         AzureStorageConnection::AzureStorage(connection_data) => {
-            get_list_of_files_from_azure_blob_container(logs, connection_data, table_name).await
+            get_list_of_files_from_azure_blob_container(logs, connection_data, table_to_load).await;
         }
-        _ => azure_connection
-            .get_list_of_blobs(table_name)
-            .await
-            .unwrap(),
+        _ => {
+            let chunk = azure_connection
+                .get_list_of_blobs(table_to_load.table_name.as_str())
+                .await
+                .unwrap();
+
+            table_to_load.add_partitions_to_load(chunk).await;
+            table_to_load.set_files_list_is_loaded();
+        }
     };
-
-    let mut result = Vec::new();
-
-    for file_name in file_names {
-        result.push(TableFile::from_file_name(file_name.as_str()).unwrap())
-    }
-
-    result
 }
 
 async fn get_list_of_files_from_azure_blob_container(
     logs: &Logs,
     connection: &AzureStorageConnectionData,
-    table_name: &str,
-) -> Vec<String> {
-    let mut result = Vec::new();
+    table_to_load: &Arc<TableToLoad>,
+) {
     let mut attempt_no: u8 = 0;
-    let mut blobs_list_reader = AzureBlobsListReader::new(connection, table_name);
+    let mut blobs_list_reader =
+        AzureBlobsListReader::new(connection, table_to_load.table_name.as_str());
     loop {
         let next_result = blobs_list_reader.get_next().await;
         match next_result {
             Ok(chunk) => {
                 if let Some(chunk) = chunk {
-                    result.extend(chunk)
+                    table_to_load.add_partitions_to_load(chunk).await;
                 } else {
-                    return result;
+                    table_to_load.set_files_list_is_loaded();
+                    return;
                 }
             }
             Err(err) => {
                 super::attempt_handling::execute(
                     logs,
-                    Some(table_name.to_string()),
+                    Some(table_to_load.table_name.to_string()),
                     "get_list_of_files_from_azure_blob_container",
                     format!(
                         "Can not get list of files from azure blob container:[{}]. Err: {:?}",
-                        table_name, err
+                        table_to_load.table_name, err
                     ),
                     attempt_no,
                 )

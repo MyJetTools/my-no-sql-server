@@ -1,80 +1,94 @@
-pub const TABLE_METADATA_FILE_NAME: &str = ".metadata";
+use std::sync::Arc;
 
-pub enum TableFile {
-    TableAttributes,
-    DbPartition(String),
+use my_azure_storage_sdk::AzureStorageConnection;
+
+use crate::{
+    app::logs::Logs, persist_io::TableFile,
+    persist_operations::data_initializer::load_tasks::TableToLoad,
+};
+
+pub struct PersistIoOperations {
+    logs: Arc<Logs>,
+    azure_connection: Arc<AzureStorageConnection>,
 }
 
-pub struct TableFileName<'s> {
-    as_str: Option<&'s str>,
-    as_string: Option<String>,
-}
-
-impl<'s> TableFileName<'s> {
-    pub fn new(as_str: &'s str) -> Self {
+impl PersistIoOperations {
+    pub fn new(azure_connection: Arc<AzureStorageConnection>, logs: Arc<Logs>) -> Self {
         Self {
-            as_str: Some(as_str),
-            as_string: None,
+            logs,
+            azure_connection,
         }
     }
 
-    pub fn new_as_string(as_string: String) -> Self {
-        Self {
-            as_string: Some(as_string),
-            as_str: None,
-        }
+    pub async fn get_list_of_tables(&self) -> Vec<String> {
+        super::with_retries::get_list_of_tables(self.logs.as_ref(), self.azure_connection.as_ref())
+            .await
     }
 
-    pub fn as_str(&'s self) -> &'s str {
-        if let Some(as_str) = self.as_str {
-            return as_str;
-        }
-
-        if let Some(as_string) = &self.as_string {
-            return as_string;
-        }
-
-        panic!("TableFileName is not initialized propertly");
+    pub async fn get_table_files(&self, table_to_load: &Arc<TableToLoad>) {
+        super::with_retries::get_list_of_files(
+            self.logs.as_ref(),
+            self.azure_connection.as_ref(),
+            table_to_load,
+        )
+        .await;
     }
-}
 
-impl TableFile {
-    pub fn from_file_name(file_name: &str) -> Result<Self, String> {
-        if file_name == TABLE_METADATA_FILE_NAME {
-            return Ok(Self::TableAttributes);
-        }
-
-        let partition_key = base64::decode(file_name).unwrap();
-
-        match String::from_utf8(partition_key) {
-            Ok(result) => Ok(Self::DbPartition(result)),
-            Err(err) => Err(format!(
-                "Can not decode filename: {}. Err:{:?}",
-                file_name, err
-            )),
-        }
+    pub async fn create_table_folder(&self, table_name: &str) {
+        super::with_retries::create_table(
+            self.logs.as_ref(),
+            self.azure_connection.as_ref(),
+            table_name,
+        )
+        .await;
     }
-    pub fn get_file_name(&self) -> TableFileName {
-        match self {
-            TableFile::TableAttributes => TableFileName::new(TABLE_METADATA_FILE_NAME),
-            TableFile::DbPartition(partition_key) => {
-                TableFileName::new_as_string(base64::encode(partition_key.as_bytes()))
-            }
-        }
+
+    pub async fn save_table_file(
+        &self,
+        table_name: &str,
+        table_file: &TableFile,
+        content: Vec<u8>,
+    ) {
+        super::with_retries::save_table_file(
+            self.logs.as_ref(),
+            self.azure_connection.as_ref(),
+            table_name,
+            table_file.get_file_name().as_str(),
+            content,
+        )
+        .await;
     }
-}
 
-#[async_trait::async_trait]
-pub trait PersistIoOperations {
-    async fn get_list_of_tables(&self) -> Vec<String>;
+    pub async fn delete_table_file(&self, table_name: &str, table_file: &TableFile) {
+        super::with_retries::delete_table_file(
+            self.logs.as_ref(),
+            self.azure_connection.as_ref(),
+            table_name,
+            table_file.get_file_name().as_str(),
+        )
+        .await;
+    }
 
-    async fn get_table_files(&self, table_name: &str) -> Vec<TableFile>;
+    pub async fn delete_table_folder(&self, table_name: &str) {
+        super::with_retries::delete_table_folder(
+            self.logs.as_ref(),
+            self.azure_connection.as_ref(),
+            table_name,
+        )
+        .await;
+    }
 
-    async fn load_table_file(&self, table_name: &str, table_file: &TableFile) -> Option<Vec<u8>>;
-
-    async fn create_table_folder(&self, table_name: &str);
-    async fn delete_table_folder(&self, table_name: &str);
-
-    async fn save_table_file(&self, table_name: &str, table_file: &TableFile, content: Vec<u8>);
-    async fn delete_table_file(&self, table_name: &str, table_file: &TableFile);
+    pub async fn load_table_file(
+        &self,
+        table_name: &str,
+        table_file: &TableFile,
+    ) -> Option<Vec<u8>> {
+        super::with_retries::load_table_file(
+            self.logs.as_ref(),
+            self.azure_connection.as_ref(),
+            table_name,
+            table_file.get_file_name().as_str(),
+        )
+        .await
+    }
 }

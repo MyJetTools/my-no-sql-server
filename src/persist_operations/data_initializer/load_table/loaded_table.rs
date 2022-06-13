@@ -1,9 +1,9 @@
 use tokio::sync::Mutex;
 
-use super::table_load_item::TableLoadItem;
+use super::LoadedTableItem;
 
 pub struct LoadedTable {
-    items: Mutex<Vec<TableLoadItem>>,
+    items: Mutex<Vec<LoadedTableItem>>,
 }
 
 impl LoadedTable {
@@ -13,13 +13,13 @@ impl LoadedTable {
         }
     }
 
-    pub async fn add(&self, item: TableLoadItem) -> usize {
+    pub async fn add(&self, item: LoadedTableItem) -> usize {
         let mut write_access = self.items.lock().await;
         write_access.push(item);
         write_access.len()
     }
 
-    pub async fn get(&self) -> Vec<TableLoadItem> {
+    pub async fn get(&self) -> Vec<LoadedTableItem> {
         let mut result = Vec::new();
         let mut write_access = self.items.lock().await;
 

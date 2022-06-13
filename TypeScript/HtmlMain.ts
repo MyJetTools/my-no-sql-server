@@ -13,7 +13,7 @@ class HtmlMain {
             '<table class="table table-striped table-bordered"><tr><th>TableName</th><th>Partitions loaded</th><th>Partitions total</th><th>Time gone</th><th>Time estimation</th></tr>'
 
         for (let itm of model.progress.sort((a, b) => a.tableName > b.tableName ? 1 : -1)) {
-            result += '<tr><td style="width:50%">' + itm.tableName + '</td><td>' + itm.loaded + '</td><td>' + itm.partitions + "</td><td>" + this.formatSeconds(itm.secondsGone) + "</td><td>" + this.getInitRemains(itm) + "</td></tr>"
+            result += '<tr><td style="width:50%">' + itm.tableName + '</td><td>' + itm.loaded + '</td><td>' + itm.toLoad + "</td><td>" + this.formatSeconds(itm.secondsGone) + "</td><td>" + this.getInitRemains(itm) + "</td></tr>"
         }
 
         return result + "</table>";
@@ -22,14 +22,14 @@ class HtmlMain {
 
     static getInitRemains(progress: ITableLoadProgress): String {
 
-        if (progress.partitions == 0 || progress.loaded == 0) {
+        if (progress.toLoad == 0 || progress.loaded == 0) {
             return "Unknown"
         }
 
 
         let pieceDuration = progress.secondsGone / progress.loaded;
 
-        let remains = (progress.partitions - progress.loaded) * pieceDuration;
+        let remains = (progress.toLoad - progress.loaded) * pieceDuration;
 
         remains = this.trunc(remains);
 

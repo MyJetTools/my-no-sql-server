@@ -21,6 +21,7 @@ pub async fn load_table_file(
                 if let AzureStorageError::BlobNotFound = &err {
                     return None;
                 }
+
                 super::attempt_handling::execute(
                     logs,
                     Some(table_name.to_string()),
@@ -32,6 +33,13 @@ pub async fn load_table_file(
                     attempt_no,
                 )
                 .await;
+
+                if let AzureStorageError::InvalidResourceName = &err {
+                    panic!(
+                        "Can not download blob {}/{}. Reason: {:?}",
+                        table_name, blob_file, err
+                    )
+                }
                 attempt_no += 1;
             }
         }

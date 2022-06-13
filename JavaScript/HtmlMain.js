@@ -11,16 +11,16 @@ var HtmlMain = /** @class */ (function () {
             '<table class="table table-striped table-bordered"><tr><th>TableName</th><th>Partitions loaded</th><th>Partitions total</th><th>Time gone</th><th>Time estimation</th></tr>';
         for (var _i = 0, _a = model.progress.sort(function (a, b) { return a.tableName > b.tableName ? 1 : -1; }); _i < _a.length; _i++) {
             var itm = _a[_i];
-            result += '<tr><td style="width:50%">' + itm.tableName + '</td><td>' + itm.loaded + '</td><td>' + itm.partitions + "</td><td>" + this.formatSeconds(itm.secondsGone) + "</td><td>" + this.getInitRemains(itm) + "</td></tr>";
+            result += '<tr><td style="width:50%">' + itm.tableName + '</td><td>' + itm.loaded + '</td><td>' + itm.toLoad + "</td><td>" + this.formatSeconds(itm.secondsGone) + "</td><td>" + this.getInitRemains(itm) + "</td></tr>";
         }
         return result + "</table>";
     };
     HtmlMain.getInitRemains = function (progress) {
-        if (progress.partitions == 0 || progress.loaded == 0) {
+        if (progress.toLoad == 0 || progress.loaded == 0) {
             return "Unknown";
         }
         var pieceDuration = progress.secondsGone / progress.loaded;
-        var remains = (progress.partitions - progress.loaded) * pieceDuration;
+        var remains = (progress.toLoad - progress.loaded) * pieceDuration;
         remains = this.trunc(remains);
         return this.formatSeconds(remains);
     };

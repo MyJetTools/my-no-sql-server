@@ -51,12 +51,7 @@ async fn main() {
 
     let sync_events_reader = sync_events_dispatcher.get_events_reader();
 
-    let app = AppContext::new(
-        logs.clone(),
-        settings,
-        sync_events_dispatcher,
-        Arc::new(persist_io),
-    );
+    let app = AppContext::new(logs.clone(), settings, sync_events_dispatcher, persist_io);
 
     let tcp_server_logger = TcpServerLogger::new(app.logs.clone());
 
@@ -64,7 +59,10 @@ async fn main() {
 
     let app = Arc::new(app);
 
-    crate::persist_operations::data_initializer::init_tables(app.clone()).await;
+    tokio::spawn(crate::persist_operations::data_initializer::load_tables(
+        app.clone(),
+    ));
+
     let mut timer_1s = MyTimer::new(Duration::from_secs(1));
 
     let mut persist_timer = MyTimer::new(Duration::from_secs(1));
