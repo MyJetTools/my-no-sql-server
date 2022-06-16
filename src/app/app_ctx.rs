@@ -70,7 +70,10 @@ impl AppContext {
 
             events_dispatcher,
             blob_content_cache: BlobContentCache::new(),
-            data_readers: DataReadersList::new(Duration::from_secs(30)),
+            data_readers: DataReadersList::new(
+                Duration::from_secs(30),
+                Duration::from_secs(settings.tcp_send_time_out),
+            ),
             multipart_list: MultipartList::new(),
             persist_io,
             settings,

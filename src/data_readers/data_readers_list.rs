@@ -13,20 +13,22 @@ use super::{
 pub struct DataReadersList {
     data: RwLock<DataReadersData>,
     http_session_time_out: Duration,
+    tcp_send_time_out: Duration,
 }
 
 impl DataReadersList {
-    pub fn new(http_session_time_out: Duration) -> Self {
+    pub fn new(http_session_time_out: Duration, tcp_send_time_out: Duration) -> Self {
         Self {
             data: RwLock::new(DataReadersData::new()),
             http_session_time_out,
+            tcp_send_time_out,
         }
     }
 
     pub async fn add_tcp(&self, tcp_connection: Arc<MyNoSqlTcpConnection>) {
         let id = format!("Tcp-{}", tcp_connection.id);
         println!("New tcp reader connnected {}", id);
-        let connection_info = TcpConnectionInfo::new(tcp_connection);
+        let connection_info = TcpConnectionInfo::new(tcp_connection, self.tcp_send_time_out);
         let mut write_lock = self.data.write().await;
 
         let data_reader = DataReader::new(id, DataReaderConnection::Tcp(connection_info));

@@ -27,6 +27,9 @@ pub struct SettingsModel {
 
     #[serde(rename = "InitPartitionsThreadsAmount")]
     pub init_partitions_threads_amount: usize,
+
+    #[serde(rename = "TcpSendTimeoutSec")]
+    pub tcp_send_time_out: u64,
 }
 
 impl SettingsModel {

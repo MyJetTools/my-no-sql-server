@@ -8,10 +8,10 @@ pub struct TcpConnectionInfo {
 }
 
 impl TcpConnectionInfo {
-    pub fn new(connection: Arc<MyNoSqlTcpConnection>) -> Self {
+    pub fn new(connection: Arc<MyNoSqlTcpConnection>, send_timeout: Duration) -> Self {
         Self {
             connection,
-            send_timeout: Duration::from_secs(3),
+            send_timeout,
         }
     }
 
