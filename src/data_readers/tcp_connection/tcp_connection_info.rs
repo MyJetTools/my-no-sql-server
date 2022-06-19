@@ -47,7 +47,13 @@ impl TcpConnectionInfo {
 
     async fn get_next_payload(&self) -> Option<Vec<u8>> {
         let mut payloads_to_send = self.payloads_to_send.lock().await;
-        payloads_to_send.get_payload()
+        let result = payloads_to_send.get_payload();
+        self.pending_to_send.store(
+            payloads_to_send.get_size(),
+            std::sync::atomic::Ordering::SeqCst,
+        );
+
+        result
     }
 
     pub async fn flush_payloads(&self) {

@@ -99,7 +99,7 @@ impl SocketEventCallback<TcpContract, MyNoSqlReaderTcpSerializer> for TcpServerE
                     format!("ID: {}", connection.id),
                 );
 
-                self.app.data_readers.add_tcp(connection).await;
+                self.app.data_readers.add_tcp(connection, &self.app).await;
                 self.app.metrics.mark_new_tcp_connection();
             }
             ConnectionEvent::Disconnected(connection) => {

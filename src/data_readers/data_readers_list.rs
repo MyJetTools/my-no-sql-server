@@ -4,7 +4,7 @@ use rust_extensions::{date_time::DateTimeAsMicroseconds, events_loop::EventsLoop
 use tokio::sync::RwLock;
 
 use crate::{
-    background::tcp_connection_send_event_loop::TcpConnectionSendEventLoop,
+    app::AppContext, background::tcp_connection_send_event_loop::TcpConnectionSendEventLoop,
     tcp::MyNoSqlTcpConnection,
 };
 
@@ -28,7 +28,7 @@ impl DataReadersList {
         }
     }
 
-    pub async fn add_tcp(&self, tcp_connection: Arc<MyNoSqlTcpConnection>) {
+    pub async fn add_tcp(&self, tcp_connection: Arc<MyNoSqlTcpConnection>, app: &Arc<AppContext>) {
         let id = format!("Tcp-{}", tcp_connection.id);
         println!("New tcp reader connnected {}", id);
 
@@ -48,6 +48,11 @@ impl DataReadersList {
             .register_event_loop(Arc::new(TcpConnectionSendEventLoop::new(
                 connection_info.clone(),
             )))
+            .await;
+
+        connection_info
+            .flush_events_loop
+            .start(app.clone(), app.clone())
             .await;
 
         let mut write_lock = self.data.write().await;

@@ -12,4 +12,4 @@
 * Added   settings parameter
 
 ### 0.0.20-rc01
-* Sync to Readers now works in separated threads
+* Sync to Readers now works in separated thread
