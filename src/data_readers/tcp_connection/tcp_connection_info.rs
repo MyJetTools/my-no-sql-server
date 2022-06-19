@@ -16,6 +16,7 @@ pub struct TcpConnectionInfo {
     payloads_to_send: Mutex<TcpPayloads>,
     pending_to_send: AtomicUsize,
     pub flush_events_loop: EventsLoop<()>,
+    pub name: Mutex<Option<String>>,
 }
 
 impl TcpConnectionInfo {
@@ -31,6 +32,7 @@ impl TcpConnectionInfo {
             payloads_to_send: Mutex::new(TcpPayloads::new(max_payload)),
             flush_events_loop,
             pending_to_send: AtomicUsize::new(0),
+            name: Mutex::new(None),
         }
     }
 
@@ -43,6 +45,16 @@ impl TcpConnectionInfo {
             Some(addr) => format!("{}", addr),
             None => "unknown".to_string(),
         }
+    }
+
+    pub async fn get_name(&self) -> Option<String> {
+        let read_access = self.name.lock().await;
+        read_access.clone()
+    }
+
+    pub async fn set_name(&self, name: String) {
+        let mut write_access = self.name.lock().await;
+        *write_access = Some(name);
     }
 
     async fn get_next_payload(&self) -> Option<Vec<u8>> {
@@ -65,11 +77,15 @@ impl TcpConnectionInfo {
             .await;
 
             if let Err(_) = send_result {
+                let name = if let Some(name) = self.get_name().await {
+                    name
+                } else {
+                    self.connection.id.to_string()
+                };
                 println!(
-                    "Timeout while sending to connection {}",
-                    self.connection.connection_name.get().await
+                    "Timeout while sending payload to tcp connection: {:?}",
+                    name
                 );
-
                 self.connection.disconnect().await;
             }
         }

@@ -92,12 +92,19 @@ impl DataReadersData {
         result
     }
 
-    pub fn gc_http_sessions(&mut self, now: DateTimeAsMicroseconds, http_timeout: Duration) {
+    pub fn gc_http_sessions(
+        &mut self,
+        now: DateTimeAsMicroseconds,
+        http_timeout: Duration,
+    ) -> Option<Vec<Arc<DataReader>>> {
         if let Some(to_collect) = self.get_http_sessions_to_gc(now, http_timeout) {
-            for data_reader in to_collect {
+            for data_reader in &to_collect {
                 self.remove_http(data_reader.as_ref());
             }
+            return Some(to_collect);
         }
+
+        None
     }
 
     pub async fn get_subscribred_to_table(&self, table_name: &str) -> Option<Vec<Arc<DataReader>>> {

@@ -4,8 +4,15 @@ use crate::{app::logs::Logs, db_operations::validation};
 
 use super::{InitStateSnapshot, InitTableStateSnapshot, TableToLoad};
 
+pub enum ProcessTableToLoad {
+    Process(Arc<TableToLoad>),
+    NotReadyYet,
+    TheEnd,
+}
+
 pub struct InitStateData {
-    pub tables_to_load: Vec<Arc<TableToLoad>>,
+    pub tables_to_init_files: Vec<Arc<TableToLoad>>,
+    pub tables_to_load: Vec<ProcessTableToLoad>,
     pub tables_being_loaded: Vec<Arc<TableToLoad>>,
     pub tables_loaded: Vec<Arc<TableToLoad>>,
 }
@@ -13,13 +20,28 @@ pub struct InitStateData {
 impl InitStateData {
     pub fn new() -> Self {
         Self {
+            tables_to_init_files: Vec::new(),
             tables_to_load: Vec::new(),
             tables_being_loaded: Vec::new(),
             tables_loaded: Vec::new(),
         }
     }
 
-    pub fn init_tables(&mut self, tables: Vec<String>, logs: &Logs) -> Vec<Arc<TableToLoad>> {
+    pub fn get_next_table_to_init_files(&mut self) -> Option<Arc<TableToLoad>> {
+        if self.tables_to_init_files.is_empty() {
+            self.tables_to_load.push(ProcessTableToLoad::TheEnd);
+            return None;
+        }
+
+        let result = self.tables_to_init_files.remove(0);
+
+        self.tables_to_load
+            .push(ProcessTableToLoad::Process(result.clone()));
+
+        Some(result)
+    }
+
+    pub fn init_tables(&mut self, tables: Vec<String>, logs: &Logs) {
         for table_name in tables {
             if let Err(err) = validation::validate_table_name(table_name.as_str()) {
                 logs.add_error(
@@ -33,25 +55,26 @@ impl InitStateData {
                     None,
                 );
             } else {
-                self.tables_to_load
+                self.tables_to_init_files
                     .push(Arc::new(TableToLoad::new(table_name)));
             }
         }
-        return self.tables_to_load.clone();
     }
 
-    pub fn get_next_table_to_load(&mut self) -> Option<Arc<TableToLoad>> {
+    pub fn get_next_table_to_load(&mut self) -> ProcessTableToLoad {
         let next_table_to_load = {
             if self.tables_to_load.len() > 0 {
-                Some(self.tables_to_load.remove(0))
+                self.tables_to_load.remove(0)
             } else {
-                None
+                ProcessTableToLoad::NotReadyYet
             }
-        }?;
+        };
 
-        self.tables_being_loaded.push(next_table_to_load.clone());
+        if let ProcessTableToLoad::Process(next_table_to_load) = &next_table_to_load {
+            self.tables_being_loaded.push(next_table_to_load.clone());
+        }
 
-        Some(next_table_to_load)
+        next_table_to_load
     }
 
     pub fn load_completed(&mut self, table_name: &str) {
@@ -75,7 +98,7 @@ impl InitStateData {
 
     pub fn get_snapshot(&self) -> InitStateSnapshot {
         InitStateSnapshot {
-            to_load: convert_to_tables_snapshot(&self.tables_to_load),
+            to_load: convert_to_tables_snapshot_2(&self.tables_to_load),
             loading: convert_to_tables_snapshot(&self.tables_being_loaded),
             loaded: convert_to_tables_snapshot(&self.tables_loaded),
         }
@@ -100,6 +123,22 @@ fn convert_to_tables_snapshot(src: &Vec<Arc<TableToLoad>>) -> Vec<InitTableState
 
     for table_to_load in src.iter() {
         result.push(convert_to_table_snapshot(table_to_load));
+    }
+
+    result
+}
+
+fn convert_to_tables_snapshot_2(src: &Vec<ProcessTableToLoad>) -> Vec<InitTableStateSnapshot> {
+    if src.len() == 0 {
+        return Vec::new();
+    }
+
+    let mut result = Vec::with_capacity(src.len());
+
+    for table_to_load in src.iter() {
+        if let ProcessTableToLoad::Process(table_to_load) = table_to_load {
+            result.push(convert_to_table_snapshot(table_to_load));
+        }
     }
 
     result

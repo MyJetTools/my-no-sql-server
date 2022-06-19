@@ -1,6 +1,6 @@
 use prometheus::{Encoder, IntGauge, IntGaugeVec, Opts, Registry, TextEncoder};
 
-use crate::db::DbTableMetrics;
+use crate::{data_readers::DataReaderConnection, db::DbTableMetrics};
 
 pub struct PrometheusMetrics {
     registry: Registry,
@@ -11,6 +11,7 @@ pub struct PrometheusMetrics {
     tcp_connections_changes: IntGaugeVec,
     fatal_errors_count: IntGauge,
     persist_delay_in_seconds: IntGaugeVec,
+    pending_to_sync: IntGaugeVec,
 }
 
 const TABLE_NAME: &str = "table_name";
@@ -25,6 +26,8 @@ impl PrometheusMetrics {
         let tcp_connections_count = create_tcp_connections_count();
         let tcp_connections_changes = create_tcp_connections_changes();
         let fatal_errors_count = create_fatal_errors_count();
+
+        let pending_to_sync = create_pending_to_sync();
 
         let persist_delay_in_seconds = create_persist_delay_in_seconds();
 
@@ -50,6 +53,10 @@ impl PrometheusMetrics {
             .register(Box::new(persist_delay_in_seconds.clone()))
             .unwrap();
 
+        registry
+            .register(Box::new(pending_to_sync.clone()))
+            .unwrap();
+
         return Self {
             registry,
             partitions_amount,
@@ -59,6 +66,7 @@ impl PrometheusMetrics {
             tcp_connections_changes,
             fatal_errors_count,
             persist_delay_in_seconds,
+            pending_to_sync,
         };
     }
 
@@ -85,6 +93,38 @@ impl PrometheusMetrics {
             .set(persist_delay);
     }
 
+    pub async fn update_pending_to_sync(&self, data_reader_connection: &DataReaderConnection) {
+        let name = data_reader_connection.get_name().await;
+
+        if name.is_none() {
+            return;
+        }
+
+        let name = name.unwrap();
+
+        let pending_to_sync = data_reader_connection.get_pending_to_send();
+
+        self.pending_to_sync
+            .with_label_values(&[&name])
+            .set(pending_to_sync as i64);
+    }
+
+    pub async fn remove_pending_to_sync(&self, data_reader_connection: &DataReaderConnection) {
+        let name = data_reader_connection.get_name().await;
+        if name.is_none() {
+            return;
+        }
+
+        let name = name.unwrap();
+        let result = self.pending_to_sync.remove_label_values(&[&name]);
+
+        if let Err(err) = result {
+            println!(
+                "Can not remove pending to sync metric for data reader {}: {:?}",
+                name, err
+            );
+        }
+    }
     pub fn mark_new_tcp_connection(&self) {
         self.tcp_connections_count.inc();
         self.tcp_connections_changes
@@ -132,6 +172,16 @@ fn create_table_size_gauge() -> IntGaugeVec {
 
 fn create_persist_amount_gauge() -> IntGaugeVec {
     let gauge_opts = Opts::new(format!("persist_amount"), format!("persist amount"));
+
+    let lables = &[TABLE_NAME];
+    IntGaugeVec::new(gauge_opts, lables).unwrap()
+}
+
+fn create_pending_to_sync() -> IntGaugeVec {
+    let gauge_opts = Opts::new(
+        format!("pending_to_send"),
+        format!("pending bytes to send to reader"),
+    );
 
     let lables = &[TABLE_NAME];
     IntGaugeVec::new(gauge_opts, lables).unwrap()

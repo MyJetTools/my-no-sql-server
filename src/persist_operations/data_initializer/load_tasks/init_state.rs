@@ -6,7 +6,7 @@ use std::sync::{
 use crate::app::logs::Logs;
 use tokio::sync::Mutex;
 
-use super::{InitStateData, InitStateSnapshot, TableToLoad};
+use super::{init_state_data::ProcessTableToLoad, InitStateData, InitStateSnapshot, TableToLoad};
 
 pub struct InitState {
     data: Mutex<InitStateData>,
@@ -21,15 +21,20 @@ impl InitState {
         }
     }
 
-    pub async fn init(&self, tables: Vec<String>, logs: &Logs) -> Vec<Arc<TableToLoad>> {
+    pub async fn init(&self, tables: Vec<String>, logs: &Logs) {
         self.tables_remains_to_init
             .store(tables.len(), Ordering::SeqCst);
 
         let mut write_access = self.data.lock().await;
-        write_access.init_tables(tables, logs)
+        write_access.init_tables(tables, logs);
     }
 
-    pub async fn get_next_table_to_load(&self) -> Option<Arc<TableToLoad>> {
+    pub async fn get_next_table_to_init_files(&self) -> Option<Arc<TableToLoad>> {
+        let mut write_access = self.data.lock().await;
+        write_access.get_next_table_to_init_files()
+    }
+
+    pub async fn get_next_table_to_load(&self) -> ProcessTableToLoad {
         let mut write_access = self.data.lock().await;
         write_access.get_next_table_to_load()
     }

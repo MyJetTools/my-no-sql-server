@@ -17,6 +17,7 @@ pub struct HttpConnectionInfo {
     pub last_incoming_moment: AtomicDateTimeAsMicroseconds,
     pub delivery_info: Mutex<HttpConnectionDeliveryInfo>,
     pending_to_send: AtomicUsize,
+    name: Mutex<Option<String>>,
 }
 
 impl HttpConnectionInfo {
@@ -28,7 +29,18 @@ impl HttpConnectionInfo {
             last_incoming_moment: AtomicDateTimeAsMicroseconds::now(),
             delivery_info: Mutex::new(HttpConnectionDeliveryInfo::new(id)),
             pending_to_send: AtomicUsize::new(0),
+            name: Mutex::new(None),
         }
+    }
+
+    pub async fn get_name(&self) -> Option<String> {
+        let read_access = self.name.lock().await;
+        read_access.clone()
+    }
+
+    pub async fn set_name(&self, name: String) {
+        let mut write_access = self.name.lock().await;
+        *write_access = Some(name);
     }
 
     pub async fn ping(&self, now: DateTimeAsMicroseconds) {

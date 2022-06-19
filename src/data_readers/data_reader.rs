@@ -51,13 +51,11 @@ impl DataReader {
     }
 
     pub async fn set_name(&self, name: String) {
-        let mut write_access = self.data.write().await;
-        write_access.update_name(name);
+        self.connection.set_name(name).await;
     }
 
     pub async fn get_name(&self) -> Option<String> {
-        let read_access = self.data.read().await;
-        read_access.name.clone()
+        self.connection.get_name().await
     }
 
     pub async fn subscribe(&self, db_table: Arc<DbTable>) {
@@ -100,6 +98,8 @@ impl DataReader {
 
         let pending_to_send = self.get_pending_to_send();
 
+        let name = self.connection.get_name().await;
+
         let read_access = self.data.read().await;
 
         DataReadeMetrics {
@@ -107,7 +107,7 @@ impl DataReader {
             connected,
             last_incoming_moment,
             ip,
-            name: read_access.name.clone(),
+            name,
             tables: read_access.get_table_names(),
             pending_to_send,
         }

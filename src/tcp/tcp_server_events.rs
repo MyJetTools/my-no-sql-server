@@ -38,7 +38,6 @@ impl TcpServerEvents {
                         format!("ID: {}", connection.id),
                     );
                     data_reader.set_name(name.to_string()).await;
-                    connection.connection_name.update(name).await;
                 }
             }
 
@@ -115,6 +114,10 @@ impl SocketEventCallback<TcpContract, MyNoSqlReaderTcpSerializer> for TcpServerE
                     if let DataReaderConnection::Tcp(connection) = &data_reader.connection {
                         connection.flush_events_loop.stop();
                     }
+                    self.app
+                        .metrics
+                        .remove_pending_to_sync(&data_reader.connection)
+                        .await;
                 }
                 self.app.metrics.mark_new_tcp_disconnection();
             }
