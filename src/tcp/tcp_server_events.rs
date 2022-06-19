@@ -3,7 +3,10 @@ use std::sync::Arc;
 use my_no_sql_tcp_shared::{MyNoSqlReaderTcpSerializer, TcpContract};
 use my_tcp_sockets::{tcp_connection::SocketConnection, ConnectionEvent, SocketEventCallback};
 
-use crate::app::{logs::SystemProcess, AppContext};
+use crate::{
+    app::{logs::SystemProcess, AppContext},
+    data_readers::DataReaderConnection,
+};
 
 pub type MyNoSqlTcpConnection = SocketConnection<TcpContract, MyNoSqlReaderTcpSerializer>;
 
@@ -106,7 +109,13 @@ impl SocketEventCallback<TcpContract, MyNoSqlReaderTcpSerializer> for TcpServerE
                     "Disconnect".to_string(),
                     format!("ID: {}", connection.id),
                 );
-                self.app.data_readers.remove_tcp(connection.as_ref()).await;
+                if let Some(data_reader) =
+                    self.app.data_readers.remove_tcp(connection.as_ref()).await
+                {
+                    if let DataReaderConnection::Tcp(connection) = &data_reader.connection {
+                        connection.flush_events_loop.stop();
+                    }
+                }
                 self.app.metrics.mark_new_tcp_disconnection();
             }
             ConnectionEvent::Payload {

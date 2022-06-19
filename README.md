@@ -9,4 +9,7 @@
 
 ### 0.0.19
 * Improved loading performance;
-* Added TcpSendTimeoutSec settings parameter
+* Added   settings parameter
+
+### 0.0.20-rc01
+* Sync to Readers now works in separated threads

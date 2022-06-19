@@ -1,6 +1,8 @@
+use std::sync::Arc;
+
 use super::{http_connection::HttpConnectionInfo, tcp_connection::TcpConnectionInfo};
 
 pub enum DataReaderConnection {
-    Tcp(TcpConnectionInfo),
+    Tcp(Arc<TcpConnectionInfo>),
     Http(HttpConnectionInfo),
 }

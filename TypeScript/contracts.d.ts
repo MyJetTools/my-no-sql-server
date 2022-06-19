@@ -5,6 +5,7 @@ interface IReaderStatus {
     tables: string[];
     connectedTime: string;
     lastIncomingTime: string;
+    pendingToSend: number;
 }
 
 interface INodeStatus {

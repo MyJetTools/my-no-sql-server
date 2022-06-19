@@ -41,8 +41,7 @@ pub async fn bulk_delete(
         }
     }
 
-    app.events_dispatcher
-        .dispatch(db_table.into(), SyncEvent::DeleteRows(sync_data));
+    crate::operations::sync::dispatch(app, Some(db_table), SyncEvent::DeleteRows(sync_data));
 
     Ok(())
 }

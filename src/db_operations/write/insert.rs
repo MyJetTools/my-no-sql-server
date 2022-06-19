@@ -62,8 +62,11 @@ pub async fn execute(
 
     update_rows_state.rows_by_partition.add_row(db_row);
 
-    app.events_dispatcher
-        .dispatch(db_table.into(), SyncEvent::UpdateRows(update_rows_state));
+    crate::operations::sync::dispatch(
+        app,
+        db_table.into(),
+        SyncEvent::UpdateRows(update_rows_state),
+    );
 
     return Ok(());
 }

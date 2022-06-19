@@ -7,7 +7,6 @@ pub struct PrometheusMetrics {
     partitions_amount: IntGaugeVec,
     table_size: IntGaugeVec,
     persist_amount: IntGaugeVec,
-    sync_queue_size: IntGauge,
     tcp_connections_count: IntGauge,
     tcp_connections_changes: IntGaugeVec,
     fatal_errors_count: IntGauge,
@@ -23,7 +22,6 @@ impl PrometheusMetrics {
         let partitions_amount = create_partititions_amount_gauge();
         let table_size = create_table_size_gauge();
         let persist_amount = create_persist_amount_gauge();
-        let sync_queue_size = create_sync_queue_size_gauge();
         let tcp_connections_count = create_tcp_connections_count();
         let tcp_connections_changes = create_tcp_connections_changes();
         let fatal_errors_count = create_fatal_errors_count();
@@ -38,10 +36,6 @@ impl PrometheusMetrics {
         registry.register(Box::new(persist_amount.clone())).unwrap();
         registry
             .register(Box::new(fatal_errors_count.clone()))
-            .unwrap();
-
-        registry
-            .register(Box::new(sync_queue_size.clone()))
             .unwrap();
 
         registry
@@ -61,7 +55,6 @@ impl PrometheusMetrics {
             partitions_amount,
             table_size,
             persist_amount,
-            sync_queue_size,
             tcp_connections_count,
             tcp_connections_changes,
             fatal_errors_count,
@@ -90,10 +83,6 @@ impl PrometheusMetrics {
         self.persist_delay_in_seconds
             .with_label_values(&[table_name])
             .set(persist_delay);
-    }
-
-    pub fn updated_sync_queue_size(&self, sync_queue_size: usize) {
-        self.sync_queue_size.set(sync_queue_size as i64);
     }
 
     pub fn mark_new_tcp_connection(&self) {
@@ -146,10 +135,6 @@ fn create_persist_amount_gauge() -> IntGaugeVec {
 
     let lables = &[TABLE_NAME];
     IntGaugeVec::new(gauge_opts, lables).unwrap()
-}
-
-fn create_sync_queue_size_gauge() -> IntGauge {
-    IntGauge::new("sync_queue_size", "Sync queue size").unwrap()
 }
 
 fn create_fatal_errors_count() -> IntGauge {

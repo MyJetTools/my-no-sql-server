@@ -1,7 +1,7 @@
-use app::{logs::Logs, AppContext, EventsDispatcher};
+use app::{logs::Logs, AppContext};
 use background::{
     gc_db_rows::GcDbRows, gc_http_sessions::GcHttpSessionsTimer, gc_multipart::GcMultipart,
-    metrics_updater::MetricsUpdater, persist::PersistTimer,
+    metrics_updater::MetricsUpdater, persist::PersistTimer, sync::SyncEventLoop,
 };
 use my_logger::MyLogger;
 use my_no_sql_tcp_shared::MyNoSqlReaderTcpSerializer;
@@ -41,17 +41,11 @@ async fn main() {
 
     let settings = Arc::new(settings);
 
-    let mut background_tasks = Vec::new();
-
     let logs = Arc::new(Logs::new());
 
     let persist_io = settings.get_persist_io(logs.clone());
 
-    let mut sync_events_dispatcher = EventsDispatcher::new();
-
-    let sync_events_reader = sync_events_dispatcher.get_events_reader();
-
-    let app = AppContext::new(logs.clone(), settings, sync_events_dispatcher, persist_io);
+    let app = AppContext::new(logs.clone(), settings, persist_io);
 
     let tcp_server_logger = TcpServerLogger::new(app.logs.clone());
 
@@ -62,6 +56,10 @@ async fn main() {
     tokio::spawn(crate::persist_operations::data_initializer::load_tables(
         app.clone(),
     ));
+
+    app.sync
+        .register_event_loop(Arc::new(SyncEventLoop::new(app.clone())))
+        .await;
 
     let mut timer_1s = MyTimer::new(Duration::from_secs(1));
 
@@ -88,10 +86,7 @@ async fn main() {
     timer_30s.start(app.clone(), app.clone());
     persist_timer.start(app.clone(), app.clone());
 
-    background_tasks.push(tokio::task::spawn(crate::background::sync::start(
-        app.clone(),
-        sync_events_reader,
-    )));
+    app.sync.start(app.clone(), app.clone()).await;
 
     crate::http::start_up::setup_server(&app);
 
@@ -118,10 +113,6 @@ async fn main() {
     .unwrap();
 
     shut_down_task(app).await;
-
-    for background_task in background_tasks.drain(..) {
-        background_task.await.unwrap();
-    }
 }
 
 async fn shut_down_task(app: Arc<AppContext>) {

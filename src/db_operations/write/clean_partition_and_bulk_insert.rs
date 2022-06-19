@@ -39,8 +39,11 @@ pub async fn execute(
         db_table.attributes.get_persist(),
     );
 
-    app.events_dispatcher
-        .dispatch(db_table.as_ref().into(), SyncEvent::InitPartitions(state));
+    crate::operations::sync::dispatch(
+        app,
+        db_table.as_ref().into(),
+        SyncEvent::InitPartitions(state),
+    );
 
     Ok(())
 }

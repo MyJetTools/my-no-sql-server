@@ -1,9 +1,12 @@
 use std::{sync::Arc, time::Duration};
 
-use rust_extensions::date_time::DateTimeAsMicroseconds;
+use rust_extensions::{date_time::DateTimeAsMicroseconds, events_loop::EventsLoop};
 use tokio::sync::RwLock;
 
-use crate::tcp::MyNoSqlTcpConnection;
+use crate::{
+    background::tcp_connection_send_event_loop::TcpConnectionSendEventLoop,
+    tcp::MyNoSqlTcpConnection,
+};
 
 use super::{
     http_connection::HttpConnectionInfo, tcp_connection::TcpConnectionInfo, DataReader,
@@ -28,7 +31,25 @@ impl DataReadersList {
     pub async fn add_tcp(&self, tcp_connection: Arc<MyNoSqlTcpConnection>) {
         let id = format!("Tcp-{}", tcp_connection.id);
         println!("New tcp reader connnected {}", id);
-        let connection_info = TcpConnectionInfo::new(tcp_connection, self.tcp_send_time_out);
+
+        let flash_events_loop = EventsLoop::new(id.to_string());
+
+        let connection_info = TcpConnectionInfo::new(
+            tcp_connection,
+            flash_events_loop,
+            self.tcp_send_time_out,
+            1024 * 1024 * 4,
+        );
+
+        let connection_info = Arc::new(connection_info);
+
+        connection_info
+            .flush_events_loop
+            .register_event_loop(Arc::new(TcpConnectionSendEventLoop::new(
+                connection_info.clone(),
+            )))
+            .await;
+
         let mut write_lock = self.data.write().await;
 
         let data_reader = DataReader::new(id, DataReaderConnection::Tcp(connection_info));
@@ -61,10 +82,13 @@ impl DataReadersList {
         read_lock.get_http(session_id)
     }
 
-    pub async fn remove_tcp(&self, tcp_connection: &MyNoSqlTcpConnection) {
+    pub async fn remove_tcp(
+        &self,
+        tcp_connection: &MyNoSqlTcpConnection,
+    ) -> Option<Arc<DataReader>> {
         println!("Tcp reader is disconnnected {}", tcp_connection.id);
         let mut write_lock = self.data.write().await;
-        write_lock.remove_tcp(tcp_connection.id);
+        write_lock.remove_tcp(tcp_connection.id)
     }
 
     pub async fn get_all(&self) -> Vec<Arc<DataReader>> {

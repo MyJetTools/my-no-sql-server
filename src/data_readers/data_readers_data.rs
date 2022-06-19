@@ -52,10 +52,12 @@ impl DataReadersData {
         result.clone().into()
     }
 
-    pub fn remove_tcp(&mut self, connection_id: i32) {
+    pub fn remove_tcp(&mut self, connection_id: i32) -> Option<Arc<DataReader>> {
         if let Some(removed_connection) = self.tcp.remove(&connection_id) {
-            self.all.remove(&removed_connection.id);
+            return self.all.remove(&removed_connection.id);
         }
+
+        None
     }
 
     pub fn remove_http(&mut self, data_reader: &DataReader) {

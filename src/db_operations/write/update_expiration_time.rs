@@ -44,8 +44,11 @@ pub async fn update_expiration_time(
     }
 
     if update_sync_data.rows_by_partition.has_elements() {
-        app.events_dispatcher
-            .dispatch(db_table.into(), SyncEvent::UpdateRows(update_sync_data));
+        crate::operations::sync::dispatch(
+            app,
+            db_table.into(),
+            SyncEvent::UpdateRows(update_sync_data),
+        );
     }
 
     Ok(())

@@ -1,3 +1,5 @@
+use std::sync::atomic::AtomicUsize;
+
 use my_http_server::HttpFailResult;
 use rust_extensions::date_time::{AtomicDateTimeAsMicroseconds, DateTimeAsMicroseconds};
 use tokio::sync::Mutex;
@@ -14,6 +16,7 @@ pub struct HttpConnectionInfo {
     pub connected: DateTimeAsMicroseconds,
     pub last_incoming_moment: AtomicDateTimeAsMicroseconds,
     pub delivery_info: Mutex<HttpConnectionDeliveryInfo>,
+    pending_to_send: AtomicUsize,
 }
 
 impl HttpConnectionInfo {
@@ -24,6 +27,7 @@ impl HttpConnectionInfo {
             connected: DateTimeAsMicroseconds::now(),
             last_incoming_moment: AtomicDateTimeAsMicroseconds::now(),
             delivery_info: Mutex::new(HttpConnectionDeliveryInfo::new(id)),
+            pending_to_send: AtomicUsize::new(0),
         }
     }
 
@@ -34,11 +38,15 @@ impl HttpConnectionInfo {
 
     pub async fn send(&self, sync_event: &SyncEvent) {
         if let Some(payload) = into_http_payload::convert(sync_event).await {
-            let mut write_access = self.delivery_info.lock().await;
-            write_access.upload(payload);
+            let mut delivery_info_write_access = self.delivery_info.lock().await;
+            delivery_info_write_access.upload(payload);
+            self.pending_to_send.store(
+                delivery_info_write_access.get_size(),
+                std::sync::atomic::Ordering::SeqCst,
+            );
 
-            if let Some(mut task) = write_access.get_task_to_write_response() {
-                let payload = write_access.get_payload_to_deliver().unwrap();
+            if let Some(mut task) = delivery_info_write_access.get_task_to_write_response() {
+                let payload = delivery_info_write_access.get_payload_to_deliver().unwrap();
 
                 if let Err(err) = task.try_set_ok(HttpPayload::Payload(payload)) {
                     println!(
@@ -62,5 +70,10 @@ impl HttpConnectionInfo {
         };
 
         task_completion.get_result().await
+    }
+
+    pub fn get_pending_to_send(&self) -> usize {
+        self.pending_to_send
+            .load(std::sync::atomic::Ordering::Relaxed)
     }
 }

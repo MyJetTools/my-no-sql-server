@@ -17,6 +17,7 @@ pub struct DataReadeMetrics {
     pub ip: String,
     pub name: Option<String>,
     pub tables: Vec<String>,
+    pub pending_to_send: usize,
 }
 
 pub struct DataReader {
@@ -97,6 +98,8 @@ impl DataReader {
         let connected = self.get_connected_moment();
         let last_incoming_moment = self.get_last_incoming_moment();
 
+        let pending_to_send = self.get_pending_to_send();
+
         let read_access = self.data.read().await;
 
         DataReadeMetrics {
@@ -106,6 +109,14 @@ impl DataReader {
             ip,
             name: read_access.name.clone(),
             tables: read_access.get_table_names(),
+            pending_to_send,
+        }
+    }
+
+    fn get_pending_to_send(&self) -> usize {
+        match &self.connection {
+            DataReaderConnection::Tcp(connection) => connection.get_pending_to_send(),
+            DataReaderConnection::Http(connection) => connection.get_pending_to_send(),
         }
     }
 

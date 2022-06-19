@@ -61,10 +61,12 @@ var HtmlStatusBar = /** @class */ (function () {
             this.persistAmount = data.persistAmount;
             document.getElementById('persist-queue').innerHTML = this.persistAmount.toString();
         }
-        if (this.syncQueueSize != data.syncQueueSize) {
-            this.syncQueueSize = data.syncQueueSize;
-            document.getElementById('sync-queue-size').innerHTML = this.syncQueueSize.toString();
+    };
+    HtmlStatusBar.updateQueueSize = function (queueSize) {
+        if (!this.syncQueueSize) {
+            this.syncQueueSize = new HtmlStaticElement(document.getElementById('sync-queue-size'));
         }
+        this.syncQueueSize.update(queueSize, function (value) { return value.toFixed(0); });
     };
     HtmlStatusBar.updateOffline = function () {
         if (this.connected) {

@@ -49,8 +49,12 @@ pub async fn create(
                     db_table.attributes.get_snapshot(),
                     event_src,
                 );
-                app.events_dispatcher
-                    .dispatch(db_table.as_ref().into(), SyncEvent::InitTable(state));
+
+                crate::operations::sync::dispatch(
+                    app,
+                    db_table.as_ref().into(),
+                    SyncEvent::InitTable(state),
+                );
             }
 
             return Ok(db_table);
@@ -86,8 +90,11 @@ async fn get_or_create(
                     event_src,
                 );
 
-                app.events_dispatcher
-                    .dispatch(db_table.as_ref().into(), SyncEvent::InitTable(state));
+                crate::operations::sync::dispatch(
+                    app,
+                    db_table.as_ref().into(),
+                    SyncEvent::InitTable(state),
+                );
 
                 table_data
                     .data_to_persist
@@ -164,7 +171,8 @@ pub async fn set_table_attrubutes(
         return Ok(());
     }
 
-    app.events_dispatcher.dispatch(
+    crate::operations::sync::dispatch(
+        app,
         db_table.as_ref().into(),
         SyncEvent::UpdateTableAttributes(UpdateTableAttributesSyncData {
             table_data: SyncTableData {
@@ -205,7 +213,8 @@ pub async fn delete(
             .data_to_persist
             .mark_table_to_persist(persist_moment);
 
-        app.events_dispatcher.dispatch(
+        crate::operations::sync::dispatch(
+            app.as_ref(),
             db_table.as_ref().into(),
             SyncEvent::DeleteTable(DeleteTableSyncData::new(
                 &table_data,

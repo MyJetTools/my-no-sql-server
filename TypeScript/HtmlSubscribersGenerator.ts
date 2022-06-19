@@ -22,6 +22,7 @@ class HtmlSubscribersGenerator {
                 '<td style="font-size: 10px">' +
                 '<div><b>C:</b>' + itm.connectedTime + '</div>' +
                 '<div><b>L:</b>' + itm.lastIncomingTime + '</div>' +
+                '<div><b>S:</b>' + itm.pendingToSend + '</div>' +
                 '</td></tr>';
 
         }

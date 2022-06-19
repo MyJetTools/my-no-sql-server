@@ -1,5 +1,7 @@
 class HtmlStatusBar {
 
+    private static syncQueueSize: HtmlStaticElement<number>
+
     private static location: string;
     private static connected: boolean;
     private static compression: boolean;
@@ -12,7 +14,6 @@ class HtmlStatusBar {
     private static tcpConnections: number;
     private static httpConnections: number;
 
-    private static syncQueueSize: number;
 
 
     public static layout(): string {
@@ -102,10 +103,16 @@ class HtmlStatusBar {
             document.getElementById('persist-queue').innerHTML = this.persistAmount.toString()
         }
 
-        if (this.syncQueueSize != data.syncQueueSize) {
-            this.syncQueueSize = data.syncQueueSize;
-            document.getElementById('sync-queue-size').innerHTML = this.syncQueueSize.toString()
+
+    }
+
+    public static updateQueueSize(queueSize: number) {
+
+        if (!this.syncQueueSize) {
+            this.syncQueueSize = new HtmlStaticElement<number>(document.getElementById('sync-queue-size'));
         }
+
+        this.syncQueueSize.update(queueSize, (value) => value.toFixed(0));
     }
 
     public static updateOffline() {

@@ -35,8 +35,7 @@ pub async fn delete_partitions(
         }
     }
 
-    app.events_dispatcher
-        .dispatch(db_table.into(), SyncEvent::InitPartitions(sync_data));
+    crate::operations::sync::dispatch(app, db_table.into(), SyncEvent::InitPartitions(sync_data));
 
     Ok(())
 }

@@ -3,12 +3,15 @@ use std::{
     time::Duration,
 };
 
-use rust_extensions::{date_time::DateTimeAsMicroseconds, ApplicationStates, MyTimerLogger};
+use rust_extensions::{
+    date_time::DateTimeAsMicroseconds, events_loop::EventsLoop, ApplicationStates, MyTimerLogger,
+};
 
 use crate::{
     data_readers::DataReadersList,
     db::DbInstance,
     db_operations::multipart::MultipartList,
+    db_sync::SyncEvent,
     db_transactions::ActiveTransactions,
     persist_io::PersistIoOperations,
     persist_operations::{
@@ -20,7 +23,7 @@ use crate::{
 use super::{
     global_states::GlobalStates,
     logs::{Logs, SystemProcess},
-    EventsDispatcher, PrometheusMetrics,
+    PrometheusMetrics,
 };
 
 pub const APP_VERSION: &'static str = env!("CARGO_PKG_VERSION");
@@ -40,7 +43,6 @@ pub struct AppContext {
 
     pub states: GlobalStates,
 
-    pub events_dispatcher: EventsDispatcher,
     pub blob_content_cache: BlobContentCache,
     pub data_readers: DataReadersList,
 
@@ -48,6 +50,7 @@ pub struct AppContext {
     pub persist_io: PersistIoOperations,
     pub init_state: InitState,
     pub settings: Arc<SettingsModel>,
+    pub sync: EventsLoop<SyncEvent>,
     persist_amount: AtomicUsize,
 }
 
@@ -55,7 +58,6 @@ impl AppContext {
     pub fn new(
         logs: Arc<Logs>,
         settings: Arc<SettingsModel>,
-        events_dispatcher: EventsDispatcher,
         persist_io: PersistIoOperations,
     ) -> Self {
         AppContext {
@@ -68,7 +70,6 @@ impl AppContext {
             process_id: uuid::Uuid::new_v4().to_string(),
             states: GlobalStates::new(),
 
-            events_dispatcher,
             blob_content_cache: BlobContentCache::new(),
             data_readers: DataReadersList::new(
                 Duration::from_secs(30),
@@ -78,6 +79,7 @@ impl AppContext {
             persist_io,
             settings,
             persist_amount: AtomicUsize::new(0),
+            sync: EventsLoop::new("SyncEventsLoop".to_string()),
         }
     }
 
@@ -103,6 +105,18 @@ impl ApplicationStates for AppContext {
 }
 
 impl MyTimerLogger for AppContext {
+    fn write_info(&self, timer_id: String, message: String) {
+        self.logs
+            .add_info(None, SystemProcess::Timer, timer_id, message);
+    }
+
+    fn write_error(&self, timer_id: String, message: String) {
+        self.logs
+            .add_fatal_error(None, SystemProcess::Timer, timer_id, message);
+    }
+}
+
+impl rust_extensions::events_loop::EventsLoopLogger for AppContext {
     fn write_info(&self, timer_id: String, message: String) {
         self.logs
             .add_info(None, SystemProcess::Timer, timer_id, message);

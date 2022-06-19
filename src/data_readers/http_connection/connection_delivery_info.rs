@@ -98,4 +98,14 @@ impl HttpConnectionDeliveryInfo {
 
         result
     }
+
+    pub fn get_size(&self) -> usize {
+        let mut result = 0;
+
+        for delivery_info in &self.payload_to_deliver {
+            result += delivery_info.len();
+        }
+
+        result
+    }
 }

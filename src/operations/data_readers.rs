@@ -28,7 +28,8 @@ pub async fn subscribe(
 
     data_reader.subscribe(db_table.clone()).await;
 
-    app.events_dispatcher.dispatch(
+    crate::operations::sync::dispatch(
+        app,
         None,
         SyncEvent::TableFirstInit(TableFirstInitSyncData {
             db_table,

@@ -1,6 +1,14 @@
 var Utils = /** @class */ (function () {
     function Utils() {
     }
+    Utils.getSyncQueueSize = function (src) {
+        var result = 0;
+        for (var _i = 0, src_1 = src; _i < src_1.length; _i++) {
+            var val = src_1[_i];
+            result += val.pendingToSend;
+        }
+        return result;
+    };
     Utils.filterIt = function (line, filterPhrase) {
         if (filterPhrase == "")
             return false;
