@@ -8,13 +8,6 @@ pub enum DataReaderConnection {
 }
 
 impl DataReaderConnection {
-    pub fn get_pending_to_send(&self) -> usize {
-        match self {
-            DataReaderConnection::Tcp(tcp_info) => tcp_info.get_pending_to_send(),
-            DataReaderConnection::Http(http_info) => http_info.get_pending_to_send(),
-        }
-    }
-
     pub async fn get_name(&self) -> Option<String> {
         match self {
             DataReaderConnection::Tcp(tcp_info) => tcp_info.get_name().await,
@@ -26,6 +19,20 @@ impl DataReaderConnection {
         match self {
             DataReaderConnection::Tcp(tcp_info) => tcp_info.set_name(name).await,
             DataReaderConnection::Http(http_info) => http_info.set_name(name).await,
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl crate::app::UpdatePendingToSyncModel for DataReaderConnection {
+    async fn get_name(&self) -> Option<String> {
+        self.get_name().await
+    }
+
+    fn get_pending_to_sync(&self) -> usize {
+        match self {
+            DataReaderConnection::Tcp(tcp_info) => tcp_info.get_pending_to_send(),
+            DataReaderConnection::Http(http_info) => http_info.get_pending_to_send(),
         }
     }
 }

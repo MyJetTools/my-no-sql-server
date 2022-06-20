@@ -46,6 +46,7 @@ impl DataReadersList {
         connection_info
             .flush_events_loop
             .register_event_loop(Arc::new(TcpConnectionSendEventLoop::new(
+                app.clone(),
                 connection_info.clone(),
             )))
             .await;

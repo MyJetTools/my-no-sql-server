@@ -106,3 +106,14 @@ impl TcpConnectionInfo {
             .load(std::sync::atomic::Ordering::Relaxed)
     }
 }
+
+#[async_trait::async_trait]
+impl crate::app::UpdatePendingToSyncModel for TcpConnectionInfo {
+    async fn get_name(&self) -> Option<String> {
+        self.get_name().await
+    }
+
+    fn get_pending_to_sync(&self) -> usize {
+        self.get_pending_to_send()
+    }
+}
