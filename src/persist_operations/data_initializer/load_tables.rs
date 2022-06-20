@@ -59,7 +59,8 @@ async fn load_tables_spawned(app: Arc<AppContext>) {
                 );
             }
             super::load_tasks::ProcessTableToLoad::NotReadyYet => {
-                tokio::time::sleep(Duration::from_millis(100)).await;
+                println!("We do not have table to load yet");
+                tokio::time::sleep(Duration::from_millis(1000)).await;
             }
             super::load_tasks::ProcessTableToLoad::TheEnd => {
                 return;

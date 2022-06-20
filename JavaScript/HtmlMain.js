@@ -7,7 +7,9 @@ var HtmlMain = /** @class */ (function () {
             + HtmlDialog.layout();
     };
     HtmlMain.generateInit = function (model) {
-        var result = '<h1>Remains tables to load: ' + model.tablesRemains + '</h1><h2>Total loading time is: ' + this.formatSeconds(model.initializingSeconds) + '</h2>' +
+        var result = '<h1>Remains tables to load: ' + model.tablesRemains + '</h1>' +
+            '<h2>Table which files are being loaded: ' + model.tableBeingLoadedFiles + '</h2>' +
+            '<h2>Total loading time is: ' + this.formatSeconds(model.initializingSeconds) + '</h2>' +
             '<table class="table table-striped table-bordered"><tr><th>TableName</th><th>Partitions loaded</th><th>Partitions total</th><th>Time gone</th><th>Time estimation</th></tr>';
         for (var _i = 0, _a = model.progress.sort(function (a, b) { return a.tableName > b.tableName ? 1 : -1; }); _i < _a.length; _i++) {
             var itm = _a[_i];

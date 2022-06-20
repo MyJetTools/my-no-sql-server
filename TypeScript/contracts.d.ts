@@ -26,6 +26,7 @@ interface INonInitializedModel {
     tablesRemains: number,
     initializingSeconds: number,
     progress: ITableLoadProgress[]
+    tableBeingLoadedFiles: String
 }
 
 

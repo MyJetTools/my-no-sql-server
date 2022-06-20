@@ -69,8 +69,6 @@ class main {
                     this.layoutElement.innerHTML = HtmlMain.generateInit(result.notInitialized);
                 }
 
-
-
                 HtmlStatusBar.updateStatusbar(result.statusBar);
 
             }).fail(() => {

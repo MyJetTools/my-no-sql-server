@@ -12,4 +12,5 @@
 * Added   settings parameter
 
 ### 0.0.20-rc01
-* Sync to Readers now works in separated thread
+* Sync to Readers now works in a separate thread
+* Exposed sync to readers bytes to Prometheus reader by reader

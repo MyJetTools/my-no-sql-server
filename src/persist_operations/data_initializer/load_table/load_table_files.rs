@@ -48,7 +48,7 @@ async fn load_table_files_loop(
                     .await;
                 }
                 PartitionToLoad::EndOfReading => {
-                    break;
+                    return;
                 }
             },
             None => {

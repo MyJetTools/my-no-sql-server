@@ -11,6 +11,7 @@ pub enum ProcessTableToLoad {
 }
 
 pub struct InitStateData {
+    pub table_being_loaded_files: Option<String>,
     pub tables_to_init_files: Vec<Arc<TableToLoad>>,
     pub tables_to_load: Vec<ProcessTableToLoad>,
     pub tables_being_loaded: Vec<Arc<TableToLoad>>,
@@ -24,6 +25,7 @@ impl InitStateData {
             tables_to_load: Vec::new(),
             tables_being_loaded: Vec::new(),
             tables_loaded: Vec::new(),
+            table_being_loaded_files: None,
         }
     }
 
@@ -34,11 +36,16 @@ impl InitStateData {
         }
 
         let result = self.tables_to_init_files.remove(0);
+        self.table_being_loaded_files = Some(result.table_name.to_string());
 
         self.tables_to_load
             .push(ProcessTableToLoad::Process(result.clone()));
 
         Some(result)
+    }
+
+    pub fn loading_files_for_tables_is_done(&mut self) {
+        self.table_being_loaded_files = None;
     }
 
     pub fn init_tables(&mut self, tables: Vec<String>, logs: &Logs) {
@@ -66,7 +73,14 @@ impl InitStateData {
             if self.tables_to_load.len() > 0 {
                 self.tables_to_load.remove(0)
             } else {
-                ProcessTableToLoad::NotReadyYet
+                if self.tables_being_loaded.len() == 0
+                    && self.tables_to_load.len() == 0
+                    && self.tables_to_init_files.len() == 0
+                {
+                    ProcessTableToLoad::TheEnd
+                } else {
+                    ProcessTableToLoad::NotReadyYet
+                }
             }
         };
 
@@ -101,6 +115,7 @@ impl InitStateData {
             to_load: convert_to_tables_snapshot_2(&self.tables_to_load),
             loading: convert_to_tables_snapshot(&self.tables_being_loaded),
             loaded: convert_to_tables_snapshot(&self.tables_loaded),
+            table_being_loaded_files: self.table_being_loaded_files.clone(),
         }
     }
 

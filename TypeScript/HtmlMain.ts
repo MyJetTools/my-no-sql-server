@@ -9,7 +9,9 @@ class HtmlMain {
 
     public static generateInit(model: INonInitializedModel): string {
 
-        var result = '<h1>Remains tables to load: ' + model.tablesRemains + '</h1><h2>Total loading time is: ' + this.formatSeconds(model.initializingSeconds) + '</h2>' +
+        var result = '<h1>Remains tables to load: ' + model.tablesRemains + '</h1>' +
+            '<h2>Table which files are being loaded: ' + model.tableBeingLoadedFiles + '</h2>' +
+            '<h2>Total loading time is: ' + this.formatSeconds(model.initializingSeconds) + '</h2>' +
             '<table class="table table-striped table-bordered"><tr><th>TableName</th><th>Partitions loaded</th><th>Partitions total</th><th>Time gone</th><th>Time estimation</th></tr>'
 
         for (let itm of model.progress.sort((a, b) => a.tableName > b.tableName ? 1 : -1)) {

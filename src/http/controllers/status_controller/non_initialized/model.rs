@@ -12,6 +12,8 @@ pub struct NonInitializedModel {
     #[serde(rename = "initializingSeconds")]
     initializing_seconds: i64,
     progress: Vec<TableProgressModel>,
+    #[serde(rename = "tableBeingLoadedFiles")]
+    table_being_loaded_files: Option<String>,
 }
 
 impl NonInitializedModel {
@@ -30,6 +32,7 @@ impl NonInitializedModel {
             progress,
             tables_remains: snapshot.to_load.len(),
             initializing_seconds: now.seconds_before(app.created),
+            table_being_loaded_files: snapshot.table_being_loaded_files,
         };
     }
 }

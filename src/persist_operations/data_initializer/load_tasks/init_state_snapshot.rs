@@ -12,4 +12,5 @@ pub struct InitStateSnapshot {
     pub to_load: Vec<InitTableStateSnapshot>,
     pub loading: Vec<InitTableStateSnapshot>,
     pub loaded: Vec<InitTableStateSnapshot>,
+    pub table_being_loaded_files: Option<String>,
 }

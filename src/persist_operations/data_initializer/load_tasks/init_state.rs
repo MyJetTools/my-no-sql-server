@@ -34,6 +34,11 @@ impl InitState {
         write_access.get_next_table_to_init_files()
     }
 
+    pub async fn loading_files_for_tables_is_done(&self) {
+        let mut write_access = self.data.lock().await;
+        write_access.loading_files_for_tables_is_done();
+    }
+
     pub async fn get_next_table_to_load(&self) -> ProcessTableToLoad {
         let mut write_access = self.data.lock().await;
         write_access.get_next_table_to_load()
