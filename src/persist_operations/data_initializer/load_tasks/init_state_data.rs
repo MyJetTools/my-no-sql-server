@@ -1,54 +1,32 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
-use crate::{app::logs::Logs, db_operations::validation};
+use crate::{
+    app::logs::Logs, db_operations::validation,
+    persist_operations::data_initializer::LoadedTableItem,
+};
 
-use super::{InitStateSnapshot, InitTableStateSnapshot, TableToLoad};
-
-pub enum ProcessTableToLoad {
-    Process(Arc<TableToLoad>),
-    NotReadyYet,
-    TheEnd,
-}
+use super::{TableFilesToLoad, TableLoadingTask, TableToLoadListOfFiles};
 
 pub struct InitStateData {
-    pub table_being_loaded_files: Option<String>,
-    pub tables_to_init_files: Vec<Arc<TableToLoad>>,
-    pub tables_to_load: Vec<ProcessTableToLoad>,
-    pub tables_being_loaded: Vec<Arc<TableToLoad>>,
-    pub tables_loaded: Vec<Arc<TableToLoad>>,
+    pub tables_to_load_list_of_files: TableToLoadListOfFiles,
+    pub tables_files_to_load: HashMap<String, TableFilesToLoad>,
+    pub tables_loading_tasks: HashMap<String, Arc<TableLoadingTask>>,
 }
 
 impl InitStateData {
     pub fn new() -> Self {
         Self {
-            tables_to_init_files: Vec::new(),
-            tables_to_load: Vec::new(),
-            tables_being_loaded: Vec::new(),
-            tables_loaded: Vec::new(),
-            table_being_loaded_files: None,
+            tables_to_load_list_of_files: TableToLoadListOfFiles::new(),
+            tables_files_to_load: HashMap::new(),
+            tables_loading_tasks: HashMap::new(),
         }
     }
 
-    pub fn get_next_table_to_init_files(&mut self) -> Option<Arc<TableToLoad>> {
-        if self.tables_to_init_files.is_empty() {
-            self.tables_to_load.push(ProcessTableToLoad::TheEnd);
-            return None;
-        }
-
-        let result = self.tables_to_init_files.remove(0);
-        self.table_being_loaded_files = Some(result.table_name.to_string());
-
-        self.tables_to_load
-            .push(ProcessTableToLoad::Process(result.clone()));
-
-        Some(result)
+    pub fn get_next_table_to_load_list_of_files(&mut self) -> Option<String> {
+        self.tables_to_load_list_of_files.get_next()
     }
 
-    pub fn loading_files_for_tables_is_done(&mut self) {
-        self.table_being_loaded_files = None;
-    }
-
-    pub fn init_tables(&mut self, tables: Vec<String>, logs: &Logs) {
+    pub fn init_table_names(&mut self, tables: Vec<String>, logs: &Logs) {
         for table_name in tables {
             if let Err(err) = validation::validate_table_name(table_name.as_str()) {
                 logs.add_error(
@@ -62,109 +40,86 @@ impl InitStateData {
                     None,
                 );
             } else {
-                self.tables_to_init_files
-                    .push(Arc::new(TableToLoad::new(table_name)));
+                self.tables_to_load_list_of_files
+                    .add_table(table_name.to_string());
+
+                self.tables_files_to_load.insert(
+                    table_name.to_string(),
+                    TableFilesToLoad::new(table_name.to_string()),
+                );
+
+                self.tables_loading_tasks.insert(
+                    table_name.to_string(),
+                    Arc::new(TableLoadingTask::new(table_name)),
+                );
             }
         }
     }
 
-    pub fn get_next_table_to_load(&mut self) -> ProcessTableToLoad {
-        let next_table_to_load = {
-            if self.tables_to_load.len() > 0 {
-                self.tables_to_load.remove(0)
-            } else {
-                if self.tables_being_loaded.len() == 0
-                    && self.tables_to_load.len() == 0
-                    && self.tables_to_init_files.len() == 0
+    pub fn get_next_file_to_load(&mut self) -> Option<(Arc<TableLoadingTask>, String)> {
+        for files_to_load in self.tables_files_to_load.values_mut() {
+            if let Some(file_name) = files_to_load.get_next_file_to_load() {
+                if let Some(loading_task) = self
+                    .tables_loading_tasks
+                    .get(files_to_load.table_name.as_str())
                 {
-                    ProcessTableToLoad::TheEnd
-                } else {
-                    ProcessTableToLoad::NotReadyYet
+                    return Some((loading_task.clone(), file_name));
                 }
             }
-        };
-
-        if let ProcessTableToLoad::Process(next_table_to_load) = &next_table_to_load {
-            self.tables_being_loaded.push(next_table_to_load.clone());
         }
 
-        next_table_to_load
+        None
     }
 
-    pub fn load_completed(&mut self, table_name: &str) {
-        let index = self
-            .tables_being_loaded
-            .iter()
-            .position(|item| item.table_name == table_name);
-
-        if index.is_none() {
-            panic!(
-                "Somehow we did not found table {} as being loaded",
-                table_name
-            );
+    pub fn add_files_to_table(&mut self, table_name: &str, files: Vec<String>) {
+        if let Some(tables_loading_tasks) = self.tables_loading_tasks.get_mut(table_name) {
+            tables_loading_tasks.add_total_files_amount(files.len());
         }
 
-        let index = index.unwrap();
-
-        let removed = self.tables_being_loaded.remove(index);
-        self.tables_loaded.push(removed);
-    }
-
-    pub fn get_snapshot(&self) -> InitStateSnapshot {
-        InitStateSnapshot {
-            to_load: convert_to_tables_snapshot_2(&self.tables_to_load),
-            loading: convert_to_tables_snapshot(&self.tables_being_loaded),
-            loaded: convert_to_tables_snapshot(&self.tables_loaded),
-            table_being_loaded_files: self.table_being_loaded_files.clone(),
+        if let Some(table_files_to_load) = self.tables_files_to_load.get_mut(table_name) {
+            table_files_to_load.add_files(files);
         }
     }
 
-    pub fn update_file_is_loaded(&mut self, table_name: &str) {
-        for table in &self.tables_being_loaded {
-            if table.table_name == table_name {
-                table.inc_files_loaded();
-                return;
+    pub fn set_file_list_is_loaded(&mut self, table_name: &str) {
+        if let Some(tables_loading_tasks) = self.tables_loading_tasks.get_mut(table_name) {
+            tables_loading_tasks.set_file_list_is_loaded();
+        }
+
+        if let Some(table_files_to_load) = self.tables_files_to_load.get_mut(table_name) {
+            table_files_to_load.file_list_is_loaded();
+        }
+    }
+
+    fn get_first_table_task_key(&self) -> Option<String> {
+        for table_name in self.tables_loading_tasks.keys() {
+            return Some(table_name.to_string());
+        }
+
+        None
+    }
+
+    pub fn get_loading_task_as_result(&mut self) -> Option<Arc<TableLoadingTask>> {
+        let table_name = self.get_first_table_task_key()?;
+        let result = self.tables_loading_tasks.remove(&table_name)?;
+        return Some(result);
+    }
+
+    pub async fn upload_table_file(&self, table_name: &str, table_item: LoadedTableItem) -> bool {
+        if let Some(table_task) = self.tables_loading_tasks.get(table_name) {
+            return table_task.add_loaded_file(table_item).await;
+        }
+
+        false
+    }
+
+    pub fn is_nothing_to_read(&self) -> bool {
+        for task in self.tables_loading_tasks.values() {
+            if !task.everything_is_loaded() {
+                return false;
             }
         }
-    }
-}
 
-fn convert_to_tables_snapshot(src: &Vec<Arc<TableToLoad>>) -> Vec<InitTableStateSnapshot> {
-    if src.len() == 0 {
-        return Vec::new();
-    }
-
-    let mut result = Vec::with_capacity(src.len());
-
-    for table_to_load in src.iter() {
-        result.push(convert_to_table_snapshot(table_to_load));
-    }
-
-    result
-}
-
-fn convert_to_tables_snapshot_2(src: &Vec<ProcessTableToLoad>) -> Vec<InitTableStateSnapshot> {
-    if src.len() == 0 {
-        return Vec::new();
-    }
-
-    let mut result = Vec::with_capacity(src.len());
-
-    for table_to_load in src.iter() {
-        if let ProcessTableToLoad::Process(table_to_load) = table_to_load {
-            result.push(convert_to_table_snapshot(table_to_load));
-        }
-    }
-
-    result
-}
-
-fn convert_to_table_snapshot(src: &Arc<TableToLoad>) -> InitTableStateSnapshot {
-    InitTableStateSnapshot {
-        name: src.table_name.clone(),
-        to_load: src.get_files_to_load(),
-        loaded: src.get_files_loaded(),
-        list_is_loaded: src.get_files_list_is_loaded(),
-        init_started: src.get_initializing_is_started(),
+        true
     }
 }

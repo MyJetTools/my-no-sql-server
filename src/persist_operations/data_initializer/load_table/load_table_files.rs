@@ -1,9 +1,6 @@
 use std::{sync::Arc, time::Duration};
 
-use crate::{
-    app::AppContext,
-    persist_operations::data_initializer::load_tasks::{PartitionToLoad, TableToLoad},
-};
+use crate::app::AppContext;
 
 use super::LoadedTable;
 

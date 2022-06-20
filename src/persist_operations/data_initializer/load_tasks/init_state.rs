@@ -3,59 +3,98 @@ use std::sync::{
     Arc,
 };
 
-use crate::app::logs::Logs;
+use crate::{
+    app::logs::Logs,
+    db::{DbTableAttributesSnapshot, DbTableData},
+    persist_io::TableListOfFilesUploader,
+    persist_operations::data_initializer::LoadedTableItem,
+};
 use tokio::sync::Mutex;
 
-use super::{init_state_data::ProcessTableToLoad, InitStateData, InitStateSnapshot, TableToLoad};
+use super::{InitStateData, InitStateSnapshot, TableLoadingTask};
 
 pub struct InitState {
     data: Mutex<InitStateData>,
-    tables_remains_to_init: AtomicUsize,
+
+    tables_total: AtomicUsize,
+    tables_loaded: AtomicUsize,
+
+    files_total: AtomicUsize,
+    files_loaded: AtomicUsize,
 }
 
 impl InitState {
     pub fn new() -> Self {
         Self {
             data: Mutex::new(InitStateData::new()),
-            tables_remains_to_init: AtomicUsize::new(0),
+            tables_total: AtomicUsize::new(0),
+            files_total: AtomicUsize::new(0),
+            files_loaded: AtomicUsize::new(0),
+            tables_loaded: AtomicUsize::new(0),
         }
     }
 
-    pub async fn init(&self, tables: Vec<String>, logs: &Logs) {
-        self.tables_remains_to_init
-            .store(tables.len(), Ordering::SeqCst);
+    pub async fn init_table_names(&self, tables: Vec<String>, logs: &Logs) {
+        self.tables_total.store(tables.len(), Ordering::SeqCst);
 
         let mut write_access = self.data.lock().await;
-        write_access.init_tables(tables, logs);
+        write_access.init_table_names(tables, logs);
     }
 
-    pub async fn get_next_table_to_init_files(&self) -> Option<Arc<TableToLoad>> {
+    pub async fn get_next_table_to_load_list_of_files(&self) -> Option<String> {
         let mut write_access = self.data.lock().await;
-        write_access.get_next_table_to_init_files()
+        write_access.get_next_table_to_load_list_of_files()
     }
 
-    pub async fn loading_files_for_tables_is_done(&self) {
-        let mut write_access = self.data.lock().await;
-        write_access.loading_files_for_tables_is_done();
+    pub async fn get_next_file_to_load(&self) -> Option<(Arc<TableLoadingTask>, String)> {
+        let mut write_acces = self.data.lock().await;
+        write_acces.get_next_file_to_load()
     }
 
-    pub async fn get_next_table_to_load(&self) -> ProcessTableToLoad {
-        let mut write_access = self.data.lock().await;
-        write_access.get_next_table_to_load()
+    pub async fn upload_table_file(&self, table_name: &str, table_item: LoadedTableItem) {
+        self.files_loaded.fetch_add(1, Ordering::SeqCst);
+        let read_access = self.data.lock().await;
+        if read_access.upload_table_file(table_name, table_item).await {
+            self.tables_loaded.fetch_add(1, Ordering::SeqCst);
+        }
     }
 
-    pub async fn loaded_completed(&self, table_name: &str) {
-        let mut write_access = self.data.lock().await;
-        write_access.load_completed(table_name);
+    pub async fn is_nothing_to_read(&self) -> bool {
+        let read_access = self.data.lock().await;
+        read_access.is_nothing_to_read()
     }
 
     pub async fn get_snapshot(&self) -> InitStateSnapshot {
-        let read_access = self.data.lock().await;
-        read_access.get_snapshot()
+        InitStateSnapshot {
+            tables_total: self.tables_total.load(Ordering::SeqCst),
+            tables_loaded: self.tables_loaded.load(Ordering::SeqCst),
+            files_total: self.files_total.load(Ordering::SeqCst),
+            files_loaded: self.files_loaded.load(Ordering::SeqCst),
+        }
     }
 
-    pub async fn update_file_is_loaded(&self, table_name: &str) {
+    pub async fn get_table_data_result(&self) -> Option<(DbTableData, DbTableAttributesSnapshot)> {
         let mut write_access = self.data.lock().await;
-        write_access.update_file_is_loaded(table_name);
+
+        let task = write_access.get_loading_task_as_result()?;
+
+        let (db_table_data, db_table_attributes) = task.get_db_table_data().await;
+
+        Some((db_table_data, db_table_attributes))
+    }
+}
+
+#[async_trait::async_trait]
+impl TableListOfFilesUploader for InitState {
+    async fn add_files(&self, table_name: &str, files: Vec<String>) {
+        self.files_total.fetch_add(files.len(), Ordering::SeqCst);
+
+        let mut write_access = self.data.lock().await;
+        write_access.add_files_to_table(table_name, files);
+    }
+
+    async fn set_files_list_is_loaded(&self, table_name: &str) {
+        let mut write_access = self.data.lock().await;
+        write_access.set_file_list_is_loaded(table_name)
     }
 }

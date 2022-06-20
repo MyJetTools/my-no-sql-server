@@ -59,23 +59,3 @@ pub async fn load_table_file(
         }
     }
 }
-
-fn get_item(table_file: &TableFile, content: &[u8]) -> Result<LoadedTableItem, String> {
-    match table_file {
-        TableFile::TableAttributes => {
-            let table_metadata = TableMetadataFileContract::parse(content);
-            let result = LoadedTableItem::TableAttributes(table_metadata.into());
-            return Ok(result);
-        }
-        TableFile::DbPartition(partition_key) => {
-            let db_partition = serializers::db_partition::deserialize(content)?;
-
-            let result = LoadedTableItem::DbPartition {
-                partition_key: partition_key.to_string(),
-                db_partition,
-            };
-
-            return Ok(result);
-        }
-    }
-}

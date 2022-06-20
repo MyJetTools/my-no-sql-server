@@ -22,11 +22,8 @@ pub struct SettingsModel {
     #[serde(rename = "SkipBrokenPartitions")]
     pub skip_broken_partitions: bool,
 
-    #[serde(rename = "InitTablesThreadsAmount")]
-    pub init_tabes_threads_amount: usize,
-
-    #[serde(rename = "InitPartitionsThreadsAmount")]
-    pub init_partitions_threads_amount: usize,
+    #[serde(rename = "InitThreadsAmount")]
+    pub init_threads_amount: usize,
 
     #[serde(rename = "TcpSendTimeoutSec")]
     pub tcp_send_time_out: u64,

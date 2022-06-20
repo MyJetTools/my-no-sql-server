@@ -23,19 +23,14 @@ interface ILocationStatus {
 
 
 interface INonInitializedModel {
-    tablesRemains: number,
+    tablesTotal: number,
+    tablesLoaded: number,
+    filesTotal: number,
+    filesLoaded: number,
     initializingSeconds: number,
-    progress: ITableLoadProgress[]
-    tableBeingLoadedFiles: String
 }
 
 
-interface ITableLoadProgress {
-    tableName: String,
-    loaded: number,
-    toLoad: number,
-    secondsGone: number
-}
 
 interface IStatus {
     notInitialized: INonInitializedModel,
