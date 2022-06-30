@@ -4,7 +4,7 @@ use std::{
 };
 
 use rust_extensions::{
-    date_time::DateTimeAsMicroseconds, events_loop::EventsLoop, ApplicationStates, MyTimerLogger,
+    date_time::DateTimeAsMicroseconds, events_loop::EventsLoop, AppStates, Logger,
 };
 
 use crate::{
@@ -21,7 +21,6 @@ use crate::{
 };
 
 use super::{
-    global_states::GlobalStates,
     logs::{Logs, SystemProcess},
     PrometheusMetrics,
 };
@@ -41,8 +40,6 @@ pub struct AppContext {
     pub active_transactions: ActiveTransactions,
     pub process_id: String,
 
-    pub states: GlobalStates,
-
     pub blob_content_cache: BlobContentCache,
     pub data_readers: DataReadersList,
 
@@ -51,6 +48,7 @@ pub struct AppContext {
     pub init_state: InitState,
     pub settings: Arc<SettingsModel>,
     pub sync: EventsLoop<SyncEvent>,
+    pub states: Arc<AppStates>,
     persist_amount: AtomicUsize,
 }
 
@@ -68,13 +66,10 @@ impl AppContext {
             metrics: PrometheusMetrics::new(),
             active_transactions: ActiveTransactions::new(),
             process_id: uuid::Uuid::new_v4().to_string(),
-            states: GlobalStates::new(),
+            states: Arc::new(AppStates::new()),
 
             blob_content_cache: BlobContentCache::new(),
-            data_readers: DataReadersList::new(
-                Duration::from_secs(30),
-                Duration::from_secs(settings.tcp_send_time_out),
-            ),
+            data_readers: DataReadersList::new(Duration::from_secs(30)),
             multipart_list: MultipartList::new(),
             persist_io,
             settings,
@@ -94,36 +89,24 @@ impl AppContext {
     }
 }
 
-impl ApplicationStates for AppContext {
-    fn is_initialized(&self) -> bool {
-        self.states.is_initialized()
-    }
-
-    fn is_shutting_down(&self) -> bool {
-        self.states.is_shutting_down()
-    }
-}
-
-impl MyTimerLogger for AppContext {
-    fn write_info(&self, timer_id: String, message: String) {
+impl Logger for AppContext {
+    fn write_info(&self, process_name: String, message: String, context: Option<String>) {
         self.logs
-            .add_info(None, SystemProcess::Timer, timer_id, message);
+            .add_info(None, SystemProcess::System, process_name, message, context);
     }
 
-    fn write_error(&self, timer_id: String, message: String) {
+    fn write_error(&self, process_name: String, message: String, context: Option<String>) {
         self.logs
-            .add_fatal_error(None, SystemProcess::Timer, timer_id, message);
-    }
-}
-
-impl rust_extensions::events_loop::EventsLoopLogger for AppContext {
-    fn write_info(&self, timer_id: String, message: String) {
-        self.logs
-            .add_info(None, SystemProcess::Timer, timer_id, message);
+            .add_fatal_error(None, SystemProcess::System, process_name, message, context);
     }
 
-    fn write_error(&self, timer_id: String, message: String) {
+    fn write_warning(&self, process_name: String, message: String, ctx: Option<String>) {
         self.logs
-            .add_fatal_error(None, SystemProcess::Timer, timer_id, message);
+            .add_error(None, SystemProcess::System, process_name, message, ctx);
+    }
+
+    fn write_fatal_error(&self, process_name: String, message: String, ctx: Option<String>) {
+        self.logs
+            .add_error(None, SystemProcess::System, process_name, message, ctx);
     }
 }

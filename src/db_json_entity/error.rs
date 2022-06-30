@@ -1,4 +1,4 @@
-use crate::json::JsonParseError;
+use my_json::json_reader::JsonParseError;
 
 #[derive(Debug)]
 pub enum DbEntityParseFail {

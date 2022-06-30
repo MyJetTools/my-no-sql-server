@@ -1,5 +1,5 @@
 mod app_ctx;
-pub mod global_states;
+
 pub mod logs;
 mod metrics;
 mod persist_history_duration;

@@ -38,5 +38,6 @@ pub async fn load_tables(app: Arc<AppContext>) {
         crate::app::logs::SystemProcess::Init,
         "init_tables".to_string(),
         format!("All tables initialized in {:?}", sw.duration()),
+        None,
     );
 }

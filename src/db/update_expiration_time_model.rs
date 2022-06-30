@@ -26,7 +26,9 @@ impl UpdateExpirationTimeModel {
 
 fn parse_date_time(src: Option<&String>) -> UpdateExpirationDateTime {
     if let Some(src) = src {
-        return UpdateExpirationDateTime::Yes(crate::json::date_time::parse(src.as_bytes()));
+        return UpdateExpirationDateTime::Yes(my_json::json_reader::date_time::parse(
+            src.as_bytes(),
+        ));
     } else {
         UpdateExpirationDateTime::No
     }

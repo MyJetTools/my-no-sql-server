@@ -35,7 +35,7 @@ pub async fn spawn_dedicated_persist_thread(
         )),
     );
 
-    timer.start(app.clone(), app.clone());
+    timer.start(app.states.clone(), app.clone());
 
     *dedicated_thread = Some(timer);
 

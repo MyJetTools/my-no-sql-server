@@ -14,3 +14,7 @@
 ### 0.0.20-rc01
 * Sync to Readers now works in a separate thread
 * Exposed sync to readers bytes to Prometheus reader by reader
+
+### 0.0.20-rc02
+* MyHttp DataForm now supports JSON
+* Now we have Tcp Delivery feature on TCP Level since my-tcp-sockets 0.1.3 supports it

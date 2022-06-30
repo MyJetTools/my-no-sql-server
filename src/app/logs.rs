@@ -130,6 +130,7 @@ impl Logs {
         process: SystemProcess,
         process_name: String,
         message: String,
+        context: Option<String>,
     ) {
         let logs_data = self.data.clone();
         tokio::spawn(async move {
@@ -140,7 +141,7 @@ impl Logs {
                 process_name,
                 process,
                 message: message,
-                err_ctx: None,
+                err_ctx: context,
             };
 
             add(logs_data, item).await;
@@ -192,6 +193,7 @@ impl Logs {
         process: SystemProcess,
         process_name: String,
         message: String,
+        context: Option<String>,
     ) {
         let logs_data = self.data.clone();
         self.fatal_errors_amount.fetch_add(1, Ordering::SeqCst);
@@ -204,7 +206,7 @@ impl Logs {
                 process_name,
                 process,
                 message: message,
-                err_ctx: None,
+                err_ctx: context,
             };
 
             add(logs_data, item).await;

@@ -3,10 +3,7 @@ use std::sync::Arc;
 use my_no_sql_tcp_shared::{MyNoSqlReaderTcpSerializer, TcpContract};
 use my_tcp_sockets::{tcp_connection::SocketConnection, ConnectionEvent, SocketEventCallback};
 
-use crate::{
-    app::{logs::SystemProcess, AppContext},
-    data_readers::DataReaderConnection,
-};
+use crate::app::{logs::SystemProcess, AppContext};
 
 pub type MyNoSqlTcpConnection = SocketConnection<TcpContract, MyNoSqlReaderTcpSerializer>;
 
@@ -36,6 +33,7 @@ impl TcpServerEvents {
                         SystemProcess::TcpSocket,
                         format!("Connection name update to {}", name),
                         format!("ID: {}", connection.id),
+                        None,
                     );
                     data_reader.set_name(name.to_string()).await;
                 }
@@ -96,9 +94,10 @@ impl SocketEventCallback<TcpContract, MyNoSqlReaderTcpSerializer> for TcpServerE
                     SystemProcess::TcpSocket,
                     "New tcp connection".to_string(),
                     format!("ID: {}", connection.id),
+                    None,
                 );
 
-                self.app.data_readers.add_tcp(connection, &self.app).await;
+                self.app.data_readers.add_tcp(connection).await;
                 self.app.metrics.mark_new_tcp_connection();
             }
             ConnectionEvent::Disconnected(connection) => {
@@ -107,13 +106,11 @@ impl SocketEventCallback<TcpContract, MyNoSqlReaderTcpSerializer> for TcpServerE
                     SystemProcess::TcpSocket,
                     "Disconnect".to_string(),
                     format!("ID: {}", connection.id),
+                    None,
                 );
                 if let Some(data_reader) =
                     self.app.data_readers.remove_tcp(connection.as_ref()).await
                 {
-                    if let DataReaderConnection::Tcp(connection) = &data_reader.connection {
-                        connection.flush_events_loop.stop();
-                    }
                     self.app
                         .metrics
                         .remove_pending_to_sync(&data_reader.connection)

@@ -4,4 +4,3 @@ pub mod gc_multipart;
 pub mod metrics_updater;
 pub mod persist;
 pub mod sync;
-pub mod tcp_connection_send_event_loop;

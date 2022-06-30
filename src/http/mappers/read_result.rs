@@ -31,8 +31,8 @@ impl Into<HttpOkResult> for ReadOperationResult {
             }
             ReadOperationResult::EmptyArray => {
                 let empty_array = vec![
-                    crate::json::consts::OPEN_ARRAY,
-                    crate::json::consts::CLOSE_ARRAY,
+                    my_json::json_reader::consts::OPEN_ARRAY,
+                    my_json::json_reader::consts::CLOSE_ARRAY,
                 ];
 
                 let output = HttpOutput::Content {

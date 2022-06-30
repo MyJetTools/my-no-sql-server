@@ -3,13 +3,13 @@ use background::{
     gc_db_rows::GcDbRows, gc_http_sessions::GcHttpSessionsTimer, gc_multipart::GcMultipart,
     metrics_updater::MetricsUpdater, persist::PersistTimer, sync::SyncEventLoop,
 };
-use my_logger::MyLogger;
+
 use my_no_sql_tcp_shared::MyNoSqlReaderTcpSerializer;
 use my_tcp_sockets::TcpServer;
 use operations::PersistType;
-use rust_extensions::MyTimer;
+use rust_extensions::{ApplicationStates, MyTimer};
 use std::{net::SocketAddr, sync::Arc, time::Duration};
-use tcp::{TcpServerEvents, TcpServerLogger};
+use tcp::TcpServerEvents;
 
 mod app;
 mod grpc;
@@ -20,7 +20,6 @@ mod db_operations;
 mod db_sync;
 mod db_transactions;
 mod http;
-mod json;
 mod persist_operations;
 mod tcp;
 
@@ -46,10 +45,6 @@ async fn main() {
     let persist_io = settings.get_persist_io(logs.clone());
 
     let app = AppContext::new(logs.clone(), settings, persist_io);
-
-    let tcp_server_logger = TcpServerLogger::new(app.logs.clone());
-
-    let my_logger_for_tcp_server = MyLogger::new(Arc::new(tcp_server_logger));
 
     let app = Arc::new(app);
 
@@ -81,26 +76,26 @@ async fn main() {
     timer_30s.register_timer("GcDbRows", Arc::new(GcDbRows::new(app.clone())));
     timer_30s.register_timer("GcMultipart", Arc::new(GcMultipart::new(app.clone())));
 
-    timer_1s.start(app.clone(), app.clone());
-    timer_10s.start(app.clone(), app.clone());
-    timer_30s.start(app.clone(), app.clone());
-    persist_timer.start(app.clone(), app.clone());
+    timer_1s.start(app.states.clone(), app.clone());
+    timer_10s.start(app.states.clone(), app.clone());
+    timer_30s.start(app.states.clone(), app.clone());
+    persist_timer.start(app.states.clone(), app.clone());
 
-    app.sync.start(app.clone(), app.clone()).await;
+    app.sync.start(app.states.clone(), app.clone()).await;
 
     crate::http::start_up::setup_server(&app);
 
-    let tcp_server = TcpServer::new_with_logger(
+    let tcp_server = TcpServer::new(
         "MyNoSqlReader".to_string(),
         SocketAddr::from(([0, 0, 0, 0], 5125)),
-        Arc::new(my_logger_for_tcp_server),
     );
 
     tcp_server
         .start(
-            app.clone(),
             Arc::new(MyNoSqlReaderTcpSerializer::new),
             Arc::new(TcpServerEvents::new(app.clone())),
+            app.states.clone(),
+            app.clone(),
         )
         .await;
 

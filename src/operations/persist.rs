@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use rust_extensions::StopWatch;
+use rust_extensions::{ApplicationStates, StopWatch};
 
 use crate::{
     app::{logs::SystemProcess, AppContext},
@@ -48,6 +48,7 @@ pub async fn persist(app: &Arc<AppContext>, persist_type: &PersistType) {
                         SystemProcess::PersistOperation,
                         "PersistTimer".to_string(),
                         format!("Can not persist messages {:?}", err),
+                        None,
                     )
                 }
             }
