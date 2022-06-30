@@ -54,5 +54,12 @@ impl MyTimerTick for MetricsUpdater {
         self.app
             .metrics
             .update_fatal_errors_count(fatal_errors_count);
+
+        for reader in self.app.data_readers.get_all().await {
+            self.app
+                .metrics
+                .update_pending_to_sync(&reader.connection)
+                .await;
+        }
     }
 }

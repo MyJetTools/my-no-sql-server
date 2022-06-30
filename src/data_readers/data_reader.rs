@@ -113,7 +113,7 @@ impl DataReader {
         }
     }
 
-    fn get_pending_to_send(&self) -> usize {
+    pub fn get_pending_to_send(&self) -> usize {
         match &self.connection {
             DataReaderConnection::Tcp(connection) => connection.get_pending_to_send(),
             DataReaderConnection::Http(connection) => connection.get_pending_to_send(),
