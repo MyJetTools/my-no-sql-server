@@ -7,6 +7,15 @@ use crate::{
 
 use super::{TableFilesToLoad, TableLoadingTask, TableToLoadListOfFiles};
 
+pub enum NextFileToLoadResult {
+    DataToLoad {
+        table_loading_task: Arc<TableLoadingTask>,
+        file_name: String,
+    },
+    NotReadyYeat,
+    NothingToLoad,
+}
+
 pub struct InitStateData {
     pub tables_to_load_list_of_files: TableToLoadListOfFiles,
     pub tables_files_to_load: HashMap<String, TableFilesToLoad>,
@@ -56,19 +65,28 @@ impl InitStateData {
         }
     }
 
-    pub fn get_next_file_to_load(&mut self) -> Option<(Arc<TableLoadingTask>, String)> {
+    pub fn get_next_file_to_load(&mut self) -> NextFileToLoadResult {
+        if self.tables_files_to_load.len() == 0 {
+            if self.tables_to_load_list_of_files.has_something_to_process() {
+                return NextFileToLoadResult::NotReadyYeat;
+            }
+        }
+
         for files_to_load in self.tables_files_to_load.values_mut() {
             if let Some(file_name) = files_to_load.get_next_file_to_load() {
                 if let Some(loading_task) = self
                     .tables_loading_tasks
                     .get(files_to_load.table_name.as_str())
                 {
-                    return Some((loading_task.clone(), file_name));
+                    return NextFileToLoadResult::DataToLoad {
+                        table_loading_task: loading_task.clone(),
+                        file_name,
+                    };
                 }
             }
         }
 
-        None
+        NextFileToLoadResult::NothingToLoad
     }
 
     pub fn add_files_to_table(&mut self, table_name: &str, files: Vec<String>) {
@@ -111,15 +129,5 @@ impl InitStateData {
         }
 
         false
-    }
-
-    pub fn is_nothing_to_read(&self) -> bool {
-        for task in self.tables_loading_tasks.values() {
-            if !task.everything_is_loaded() {
-                return false;
-            }
-        }
-
-        true
     }
 }

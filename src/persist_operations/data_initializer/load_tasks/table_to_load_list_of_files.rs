@@ -24,4 +24,8 @@ impl TableToLoadListOfFiles {
     pub fn add_table(&mut self, table_name: String) {
         self.tables_to_init_files.push(table_name);
     }
+
+    pub fn has_something_to_process(&self) -> bool {
+        self.tables_to_init_files.len() > 0 || self.table_on_process.is_some()
+    }
 }

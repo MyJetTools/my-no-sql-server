@@ -2,14 +2,17 @@ use std::{sync::Arc, time::Duration};
 
 use crate::{app::AppContext, persist_io::TableFile};
 
-use super::LoadedTableItem;
+use super::{load_tasks::NextFileToLoadResult, LoadedTableItem};
 
 pub async fn spawn(app: Arc<AppContext>) {
     loop {
         let next_file_to_load = app.init_state.get_next_file_to_load().await;
 
         match next_file_to_load {
-            Some((table_loading_task, file_name)) => {
+            NextFileToLoadResult::DataToLoad {
+                table_loading_task,
+                file_name,
+            } => {
                 let table_file = TableFile::from_file_name(file_name.as_str());
 
                 if let Err(err) = table_file {
@@ -52,12 +55,10 @@ pub async fn spawn(app: Arc<AppContext>) {
                     }
                 }
             }
-            None => {
-                if app.init_state.is_nothing_to_read().await {
-                    return;
-                }
+            NextFileToLoadResult::NotReadyYeat => {
                 tokio::time::sleep(Duration::from_secs(1)).await;
             }
+            NextFileToLoadResult::NothingToLoad => return,
         }
     }
 }

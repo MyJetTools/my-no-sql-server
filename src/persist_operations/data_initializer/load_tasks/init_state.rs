@@ -1,7 +1,4 @@
-use std::sync::{
-    atomic::{AtomicUsize, Ordering},
-    Arc,
-};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::{
     app::logs::Logs,
@@ -11,7 +8,7 @@ use crate::{
 };
 use tokio::sync::Mutex;
 
-use super::{InitStateData, InitStateSnapshot, TableLoadingTask};
+use super::{init_state_data::NextFileToLoadResult, InitStateData, InitStateSnapshot};
 
 pub struct InitState {
     data: Mutex<InitStateData>,
@@ -46,7 +43,7 @@ impl InitState {
         write_access.get_next_table_to_load_list_of_files()
     }
 
-    pub async fn get_next_file_to_load(&self) -> Option<(Arc<TableLoadingTask>, String)> {
+    pub async fn get_next_file_to_load(&self) -> NextFileToLoadResult {
         let mut write_acces = self.data.lock().await;
         write_acces.get_next_file_to_load()
     }
@@ -57,11 +54,6 @@ impl InitState {
         if read_access.upload_table_file(table_name, table_item).await {
             self.tables_loaded.fetch_add(1, Ordering::SeqCst);
         }
-    }
-
-    pub async fn is_nothing_to_read(&self) -> bool {
-        let read_access = self.data.lock().await;
-        read_access.is_nothing_to_read()
     }
 
     pub async fn get_snapshot(&self) -> InitStateSnapshot {

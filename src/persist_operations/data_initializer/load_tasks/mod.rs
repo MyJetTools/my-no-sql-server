@@ -6,7 +6,7 @@ mod table_to_load_list_of_files;
 
 mod table_loading_task;
 pub use init_state::InitState;
-pub use init_state_data::InitStateData;
+pub use init_state_data::{InitStateData, NextFileToLoadResult};
 pub use init_state_snapshot::InitStateSnapshot;
 
 pub use table_files_to_load::TableFilesToLoad;
