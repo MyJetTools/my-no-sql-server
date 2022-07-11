@@ -118,4 +118,21 @@ impl LoadTableTask {
 
         (db_table_data, attr.unwrap())
     }
+
+    pub fn all_files_are_loaded(&self) -> bool {
+        for file in self.files.values() {
+            match file {
+                FileStatus::Waiting => return false,
+                FileStatus::Loading => {
+                    return false;
+                }
+                FileStatus::DbPartition {
+                    partition_key: _,
+                    db_partition: _,
+                } => {}
+            }
+        }
+
+        true
+    }
 }

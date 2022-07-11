@@ -52,7 +52,9 @@ impl InitState {
     ) {
         self.files_loaded.fetch_add(1, Ordering::SeqCst);
         let mut write_access = self.data.lock().await;
-        write_access.upload_table_file_content(table_name, file_name, table_item);
+        if write_access.upload_table_file_content(table_name, file_name, table_item) {
+            self.tables_loaded.fetch_add(1, Ordering::SeqCst);
+        }
     }
 
     pub async fn get_snapshot(&self) -> InitStateSnapshot {

@@ -86,7 +86,7 @@ impl InitStateData {
         table_name: &str,
         file_name: String,
         table_item: LoadedTableItem,
-    ) {
+    ) -> bool {
         if let Some(table) = self.tables.get_mut(table_name) {
             match table_item {
                 LoadedTableItem::TableAttributes(attrs) => {
@@ -99,7 +99,11 @@ impl InitStateData {
                     table.add_db_partition(file_name, partition_key, db_partition);
                 }
             }
+
+            return table.all_files_are_loaded();
         }
+
+        return false;
     }
 
     fn get_first_table_name(&self) -> Option<String> {
