@@ -66,7 +66,7 @@ impl AppContext {
             metrics: PrometheusMetrics::new(),
             active_transactions: ActiveTransactions::new(),
             process_id: uuid::Uuid::new_v4().to_string(),
-            states: Arc::new(AppStates::new()),
+            states: Arc::new(AppStates::create_un_initialized()),
 
             blob_content_cache: BlobContentCache::new(),
             data_readers: DataReadersList::new(Duration::from_secs(30)),
