@@ -1,13 +1,16 @@
-use std::sync::Arc;
+use std::sync::{atomic::AtomicUsize, Arc};
 
 use tokio::sync::Mutex;
 
 use crate::tcp::MyNoSqlTcpConnection;
 
+use super::SendPerSecond;
+
 pub struct TcpConnectionInfo {
     pub connection: Arc<MyNoSqlTcpConnection>,
-
     pub name: Mutex<Option<String>>,
+    sent_per_second_accumulator: AtomicUsize,
+    pub sent_per_second: SendPerSecond,
 }
 
 impl TcpConnectionInfo {
@@ -15,6 +18,8 @@ impl TcpConnectionInfo {
         Self {
             connection,
             name: Mutex::new(None),
+            sent_per_second_accumulator: AtomicUsize::new(0),
+            sent_per_second: SendPerSecond::new(),
         }
     }
 
@@ -40,7 +45,16 @@ impl TcpConnectionInfo {
     }
 
     pub async fn send(&self, payload_to_send: &[u8]) {
+        self.sent_per_second_accumulator
+            .fetch_add(payload_to_send.len(), std::sync::atomic::Ordering::SeqCst);
         self.connection.send_bytes(payload_to_send).await;
+    }
+
+    pub async fn timer_1sec_tick(&self) {
+        let value = self
+            .sent_per_second_accumulator
+            .swap(0, std::sync::atomic::Ordering::SeqCst);
+        self.sent_per_second.add(value).await;
     }
 
     pub fn get_pending_to_send(&self) -> usize {

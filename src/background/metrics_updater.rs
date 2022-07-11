@@ -60,6 +60,8 @@ impl MyTimerTick for MetricsUpdater {
                 .metrics
                 .update_pending_to_sync(&reader.connection)
                 .await;
+
+            reader.connection.one_sec_tick().await;
         }
     }
 }

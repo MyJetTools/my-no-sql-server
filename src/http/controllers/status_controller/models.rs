@@ -45,6 +45,8 @@ pub struct ReaderModel {
     pub connected_time: String,
     #[serde(rename = "pendingToSend")]
     pub pending_to_send: usize,
+    #[serde(rename = "sentPerSecond")]
+    pub sent_per_second: Vec<usize>,
 }
 #[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
 pub struct StatusModel {
@@ -148,6 +150,7 @@ async fn get_readers(app: &AppContext) -> (Vec<ReaderModel>, usize, usize) {
                 name,
                 tables: metrics.tables,
                 pending_to_send: metrics.pending_to_send,
+                sent_per_second: data_reader.get_sent_per_second().await,
             });
         }
     }

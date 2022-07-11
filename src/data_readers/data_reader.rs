@@ -125,4 +125,11 @@ impl DataReader {
             info.ping(now).await;
         }
     }
+
+    pub async fn get_sent_per_second(&self) -> Vec<usize> {
+        match &self.connection {
+            DataReaderConnection::Tcp(tcp) => tcp.sent_per_second.get_snapshot().await,
+            DataReaderConnection::Http(_) => vec![],
+        }
+    }
 }

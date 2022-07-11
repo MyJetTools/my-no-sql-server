@@ -6,6 +6,7 @@ interface IReaderStatus {
     connectedTime: string;
     lastIncomingTime: string;
     pendingToSend: number;
+    sentPerSecond: number[];
 }
 
 interface INodeStatus {

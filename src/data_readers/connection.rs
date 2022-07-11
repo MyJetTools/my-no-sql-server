@@ -21,6 +21,13 @@ impl DataReaderConnection {
             DataReaderConnection::Http(http_info) => http_info.set_name(name).await,
         }
     }
+
+    pub async fn one_sec_tick(&self) {
+        match self {
+            DataReaderConnection::Tcp(tcp_info) => tcp_info.timer_1sec_tick().await,
+            DataReaderConnection::Http(_) => {}
+        }
+    }
 }
 
 #[async_trait::async_trait]

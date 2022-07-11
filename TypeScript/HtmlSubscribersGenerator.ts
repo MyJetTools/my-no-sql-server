@@ -18,7 +18,7 @@ class HtmlSubscribersGenerator {
 
         for (let itm of data) {
 
-            html += '<tr><td>' + itm.id + '</td><td>' + this.renderName(itm.name) + '</td><td>' + itm.ip + '</td><td>' + this.renderTables(itm.tables) + '</td>' +
+            html += '<tr><td>' + itm.id + '</td><td>' + this.renderName(itm.name) + '</td><td>' + itm.ip + '<div>' + HtmlGraph.renderGraph(itm.sentPerSecond, v => Utils.format_duration(v), v => v, _ => false) + '</div></td><td>' + this.renderTables(itm.tables) + '</td>' +
                 '<td style="font-size: 10px">' +
                 '<div><b>C:</b>' + itm.connectedTime + '</div>' +
                 '<div><b>L:</b>' + itm.lastIncomingTime + '</div>' +
