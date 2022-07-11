@@ -20,4 +20,4 @@
 * Now we have Tcp Delivery feature on TCP Level since my-tcp-sockets 0.1.3 supports it
 
 ### 0.0.20-rc03
-* MyTcpSockets is updated
+* MyTcpSockets is updated to 0.1.4
