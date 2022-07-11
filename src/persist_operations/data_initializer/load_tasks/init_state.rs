@@ -32,15 +32,11 @@ impl InitState {
     }
 
     pub async fn init_table_names(&self, tables: Vec<String>, logs: &Logs) {
+        println!("Added tables amount {}", tables.len());
         self.tables_total.store(tables.len(), Ordering::SeqCst);
 
         let mut write_access = self.data.lock().await;
         write_access.init_table_names(tables, logs);
-    }
-
-    pub async fn get_next_table_to_load_list_of_files(&self) -> Option<String> {
-        let mut write_access = self.data.lock().await;
-        write_access.get_next_table_to_load_list_of_files()
     }
 
     pub async fn get_next_file_to_load(&self) -> NextFileToLoadResult {
@@ -48,12 +44,15 @@ impl InitState {
         write_acces.get_next_file_to_load()
     }
 
-    pub async fn upload_table_file(&self, table_name: &str, table_item: LoadedTableItem) {
+    pub async fn upload_table_file(
+        &self,
+        table_name: &str,
+        file_name: String,
+        table_item: LoadedTableItem,
+    ) {
         self.files_loaded.fetch_add(1, Ordering::SeqCst);
-        let read_access = self.data.lock().await;
-        if read_access.upload_table_file(table_name, table_item).await {
-            self.tables_loaded.fetch_add(1, Ordering::SeqCst);
-        }
+        let mut write_access = self.data.lock().await;
+        write_access.upload_table_file_content(table_name, file_name, table_item);
     }
 
     pub async fn get_snapshot(&self) -> InitStateSnapshot {
@@ -68,9 +67,9 @@ impl InitState {
     pub async fn get_table_data_result(&self) -> Option<(DbTableData, DbTableAttributesSnapshot)> {
         let mut write_access = self.data.lock().await;
 
-        let task = write_access.get_loading_task_as_result()?;
+        let (table_name, task) = write_access.remove_next_task()?;
 
-        let (db_table_data, db_table_attributes) = task.get_db_table_data().await;
+        let (db_table_data, db_table_attributes) = task.get_result(table_name);
 
         Some((db_table_data, db_table_attributes))
     }

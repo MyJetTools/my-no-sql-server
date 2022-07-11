@@ -1,42 +1,34 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use crate::{
     app::logs::Logs, db_operations::validation,
     persist_operations::data_initializer::LoadedTableItem,
 };
 
-use super::{TableFilesToLoad, TableLoadingTask, TableToLoadListOfFiles};
+use super::LoadTableTask;
 
 pub enum NextFileToLoadResult {
-    DataToLoad {
-        table_loading_task: Arc<TableLoadingTask>,
+    FileToLoad {
+        table_name: String,
         file_name: String,
     },
-    NotReadyYeat,
+    NotReadyYet,
     NothingToLoad,
 }
 
 pub struct InitStateData {
-    pub tables_to_load_list_of_files: TableToLoadListOfFiles,
-    pub tables_files_to_load: HashMap<String, TableFilesToLoad>,
-    pub tables_loading_tasks: HashMap<String, Arc<TableLoadingTask>>,
+    tables: HashMap<String, LoadTableTask>,
 }
 
 impl InitStateData {
     pub fn new() -> Self {
         Self {
-            tables_to_load_list_of_files: TableToLoadListOfFiles::new(),
-            tables_files_to_load: HashMap::new(),
-            tables_loading_tasks: HashMap::new(),
+            tables: HashMap::new(),
         }
     }
 
-    pub fn get_next_table_to_load_list_of_files(&mut self) -> Option<String> {
-        self.tables_to_load_list_of_files.get_next()
-    }
-
-    pub fn init_table_names(&mut self, tables: Vec<String>, logs: &Logs) {
-        for table_name in tables {
+    pub fn init_table_names(&mut self, tables_names: Vec<String>, logs: &Logs) {
+        for table_name in tables_names {
             if let Err(err) = validation::validate_table_name(table_name.as_str()) {
                 logs.add_error(
                     Some(table_name),
@@ -49,85 +41,79 @@ impl InitStateData {
                     None,
                 );
             } else {
-                self.tables_to_load_list_of_files
-                    .add_table(table_name.to_string());
-
-                self.tables_files_to_load.insert(
-                    table_name.to_string(),
-                    TableFilesToLoad::new(table_name.to_string()),
-                );
-
-                self.tables_loading_tasks.insert(
-                    table_name.to_string(),
-                    Arc::new(TableLoadingTask::new(table_name)),
-                );
+                self.tables.insert(table_name, LoadTableTask::new());
             }
         }
     }
 
     pub fn get_next_file_to_load(&mut self) -> NextFileToLoadResult {
-        if self.tables_files_to_load.len() == 0 {
-            if self.tables_to_load_list_of_files.has_something_to_process() {
-                return NextFileToLoadResult::NotReadyYeat;
+        let mut all_files_are_loaded_amount = 0;
+
+        for (table_name, table_task) in &mut self.tables {
+            if let Some(file_name) = table_task.get_next_file_to_load_content() {
+                return NextFileToLoadResult::FileToLoad {
+                    table_name: table_name.to_string(),
+                    file_name,
+                };
+            }
+
+            if table_task.is_file_list_loaded() {
+                all_files_are_loaded_amount += 1;
             }
         }
 
-        for files_to_load in self.tables_files_to_load.values_mut() {
-            if let Some(file_name) = files_to_load.get_next_file_to_load() {
-                if let Some(loading_task) = self
-                    .tables_loading_tasks
-                    .get(files_to_load.table_name.as_str())
-                {
-                    return NextFileToLoadResult::DataToLoad {
-                        table_loading_task: loading_task.clone(),
-                        file_name,
-                    };
-                }
-            }
+        if all_files_are_loaded_amount == self.tables.len() {
+            return NextFileToLoadResult::NothingToLoad;
         }
 
-        NextFileToLoadResult::NothingToLoad
+        return NextFileToLoadResult::NotReadyYet;
     }
 
     pub fn add_files_to_table(&mut self, table_name: &str, files: Vec<String>) {
-        if let Some(tables_loading_tasks) = self.tables_loading_tasks.get_mut(table_name) {
-            tables_loading_tasks.add_total_files_amount(files.len());
-        }
-
-        if let Some(table_files_to_load) = self.tables_files_to_load.get_mut(table_name) {
-            table_files_to_load.add_files(files);
+        if let Some(table) = self.tables.get_mut(table_name) {
+            table.add_list_of_files(files);
         }
     }
 
     pub fn set_file_list_is_loaded(&mut self, table_name: &str) {
-        if let Some(tables_loading_tasks) = self.tables_loading_tasks.get_mut(table_name) {
-            tables_loading_tasks.set_file_list_is_loaded();
-        }
-
-        if let Some(table_files_to_load) = self.tables_files_to_load.get_mut(table_name) {
-            table_files_to_load.file_list_is_loaded();
+        if let Some(table) = self.tables.get_mut(table_name) {
+            table.set_file_list_is_loaded();
         }
     }
 
-    fn get_first_table_task_key(&self) -> Option<String> {
-        for table_name in self.tables_loading_tasks.keys() {
-            return Some(table_name.to_string());
+    pub fn upload_table_file_content(
+        &mut self,
+        table_name: &str,
+        file_name: String,
+        table_item: LoadedTableItem,
+    ) {
+        if let Some(table) = self.tables.get_mut(table_name) {
+            match table_item {
+                LoadedTableItem::TableAttributes(attrs) => {
+                    table.add_attribute(file_name, attrs);
+                }
+                LoadedTableItem::DbPartition {
+                    partition_key,
+                    db_partition,
+                } => {
+                    table.add_db_partition(file_name, partition_key, db_partition);
+                }
+            }
         }
+    }
 
+    fn get_first_table_name(&self) -> Option<String> {
+        for key in self.tables.keys() {
+            return Some(key.to_string());
+        }
         None
     }
 
-    pub fn get_loading_task_as_result(&mut self) -> Option<Arc<TableLoadingTask>> {
-        let table_name = self.get_first_table_task_key()?;
-        let result = self.tables_loading_tasks.remove(&table_name)?;
-        return Some(result);
-    }
+    pub fn remove_next_task(&mut self) -> Option<(String, LoadTableTask)> {
+        let table_name = self.get_first_table_name()?;
 
-    pub async fn upload_table_file(&self, table_name: &str, table_item: LoadedTableItem) -> bool {
-        if let Some(table_task) = self.tables_loading_tasks.get(table_name) {
-            return table_task.add_loaded_file(table_item).await;
-        }
+        let result = self.tables.remove(&table_name)?;
 
-        false
+        Some((table_name, result))
     }
 }

@@ -9,8 +9,8 @@ pub async fn spawn(app: Arc<AppContext>) {
         let next_file_to_load = app.init_state.get_next_file_to_load().await;
 
         match next_file_to_load {
-            NextFileToLoadResult::DataToLoad {
-                table_loading_task,
+            NextFileToLoadResult::FileToLoad {
+                table_name,
                 file_name,
             } => {
                 let table_file = TableFile::from_file_name(file_name.as_str());
@@ -30,17 +30,14 @@ pub async fn spawn(app: Arc<AppContext>) {
 
                 let content = app
                     .persist_io
-                    .load_table_file(table_loading_task.table_name.as_str(), &table_file)
+                    .load_table_file(table_name.as_str(), &table_file)
                     .await;
 
                 if let Some(content) = content.as_ref() {
                     match LoadedTableItem::new(&table_file, content) {
                         Ok(table_item) => {
                             app.init_state
-                                .upload_table_file(
-                                    table_loading_task.table_name.as_str(),
-                                    table_item,
-                                )
+                                .upload_table_file(table_name.as_str(), file_name, table_item)
                                 .await;
                         }
                         Err(err) => {
@@ -55,7 +52,7 @@ pub async fn spawn(app: Arc<AppContext>) {
                     }
                 }
             }
-            NextFileToLoadResult::NotReadyYeat => {
+            NextFileToLoadResult::NotReadyYet => {
                 tokio::time::sleep(Duration::from_secs(1)).await;
             }
             NextFileToLoadResult::NothingToLoad => return,

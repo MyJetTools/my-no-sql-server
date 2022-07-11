@@ -5,13 +5,13 @@ use rust_extensions::StopWatch;
 use crate::app::AppContext;
 
 pub async fn load_tables(app: Arc<AppContext>) {
-    let tables = app.persist_io.get_list_of_tables().await;
+    let table_names = app.persist_io.get_list_of_tables().await;
 
     app.init_state
-        .init_table_names(tables, app.logs.as_ref())
+        .init_table_names(table_names.clone(), app.logs.as_ref())
         .await;
 
-    tokio::spawn(super::table_list_of_files_loader(app.clone()));
+    tokio::spawn(super::table_list_of_files_loader(app.clone(), table_names));
 
     let mut sw = StopWatch::new();
     sw.start();
