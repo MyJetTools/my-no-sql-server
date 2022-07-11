@@ -2,6 +2,8 @@ use std::collections::VecDeque;
 
 use tokio::sync::Mutex;
 
+const MAX_DATA_LEN: usize = 120;
+
 pub struct SendPerSecond {
     data: Mutex<VecDeque<usize>>,
 }
@@ -17,7 +19,7 @@ impl SendPerSecond {
         let mut write_access = self.data.lock().await;
         write_access.push_back(value);
 
-        while write_access.len() > 160 {
+        while write_access.len() > MAX_DATA_LEN {
             write_access.pop_front();
         }
     }
