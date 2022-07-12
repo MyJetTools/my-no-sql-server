@@ -5,14 +5,31 @@ var HtmlSubscribersGenerator = /** @class */ (function () {
         return '<h3>Connected Nodes</h3>'
             + this.generateNodesHtml(data.nodes)
             + '<h3>Readers</h3>'
+            + this.generateTotalSend(data.readers)
             + this.generateReadersHtml(data.readers)
             + '<h3>Tables</h3>'
             + this.generateTablesHtml(data.tables);
     };
+    HtmlSubscribersGenerator.generateTotalSend = function (data) {
+        var total = [];
+        for (var _i = 0, data_1 = data; _i < data_1.length; _i++) {
+            var reader = data_1[_i];
+            var i = 0;
+            for (var _a = 0, _b = reader.sentPerSecond; _a < _b.length; _a++) {
+                var b = _b[_a];
+                if (i >= total.length) {
+                    total.push(0);
+                }
+                total[i] += b;
+                i += 1;
+            }
+        }
+        return '<div>' + HtmlGraph.renderGraph(total, function (v) { return Utils.format_bytes(v); }, function (v) { return v; }, function (_) { return false; }) + '</div>';
+    };
     HtmlSubscribersGenerator.generateReadersHtml = function (data) {
         var html = "<table class=\"table table-striped\"><tr><th>Id</th><th>Client</th><th>Ip</th><th>tables</th><th></th></tr>";
-        for (var _i = 0, data_1 = data; _i < data_1.length; _i++) {
-            var itm = data_1[_i];
+        for (var _i = 0, data_2 = data; _i < data_2.length; _i++) {
+            var itm = data_2[_i];
             html += '<tr><td>' + itm.id + '</td><td>' + this.renderName(itm.name) + '</td><td>' + itm.ip + '<div>' + HtmlGraph.renderGraph(itm.sentPerSecond, function (v) { return Utils.format_bytes(v); }, function (v) { return v; }, function (_) { return false; }) + '</div></td><td>' + this.renderTables(itm.tables) + '</td>' +
                 '<td style="font-size: 10px">' +
                 '<div><b>C:</b>' + itm.connectedTime + '</div>' +
@@ -61,8 +78,8 @@ var HtmlSubscribersGenerator = /** @class */ (function () {
     };
     HtmlSubscribersGenerator.generateNodesHtml = function (data) {
         var html = "<table class=\"table table-striped\"><tr><th>Location</th><th>Connected</th><th>LastAccess</th><th>Compress</th><th>Latency</th></tr>";
-        for (var _i = 0, data_2 = data; _i < data_2.length; _i++) {
-            var itm = data_2[_i];
+        for (var _i = 0, data_3 = data; _i < data_3.length; _i++) {
+            var itm = data_3[_i];
             html += '<tr><td>' + itm.location + '</td><td>' + itm.connected + '</td><td>' + itm.lastAccessed + '</td><td>' + itm.compress + '</td><td>' + itm.latency + '</td></tr>';
         }
         html += '</table>';
@@ -79,8 +96,8 @@ var HtmlSubscribersGenerator = /** @class */ (function () {
     };
     HtmlSubscribersGenerator.renderTables = function (data) {
         var result = "";
-        for (var _i = 0, data_3 = data; _i < data_3.length; _i++) {
-            var itm = data_3[_i];
+        for (var _i = 0, data_4 = data; _i < data_4.length; _i++) {
+            var itm = data_4[_i];
             result += '<span class="badge badge-info" style="margin-left: 5px">' + itm + '</span>';
         }
         return result;
