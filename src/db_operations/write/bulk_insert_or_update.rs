@@ -43,7 +43,8 @@ pub async fn execute(
     if has_insert_or_replace {
         db_table.set_last_update_time(DateTimeAsMicroseconds::now());
 
-        app.events_dispatcher.dispatch(
+        crate::operations::sync::dispatch(
+            app,
             db_table.as_ref().into(),
             SyncEvent::UpdateRows(update_rows_state),
         );

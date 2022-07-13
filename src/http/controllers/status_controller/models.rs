@@ -1,6 +1,6 @@
 use crate::app::{AppContext, RequestMetric};
 use my_http_server_swagger::*;
-use rust_extensions::date_time::DateTimeAsMicroseconds;
+use rust_extensions::{date_time::DateTimeAsMicroseconds, ApplicationStates};
 use serde::{Deserialize, Serialize};
 
 use super::{non_initialized::NonInitializedModel, status_bar_model::StatusBarModel};
@@ -43,6 +43,10 @@ pub struct ReaderModel {
     pub last_incoming_time: String,
     #[serde(rename = "connectedTime")]
     pub connected_time: String,
+    #[serde(rename = "pendingToSend")]
+    pub pending_to_send: usize,
+    #[serde(rename = "sentPerSecond")]
+    pub sent_per_second: Vec<usize>,
 }
 #[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
 pub struct StatusModel {
@@ -145,6 +149,8 @@ async fn get_readers(app: &AppContext) -> (Vec<ReaderModel>, usize, usize) {
                 ip: metrics.ip,
                 name,
                 tables: metrics.tables,
+                pending_to_send: metrics.pending_to_send,
+                sent_per_second: data_reader.get_sent_per_second().await,
             });
         }
     }

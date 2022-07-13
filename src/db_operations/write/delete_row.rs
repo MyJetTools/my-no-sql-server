@@ -45,8 +45,11 @@ pub async fn execute(
         sync_data.add_deleted_row(partition_key, removed_row.clone())
     }
 
-    app.events_dispatcher
-        .dispatch(db_table.as_ref().into(), SyncEvent::DeleteRows(sync_data));
+    crate::operations::sync::dispatch(
+        app,
+        db_table.as_ref().into(),
+        SyncEvent::DeleteRows(sync_data),
+    );
 
     let result = WriteOperationResult::SingleRow(removed_row).into();
     Ok(result)

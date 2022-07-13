@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
+use my_json::json_reader::array_parser::ArrayToJsonObjectsSplitter;
+
 use crate::{
     db::DbPartition,
     db_json_entity::{DbJsonEntity, JsonTimeStamp},
-    json::array_parser::ArrayToJsonObjectsSplitter,
 };
 
 pub fn deserialize(raw: &[u8]) -> Result<DbPartition, String> {

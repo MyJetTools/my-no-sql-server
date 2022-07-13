@@ -33,9 +33,9 @@ impl TcpServerEvents {
                         SystemProcess::TcpSocket,
                         format!("Connection name update to {}", name),
                         format!("ID: {}", connection.id),
+                        None,
                     );
                     data_reader.set_name(name.to_string()).await;
-                    connection.connection_name.update(name).await;
                 }
             }
 
@@ -94,6 +94,7 @@ impl SocketEventCallback<TcpContract, MyNoSqlReaderTcpSerializer> for TcpServerE
                     SystemProcess::TcpSocket,
                     "New tcp connection".to_string(),
                     format!("ID: {}", connection.id),
+                    None,
                 );
 
                 self.app.data_readers.add_tcp(connection).await;
@@ -105,8 +106,16 @@ impl SocketEventCallback<TcpContract, MyNoSqlReaderTcpSerializer> for TcpServerE
                     SystemProcess::TcpSocket,
                     "Disconnect".to_string(),
                     format!("ID: {}", connection.id),
+                    None,
                 );
-                self.app.data_readers.remove_tcp(connection.as_ref()).await;
+                if let Some(data_reader) =
+                    self.app.data_readers.remove_tcp(connection.as_ref()).await
+                {
+                    self.app
+                        .metrics
+                        .remove_pending_to_sync(&data_reader.connection)
+                        .await;
+                }
                 self.app.metrics.mark_new_tcp_disconnection();
             }
             ConnectionEvent::Payload {

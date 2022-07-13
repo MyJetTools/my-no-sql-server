@@ -42,7 +42,7 @@ async fn handle_request(
         crate::db_operations::read::table::get(action.app.as_ref(), input_data.table_name.as_str())
             .await?;
 
-    let response = FlUrl::new(input_data.remote_url.as_str())
+    let response = FlUrl::new(input_data.remote_url.as_str(), None)
         .append_path_segment("Row")
         .append_query_param(
             input_params::PARAM_TABLE_NAME,

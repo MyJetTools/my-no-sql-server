@@ -3,12 +3,15 @@ use std::{
     time::Duration,
 };
 
-use rust_extensions::{date_time::DateTimeAsMicroseconds, ApplicationStates, MyTimerLogger};
+use rust_extensions::{
+    date_time::DateTimeAsMicroseconds, events_loop::EventsLoop, AppStates, Logger,
+};
 
 use crate::{
     data_readers::DataReadersList,
     db::DbInstance,
     db_operations::multipart::MultipartList,
+    db_sync::SyncEvent,
     db_transactions::ActiveTransactions,
     persist_io::PersistIoOperations,
     persist_operations::{
@@ -18,9 +21,8 @@ use crate::{
 };
 
 use super::{
-    global_states::GlobalStates,
     logs::{Logs, SystemProcess},
-    EventsDispatcher, PrometheusMetrics,
+    PrometheusMetrics,
 };
 
 pub const APP_VERSION: &'static str = env!("CARGO_PKG_VERSION");
@@ -38,9 +40,6 @@ pub struct AppContext {
     pub active_transactions: ActiveTransactions,
     pub process_id: String,
 
-    pub states: GlobalStates,
-
-    pub events_dispatcher: EventsDispatcher,
     pub blob_content_cache: BlobContentCache,
     pub data_readers: DataReadersList,
 
@@ -48,6 +47,8 @@ pub struct AppContext {
     pub persist_io: PersistIoOperations,
     pub init_state: InitState,
     pub settings: Arc<SettingsModel>,
+    pub sync: EventsLoop<SyncEvent>,
+    pub states: Arc<AppStates>,
     persist_amount: AtomicUsize,
 }
 
@@ -55,7 +56,6 @@ impl AppContext {
     pub fn new(
         logs: Arc<Logs>,
         settings: Arc<SettingsModel>,
-        events_dispatcher: EventsDispatcher,
         persist_io: PersistIoOperations,
     ) -> Self {
         AppContext {
@@ -66,18 +66,15 @@ impl AppContext {
             metrics: PrometheusMetrics::new(),
             active_transactions: ActiveTransactions::new(),
             process_id: uuid::Uuid::new_v4().to_string(),
-            states: GlobalStates::new(),
+            states: Arc::new(AppStates::create_un_initialized()),
 
-            events_dispatcher,
             blob_content_cache: BlobContentCache::new(),
-            data_readers: DataReadersList::new(
-                Duration::from_secs(30),
-                Duration::from_secs(settings.tcp_send_time_out),
-            ),
+            data_readers: DataReadersList::new(Duration::from_secs(30)),
             multipart_list: MultipartList::new(),
             persist_io,
             settings,
             persist_amount: AtomicUsize::new(0),
+            sync: EventsLoop::new("SyncEventsLoop".to_string()),
         }
     }
 
@@ -92,24 +89,24 @@ impl AppContext {
     }
 }
 
-impl ApplicationStates for AppContext {
-    fn is_initialized(&self) -> bool {
-        self.states.is_initialized()
-    }
-
-    fn is_shutting_down(&self) -> bool {
-        self.states.is_shutting_down()
-    }
-}
-
-impl MyTimerLogger for AppContext {
-    fn write_info(&self, timer_id: String, message: String) {
+impl Logger for AppContext {
+    fn write_info(&self, process_name: String, message: String, context: Option<String>) {
         self.logs
-            .add_info(None, SystemProcess::Timer, timer_id, message);
+            .add_info(None, SystemProcess::System, process_name, message, context);
     }
 
-    fn write_error(&self, timer_id: String, message: String) {
+    fn write_error(&self, process_name: String, message: String, context: Option<String>) {
         self.logs
-            .add_fatal_error(None, SystemProcess::Timer, timer_id, message);
+            .add_fatal_error(None, SystemProcess::System, process_name, message, context);
+    }
+
+    fn write_warning(&self, process_name: String, message: String, ctx: Option<String>) {
+        self.logs
+            .add_error(None, SystemProcess::System, process_name, message, ctx);
+    }
+
+    fn write_fatal_error(&self, process_name: String, message: String, ctx: Option<String>) {
+        self.logs
+            .add_error(None, SystemProcess::System, process_name, message, ctx);
     }
 }

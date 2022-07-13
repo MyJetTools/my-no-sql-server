@@ -5,6 +5,8 @@ interface IReaderStatus {
     tables: string[];
     connectedTime: string;
     lastIncomingTime: string;
+    pendingToSend: number;
+    sentPerSecond: number[];
 }
 
 interface INodeStatus {
@@ -22,18 +24,14 @@ interface ILocationStatus {
 
 
 interface INonInitializedModel {
-    tablesRemains: number,
+    tablesTotal: number,
+    tablesLoaded: number,
+    filesTotal: number,
+    filesLoaded: number,
     initializingSeconds: number,
-    progress: ITableLoadProgress[]
 }
 
 
-interface ITableLoadProgress {
-    tableName: String,
-    loaded: number,
-    toLoad: number,
-    secondsGone: number
-}
 
 interface IStatus {
     notInitialized: INonInitializedModel,

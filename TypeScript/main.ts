@@ -64,12 +64,13 @@ class main {
                 this.requested = false;
                 if (result.initialized) {
                     this.layoutElement.innerHTML = HtmlSubscribersGenerator.generateHtml(result.initialized);
-
+                    HtmlStatusBar.updateQueueSize(Utils.getSyncQueueSize(result.initialized.readers));
                 } else {
                     this.layoutElement.innerHTML = HtmlMain.generateInit(result.notInitialized);
                 }
 
                 HtmlStatusBar.updateStatusbar(result.statusBar);
+
             }).fail(() => {
                 this.requested = false;
                 HtmlStatusBar.updateOffline();

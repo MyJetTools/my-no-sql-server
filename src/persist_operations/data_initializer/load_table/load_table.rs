@@ -3,13 +3,17 @@ use std::sync::Arc;
 use crate::{
     app::AppContext,
     db::{DbTableAttributesSnapshot, DbTableData},
-    persist_operations::data_initializer::load_tasks::TableToLoad,
+    persist_operations::data_initializer::load_tasks::TableLoadingTask,
 };
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use super::LoadedTableItem;
 
-pub async fn load_table(app: &Arc<AppContext>, table_to_load: &Arc<TableToLoad>) {
+pub async fn load_table(
+    app: &Arc<AppContext>,
+    table_loading_task: &Arc<TableLoadingTask>,
+    file_name: String,
+) {
     app.logs.add_info(
         Some(table_to_load.table_name.to_string()),
         crate::app::logs::SystemProcess::Init,

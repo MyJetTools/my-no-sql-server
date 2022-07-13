@@ -2,16 +2,22 @@ use prometheus::{Encoder, IntGauge, IntGaugeVec, Opts, Registry, TextEncoder};
 
 use crate::db::DbTableMetrics;
 
+#[async_trait::async_trait]
+pub trait UpdatePendingToSyncModel {
+    async fn get_name(&self) -> Option<String>;
+    fn get_pending_to_sync(&self) -> usize;
+}
+
 pub struct PrometheusMetrics {
     registry: Registry,
     partitions_amount: IntGaugeVec,
     table_size: IntGaugeVec,
     persist_amount: IntGaugeVec,
-    sync_queue_size: IntGauge,
     tcp_connections_count: IntGauge,
     tcp_connections_changes: IntGaugeVec,
     fatal_errors_count: IntGauge,
     persist_delay_in_seconds: IntGaugeVec,
+    pending_to_sync: IntGaugeVec,
 }
 
 const TABLE_NAME: &str = "table_name";
@@ -23,10 +29,11 @@ impl PrometheusMetrics {
         let partitions_amount = create_partititions_amount_gauge();
         let table_size = create_table_size_gauge();
         let persist_amount = create_persist_amount_gauge();
-        let sync_queue_size = create_sync_queue_size_gauge();
         let tcp_connections_count = create_tcp_connections_count();
         let tcp_connections_changes = create_tcp_connections_changes();
         let fatal_errors_count = create_fatal_errors_count();
+
+        let pending_to_sync = create_pending_to_sync();
 
         let persist_delay_in_seconds = create_persist_delay_in_seconds();
 
@@ -41,10 +48,6 @@ impl PrometheusMetrics {
             .unwrap();
 
         registry
-            .register(Box::new(sync_queue_size.clone()))
-            .unwrap();
-
-        registry
             .register(Box::new(tcp_connections_count.clone()))
             .unwrap();
 
@@ -56,16 +59,20 @@ impl PrometheusMetrics {
             .register(Box::new(persist_delay_in_seconds.clone()))
             .unwrap();
 
+        registry
+            .register(Box::new(pending_to_sync.clone()))
+            .unwrap();
+
         return Self {
             registry,
             partitions_amount,
             table_size,
             persist_amount,
-            sync_queue_size,
             tcp_connections_count,
             tcp_connections_changes,
             fatal_errors_count,
             persist_delay_in_seconds,
+            pending_to_sync,
         };
     }
 
@@ -92,10 +99,44 @@ impl PrometheusMetrics {
             .set(persist_delay);
     }
 
-    pub fn updated_sync_queue_size(&self, sync_queue_size: usize) {
-        self.sync_queue_size.set(sync_queue_size as i64);
+    pub async fn update_pending_to_sync<TUpdatePendingToSyncModel: UpdatePendingToSyncModel>(
+        &self,
+        data_reader_connection: &TUpdatePendingToSyncModel,
+    ) {
+        let name = data_reader_connection.get_name().await;
+
+        if name.is_none() {
+            return;
+        }
+
+        let name = name.unwrap();
+
+        let pending_to_sync = data_reader_connection.get_pending_to_sync();
+
+        self.pending_to_sync
+            .with_label_values(&[&name])
+            .set(pending_to_sync as i64);
     }
 
+    pub async fn remove_pending_to_sync<TUpdatePendingToSyncModel: UpdatePendingToSyncModel>(
+        &self,
+        data_reader_connection: &TUpdatePendingToSyncModel,
+    ) {
+        let name = data_reader_connection.get_name().await;
+        if name.is_none() {
+            return;
+        }
+
+        let name = name.unwrap();
+        let result = self.pending_to_sync.remove_label_values(&[&name]);
+
+        if let Err(err) = result {
+            println!(
+                "Can not remove pending to sync metric for data reader {}: {:?}",
+                name, err
+            );
+        }
+    }
     pub fn mark_new_tcp_connection(&self) {
         self.tcp_connections_count.inc();
         self.tcp_connections_changes
@@ -148,8 +189,14 @@ fn create_persist_amount_gauge() -> IntGaugeVec {
     IntGaugeVec::new(gauge_opts, lables).unwrap()
 }
 
-fn create_sync_queue_size_gauge() -> IntGauge {
-    IntGauge::new("sync_queue_size", "Sync queue size").unwrap()
+fn create_pending_to_sync() -> IntGaugeVec {
+    let gauge_opts = Opts::new(
+        format!("pending_to_send"),
+        format!("pending bytes to send to reader"),
+    );
+
+    let lables = &[TABLE_NAME];
+    IntGaugeVec::new(gauge_opts, lables).unwrap()
 }
 
 fn create_fatal_errors_count() -> IntGauge {

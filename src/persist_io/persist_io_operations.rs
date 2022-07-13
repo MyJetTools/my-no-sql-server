@@ -2,14 +2,17 @@ use std::sync::Arc;
 
 use my_azure_storage_sdk::AzureStorageConnection;
 
-use crate::{
-    app::logs::Logs, persist_io::TableFile,
-    persist_operations::data_initializer::load_tasks::TableToLoad,
-};
+use crate::{app::logs::Logs, persist_io::TableFile};
 
 pub struct PersistIoOperations {
     logs: Arc<Logs>,
     azure_connection: Arc<AzureStorageConnection>,
+}
+
+#[async_trait::async_trait]
+pub trait TableListOfFilesUploader {
+    async fn add_files(&self, table_name: &str, files: Vec<String>);
+    async fn set_files_list_is_loaded(&self, table_name: &str);
 }
 
 impl PersistIoOperations {
@@ -25,11 +28,16 @@ impl PersistIoOperations {
             .await
     }
 
-    pub async fn get_table_files(&self, table_to_load: &Arc<TableToLoad>) {
+    pub async fn get_table_files<TTableListOfFilesUploader: TableListOfFilesUploader>(
+        &self,
+        table_name: &str,
+        uploader: &TTableListOfFilesUploader,
+    ) {
         super::with_retries::get_list_of_files(
             self.logs.as_ref(),
             self.azure_connection.as_ref(),
-            table_to_load,
+            table_name,
+            uploader,
         )
         .await;
     }

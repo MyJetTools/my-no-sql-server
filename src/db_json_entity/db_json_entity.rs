@@ -1,11 +1,9 @@
 use std::{collections::BTreeMap, sync::Arc};
 
+use my_json::json_reader::{array_parser::ArrayToJsonObjectsSplitter, JsonFirstLineReader};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-use crate::{
-    db::DbRow,
-    json::{array_parser::ArrayToJsonObjectsSplitter, JsonFirstLineReader},
-};
+use crate::db::DbRow;
 
 use super::{date_time_injector::TimeStampValuePosition, DbEntityParseFail, JsonTimeStamp};
 

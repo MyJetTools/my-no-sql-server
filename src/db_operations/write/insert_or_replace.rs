@@ -33,7 +33,9 @@ pub async fn execute(
         .mark_partition_to_persist(db_row.partition_key.as_ref(), persist_moment);
 
     update_rows_state.rows_by_partition.add_row(db_row);
-    app.events_dispatcher.dispatch(
+
+    crate::operations::sync::dispatch(
+        app,
         db_table.as_ref().into(),
         SyncEvent::UpdateRows(update_rows_state),
     );

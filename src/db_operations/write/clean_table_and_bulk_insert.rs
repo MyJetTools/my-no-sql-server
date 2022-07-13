@@ -39,8 +39,11 @@ pub async fn execute(
             event_src,
         );
 
-        app.events_dispatcher
-            .dispatch(db_table.as_ref().into(), SyncEvent::InitTable(sync_data));
+        crate::operations::sync::dispatch(
+            app,
+            db_table.as_ref().into(),
+            SyncEvent::InitTable(sync_data),
+        );
     }
 
     Ok(())

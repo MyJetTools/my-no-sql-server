@@ -2,6 +2,20 @@
 class Utils {
 
 
+    public static getSyncQueueSize(src: IReaderStatus[]): number {
+        let result = 0;
+
+
+        for (let val of src) {
+            result += val.pendingToSend;
+        }
+
+
+        return result;
+
+    }
+
+
     public static filterIt(line: string, filterPhrase: string): boolean {
         if (filterPhrase == "")
             return false;

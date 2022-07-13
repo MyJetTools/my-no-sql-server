@@ -1,6 +1,7 @@
 use my_no_sql_tcp_shared::{DeleteRowTcpContract, TcpContract};
 
-use crate::{db_sync::SyncEvent, json::consts::EMPTY_ARRAY};
+use crate::db_sync::SyncEvent;
+use my_json::json_reader::consts::EMPTY_ARRAY;
 
 pub async fn serialize(sync_event: &SyncEvent) -> Option<Vec<u8>> {
     match sync_event {

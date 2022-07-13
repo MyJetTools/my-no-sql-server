@@ -1,17 +1,25 @@
-use std::{sync::Arc, time::Duration};
+use std::sync::{atomic::AtomicUsize, Arc};
+
+use tokio::sync::Mutex;
 
 use crate::tcp::MyNoSqlTcpConnection;
 
+use super::SendPerSecond;
+
 pub struct TcpConnectionInfo {
     pub connection: Arc<MyNoSqlTcpConnection>,
-    send_timeout: Duration,
+    pub name: Mutex<Option<String>>,
+    sent_per_second_accumulator: AtomicUsize,
+    pub sent_per_second: SendPerSecond,
 }
 
 impl TcpConnectionInfo {
-    pub fn new(connection: Arc<MyNoSqlTcpConnection>, send_timeout: Duration) -> Self {
+    pub fn new(connection: Arc<MyNoSqlTcpConnection>) -> Self {
         Self {
             connection,
-            send_timeout,
+            name: Mutex::new(None),
+            sent_per_second_accumulator: AtomicUsize::new(0),
+            sent_per_second: SendPerSecond::new(),
         }
     }
 
@@ -26,20 +34,33 @@ impl TcpConnectionInfo {
         }
     }
 
+    pub async fn get_name(&self) -> Option<String> {
+        let read_access = self.name.lock().await;
+        read_access.clone()
+    }
+
+    pub async fn set_name(&self, name: String) {
+        let mut write_access = self.name.lock().await;
+        *write_access = Some(name);
+    }
+
     pub async fn send(&self, payload_to_send: &[u8]) {
-        let send_result = tokio::time::timeout(
-            self.send_timeout,
-            self.connection.send_bytes(payload_to_send),
-        )
-        .await;
+        self.sent_per_second_accumulator
+            .fetch_add(payload_to_send.len(), std::sync::atomic::Ordering::SeqCst);
+        self.connection.send_bytes(payload_to_send).await;
+    }
 
-        if let Err(_) = send_result {
-            println!(
-                "Timeout while sending to connection {}",
-                self.connection.connection_name.get().await
-            );
+    pub async fn timer_1sec_tick(&self) {
+        let value = self
+            .sent_per_second_accumulator
+            .swap(0, std::sync::atomic::Ordering::SeqCst);
+        self.sent_per_second.add(value).await;
+    }
 
-            self.connection.disconnect().await;
-        }
+    pub fn get_pending_to_send(&self) -> usize {
+        self.connection
+            .statistics
+            .pending_to_send_buffer_size
+            .load(std::sync::atomic::Ordering::Relaxed)
     }
 }

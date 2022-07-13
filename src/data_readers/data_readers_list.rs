@@ -13,22 +13,24 @@ use super::{
 pub struct DataReadersList {
     data: RwLock<DataReadersData>,
     http_session_time_out: Duration,
-    tcp_send_time_out: Duration,
 }
 
 impl DataReadersList {
-    pub fn new(http_session_time_out: Duration, tcp_send_time_out: Duration) -> Self {
+    pub fn new(http_session_time_out: Duration) -> Self {
         Self {
             data: RwLock::new(DataReadersData::new()),
             http_session_time_out,
-            tcp_send_time_out,
         }
     }
 
     pub async fn add_tcp(&self, tcp_connection: Arc<MyNoSqlTcpConnection>) {
         let id = format!("Tcp-{}", tcp_connection.id);
         println!("New tcp reader connnected {}", id);
-        let connection_info = TcpConnectionInfo::new(tcp_connection, self.tcp_send_time_out);
+
+        let connection_info = TcpConnectionInfo::new(tcp_connection);
+
+        let connection_info = Arc::new(connection_info);
+
         let mut write_lock = self.data.write().await;
 
         let data_reader = DataReader::new(id, DataReaderConnection::Tcp(connection_info));
@@ -61,10 +63,13 @@ impl DataReadersList {
         read_lock.get_http(session_id)
     }
 
-    pub async fn remove_tcp(&self, tcp_connection: &MyNoSqlTcpConnection) {
+    pub async fn remove_tcp(
+        &self,
+        tcp_connection: &MyNoSqlTcpConnection,
+    ) -> Option<Arc<DataReader>> {
         println!("Tcp reader is disconnnected {}", tcp_connection.id);
         let mut write_lock = self.data.write().await;
-        write_lock.remove_tcp(tcp_connection.id);
+        write_lock.remove_tcp(tcp_connection.id)
     }
 
     pub async fn get_all(&self) -> Vec<Arc<DataReader>> {
@@ -77,8 +82,11 @@ impl DataReadersList {
         read_access.get_subscribred_to_table(table_name).await
     }
 
-    pub async fn ten_seconds_tick(&self, now: DateTimeAsMicroseconds) {
+    pub async fn gc_http_sessions(
+        &self,
+        now: DateTimeAsMicroseconds,
+    ) -> Option<Vec<Arc<DataReader>>> {
         let mut write_access = self.data.write().await;
-        write_access.gc_http_sessions(now, self.http_session_time_out);
+        write_access.gc_http_sessions(now, self.http_session_time_out)
     }
 }

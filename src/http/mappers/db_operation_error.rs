@@ -1,8 +1,7 @@
-use crate::{
-    db_json_entity::DbEntityParseFail, db_operations::DbOperationError, json::JsonParseError,
-};
+use crate::{db_json_entity::DbEntityParseFail, db_operations::DbOperationError};
 
 use my_http_server::{HttpFailResult, WebContentType};
+use my_json::json_reader::JsonParseError;
 
 use super::{OperationFailHttpContract, OperationFailReason};
 
@@ -92,21 +91,19 @@ impl From<DbOperationError> for HttpFailResult {
     }
 }
 
-impl From<JsonParseError> for HttpFailResult {
-    fn from(value: JsonParseError) -> Self {
-        let err_model = OperationFailHttpContract {
-            reason: OperationFailReason::JsonParseFail,
-            message: value.to_string(),
-        };
+pub fn from_json_parse_error_to_http_resul(value: JsonParseError) -> HttpFailResult {
+    let err_model = OperationFailHttpContract {
+        reason: OperationFailReason::JsonParseFail,
+        message: value.to_string(),
+    };
 
-        let content = serde_json::to_vec(&err_model).unwrap();
+    let content = serde_json::to_vec(&err_model).unwrap();
 
-        Self {
-            content_type: WebContentType::Json,
-            status_code: OPERATION_FAIL_HTTP_STATUS_CODE,
-            content,
-            write_telemetry: true,
-        }
+    HttpFailResult {
+        content_type: WebContentType::Json,
+        status_code: OPERATION_FAIL_HTTP_STATUS_CODE,
+        content,
+        write_telemetry: true,
     }
 }
 
@@ -160,7 +157,7 @@ impl From<DbEntityParseFail> for HttpFailResult {
             }
 
             DbEntityParseFail::JsonParseError(json_parse_error) => {
-                HttpFailResult::from(json_parse_error)
+                from_json_parse_error_to_http_resul(json_parse_error)
             }
             DbEntityParseFail::FieldPartitionKeyCanNotBeNull => {
                 let err_model = OperationFailHttpContract {

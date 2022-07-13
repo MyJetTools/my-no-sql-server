@@ -1,6 +1,6 @@
 [package]
 name = "my_no_sql_server"
-version = "0.0.19"
+version = "0.0.20"
 authors = ["amigin <amigin@gmail.com>"]
 edition = "2021"
 
@@ -8,17 +8,17 @@ edition = "2021"
 
 [dependencies]
 my-azure-storage-sdk = { branch = "0.3.1", git = "https://github.com/MyJetTools/my-azure-storage.git" }
-flurl = { branch = "0.1.3", git = "https://github.com/MyJetTools/fl-url" }
-my-no-sql-tcp-shared = { branch = "0.1.0", git = "https://github.com/MyJetTools/my-no-sql-tcp-shared.git" }
-rust-extensions = { branch = "main", git = "https://github.com/MyJetTools/rust-extensions.git" }
-my-telemetry = { branch = "main", git = "https://github.com/MyJetTools/my-telemetry.git" }
-my-app-insights = { branch = "main", git = "https://github.com/MyJetTools/my-app-insights.git" }
-my-http-server = { branch = "0.2.3", git = "https://github.com/MyJetTools/my-http-server.git" }
-my-http-server-controllers = { branch = "0.2.3", git = "https://github.com/MyJetTools/my-http-server-controllers.git" }
-my-http-server-swagger = { branch = "0.2.3", git = "https://github.com/MyJetTools/my-http-server-swagger.git" }
-my-tcp-sockets = { branch = "0.1.1", git = "https://github.com/MyJetTools/my-tcp-sockets.git" }
-my-logger = { branch = "0.1.1", git = "https://github.com/MyJetTools/my-logger.git" }
-my-json = { branch = "main", git = "https://github.com/MyJetTools/my-json.git" }
+flurl = { branch = "0.2.0", git = "https://github.com/MyJetTools/fl-url" }
+my-no-sql-tcp-shared = { branch = "0.1.3", git = "https://github.com/MyJetTools/my-no-sql-tcp-shared.git" }
+rust-extensions = { branch = "0.1.0", git = "https://github.com/MyJetTools/rust-extensions.git" }
+my-telemetry = { branch = "0.2.0", git = "https://github.com/MyJetTools/my-telemetry.git" }
+my-http-server = { branch = "0.2.5", git = "https://github.com/MyJetTools/my-http-server.git" }
+my-http-server-controllers = { branch = "0.2.5", git = "https://github.com/MyJetTools/my-http-server-controllers.git" }
+my-http-server-swagger = { branch = "0.2.5", git = "https://github.com/MyJetTools/my-http-server-swagger.git" }
+my-tcp-sockets = { branch = "0.1.4", git = "https://github.com/MyJetTools/my-tcp-sockets.git" }
+my-logger = { branch = "0.1.2", git = "https://github.com/MyJetTools/my-logger.git" }
+my-json = { branch = "0.1.0", git = "https://github.com/MyJetTools/my-json.git" }
+
 
 hyper-tls = "*"
 tonic = { version = "*", features = ["tls", "tls-roots", "prost"] }
@@ -46,7 +46,6 @@ prometheus = "*"
 signal-hook = "*"
 async-trait = "*"
 tokio-stream = "*"
-appinsights = "*"
 
 
 [build-dependencies]

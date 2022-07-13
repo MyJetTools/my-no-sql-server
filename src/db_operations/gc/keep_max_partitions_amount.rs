@@ -63,8 +63,12 @@ pub fn gc_partitions(
 
             sync_state.add(partition_key, None);
         }
-        app.events_dispatcher
-            .dispatch(db_table.into(), SyncEvent::InitPartitions(sync_state));
+
+        crate::operations::sync::dispatch(
+            app,
+            db_table.into(),
+            SyncEvent::InitPartitions(sync_state),
+        );
     }
 
     Ok(())

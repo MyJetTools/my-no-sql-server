@@ -7,9 +7,33 @@ class HtmlSubscribersGenerator {
         return '<h3>Connected Nodes</h3>'
             + this.generateNodesHtml(data.nodes)
             + '<h3>Readers</h3>'
+            + this.generateTotalSend(data.readers)
             + this.generateReadersHtml(data.readers)
             + '<h3>Tables</h3>'
             + this.generateTablesHtml(data.tables);
+    }
+
+    private static generateTotalSend(data: IReaderStatus[]): string {
+
+        let total = [];
+
+
+        for (let reader of data) {
+            let i = 0;
+            for (let b of reader.sentPerSecond) {
+
+                if (i >= total.length) {
+                    total.push(0);
+                }
+
+                total[i] += b;
+                i += 1;
+            }
+        }
+
+
+        return '<div>' + HtmlGraph.renderGraph(total, v => Utils.format_bytes(v), v => v, _ => false) + '</div>';
+
     }
 
 
@@ -18,10 +42,11 @@ class HtmlSubscribersGenerator {
 
         for (let itm of data) {
 
-            html += '<tr><td>' + itm.id + '</td><td>' + this.renderName(itm.name) + '</td><td>' + itm.ip + '</td><td>' + this.renderTables(itm.tables) + '</td>' +
+            html += '<tr><td>' + itm.id + '</td><td>' + this.renderName(itm.name) + '</td><td>' + itm.ip + '<div>' + HtmlGraph.renderGraph(itm.sentPerSecond, v => Utils.format_bytes(v), v => v, _ => false) + '</div></td><td>' + this.renderTables(itm.tables) + '</td>' +
                 '<td style="font-size: 10px">' +
                 '<div><b>C:</b>' + itm.connectedTime + '</div>' +
                 '<div><b>L:</b>' + itm.lastIncomingTime + '</div>' +
+                '<div><b>S:</b>' + itm.pendingToSend + '</div>' +
                 '</td></tr>';
 
         }

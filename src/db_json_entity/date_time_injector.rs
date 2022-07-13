@@ -62,7 +62,7 @@ pub fn inject(raw: &[u8], time_stamp: &JsonTimeStamp) -> Vec<u8> {
 
 fn get_the_end_of_the_json(data: &[u8]) -> usize {
     for i in (0..data.len()).rev() {
-        if data[i] == crate::json::consts::CLOSE_BRACKET {
+        if data[i] == my_json::json_reader::consts::CLOSE_BRACKET {
             return i;
         }
     }

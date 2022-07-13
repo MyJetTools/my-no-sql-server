@@ -9,33 +9,38 @@ class HtmlMain {
 
     public static generateInit(model: INonInitializedModel): string {
 
-        var result = '<h1>Remains tables to load: ' + model.tablesRemains + '</h1><h2>Total loading time is: ' + this.formatSeconds(model.initializingSeconds) + '</h2>' +
-            '<table class="table table-striped table-bordered"><tr><th>TableName</th><th>Partitions loaded</th><th>Partitions total</th><th>Time gone</th><th>Time estimation</th></tr>'
+        var result = '<h1>Total Tables amount: ' + model.tablesTotal + ' / ' + model.tablesLoaded + '</h1>' +
+            '<h2>Files to load: ' + model.filesTotal + ' / ' + model.filesLoaded + '</h2>' +
+            '<h2>Total loading time is: ' + this.formatSeconds(model.initializingSeconds) + '</h2>' +
+            '<h3>Est: ' + this.getInitRemains(model) + '</h3>';
 
-        for (let itm of model.progress.sort((a, b) => a.tableName > b.tableName ? 1 : -1)) {
-            result += '<tr><td style="width:50%">' + itm.tableName + '</td><td>' + itm.loaded + '</td><td>' + itm.toLoad + "</td><td>" + this.formatSeconds(itm.secondsGone) + "</td><td>" + this.getInitRemains(itm) + "</td></tr>"
-        }
-
-        return result + "</table>";
-
+        return result;
     }
 
-    static getInitRemains(progress: ITableLoadProgress): String {
 
-        if (progress.toLoad == 0 || progress.loaded == 0) {
+
+    static getInitRemains(model: INonInitializedModel): String {
+
+        if (model.filesLoaded == 0 || model.filesTotal == 0) {
             return "Unknown"
         }
 
+        if (model.filesLoaded > model.filesTotal) {
+            return "Unknown"
+        }
 
-        let pieceDuration = progress.secondsGone / progress.loaded;
+        let toLoad = model.filesTotal - model.filesLoaded;
 
-        let remains = (progress.toLoad - progress.loaded) * pieceDuration;
+        let pieceDuration = model.initializingSeconds / model.filesLoaded;
+
+        let remains = toLoad * pieceDuration;
 
         remains = this.trunc(remains);
 
         return this.formatSeconds(remains);
 
     }
+
 
 
     public static formatSecMin(value: number): String {

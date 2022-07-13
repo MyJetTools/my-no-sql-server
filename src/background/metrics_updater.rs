@@ -47,9 +47,6 @@ impl MyTimerTick for MetricsUpdater {
                 .update_persist_delay(db_table.name.as_str(), persist_delay);
         }
 
-        let sync_queue_size = self.app.events_dispatcher.get_events_queue_size();
-        self.app.metrics.updated_sync_queue_size(sync_queue_size);
-
         self.app.update_persist_amount(persist_amount);
 
         let fatal_errors_count = self.app.logs.get_fatal_errors_amount();
@@ -57,5 +54,14 @@ impl MyTimerTick for MetricsUpdater {
         self.app
             .metrics
             .update_fatal_errors_count(fatal_errors_count);
+
+        for reader in self.app.data_readers.get_all().await {
+            self.app
+                .metrics
+                .update_pending_to_sync(&reader.connection)
+                .await;
+
+            reader.connection.one_sec_tick().await;
+        }
     }
 }

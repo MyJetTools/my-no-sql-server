@@ -8,6 +8,17 @@ pub struct DbTableAttributes {
     max_partitions_amount: AtomicI32,
     created: AtomicDateTimeAsMicroseconds,
 }
+
+impl DbTableAttributes {
+    pub fn create_default() -> Self {
+        Self {
+            created: AtomicDateTimeAsMicroseconds::now(),
+            persist: AtomicBool::new(true),
+            max_partitions_amount: AtomicI32::new(0),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct DbTableAttributesSnapshot {
     pub persist: bool,
