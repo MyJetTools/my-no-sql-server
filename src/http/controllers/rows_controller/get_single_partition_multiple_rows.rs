@@ -5,11 +5,9 @@ use my_http_server_controllers::controllers::{
     actions::PostAction,
     documentation::{out_results::HttpResult, HttpActionDescription},
 };
+use my_no_sql_core::db::UpdateExpirationTimeModel;
 
-use crate::{
-    app::AppContext, db::UpdateExpirationTimeModel,
-    http::controllers::row_controller::models::BaseDbRowContract,
-};
+use crate::{app::AppContext, http::controllers::row_controller::models::BaseDbRowContract};
 
 use super::models::GetSinglePartitionMultipleRowsActionInputContract;
 

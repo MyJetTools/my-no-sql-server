@@ -4,8 +4,7 @@ use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
 use my_http_server_controllers::controllers::actions::PostAction;
 use my_http_server_controllers::controllers::documentation::out_results::HttpResult;
 use my_http_server_controllers::controllers::documentation::HttpActionDescription;
-
-use crate::db_json_entity::{DbJsonEntity, JsonTimeStamp};
+use my_no_sql_core::db_json_entity::JsonTimeStamp;
 
 use crate::app::AppContext;
 use crate::db_sync::EventSource;
@@ -62,7 +61,8 @@ impl PostAction for InsertOrReplaceAction {
 
         let now = JsonTimeStamp::now();
 
-        let db_json_entity = DbJsonEntity::parse(input_data.body.as_slice())?;
+        let db_json_entity =
+            crate::db_operations::parse_json_entity::as_single_entity(input_data.body.as_slice())?;
 
         let db_row = Arc::new(db_json_entity.to_db_row(&now));
 

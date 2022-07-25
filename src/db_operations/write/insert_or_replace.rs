@@ -1,11 +1,13 @@
 use std::sync::Arc;
 
+use my_no_sql_core::{
+    db::{DbRow, DbTable},
+    db_json_entity::JsonTimeStamp,
+};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
     app::AppContext,
-    db::{DbRow, DbTable},
-    db_json_entity::JsonTimeStamp,
     db_operations::DbOperationError,
     db_sync::{states::UpdateRowsSyncData, EventSource, SyncEvent},
 };
@@ -28,17 +30,17 @@ pub async fn execute(
     let mut update_rows_state =
         UpdateRowsSyncData::new(&table_data, db_table.attributes.get_persist(), event_src);
 
-    table_data
-        .data_to_persist
-        .mark_partition_to_persist(db_row.partition_key.as_ref(), persist_moment);
+    app.persist_markers
+        .persist_partition(
+            db_table.name.as_str(),
+            db_row.partition_key.as_ref(),
+            persist_moment,
+        )
+        .await;
 
     update_rows_state.rows_by_partition.add_row(db_row);
 
-    crate::operations::sync::dispatch(
-        app,
-        db_table.as_ref().into(),
-        SyncEvent::UpdateRows(update_rows_state),
-    );
+    crate::operations::sync::dispatch(app, SyncEvent::UpdateRows(update_rows_state));
 
     let result = match result {
         Some(db_row) => WriteOperationResult::SingleRow(db_row),

@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
+use my_no_sql_core::db::DbTable;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
     app::AppContext,
-    db::DbTable,
     db_operations::DbOperationError,
     db_sync::{states::DeleteRowsEventSyncData, EventSource, SyncEvent},
 };
@@ -29,9 +29,13 @@ pub async fn bulk_delete(
             table_data.bulk_remove_rows(partition_key.as_str(), row_keys.iter(), true, now);
 
         if let Some(removed_rows_result) = removed_rows_result {
-            table_data
-                .data_to_persist
-                .mark_partition_to_persist(partition_key.as_str(), persist_moment);
+            app.persist_markers
+                .persist_partition(
+                    table_data.name.as_str(),
+                    partition_key.as_str(),
+                    persist_moment,
+                )
+                .await;
 
             if removed_rows_result.1 {
                 sync_data.new_deleted_partition(partition_key);
@@ -41,7 +45,7 @@ pub async fn bulk_delete(
         }
     }
 
-    crate::operations::sync::dispatch(app, Some(db_table), SyncEvent::DeleteRows(sync_data));
+    crate::operations::sync::dispatch(app, SyncEvent::DeleteRows(sync_data));
 
     Ok(())
 }

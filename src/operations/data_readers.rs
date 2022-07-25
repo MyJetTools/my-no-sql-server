@@ -30,7 +30,6 @@ pub async fn subscribe(
 
     crate::operations::sync::dispatch(
         app,
-        None,
         SyncEvent::TableFirstInit(TableFirstInitSyncData {
             db_table,
             data_reader,

@@ -1,8 +1,7 @@
 use std::sync::Arc;
 
 use my_json::json_reader::array_parser::ArrayToJsonObjectsSplitter;
-
-use crate::{
+use my_no_sql_core::{
     db::DbPartition,
     db_json_entity::{DbJsonEntity, JsonTimeStamp},
 };

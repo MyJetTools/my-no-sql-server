@@ -1,31 +1,31 @@
 use std::sync::Arc;
 
-use rust_extensions::{ApplicationStates, StopWatch};
+use my_no_sql_core::db::DbTable;
+use rust_extensions::{date_time::DateTimeAsMicroseconds, StopWatch};
 
 use crate::{
     app::{logs::SystemProcess, AppContext},
-    db::DbTable,
-    persist_operations::data_to_persist::PersistResult,
+    persist::data_to_persist::PersistResult,
 };
 
-pub enum PersistType {
-    Dedicated(Arc<DbTable>),
-    Common,
-}
-
-pub async fn persist(app: &Arc<AppContext>, persist_type: &PersistType) {
+pub async fn persist(app: &Arc<AppContext>) {
     let is_shutting_down = app.states.is_shutting_down();
 
     loop {
-        let tables = match persist_type {
-            PersistType::Dedicated(db_table) => vec![db_table.clone()],
-            PersistType::Common => app.db.get_tables_with_common_persist_thread().await,
-        };
+        let tables = app.db.get_tables().await;
 
         let mut has_something_to_persist = false;
 
         for db_table in tables {
-            if let Some(persist_result) = db_table.get_what_to_persist(is_shutting_down).await {
+            if let Some(persist_result) = app
+                .persist_markers
+                .get_job_to_persist(
+                    db_table.name.as_str(),
+                    DateTimeAsMicroseconds::now(),
+                    is_shutting_down,
+                )
+                .await
+            {
                 has_something_to_persist = true;
                 let mut sw = StopWatch::new();
                 sw.start();
@@ -38,9 +38,11 @@ pub async fn persist(app: &Arc<AppContext>, persist_type: &PersistType) {
 
                 sw.pause();
 
-                db_table
-                    .update_last_persist_time(result.is_ok(), sw.duration())
-                    .await;
+                if result.is_ok() {
+                    app.persist_markers
+                        .set_persisted(db_table.name.as_str(), sw.duration())
+                        .await;
+                }
 
                 if let Err(err) = result {
                     app.logs.add_fatal_error(

@@ -1,7 +1,5 @@
 use std::time::Duration;
 
-use rust_extensions::ApplicationStates;
-
 use crate::app::AppContext;
 
 pub async fn execute(app: &AppContext) {

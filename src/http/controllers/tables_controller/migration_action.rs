@@ -1,14 +1,10 @@
 use flurl::FlUrl;
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput, WebContentType};
+use my_no_sql_core::db_json_entity::JsonTimeStamp;
 
 use std::sync::Arc;
 
-use crate::{
-    app::AppContext,
-    db_json_entity::{DbJsonEntity, JsonTimeStamp},
-    db_sync::EventSource,
-    http::contracts::input_params,
-};
+use crate::{app::AppContext, db_sync::EventSource, http::contracts::input_params};
 
 use super::models::TableMigrationInputContract;
 
@@ -55,7 +51,9 @@ async fn handle_request(
     let body = response.receive_body().await.unwrap();
 
     let now = JsonTimeStamp::now();
-    let rows_by_partition = DbJsonEntity::parse_as_btreemap(body.as_slice(), &now)?;
+
+    let rows_by_partition =
+        crate::db_operations::parse_json_entity::as_btree_map(body.as_slice(), &now)?;
 
     let partitions_count = rows_by_partition.len();
 

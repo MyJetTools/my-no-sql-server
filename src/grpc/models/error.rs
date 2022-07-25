@@ -1,4 +1,4 @@
-use crate::db_json_entity::DbEntityParseFail;
+use my_no_sql_core::db_json_entity::DbEntityParseFail;
 
 #[derive(Debug)]
 pub enum GrpcContractConvertError {

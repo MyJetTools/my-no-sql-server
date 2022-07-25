@@ -1,12 +1,6 @@
-use rust_extensions::date_time::DateTimeAsMicroseconds;
+use crate::{app::AppContext, data_readers::DataReaderConnection, db_sync::SyncEvent};
 
-use crate::{app::AppContext, data_readers::DataReaderConnection, db::DbTable, db_sync::SyncEvent};
-
-pub fn dispatch(app: &AppContext, db_table: Option<&DbTable>, sync_event: SyncEvent) {
-    if let Some(db_table) = db_table {
-        db_table.set_last_update_time(DateTimeAsMicroseconds::now());
-    }
-
+pub fn dispatch(app: &AppContext, sync_event: SyncEvent) {
     app.sync.send(sync_event);
 }
 

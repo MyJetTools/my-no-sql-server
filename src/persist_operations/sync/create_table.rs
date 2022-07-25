@@ -1,4 +1,6 @@
-use crate::{app::AppContext, db::DbTable};
+use my_no_sql_core::db::DbTable;
+
+use crate::app::AppContext;
 
 pub async fn create_table(app: &AppContext, db_table: &DbTable) {
     app.persist_io

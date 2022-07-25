@@ -5,8 +5,7 @@ use my_http_server_controllers::controllers::actions::PostAction;
 use my_http_server_controllers::controllers::documentation::data_types::HttpDataType;
 use my_http_server_controllers::controllers::documentation::out_results::HttpResult;
 use my_http_server_controllers::controllers::documentation::HttpActionDescription;
-
-use crate::db_json_entity::{DbJsonEntity, JsonTimeStamp};
+use my_no_sql_core::db_json_entity::JsonTimeStamp;
 
 use crate::app::AppContext;
 use crate::db_sync::EventSource;
@@ -57,7 +56,9 @@ impl PostAction for InsertRowAction {
             input_data.table_name.as_str(),
         )
         .await?;
-        let db_json_entity = DbJsonEntity::parse(input_data.body.as_slice())?;
+
+        let db_json_entity =
+            crate::db_operations::parse_json_entity::as_single_entity(input_data.body.as_slice())?;
 
         crate::db_operations::write::insert::validate_before(
             self.app.as_ref(),

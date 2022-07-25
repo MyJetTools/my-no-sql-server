@@ -1,11 +1,9 @@
 use std::collections::HashMap;
 
+use my_no_sql_core::db::{db_snapshots::DbTableSnapshot, DbTable};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-use crate::{
-    app::AppContext,
-    db::{db_snapshots::DbTableSnapshot, DbTable},
-};
+use crate::app::AppContext;
 
 use super::super::sync;
 

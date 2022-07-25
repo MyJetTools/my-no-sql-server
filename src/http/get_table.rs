@@ -1,11 +1,9 @@
 use std::sync::Arc;
 
 use my_http_server::{HttpFailResult, WebContentType};
+use my_no_sql_core::db::DbTable;
 
-use crate::{
-    app::AppContext, db::DbTable,
-    http::mappers::db_operation_error::OPERATION_FAIL_HTTP_STATUS_CODE,
-};
+use crate::{app::AppContext, http::mappers::db_operation_error::OPERATION_FAIL_HTTP_STATUS_CODE};
 
 use super::mappers::{OperationFailHttpContract, OperationFailReason};
 

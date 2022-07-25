@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
-use crate::db::DbTable;
+use my_no_sql_core::db::DbTable;
 
 pub struct DataReaderUpdatableData {
     tables: HashMap<String, Arc<DbTable>>,

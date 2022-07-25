@@ -1,11 +1,9 @@
 use std::{collections::BTreeMap, sync::Arc};
 
+use my_no_sql_core::db_json_entity::{DbEntityParseFail, DbJsonEntity, JsonTimeStamp};
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    db_json_entity::{DbEntityParseFail, DbJsonEntity, JsonTimeStamp},
-    db_transactions::steps::{TransactionalOperationStep, UpdateRowsStepState},
-};
+use crate::db_transactions::steps::{TransactionalOperationStep, UpdateRowsStepState};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CleanTableTransactionJsonModel {

@@ -1,10 +1,7 @@
+use my_no_sql_core::db::{DbTable, UpdateExpirationTimeModel, UpdatePartitionReadMoment};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-use crate::{
-    app::AppContext,
-    db::{DbTable, UpdateExpirationTimeModel, UpdatePartitionReadMoment},
-    db_operations::DbOperationError,
-};
+use crate::{app::AppContext, db_operations::DbOperationError};
 
 use super::super::ReadOperationResult;
 

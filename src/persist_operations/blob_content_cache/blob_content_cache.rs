@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 
+use my_no_sql_core::db::{
+    db_snapshots::DbPartitionSnapshot, DbTableAttributesSnapshot, DbTableInner,
+};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 use tokio::sync::RwLock;
-
-use crate::db::{db_snapshots::DbPartitionSnapshot, DbTableAttributesSnapshot, DbTableData};
 
 use super::PersistedTableData;
 
@@ -29,7 +30,7 @@ impl BlobContentCache {
         read_access.contains_key(table_name)
     }
 
-    pub async fn init(&self, table_data: &DbTableData, attr: DbTableAttributesSnapshot) {
+    pub async fn init(&self, table_data: &DbTableInner, attr: DbTableAttributesSnapshot) {
         let data_to_insert = PersistedTableData::init(table_data, attr);
         let mut write_access = self.data_by_table.write().await;
         write_access.insert(table_data.name.to_string(), data_to_insert);

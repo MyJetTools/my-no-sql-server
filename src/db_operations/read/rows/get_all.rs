@@ -1,9 +1,9 @@
 use my_json::json_writer::JsonArrayWriter;
+use my_no_sql_core::db::{DbTable, UpdateExpirationTimeModel};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
     app::AppContext,
-    db::{DbTable, UpdateExpirationTimeModel},
     db_operations::{read::read_filter::DbRowsFilter, DbOperationError},
 };
 

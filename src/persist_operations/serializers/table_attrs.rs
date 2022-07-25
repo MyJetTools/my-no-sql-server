@@ -1,4 +1,4 @@
-use crate::db::DbTableAttributesSnapshot;
+use my_no_sql_core::db::DbTableAttributesSnapshot;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 use serde::{Deserialize, Serialize};
 

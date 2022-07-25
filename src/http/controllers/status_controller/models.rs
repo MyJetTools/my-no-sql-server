@@ -1,4 +1,4 @@
-use crate::app::{AppContext, RequestMetric};
+use crate::app::AppContext;
 use my_http_server_swagger::*;
 use rust_extensions::{date_time::DateTimeAsMicroseconds, ApplicationStates};
 use serde::{Deserialize, Serialize};
@@ -22,15 +22,13 @@ pub struct TableModel {
     #[serde(rename = "lastUpdateTime")]
     pub last_update_time: i64,
     #[serde(rename = "lastPersistTime")]
-    pub last_persist_time: i64,
+    pub last_persist_time: Option<i64>,
     #[serde(rename = "lastPersistDuration")]
     pub last_persist_duration: Vec<usize>,
     #[serde(rename = "nextPersistTime")]
     pub next_persist_time: Option<i64>,
     #[serde(rename = "persistAmount")]
     pub persist_amount: usize,
-    #[serde(rename = "hasCommonThread")]
-    pub has_common_thread: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
@@ -66,9 +64,13 @@ impl StatusModel {
         let mut tables_model = Vec::new();
 
         for table in &tables {
-            let read_access = table.data.read().await;
+            let metrics = crate::operations::get_table_metrics(app, table.as_ref()).await;
 
-            let metrics = read_access.get_metrics(table.as_ref());
+            let last_persist_time = if let Some(last_persist_time) = metrics.last_persist_time {
+                Some(last_persist_time.unix_microseconds)
+            } else {
+                None
+            };
 
             let table_model = TableModel {
                 name: table.name.clone(),
@@ -77,9 +79,8 @@ impl StatusModel {
                 expiration_index_records_amount: metrics.expiration_index_records_amount,
                 records_amount: metrics.records_amount,
                 last_update_time: metrics.last_update_time.unix_microseconds,
-                last_persist_time: metrics.last_persist_time.unix_microseconds,
+                last_persist_time,
                 persist_amount: metrics.persist_amount,
-                has_common_thread: table.persist_using_common_thread(),
                 last_persist_duration: metrics.last_persist_duration,
                 next_persist_time: if let Some(next_persist_time) = metrics.next_persist_time {
                     Some(next_persist_time.unix_microseconds)
@@ -156,31 +157,4 @@ async fn get_readers(app: &AppContext) -> (Vec<ReaderModel>, usize, usize) {
     }
 
     (result, tcp_count, http_count)
-}
-
-#[derive(MyHttpInput)]
-pub struct RequestActionInputContract {
-    #[http_query(name = "tableName"; description = "Name of a table")]
-    pub table_name: String,
-}
-
-#[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
-pub struct RequestContract {
-    pub moment: String,
-    pub action: String,
-    pub duration: String,
-    pub status_code: u16,
-    pub size: usize,
-}
-
-impl RequestContract {
-    pub fn from(src: RequestMetric) -> Self {
-        Self {
-            moment: src.moment.to_rfc3339(),
-            action: src.name,
-            duration: format!("{:?}", src.duration),
-            status_code: src.status_code,
-            size: src.result_size,
-        }
-    }
 }

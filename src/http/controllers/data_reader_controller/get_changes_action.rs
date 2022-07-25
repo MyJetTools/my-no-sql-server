@@ -5,11 +5,11 @@ use my_http_server_controllers::controllers::{
     actions::PostAction,
     documentation::{data_types::HttpDataType, out_results::HttpResult, HttpActionDescription},
 };
+use my_no_sql_core::db::UpdateExpirationTimeModel;
 
 use crate::{
     app::AppContext,
     data_readers::{http_connection::HttpPayload, DataReaderConnection},
-    db::UpdateExpirationTimeModel,
     db_operations::DbOperationError,
     db_sync::EventSource,
     http::http_sessions::HttpSessionsSupport,

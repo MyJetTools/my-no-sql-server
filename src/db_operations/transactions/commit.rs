@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
+use my_no_sql_core::db_json_entity::JsonTimeStamp;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
-    app::AppContext, db_json_entity::JsonTimeStamp, db_sync::EventSource,
-    db_transactions::steps::TransactionalOperationStep,
+    app::AppContext, db_sync::EventSource, db_transactions::steps::TransactionalOperationStep,
 };
 
 use super::TransactionOperationError;

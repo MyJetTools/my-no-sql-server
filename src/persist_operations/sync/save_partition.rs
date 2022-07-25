@@ -1,6 +1,7 @@
+use my_no_sql_core::db::DbTable;
+
 use crate::{
-    app::AppContext, db::DbTable,
-    persist_operations::blob_content_cache::BlobPartitionUpdateTimeResult,
+    app::AppContext, persist_operations::blob_content_cache::BlobPartitionUpdateTimeResult,
 };
 
 use super::super::sync;

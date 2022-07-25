@@ -2,12 +2,14 @@ use std::sync::Arc;
 
 use crate::{
     app::AppContext,
-    db::{DbRow, DbTable, UpdatePartitionReadMoment},
-    db_json_entity::JsonTimeStamp,
     db_operations::DbOperationError,
     db_sync::{states::UpdateRowsSyncData, EventSource, SyncEvent},
 };
 
+use my_no_sql_core::{
+    db::{DbRow, DbTable, UpdatePartitionReadMoment},
+    db_json_entity::JsonTimeStamp,
+};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 use serde::{Deserialize, Serialize};
 
@@ -95,20 +97,20 @@ pub async fn execute(
 
     table_data.insert_row(&db_row, now);
 
-    table_data
-        .data_to_persist
-        .mark_partition_to_persist(db_row.partition_key.as_str(), persist_moment);
+    app.persist_markers
+        .persist_partition(
+            db_table.name.as_str(),
+            db_row.partition_key.as_ref(),
+            persist_moment,
+        )
+        .await;
 
     let mut update_rows_state =
         UpdateRowsSyncData::new(&table_data, db_table.attributes.get_persist(), event_src);
 
     update_rows_state.rows_by_partition.add_row(db_row);
 
-    crate::operations::sync::dispatch(
-        app,
-        db_table.into(),
-        SyncEvent::UpdateRows(update_rows_state),
-    );
+    crate::operations::sync::dispatch(app, SyncEvent::UpdateRows(update_rows_state));
 
     match remove_result {
         Some(db_row) => Ok(WriteOperationResult::SingleRow(db_row)),

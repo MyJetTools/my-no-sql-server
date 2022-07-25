@@ -1,8 +1,6 @@
-use crate::{
-    db::{DbPartition, DbTableAttributesSnapshot},
-    persist_io::TableFile,
-    persist_operations::serializers::TableMetadataFileContract,
-};
+use my_no_sql_core::db::{DbPartition, DbTableAttributesSnapshot};
+
+use crate::{persist_io::TableFile, persist_operations::serializers::TableMetadataFileContract};
 
 pub enum LoadedTableItem {
     TableAttributes(DbTableAttributesSnapshot),

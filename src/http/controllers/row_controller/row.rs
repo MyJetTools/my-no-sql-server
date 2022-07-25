@@ -4,9 +4,8 @@ use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
 use my_http_server_controllers::controllers::actions::{DeleteAction, GetAction, PutAction};
 use my_http_server_controllers::controllers::documentation::out_results::HttpResult;
 use my_http_server_controllers::controllers::documentation::HttpActionDescription;
-
-use crate::db::UpdateExpirationTimeModel;
-use crate::db_json_entity::{DbJsonEntity, JsonTimeStamp};
+use my_no_sql_core::db::UpdateExpirationTimeModel;
+use my_no_sql_core::db_json_entity::JsonTimeStamp;
 
 use crate::db_operations;
 
@@ -212,7 +211,8 @@ impl PutAction for RowAction {
 
         let now = JsonTimeStamp::now();
 
-        let db_json_entity = DbJsonEntity::parse(input_data.body.as_ref())?;
+        let db_json_entity =
+            crate::db_operations::parse_json_entity::as_single_entity(input_data.body.as_slice())?;
 
         crate::db_operations::write::replace::validate_before(
             self.app.as_ref(),

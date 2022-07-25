@@ -1,8 +1,9 @@
-use crate::{
+use std::sync::Arc;
+
+use my_no_sql_core::{
     db::DbRow,
     db_json_entity::{DbJsonEntity, JsonTimeStamp},
 };
-use std::sync::Arc;
 
 use super::GrpcContractConvertError;
 

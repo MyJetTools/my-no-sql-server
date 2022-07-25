@@ -1,11 +1,13 @@
 use std::{collections::BTreeMap, sync::Arc};
 
+use my_no_sql_core::{
+    db::{DbRow, DbTable},
+    db_json_entity::JsonTimeStamp,
+};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
     app::AppContext,
-    db::{DbRow, DbTable},
-    db_json_entity::JsonTimeStamp,
     db_operations::DbOperationError,
     db_sync::{states::UpdateRowsSyncData, EventSource, SyncEvent},
 };
@@ -35,19 +37,17 @@ pub async fn execute(
             .rows_by_partition
             .add_rows(partition_key.as_str(), db_rows);
 
-        table_data
-            .data_to_persist
-            .mark_partition_to_persist(partition_key.as_str(), persist_moment);
+        app.persist_markers
+            .persist_partition(
+                table_data.name.as_str(),
+                partition_key.as_str(),
+                persist_moment,
+            )
+            .await;
     }
 
     if has_insert_or_replace {
-        db_table.set_last_update_time(DateTimeAsMicroseconds::now());
-
-        crate::operations::sync::dispatch(
-            app,
-            db_table.as_ref().into(),
-            SyncEvent::UpdateRows(update_rows_state),
-        );
+        crate::operations::sync::dispatch(app, SyncEvent::UpdateRows(update_rows_state));
     }
 
     Ok(())

@@ -9,6 +9,7 @@ pub enum PersistResult {
 }
 
 impl PersistResult {
+    #[cfg(test)]
     pub fn is_table(&self) -> bool {
         match self {
             PersistResult::PersistAttrs => false,
@@ -25,7 +26,7 @@ pub struct DataToPersist {
 }
 
 impl DataToPersist {
-    pub fn persist_amount(&self) -> usize {
+    pub fn get_persist_amount(&self) -> usize {
         let mut result = if self.persist_attrs { 1 } else { 0 };
         result += self.partitions.len();
 

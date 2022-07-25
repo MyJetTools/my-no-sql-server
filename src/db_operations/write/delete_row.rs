@@ -1,11 +1,10 @@
 use std::sync::Arc;
 
+use my_no_sql_core::{db::DbTable, db_json_entity::JsonTimeStamp};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
     app::AppContext,
-    db::DbTable,
-    db_json_entity::JsonTimeStamp,
     db_operations::DbOperationError,
     db_sync::{states::DeleteRowsEventSyncData, EventSource, SyncEvent},
 };
@@ -35,9 +34,9 @@ pub async fn execute(
     let mut sync_data =
         DeleteRowsEventSyncData::new(&table_data, db_table.attributes.get_persist(), event_src);
 
-    table_data
-        .data_to_persist
-        .mark_partition_to_persist(partition_key, persist_moment);
+    app.persist_markers
+        .persist_partition(db_table.name.as_str(), partition_key, persist_moment)
+        .await;
 
     if partition_is_empty {
         sync_data.new_deleted_partition(partition_key.to_string());
@@ -45,11 +44,7 @@ pub async fn execute(
         sync_data.add_deleted_row(partition_key, removed_row.clone())
     }
 
-    crate::operations::sync::dispatch(
-        app,
-        db_table.as_ref().into(),
-        SyncEvent::DeleteRows(sync_data),
-    );
+    crate::operations::sync::dispatch(app, SyncEvent::DeleteRows(sync_data));
 
     let result = WriteOperationResult::SingleRow(removed_row).into();
     Ok(result)

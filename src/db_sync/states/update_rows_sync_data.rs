@@ -1,7 +1,6 @@
-use crate::{
-    db::{db_snapshots::DbRowsByPartitionsSnapshot, DbTableData},
-    db_sync::EventSource,
-};
+use my_no_sql_core::db::{db_snapshots::DbRowsByPartitionsSnapshot, DbTableInner};
+
+use crate::db_sync::EventSource;
 
 use super::SyncTableData;
 
@@ -12,7 +11,7 @@ pub struct UpdateRowsSyncData {
 }
 
 impl UpdateRowsSyncData {
-    pub fn new(table_data: &DbTableData, persist: bool, event_src: EventSource) -> Self {
+    pub fn new(table_data: &DbTableInner, persist: bool, event_src: EventSource) -> Self {
         Self {
             table_data: SyncTableData::new(table_data, persist),
             event_src,

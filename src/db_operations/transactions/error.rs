@@ -1,4 +1,6 @@
-use crate::{db_json_entity::DbEntityParseFail, db_operations::DbOperationError};
+use my_no_sql_core::db_json_entity::DbEntityParseFail;
+
+use crate::db_operations::DbOperationError;
 
 #[derive(Debug)]
 pub enum TransactionOperationError {

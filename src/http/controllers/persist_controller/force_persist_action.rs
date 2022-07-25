@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 
-use crate::{app::AppContext, operations::PersistType};
+use crate::app::AppContext;
 
 #[my_http_server_swagger::http_route(
     method: "POST",
@@ -27,7 +27,6 @@ async fn handle_request(
     action: &ForcePersistAction,
     _ctx: &HttpContext,
 ) -> Result<HttpOkResult, HttpFailResult> {
-    let persist_type = PersistType::Common;
-    crate::operations::persist(&action.app, &persist_type).await;
+    crate::operations::persist(&action.app).await;
     return Ok(HttpOutput::Empty.into_ok_result(true));
 }

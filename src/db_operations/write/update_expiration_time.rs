@@ -1,8 +1,8 @@
+use my_no_sql_core::db::{DbTable, UpdateExpirationTimeModel, UpdatePartitionReadMoment};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
     app::AppContext,
-    db::{DbTable, UpdateExpirationTimeModel, UpdatePartitionReadMoment},
     db_operations::DbOperationError,
     db_sync::{states::UpdateRowsSyncData, EventSource, SyncEvent},
 };
@@ -44,11 +44,7 @@ pub async fn update_expiration_time(
     }
 
     if update_sync_data.rows_by_partition.has_elements() {
-        crate::operations::sync::dispatch(
-            app,
-            db_table.into(),
-            SyncEvent::UpdateRows(update_sync_data),
-        );
+        crate::operations::sync::dispatch(app, SyncEvent::UpdateRows(update_sync_data));
     }
 
     Ok(())

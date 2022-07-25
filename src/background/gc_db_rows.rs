@@ -1,12 +1,12 @@
 use std::{collections::HashMap, sync::Arc};
 
-use rust_extensions::{date_time::DateTimeAsMicroseconds, MyTimerTick};
+use my_no_sql_core::db::DbTable;
+use rust_extensions::{date_time::DateTimeAsMicroseconds, lazy::LazyVec, MyTimerTick};
 
 use crate::{
     app::{logs::SystemProcess, AppContext},
-    db::DbTable,
     db_sync::EventSource,
-    utils::{LazyHashMap, LazyVec},
+    utils::LazyHashMap,
 };
 
 struct DataToExpire {
@@ -101,7 +101,7 @@ async fn get_data_to_expire(app: &AppContext, now: DateTimeAsMicroseconds) -> Da
             if let Some(partitions_to_expire) =
                 table_read_access.get_partitions_to_expire(max_amount)
             {
-                tables_with_partitions_to_expire.push((table.clone(), partitions_to_expire));
+                tables_with_partitions_to_expire.add((table.clone(), partitions_to_expire));
             }
         }
 
@@ -110,7 +110,7 @@ async fn get_data_to_expire(app: &AppContext, now: DateTimeAsMicroseconds) -> Da
         for (partition_key, db_partition) in &table_read_access.partitions {
             if db_partition.get_rows_amount() == 0 {
                 tables_with_partitions_to_expire
-                    .push((table.clone(), vec![partition_key.to_string()]));
+                    .add((table.clone(), vec![partition_key.to_string()]));
             }
             if let Some(rows_to_expire) = db_partition.get_rows_to_expire(now) {
                 db_rows_to_expire.insert(partition_key.to_string(), rows_to_expire);
@@ -118,7 +118,7 @@ async fn get_data_to_expire(app: &AppContext, now: DateTimeAsMicroseconds) -> Da
         }
 
         if let Some(db_rows) = db_rows_to_expire.get_result() {
-            rows_to_expire_by_table.push((table.clone(), db_rows));
+            rows_to_expire_by_table.add((table.clone(), db_rows));
         }
     }
 

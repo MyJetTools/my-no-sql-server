@@ -3,10 +3,9 @@ use std::sync::{
     Arc,
 };
 
+use my_no_sql_core::db::DbTable;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 use tokio::sync::RwLock;
-
-use crate::db::DbTable;
 
 use super::{DataReaderConnection, DataReaderUpdatableData};
 

@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 
+use my_no_sql_core::db::{DbPartition, DbTableAttributesSnapshot, DbTableInner};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
-
-use crate::db::{DbPartition, DbTableAttributesSnapshot, DbTableData};
 
 pub enum FileStatus {
     Waiting,
@@ -90,8 +89,8 @@ impl LoadTableTask {
         self.files_list_is_loaded = true;
     }
 
-    pub fn get_result(mut self, table_name: String) -> (DbTableData, DbTableAttributesSnapshot) {
-        let mut db_table_data = DbTableData::new(table_name, DateTimeAsMicroseconds::now());
+    pub fn get_result(mut self, table_name: String) -> (DbTableInner, DbTableAttributesSnapshot) {
+        let mut db_table_data = DbTableInner::new(table_name, DateTimeAsMicroseconds::now());
 
         let mut attr = self.attr.take();
 

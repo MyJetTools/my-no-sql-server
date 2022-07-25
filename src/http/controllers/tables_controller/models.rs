@@ -1,7 +1,8 @@
 use my_http_server_swagger::*;
+use my_no_sql_core::db::DbTable;
 use serde::{Deserialize, Serialize};
 
-use crate::{db::DbTable, db_sync::DataSynchronizationPeriod};
+use crate::db_sync::DataSynchronizationPeriod;
 
 #[derive(MyHttpInput)]
 pub struct GetTableSizeContract {
@@ -84,10 +85,4 @@ pub struct DeleteTableContract {
     pub table_name: String,
     #[http_header(name = "apikey"; description = "Api Key protecting the table to be deleted")]
     pub api_key: String,
-}
-
-#[derive(MyHttpInput)]
-pub struct SpawnPersistThreadInputContract {
-    #[http_query(name = "tableName"; description = "Name of a table")]
-    pub table_name: String,
 }

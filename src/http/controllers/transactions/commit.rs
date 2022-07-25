@@ -1,11 +1,10 @@
-use crate::{
-    app::AppContext, db_json_entity::JsonTimeStamp, db_sync::EventSource, http::contracts::response,
-};
+use crate::{app::AppContext, db_sync::EventSource, http::contracts::response};
 use async_trait::async_trait;
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 use my_http_server_controllers::controllers::{
     actions::PostAction, documentation::HttpActionDescription,
 };
+use my_no_sql_core::db_json_entity::JsonTimeStamp;
 use std::sync::Arc;
 
 use super::models::ProcessTransactionInputModel;

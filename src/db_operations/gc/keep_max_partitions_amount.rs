@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
+use my_no_sql_core::db::{DbTable, DbTableInner};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
     app::AppContext,
-    db::{DbTable, DbTableData},
     db_operations::DbOperationError,
     db_sync::{states::InitPartitionsSyncData, EventSource, SyncEvent},
 };
@@ -34,15 +34,16 @@ pub async fn keep_max_partitions_amount(
         event_src,
         max_partitions_amount,
         persist_moment,
-    )?;
+    )
+    .await?;
 
     Ok(())
 }
 
-pub fn gc_partitions(
+pub async fn gc_partitions(
     app: &AppContext,
     db_table: &DbTable,
-    table_data: &mut DbTableData,
+    table_data: &mut DbTableInner,
     event_src: EventSource,
     max_partitions_amount: usize,
     persist_moment: DateTimeAsMicroseconds,
@@ -57,18 +58,18 @@ pub fn gc_partitions(
 
     if let Some(gced_partitions) = gced_partitions_result {
         for (partition_key, _) in gced_partitions {
-            table_data
-                .data_to_persist
-                .mark_partition_to_persist(partition_key.as_ref(), persist_moment);
+            app.persist_markers
+                .persist_partition(
+                    &table_data.name.as_str(),
+                    partition_key.as_ref(),
+                    persist_moment,
+                )
+                .await;
 
             sync_state.add(partition_key, None);
         }
 
-        crate::operations::sync::dispatch(
-            app,
-            db_table.into(),
-            SyncEvent::InitPartitions(sync_state),
-        );
+        crate::operations::sync::dispatch(app, SyncEvent::InitPartitions(sync_state));
     }
 
     Ok(())

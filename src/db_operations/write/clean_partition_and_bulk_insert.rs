@@ -1,11 +1,13 @@
 use std::{collections::BTreeMap, sync::Arc};
 
+use my_no_sql_core::{
+    db::{DbRow, DbTable},
+    db_json_entity::JsonTimeStamp,
+};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
     app::AppContext,
-    db::{DbRow, DbTable},
-    db_json_entity::JsonTimeStamp,
     db_operations::DbOperationError,
     db_sync::{states::InitPartitionsSyncData, EventSource, SyncEvent},
 };
@@ -28,9 +30,9 @@ pub async fn execute(
         table_data.bulk_insert_or_replace(partition_key.as_str(), &db_rows, now);
     }
 
-    table_data
-        .data_to_persist
-        .mark_partition_to_persist(partition_key, persist_moment);
+    app.persist_markers
+        .persist_partition(table_data.name.as_str(), partition_key, persist_moment)
+        .await;
 
     let state = InitPartitionsSyncData::new_as_update_partition(
         &table_data,
@@ -39,11 +41,7 @@ pub async fn execute(
         db_table.attributes.get_persist(),
     );
 
-    crate::operations::sync::dispatch(
-        app,
-        db_table.as_ref().into(),
-        SyncEvent::InitPartitions(state),
-    );
+    crate::operations::sync::dispatch(app, SyncEvent::InitPartitions(state));
 
     Ok(())
 }

@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
+use my_no_sql_core::db::{DbTable, DbTableAttributesSnapshot, DbTableInner};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::db_operations::validation;
 use crate::{
     app::AppContext,
-    db::{DbTable, DbTableAttributesSnapshot, DbTableData},
     db_operations::DbOperationError,
     db_sync::{
         states::{
@@ -36,25 +36,23 @@ pub async fn create(
     match create_table_result {
         CreateTableResult::JustCreated(db_table) => {
             {
-                let mut table_data = db_table.data.write().await;
+                let table_data = db_table.data.write().await;
 
-                table_data.data_to_persist.mark_persist_attrs();
-                table_data
-                    .data_to_persist
-                    .mark_table_to_persist(persist_moment);
+                app.persist_markers
+                    .persist_table(db_table.name.as_str(), persist_moment)
+                    .await;
+
+                app.persist_markers
+                    .persist_table(db_table.name.as_str(), persist_moment)
+                    .await;
 
                 let state = InitTableEventSyncData::new(
-                    db_table.as_ref(),
                     &table_data,
                     db_table.attributes.get_snapshot(),
                     event_src,
                 );
 
-                crate::operations::sync::dispatch(
-                    app,
-                    db_table.as_ref().into(),
-                    SyncEvent::InitTable(state),
-                );
+                crate::operations::sync::dispatch(app, SyncEvent::InitTable(state));
             }
 
             return Ok(db_table);
@@ -82,25 +80,22 @@ async fn get_or_create(
     match create_table_result {
         CreateTableResult::JustCreated(db_table) => {
             {
-                let mut table_data = db_table.data.write().await;
+                let table_data = db_table.data.write().await;
                 let state = InitTableEventSyncData::new(
-                    db_table.as_ref(),
                     &table_data,
                     db_table.attributes.get_snapshot(),
                     event_src,
                 );
 
-                crate::operations::sync::dispatch(
-                    app,
-                    db_table.as_ref().into(),
-                    SyncEvent::InitTable(state),
-                );
+                crate::operations::sync::dispatch(app, SyncEvent::InitTable(state));
 
-                table_data
-                    .data_to_persist
-                    .mark_table_to_persist(persist_moment);
+                app.persist_markers
+                    .persist_table(db_table.name.as_str(), persist_moment)
+                    .await;
 
-                table_data.data_to_persist.mark_persist_attrs();
+                app.persist_markers
+                    .persist_table_attrs(db_table.name.as_str())
+                    .await;
             }
 
             return Ok(db_table);
@@ -173,7 +168,6 @@ pub async fn set_table_attrubutes(
 
     crate::operations::sync::dispatch(
         app,
-        db_table.as_ref().into(),
         SyncEvent::UpdateTableAttributes(UpdateTableAttributesSyncData {
             table_data: SyncTableData {
                 table_name: db_table.name.to_string(),
@@ -185,8 +179,9 @@ pub async fn set_table_attrubutes(
         }),
     );
 
-    let mut table_access = db_table.data.write().await;
-    table_access.data_to_persist.mark_persist_attrs();
+    app.persist_markers
+        .persist_table_attrs(db_table.name.as_str())
+        .await;
 
     Ok(())
 }
@@ -207,15 +202,14 @@ pub async fn delete(
     let db_table = result.unwrap();
 
     {
-        let mut table_data = db_table.data.write().await;
+        let table_data = db_table.data.read().await;
 
-        table_data
-            .data_to_persist
-            .mark_table_to_persist(persist_moment);
+        app.persist_markers
+            .persist_table(db_table.name.as_str(), persist_moment)
+            .await;
 
         crate::operations::sync::dispatch(
             app.as_ref(),
-            db_table.as_ref().into(),
             SyncEvent::DeleteTable(DeleteTableSyncData::new(
                 &table_data,
                 event_src,
@@ -235,7 +229,7 @@ pub async fn delete(
 
 pub async fn init(
     app: &AppContext,
-    table_data: DbTableData,
+    table_data: DbTableInner,
     attributes: DbTableAttributesSnapshot,
 ) {
     app.blob_content_cache
@@ -272,7 +266,7 @@ async fn get_or_create_table(
         created: now,
     };
 
-    let db_table_data = DbTableData::new(table_name.to_string(), DateTimeAsMicroseconds::now());
+    let db_table_data = DbTableInner::new(table_name.to_string(), DateTimeAsMicroseconds::now());
 
     let new_table = DbTable::new(db_table_data, table_attributes);
 

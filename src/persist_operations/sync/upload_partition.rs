@@ -1,4 +1,6 @@
-use crate::{app::AppContext, db::db_snapshots::DbPartitionSnapshot, persist_io::TableFile};
+use my_no_sql_core::db::db_snapshots::DbPartitionSnapshot;
+
+use crate::{app::AppContext, persist_io::TableFile};
 
 pub async fn upload_partition(
     app: &AppContext,

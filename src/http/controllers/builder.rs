@@ -117,10 +117,6 @@ pub fn build(app: &Arc<AppContext>) -> ControllersMiddleware {
         app.clone(),
     )));
 
-    result.register_post_action(Arc::new(
-        super::tables_controller::SpawnPersistThreadAction::new(app.clone()),
-    ));
-
     result.register_post_action(Arc::new(super::row_controller::InsertOrReplaceAction::new(
         app.clone(),
     )));
@@ -190,10 +186,6 @@ pub fn build(app: &Arc<AppContext>) -> ControllersMiddleware {
     let force_persist_action = super::persist_controller::ForcePersistAction::new(app.clone());
 
     result.register_post_action(Arc::new(force_persist_action));
-
-    result.register_get_action(Arc::new(super::status_controller::RequestsAction::new(
-        app.clone(),
-    )));
 
     result
 }

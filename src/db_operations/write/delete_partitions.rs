@@ -1,8 +1,8 @@
+use my_no_sql_core::db::DbTable;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
     app::AppContext,
-    db::DbTable,
     db_operations::DbOperationError,
     db_sync::{states::InitPartitionsSyncData, EventSource, SyncEvent},
 };
@@ -27,15 +27,19 @@ pub async fn delete_partitions(
         let remove_partition_result = table_write_access.remove_partition(&partition_key);
 
         if remove_partition_result.is_some() {
-            table_write_access
-                .data_to_persist
-                .mark_partition_to_persist(partition_key.as_str(), persist_moment);
+            app.persist_markers
+                .persist_partition(
+                    db_table.name.as_str(),
+                    partition_key.as_str(),
+                    persist_moment,
+                )
+                .await;
 
             sync_data.add(partition_key, None);
         }
     }
 
-    crate::operations::sync::dispatch(app, db_table.into(), SyncEvent::InitPartitions(sync_data));
+    crate::operations::sync::dispatch(app, SyncEvent::InitPartitions(sync_data));
 
     Ok(())
 }

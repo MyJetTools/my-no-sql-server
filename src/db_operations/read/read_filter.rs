@@ -1,9 +1,8 @@
 use std::sync::Arc;
 
 use my_json::json_writer::JsonArrayWriter;
+use my_no_sql_core::db::DbRow;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
-
-use crate::db::DbRow;
 
 pub struct DbRowsFilter<'s, TIter: Iterator<Item = &'s Arc<DbRow>>> {
     pub iterator: TIter,

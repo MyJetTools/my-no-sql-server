@@ -6,7 +6,6 @@ pub mod data_reader_controller;
 pub mod gc_controller;
 pub mod home_controller;
 pub mod persist_controller;
-pub mod request_metrics_writer;
 
 pub mod logs_controller;
 pub mod multipart;

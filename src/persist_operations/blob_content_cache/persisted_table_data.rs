@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 
+use my_no_sql_core::db::{DbTableAttributesSnapshot, DbTableInner};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
-
-use crate::db::{DbTableAttributesSnapshot, DbTableData};
 
 pub struct PersistedTableData {
     pub attr: DbTableAttributesSnapshot,
@@ -17,7 +16,7 @@ impl PersistedTableData {
         }
     }
 
-    pub fn init(table_data: &DbTableData, attr: DbTableAttributesSnapshot) -> Self {
+    pub fn init(table_data: &DbTableInner, attr: DbTableAttributesSnapshot) -> Self {
         Self {
             attr,
             partitions: table_data.get_partitions_last_write_moment(),

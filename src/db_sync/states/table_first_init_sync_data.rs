@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use crate::{data_readers::DataReader, db::DbTable};
+use my_no_sql_core::db::DbTable;
+
+use crate::data_readers::DataReader;
 
 pub struct TableFirstInitSyncData {
     pub db_table: Arc<DbTable>,

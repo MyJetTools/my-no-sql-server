@@ -1,3 +1,5 @@
+use my_no_sql_core::db_json_entity::DbEntityParseFail;
+
 #[derive(Debug)]
 pub enum DbOperationError {
     TableNotFound(String),
@@ -8,6 +10,7 @@ pub enum DbOperationError {
     OptimisticConcurencyUpdateFails,
     TableNameValidationError(String),
     ApplicationIsNotInitializedYet,
+    DbEntityParseFail(DbEntityParseFail),
 }
 
 impl DbOperationError {

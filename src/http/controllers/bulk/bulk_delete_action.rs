@@ -1,8 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
-
-use crate::db_json_entity::JsonTimeStamp;
+use my_no_sql_core::db_json_entity::JsonTimeStamp;
 
 use crate::app::AppContext;
 use crate::db_sync::EventSource;
