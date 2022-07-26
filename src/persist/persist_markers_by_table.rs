@@ -26,6 +26,8 @@ impl PersistMarkersByTableInner {
         while self.persist_duration.len() > 120 {
             self.persist_duration.remove(0);
         }
+
+        self.last_persist_time = DateTimeAsMicroseconds::now().into();
     }
 }
 
@@ -120,10 +122,9 @@ impl PersistMarkersByTable {
             write_access.insert(table_name.to_string(), PersistMarkersByTableInner::new());
         }
 
-        write_access
-            .get_mut(table_name)
-            .unwrap()
-            .add_persist_duration(duration);
+        let table = write_access.get_mut(table_name).unwrap();
+
+        table.add_persist_duration(duration);
     }
 
     pub async fn get_persist_metrics(&self, table_name: &str) -> PersistMetrics {
