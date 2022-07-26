@@ -49,11 +49,17 @@ var HtmlSubscribersGenerator = /** @class */ (function () {
         for (var _i = 0, _a = tables.sort(function (a, b) { return a.name > b.name ? 1 : -1; }); _i < _a.length; _i++) {
             var table = _a[_i];
             var style = ' style="color:green" ';
-            if (table.lastPersistTime < table.lastUpdateTime) {
+            if (!table.lastPersistTime) {
+                style = ' style="color:gray" ';
+            }
+            else if (table.lastPersistTime < table.lastUpdateTime) {
                 style = ' style="color:red" ';
             }
             var lastUpdateTime = new Date(table.lastUpdateTime / 1000);
-            var lastPersistTime = new Date(table.lastPersistTime / 1000);
+            var lastPersistTime = "----";
+            if (table.lastPersistTime) {
+                lastPersistTime = new Date(table.lastPersistTime / 1000).toISOString();
+            }
             var nextPersistTime = "---";
             if (table.nextPersistTime) {
                 var as_time = new Date(table.nextPersistTime / 1000);
@@ -64,7 +70,7 @@ var HtmlSubscribersGenerator = /** @class */ (function () {
                 lineColor = ' style="background-color: #8bc34a4f" ';
             }
             html += '<tr ' + lineColor + '><td>' + table.name + '</td><td>' + table.persistAmount + '</td><td>' + table.dataSize + '</td><td>' + table.partitionsCount + '</td><td>' + table.recordsAmount + '</td><td>' + table.expirationIndex + '</td>' +
-                '<td' + style + '><div>UpdateTime: ' + lastUpdateTime.toISOString() + '</div><div>PersistTime: ' + lastPersistTime.toISOString() + '</div>' +
+                '<td' + style + '><div>UpdateTime: ' + lastUpdateTime.toISOString() + '</div><div>PersistTime: ' + lastPersistTime + '</div>' +
                 '<div>NextPersist: ' + nextPersistTime + '</div>' + HtmlGraph.renderGraph(table.lastPersistDuration, function (v) { return Utils.format_duration(v); }, function (v) { return v; }, function (v) { return false; }) + '</td></tr>';
             total_size += table.dataSize;
             total_partitions += table.partitionsCount;

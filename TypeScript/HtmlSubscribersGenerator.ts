@@ -68,12 +68,23 @@ class HtmlSubscribersGenerator {
 
             let style = ' style="color:green" ';
 
-            if (table.lastPersistTime < table.lastUpdateTime) {
-                style = ' style="color:red" ';
+
+            if (!table.lastPersistTime) {
+                style = ' style="color:gray" ';
             }
+            else
+                if (table.lastPersistTime < table.lastUpdateTime) {
+                    style = ' style="color:red" ';
+                }
 
             let lastUpdateTime = new Date(table.lastUpdateTime / 1000);
-            let lastPersistTime = new Date(table.lastPersistTime / 1000);
+
+            let lastPersistTime = "----";
+
+            if (table.lastPersistTime) {
+                lastPersistTime = new Date(table.lastPersistTime / 1000).toISOString();
+            }
+
 
             let nextPersistTime = "---";
 
@@ -93,7 +104,7 @@ class HtmlSubscribersGenerator {
 
 
             html += '<tr ' + lineColor + '><td>' + table.name + '</td><td>' + table.persistAmount + '</td><td>' + table.dataSize + '</td><td>' + table.partitionsCount + '</td><td>' + table.recordsAmount + '</td><td>' + table.expirationIndex + '</td>' +
-                '<td' + style + '><div>UpdateTime: ' + lastUpdateTime.toISOString() + '</div><div>PersistTime: ' + lastPersistTime.toISOString() + '</div>' +
+                '<td' + style + '><div>UpdateTime: ' + lastUpdateTime.toISOString() + '</div><div>PersistTime: ' + lastPersistTime + '</div>' +
                 '<div>NextPersist: ' + nextPersistTime + '</div>' + HtmlGraph.renderGraph(table.lastPersistDuration, v => Utils.format_duration(v), v => v, v => false) + '</td></tr>';
 
 
