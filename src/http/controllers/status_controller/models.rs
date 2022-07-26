@@ -6,9 +6,6 @@ use serde::{Deserialize, Serialize};
 use super::{non_initialized::NonInitializedModel, status_bar_model::StatusBarModel};
 
 #[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
-pub struct NodeModel {}
-
-#[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
 pub struct TableModel {
     pub name: String,
     #[serde(rename = "partitionsCount")]
@@ -45,6 +42,8 @@ pub struct ReaderModel {
     pub pending_to_send: usize,
     #[serde(rename = "sentPerSecond")]
     pub sent_per_second: Vec<usize>,
+    #[serde(rename = "isNode")]
+    pub is_node: bool,
 }
 #[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
 pub struct StatusModel {
@@ -109,18 +108,13 @@ impl StatusModel {
 }
 #[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
 pub struct InitializedModel {
-    pub nodes: Vec<NodeModel>,
     pub readers: Vec<ReaderModel>,
     pub tables: Vec<TableModel>,
 }
 
 impl InitializedModel {
     pub fn new(readers: Vec<ReaderModel>, tables: Vec<TableModel>) -> Self {
-        Self {
-            nodes: vec![],
-            readers,
-            tables,
-        }
+        Self { readers, tables }
     }
 }
 
@@ -152,6 +146,7 @@ async fn get_readers(app: &AppContext) -> (Vec<ReaderModel>, usize, usize) {
                 tables: metrics.tables,
                 pending_to_send: metrics.pending_to_send,
                 sent_per_second: data_reader.get_sent_per_second().await,
+                is_node: data_reader.is_node(),
             });
         }
     }

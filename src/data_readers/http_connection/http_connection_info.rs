@@ -38,7 +38,7 @@ impl HttpConnectionInfo {
         read_access.clone()
     }
 
-    pub async fn set_name(&self, name: String) {
+    pub async fn set_name_as_reader(&self, name: String) {
         let mut write_access = self.name.lock().await;
         *write_access = Some(name);
     }

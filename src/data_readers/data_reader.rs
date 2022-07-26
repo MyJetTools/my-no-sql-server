@@ -49,8 +49,12 @@ impl DataReader {
         read_access.has_table(table_name)
     }
 
-    pub async fn set_name(&self, name: String) {
-        self.connection.set_name(name).await;
+    pub async fn set_name_as_reader(&self, name: String) {
+        self.connection.set_name_as_reader(name).await;
+    }
+
+    pub async fn set_name_as_node(&self, location: String, version: String) {
+        self.connection.set_name_as_node(location, version).await;
     }
 
     pub async fn get_name(&self) -> Option<String> {
@@ -109,6 +113,13 @@ impl DataReader {
             name,
             tables: read_access.get_table_names(),
             pending_to_send,
+        }
+    }
+
+    pub fn is_node(&self) -> bool {
+        match &self.connection {
+            DataReaderConnection::Tcp(tcp_connection) => tcp_connection.is_node(),
+            DataReaderConnection::Http(_) => false,
         }
     }
 

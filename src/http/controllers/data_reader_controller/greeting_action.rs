@@ -52,7 +52,7 @@ impl PostAction for GreetingAction {
             .await;
 
         result
-            .set_name(format!("{}:{}", http_input.name, http_input.version))
+            .set_name_as_reader(format!("{}:{}", http_input.name, http_input.version))
             .await;
 
         let response = DataReaderGreetingResult {

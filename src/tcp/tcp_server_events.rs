@@ -35,7 +35,29 @@ impl TcpServerEvents {
                         format!("ID: {}", connection.id),
                         None,
                     );
-                    data_reader.set_name(name.to_string()).await;
+                    data_reader.set_name_as_reader(name.to_string()).await;
+                }
+            }
+
+            TcpContract::GreetingFromNode {
+                node_location,
+                node_version,
+            } => {
+                if let Some(data_reader) = self.app.data_readers.get_tcp(connection.as_ref()).await
+                {
+                    self.app.logs.add_info(
+                        None,
+                        SystemProcess::TcpSocket,
+                        format!(
+                            "Connection to node with location {} and version {}",
+                            node_location, node_version
+                        ),
+                        format!("ID: {}", connection.id),
+                        None,
+                    );
+                    data_reader
+                        .set_name_as_node(node_location, node_version)
+                        .await;
                 }
             }
 
