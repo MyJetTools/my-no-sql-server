@@ -10,37 +10,37 @@ pub async fn serialize(sync_event: &SyncEvent, compress: bool) -> Option<Vec<u8>
 
             let data = table_snapshot.as_json_array().build();
 
-            let mut tcp_contract = TcpContract::InitTable {
+            let tcp_contract = TcpContract::InitTable {
                 table_name: sync_data.db_table.name.to_string(),
                 data,
             };
 
             if compress {
-                tcp_contract = tcp_contract.as_compressed_payload();
+                return tcp_contract.compress_if_make_sence_and_serialize().into();
             }
 
-            tcp_contract.serialize().into()
+            return tcp_contract.serialize().into();
         }
         SyncEvent::UpdateTableAttributes(_) => None,
         SyncEvent::InitTable(sync_data) => {
             let data = sync_data.table_snapshot.as_json_array().build();
 
-            let mut tcp_contract = TcpContract::InitTable {
+            let tcp_contract = TcpContract::InitTable {
                 table_name: sync_data.table_data.table_name.to_string(),
                 data,
             };
 
             if compress {
-                tcp_contract = tcp_contract.as_compressed_payload();
+                return tcp_contract.compress_if_make_sence_and_serialize().into();
             }
 
-            tcp_contract.serialize().into()
+            return tcp_contract.serialize().into();
         }
         SyncEvent::InitPartitions(data) => {
             let mut result = Vec::new();
 
             for (partition_key, snapshot) in &data.partitions_to_update {
-                let mut tcp_contract = TcpContract::InitPartition {
+                let tcp_contract = TcpContract::InitPartition {
                     partition_key: partition_key.to_string(),
                     table_name: data.table_data.table_name.to_string(),
                     data: if let Some(db_partition_snapshot) = snapshot {
@@ -54,25 +54,26 @@ pub async fn serialize(sync_event: &SyncEvent, compress: bool) -> Option<Vec<u8>
                 };
 
                 if compress {
-                    tcp_contract = tcp_contract.as_compressed_payload();
+                    let payload = tcp_contract.compress_if_make_sence_and_serialize();
+                    result.extend_from_slice(&payload);
+                } else {
+                    tcp_contract.serialize_into(&mut result);
                 }
-
-                tcp_contract.serialize_into(&mut result);
             }
 
             result.into()
         }
         SyncEvent::UpdateRows(data) => {
-            let mut tcp_contract = TcpContract::UpdateRows {
+            let tcp_contract = TcpContract::UpdateRows {
                 table_name: data.table_data.table_name.to_string(),
                 data: data.rows_by_partition.as_json_array().build(),
             };
 
             if compress {
-                tcp_contract = tcp_contract.as_compressed_payload();
+                return tcp_contract.serialize().into();
             }
 
-            tcp_contract.serialize().into()
+            return tcp_contract.serialize().into();
         }
         SyncEvent::DeleteRows(data) => {
             let mut result = Vec::new();
