@@ -70,7 +70,7 @@ pub async fn serialize(sync_event: &SyncEvent, compress: bool) -> Option<Vec<u8>
             };
 
             if compress {
-                return tcp_contract.serialize().into();
+                return tcp_contract.compress_if_make_sence_and_serialize().into();
             }
 
             return tcp_contract.serialize().into();
