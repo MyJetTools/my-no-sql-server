@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use my_no_sql_tcp_shared::{MyNoSqlReaderTcpSerializer, TcpContract};
 use my_tcp_sockets::{tcp_connection::SocketConnection, ConnectionEvent, SocketEventCallback};
+use rust_extensions::lazy::LazyVec;
 
 use crate::app::{logs::SystemProcess, AppContext};
 
@@ -98,6 +99,61 @@ impl TcpServerEvents {
                     }
                 }
             }
+
+            TcpContract::SubscribeAsNode { tables } => {
+                if let Some(data_reader) = self.app.data_readers.get_tcp(connection.as_ref()).await
+                {
+                    let mut tables_not_found = LazyVec::new();
+                    for table_name in tables {
+                        let result = crate::operations::data_readers::subscribe(
+                            self.app.as_ref(),
+                            data_reader.clone(),
+                            &table_name,
+                        )
+                        .await;
+
+                        if let Err(err) = result {
+                            let session = self.app.data_readers.get_tcp(connection.as_ref()).await;
+
+                            let session_name = if let Some(session) = session {
+                                session.get_name().await
+                            } else {
+                                None
+                            };
+
+                            let message =
+                                format!("Subscribe to table {} error. Err: {:?}", table_name, err);
+
+                            self.app.logs.add_error(
+                                Some(table_name.to_string()),
+                                SystemProcess::TcpSocket,
+                                "Subscribe to table".to_string(),
+                                message.to_string(),
+                                Some(format!(
+                                    "SessionId:{}, Name:{:?}",
+                                    connection.id, session_name
+                                )),
+                            );
+
+                            tables_not_found.add(table_name);
+                        }
+                    }
+
+                    if let Some(tables) = tables_not_found.get_result() {
+                        connection
+                            .send(TcpContract::TablesNotFound { tables })
+                            .await;
+                    }
+                }
+            }
+
+            TcpContract::Unsubscribe { tables } => {
+                if let Some(data_reader) = self.app.data_readers.get_tcp(connection.as_ref()).await
+                {
+                    data_reader.unsubscribe(tables.as_slice()).await;
+                }
+            }
+
             _ => {}
         }
     }

@@ -66,6 +66,11 @@ impl DataReader {
         write_access.subscribe(db_table);
     }
 
+    pub async fn unsubscribe(&self, table_names: &[String]) {
+        let mut write_access = self.data.write().await;
+        write_access.unsubscribe(table_names);
+    }
+
     fn get_ip(&self) -> String {
         match &self.connection {
             DataReaderConnection::Tcp(connection) => connection.get_ip(),
