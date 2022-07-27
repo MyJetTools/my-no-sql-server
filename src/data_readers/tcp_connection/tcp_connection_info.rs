@@ -51,6 +51,10 @@ impl TcpConnectionInfo {
         }
     }
 
+    pub fn set_compress_data(&self) {
+        self.compress_data.store(true, Ordering::SeqCst)
+    }
+
     pub fn is_compressed_data(&self) -> bool {
         self.compress_data.load(Ordering::Relaxed)
     }

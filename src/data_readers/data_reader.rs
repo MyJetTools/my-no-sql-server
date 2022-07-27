@@ -24,7 +24,6 @@ pub struct DataReader {
     data: RwLock<DataReaderUpdatableData>,
     pub connection: DataReaderConnection,
     has_first_init: AtomicBool,
-    compress_data: AtomicBool,
 }
 
 impl DataReader {
@@ -34,7 +33,6 @@ impl DataReader {
             data: RwLock::new(DataReaderUpdatableData::new()),
             connection,
             has_first_init: AtomicBool::new(false),
-            compress_data: AtomicBool::new(false),
         }
     }
 
@@ -56,10 +54,9 @@ impl DataReader {
     }
 
     pub async fn set_name_as_node(&self, location: String, version: String, compress_data: bool) {
-        self.connection.set_name_as_node(location, version).await;
-        if compress_data {
-            self.compress_data.store(true, Ordering::SeqCst);
-        }
+        self.connection
+            .set_name_as_node(location, version, compress_data)
+            .await;
     }
 
     pub async fn get_name(&self) -> Option<String> {

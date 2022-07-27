@@ -46,6 +46,11 @@ impl TcpServerEvents {
             } => {
                 if let Some(data_reader) = self.app.data_readers.get_tcp(connection.as_ref()).await
                 {
+                    println!(
+                        "Connected node: {}:{}. Compress:{}",
+                        node_location, node_version, compress
+                    );
+
                     self.app.logs.add_info(
                         None,
                         SystemProcess::TcpSocket,
