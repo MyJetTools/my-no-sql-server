@@ -17,10 +17,8 @@ impl DataReaderUpdatableData {
         self.tables.insert(db_table.name.to_string(), db_table);
     }
 
-    pub fn unsubscribe(&mut self, table_names: &[String]) {
-        for table_name in table_names {
-            self.tables.remove(table_name);
-        }
+    pub fn unsubscribe(&mut self, table_name: &str) {
+        self.tables.remove(table_name);
     }
 
     pub fn has_table(&self, table_name: &str) -> bool {

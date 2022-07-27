@@ -29,6 +29,8 @@ mod persist_io;
 mod settings_reader;
 mod utils;
 
+//TODO - Add Amount of Subscribers to table on UI;
+
 pub mod mynosqlserver_grpc {
     tonic::include_proto!("mynosqlserver");
 }

@@ -66,9 +66,9 @@ impl DataReader {
         write_access.subscribe(db_table);
     }
 
-    pub async fn unsubscribe(&self, table_names: &[String]) {
+    pub async fn unsubscribe(&self, table_name: &str) {
         let mut write_access = self.data.write().await;
-        write_access.unsubscribe(table_names);
+        write_access.unsubscribe(table_name);
     }
 
     fn get_ip(&self) -> String {
