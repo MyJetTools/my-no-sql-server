@@ -10,9 +10,12 @@ pub async fn sync(app: &AppContext, sync_event: &SyncEvent) {
 
         match &data.data_reader.connection {
             DataReaderConnection::Tcp(tcp_info) => {
+                let compressed = tcp_info.is_compressed_data();
                 if let Some(payload_to_send) =
-                    crate::data_readers::tcp_connection::tcp_payload_to_send::serialize(sync_event)
-                        .await
+                    crate::data_readers::tcp_connection::tcp_payload_to_send::serialize(
+                        sync_event, compressed,
+                    )
+                    .await
                 {
                     tcp_info.send(&payload_to_send).await;
                 }
@@ -48,9 +51,10 @@ pub async fn sync(app: &AppContext, sync_event: &SyncEvent) {
                     if let Some(to_send) = &tcp_contracts {
                         info.send(to_send).await;
                     } else {
+                        let compressed = info.is_compressed_data();
                         if let Some(to_send) =
                             crate::data_readers::tcp_connection::tcp_payload_to_send::serialize(
-                                sync_event,
+                                sync_event, compressed,
                             )
                             .await
                         {

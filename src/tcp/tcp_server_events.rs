@@ -42,6 +42,7 @@ impl TcpServerEvents {
             TcpContract::GreetingFromNode {
                 node_location,
                 node_version,
+                compress,
             } => {
                 if let Some(data_reader) = self.app.data_readers.get_tcp(connection.as_ref()).await
                 {
@@ -56,7 +57,7 @@ impl TcpServerEvents {
                         None,
                     );
                     data_reader
-                        .set_name_as_node(node_location, node_version)
+                        .set_name_as_node(node_location, node_version, compress)
                         .await;
                 }
             }

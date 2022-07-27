@@ -21,6 +21,7 @@ pub struct TcpConnectionInfo {
     sent_per_second_accumulator: AtomicUsize,
     pub sent_per_second: SendPerSecond,
     pub is_node: AtomicBool,
+    pub compress_data: AtomicBool,
 }
 
 impl TcpConnectionInfo {
@@ -31,6 +32,7 @@ impl TcpConnectionInfo {
             sent_per_second_accumulator: AtomicUsize::new(0),
             sent_per_second: SendPerSecond::new(),
             is_node: AtomicBool::new(false),
+            compress_data: AtomicBool::new(false),
         }
     }
 
@@ -47,6 +49,10 @@ impl TcpConnectionInfo {
             Some(addr) => format!("{}", addr),
             None => "unknown".to_string(),
         }
+    }
+
+    pub fn is_compressed_data(&self) -> bool {
+        self.compress_data.load(Ordering::Relaxed)
     }
 
     pub async fn get_name(&self) -> Option<String> {
