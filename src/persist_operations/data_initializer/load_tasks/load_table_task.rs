@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use my_no_sql_core::db::{DbPartition, DbTableAttributesSnapshot, DbTableInner};
+use my_no_sql_core::db::{DbPartition, DbTable, DbTableAttributes};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 pub enum FileStatus {
@@ -24,7 +24,7 @@ impl FileStatus {
 pub struct LoadTableTask {
     files_list_is_loaded: bool,
     files: HashMap<String, FileStatus>,
-    attr: Option<DbTableAttributesSnapshot>,
+    attr: Option<DbTableAttributes>,
 }
 
 impl LoadTableTask {
@@ -76,7 +76,7 @@ impl LoadTableTask {
         );
     }
 
-    pub fn add_attribute(&mut self, file_name: String, attr: DbTableAttributesSnapshot) {
+    pub fn add_attribute(&mut self, file_name: String, attr: DbTableAttributes) {
         self.attr = Some(attr);
         self.files.remove(file_name.as_str());
     }
@@ -89,14 +89,18 @@ impl LoadTableTask {
         self.files_list_is_loaded = true;
     }
 
-    pub fn get_result(mut self, table_name: String) -> (DbTableInner, DbTableAttributesSnapshot) {
-        let mut db_table_data = DbTableInner::new(table_name, DateTimeAsMicroseconds::now());
+    pub fn get_result(mut self, table_name: String) -> DbTable {
+        let attrs = if let Some(attr) = self.attr.take() {
+            attr
+        } else {
+            DbTableAttributes {
+                persist: true,
+                max_partitions_amount: None,
+                created: DateTimeAsMicroseconds::now(),
+            }
+        };
 
-        let mut attr = self.attr.take();
-
-        if attr.is_none() {
-            attr = Some(DbTableAttributesSnapshot::create_default())
-        }
+        let mut db_table = DbTable::new(table_name, attrs);
 
         for (_, file_status) in self.files {
             match file_status {
@@ -110,12 +114,12 @@ impl LoadTableTask {
                     partition_key,
                     db_partition,
                 } => {
-                    db_table_data.partitions.insert(partition_key, db_partition);
+                    db_table.partitions.insert(partition_key, db_partition);
                 }
             }
         }
 
-        (db_table_data, attr.unwrap())
+        db_table
     }
 
     pub fn all_files_are_loaded(&self) -> bool {

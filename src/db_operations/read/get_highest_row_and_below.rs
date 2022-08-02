@@ -1,14 +1,14 @@
 use my_json::json_writer::JsonArrayWriter;
-use my_no_sql_core::db::{DbTable, UpdateExpirationTimeModel};
+use my_no_sql_core::db::UpdateExpirationTimeModel;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-use crate::{app::AppContext, db_operations::DbOperationError};
+use crate::{app::AppContext, db::DbTableWrapper, db_operations::DbOperationError};
 
 use super::ReadOperationResult;
 
 pub async fn get_highest_row_and_below(
     app: &AppContext,
-    db_table: &DbTable,
+    db_table_wrapper: &DbTableWrapper,
     partition_key: &str,
     row_key: &String,
     limit: Option<usize>,
@@ -18,7 +18,7 @@ pub async fn get_highest_row_and_below(
 
     let result = if let Some(update_expiration_time) = update_expiration_time {
         get_highest_row_and_below_and_update_expiration_time(
-            db_table,
+            db_table_wrapper,
             partition_key,
             row_key,
             limit,
@@ -27,7 +27,7 @@ pub async fn get_highest_row_and_below(
         .await
     } else {
         get_highest_row_and_below_with_no_expiration_time_update(
-            db_table,
+            db_table_wrapper,
             partition_key,
             row_key,
             limit,
@@ -39,16 +39,16 @@ pub async fn get_highest_row_and_below(
 }
 
 async fn get_highest_row_and_below_with_no_expiration_time_update(
-    db_table: &DbTable,
+    db_table_wrapper: &DbTableWrapper,
     partition_key: &str,
     row_key: &String,
     limit: Option<usize>,
 ) -> ReadOperationResult {
     let now = DateTimeAsMicroseconds::now();
 
-    let read_access = db_table.data.read().await;
+    let read_access = db_table_wrapper.data.read().await;
 
-    let db_partition = read_access.get_partition(partition_key);
+    let db_partition = read_access.db_table.get_partition(partition_key);
 
     if db_partition.is_none() {
         return ReadOperationResult::EmptyArray;
@@ -72,7 +72,7 @@ async fn get_highest_row_and_below_with_no_expiration_time_update(
 }
 
 async fn get_highest_row_and_below_and_update_expiration_time(
-    db_table: &DbTable,
+    db_table_wrapper: &DbTableWrapper,
     partition_key: &str,
     row_key: &String,
     limit: Option<usize>,
@@ -80,9 +80,9 @@ async fn get_highest_row_and_below_and_update_expiration_time(
 ) -> ReadOperationResult {
     let now = DateTimeAsMicroseconds::now();
 
-    let mut wrtite_access = db_table.data.write().await;
+    let mut wrtite_access = db_table_wrapper.data.write().await;
 
-    let db_partition = wrtite_access.get_partition_mut(partition_key);
+    let db_partition = wrtite_access.db_table.get_partition_mut(partition_key);
 
     if db_partition.is_none() {
         return ReadOperationResult::EmptyArray;

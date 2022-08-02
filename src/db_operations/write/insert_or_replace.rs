@@ -1,13 +1,11 @@
 use std::sync::Arc;
 
-use my_no_sql_core::{
-    db::{DbRow, DbTable},
-    db_json_entity::JsonTimeStamp,
-};
+use my_no_sql_core::{db::DbRow, db_json_entity::JsonTimeStamp};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
     app::AppContext,
+    db::DbTableWrapper,
     db_operations::DbOperationError,
     db_sync::{states::UpdateRowsSyncData, EventSource, SyncEvent},
 };
@@ -16,27 +14,27 @@ use super::WriteOperationResult;
 
 pub async fn execute(
     app: &AppContext,
-    db_table: Arc<DbTable>,
+    db_table_wrapper: Arc<DbTableWrapper>,
     db_row: Arc<DbRow>,
     event_src: EventSource,
     now: &JsonTimeStamp,
     persist_moment: DateTimeAsMicroseconds,
 ) -> Result<WriteOperationResult, DbOperationError> {
     super::super::check_app_states(app)?;
-    let mut table_data = db_table.data.write().await;
+    let mut write_access = db_table_wrapper.data.write().await;
 
-    let result = table_data.insert_or_replace_row(&db_row, now);
+    let result = write_access.db_table.insert_or_replace_row(&db_row, now);
 
-    let mut update_rows_state =
-        UpdateRowsSyncData::new(&table_data, db_table.attributes.get_persist(), event_src);
+    let mut update_rows_state = UpdateRowsSyncData::new(&write_access.db_table, event_src);
 
-    app.persist_markers
-        .persist_partition(
-            db_table.name.as_str(),
-            db_row.partition_key.as_ref(),
+    write_access
+        .persist_markers
+        .data_to_persist
+        .mark_row_to_persit(
+            db_row.partition_key.as_str(),
+            db_row.row_key.as_ref(),
             persist_moment,
-        )
-        .await;
+        );
 
     update_rows_state.rows_by_partition.add_row(db_row);
 

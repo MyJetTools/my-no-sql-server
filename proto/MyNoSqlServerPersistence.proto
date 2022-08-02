@@ -1,0 +1,84 @@
+syntax = "proto3";
+import "google/protobuf/empty.proto";
+package mynosqlserverpersistence;
+
+message TableDescriptionGrpcModel {
+    string TableName = 1;
+    bool Persist =2;
+    int32 MaxPartitionsAmount = 3;
+}
+
+message GetTableGrpcRequest{
+    string TableName = 1;
+}
+
+message UpdateTableEntityGrpcModel{
+    int64 ProcessId = 1;
+    string PartitionKey =2;
+    string RowKey = 3;
+    int64 Expires = 4;
+    string Timespan = 5;
+    bytes Data = 6;
+}
+
+message TableEntityGrpcModel{
+    string PartitionKey = 1;
+    string RowKey = 2;
+    int64 Expires = 3;
+    string Timespan = 4;
+    bytes Data = 5;
+}
+
+message CleanTableGrpcRequest{
+    string TableName = 1;
+    int64 PersistMoment = 2;
+}
+
+message DeletePartitionGrpcRequest{
+    string TableName = 1;
+    string PartitionKey = 2;
+    int64 PersistMoment = 3;
+}
+
+message DeleteEntityGrpcModel{
+    int64 ProcessId = 1;
+    string TableName =2;
+    string PartitionKey =3;
+    string RowKey = 4;
+}
+
+message StartPersistProcessGrpcRequest{
+    string TableName =1;
+    int64 PersistMoment = 2;
+    int64 ProcessId = 3;
+}
+
+message PersistTableAttrsRequest{
+    string TableName = 1;
+    bool Persist = 2;
+    int64 MaxPartitionsAmount = 3;
+    int64 Created = 4;
+}
+
+
+service MyNoSqlServerPersistnceGrpcService {
+    rpc GetTables(google.protobuf.Empty) returns (stream mynosqlserverpersistence.TableDescriptionGrpcModel);
+    
+    rpc GetTable(mynosqlserverpersistence.GetTableGrpcRequest) returns (stream mynosqlserverpersistence.TableEntityGrpcModel);
+
+    rpc CleanTable(mynosqlserverpersistence.CleanTableGrpcRequest) returns (google.protobuf.Empty);
+
+    rpc StartPersistProcess(mynosqlserverpersistence.StartPersistProcessGrpcRequest) returns (google.protobuf.Empty);
+    rpc InitTable(stream mynosqlserverpersistence.UpdateTableEntityGrpcModel) returns (google.protobuf.Empty);
+
+    rpc DeletePartition(mynosqlserverpersistence.DeletePartitionGrpcRequest) returns (google.protobuf.Empty);
+    
+    rpc InitPartition(stream mynosqlserverpersistence.UpdateTableEntityGrpcModel) returns (google.protobuf.Empty);
+
+    
+    rpc ReplaceRows(stream mynosqlserverpersistence.UpdateTableEntityGrpcModel) returns (google.protobuf.Empty);
+
+    rpc DeleteRows(stream mynosqlserverpersistence.DeleteEntityGrpcModel) returns (google.protobuf.Empty);
+
+    rpc PersistTableAttrs(mynosqlserverpersistence.PersistTableAttrsRequest) returns (google.protobuf.Empty);
+}

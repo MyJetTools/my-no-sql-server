@@ -1,34 +1,34 @@
 use std::sync::Arc;
 
-use my_no_sql_core::db::DbTable;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
     app::AppContext,
+    db::DbTableWrapper,
     db_operations::DbOperationError,
     db_sync::{states::InitTableEventSyncData, EventSource, SyncEvent},
 };
 
 pub async fn execute(
     app: &AppContext,
-    db_table: Arc<DbTable>,
+    db_table_wrapper: Arc<DbTableWrapper>,
     event_src: EventSource,
     persist_moment: DateTimeAsMicroseconds,
 ) -> Result<(), DbOperationError> {
     super::super::check_app_states(app)?;
-    let mut table_data = db_table.data.write().await;
+    let mut write_access = db_table_wrapper.data.write().await;
 
-    let removed_partitions = table_data.clean_table();
+    let removed_partitions = write_access.db_table.clean_table();
 
     if removed_partitions.is_some() {
-        let sync_data =
-            InitTableEventSyncData::new(&table_data, db_table.attributes.get_snapshot(), event_src);
+        let sync_data = InitTableEventSyncData::new(db_table_wrapper.clone(), event_src);
 
         crate::operations::sync::dispatch(app, SyncEvent::InitTable(sync_data));
 
-        app.persist_markers
-            .persist_table(table_data.name.as_str(), persist_moment)
-            .await;
+        write_access
+            .persist_markers
+            .data_to_persist
+            .mark_table_to_persist(persist_moment);
     }
 
     Ok(())

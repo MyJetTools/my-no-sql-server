@@ -1,9 +1,9 @@
 use std::{collections::HashMap, sync::Arc};
 
-use my_no_sql_core::db::DbTable;
+use crate::db::DbTableWrapper;
 
 pub struct DataReaderUpdatableData {
-    tables: HashMap<String, Arc<DbTable>>,
+    tables: HashMap<String, Arc<DbTableWrapper>>,
 }
 
 impl DataReaderUpdatableData {
@@ -13,8 +13,9 @@ impl DataReaderUpdatableData {
         }
     }
 
-    pub fn subscribe(&mut self, db_table: Arc<DbTable>) {
-        self.tables.insert(db_table.name.to_string(), db_table);
+    pub fn subscribe(&mut self, db_table_wrapper: Arc<DbTableWrapper>) {
+        self.tables
+            .insert(db_table_wrapper.name.to_string(), db_table_wrapper);
     }
 
     pub fn unsubscribe(&mut self, table_name: &str) {

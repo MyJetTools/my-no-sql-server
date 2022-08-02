@@ -22,8 +22,7 @@ impl MyTimerTick for MetricsUpdater {
         let mut persist_amount = 0;
 
         for db_table in tables {
-            let table_metrics =
-                crate::operations::get_table_metrics(self.app.as_ref(), db_table.as_ref()).await;
+            let table_metrics = crate::operations::get_table_metrics(db_table.as_ref()).await;
 
             persist_amount += table_metrics.persist_amount;
 
@@ -35,7 +34,7 @@ impl MyTimerTick for MetricsUpdater {
                         .last_update_time
                         .duration_since(last_persist_time);
 
-                    duration.as_secs() as i64
+                    duration.as_positive_or_zero().as_secs() as i64
                 } else {
                     0
                 }

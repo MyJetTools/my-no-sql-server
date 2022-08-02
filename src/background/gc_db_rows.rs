@@ -1,17 +1,17 @@
 use std::{collections::HashMap, sync::Arc};
 
-use my_no_sql_core::db::DbTable;
 use rust_extensions::{date_time::DateTimeAsMicroseconds, lazy::LazyVec, MyTimerTick};
 
 use crate::{
     app::{logs::SystemProcess, AppContext},
+    db::DbTableWrapper,
     db_sync::EventSource,
     utils::LazyHashMap,
 };
 
 struct DataToExpire {
-    partitions_to_expire: Option<Vec<(Arc<DbTable>, Vec<String>)>>,
-    db_rows_to_expire: Option<Vec<(Arc<DbTable>, HashMap<String, Vec<String>>)>>,
+    partitions_to_expire: Option<Vec<(Arc<DbTableWrapper>, Vec<String>)>>,
+    db_rows_to_expire: Option<Vec<(Arc<DbTableWrapper>, HashMap<String, Vec<String>>)>>,
 }
 
 pub struct GcDbRows {
@@ -93,13 +93,11 @@ async fn get_data_to_expire(app: &AppContext, now: DateTimeAsMicroseconds) -> Da
     let mut rows_to_expire_by_table = LazyVec::new();
 
     for table in tables {
-        let max_amount = table.attributes.get_max_partitions_amount();
+        let read_access = table.data.read().await;
 
-        let table_read_access = table.data.read().await;
-
-        if let Some(max_amount) = max_amount {
+        if let Some(max_amount) = read_access.db_table.attributes.max_partitions_amount {
             if let Some(partitions_to_expire) =
-                table_read_access.get_partitions_to_expire(max_amount)
+                read_access.db_table.get_partitions_to_expire(max_amount)
             {
                 tables_with_partitions_to_expire.add((table.clone(), partitions_to_expire));
             }
@@ -107,7 +105,7 @@ async fn get_data_to_expire(app: &AppContext, now: DateTimeAsMicroseconds) -> Da
 
         let mut db_rows_to_expire = LazyHashMap::new();
 
-        for (partition_key, db_partition) in &table_read_access.partitions {
+        for (partition_key, db_partition) in &read_access.db_table.partitions {
             if db_partition.get_rows_amount() == 0 {
                 tables_with_partitions_to_expire
                     .add((table.clone(), vec![partition_key.to_string()]));

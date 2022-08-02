@@ -63,7 +63,7 @@ impl StatusModel {
         let mut tables_model = Vec::new();
 
         for table in &tables {
-            let metrics = crate::operations::get_table_metrics(app, table.as_ref()).await;
+            let metrics = crate::operations::get_table_metrics(table.as_ref()).await;
 
             let last_persist_time = if let Some(last_persist_time) = metrics.last_persist_time {
                 Some(last_persist_time.unix_microseconds)
@@ -139,6 +139,7 @@ async fn get_readers(app: &AppContext) -> (Vec<ReaderModel>, usize, usize) {
                 last_incoming_time: format!(
                     "{:?}",
                     now.duration_since(metrics.last_incoming_moment)
+                        .as_positive_or_zero()
                 ),
                 id: metrics.session_id,
                 ip: metrics.ip,

@@ -51,10 +51,9 @@ impl GetAction for RowCountAction {
         )
         .await?;
 
+        let read_access = db_table.data.read().await;
         if let Some(partition_key) = input_data.partition_key {
-            let table_access = db_table.data.read().await;
-
-            let partition = table_access.get_partition(partition_key.as_str());
+            let partition = read_access.db_table.get_partition(partition_key.as_str());
 
             if let Some(partition) = partition {
                 return HttpOutput::as_text(partition.rows_count().to_string())
@@ -67,11 +66,9 @@ impl GetAction for RowCountAction {
             }
         }
 
-        let table_access = db_table.data.read().await;
-
         let mut result = 0;
 
-        for partition in table_access.get_partitions() {
+        for partition in read_access.db_table.get_partitions() {
             result += partition.rows_count();
         }
 

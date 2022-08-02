@@ -32,10 +32,10 @@ async fn handle_request(
     crate::db_operations::check_app_states(action.app.as_ref())?;
     let tables = action.app.db.get_tables().await;
 
-    let mut response: Vec<TableContract> = vec![];
+    let mut response: Vec<TableContract> = Vec::with_capacity(tables.len());
 
-    for db_table in &tables {
-        response.push(db_table.as_ref().into());
+    for db_table_wrapper in &tables {
+        response.push(TableContract::from_table_wrapper(db_table_wrapper.as_ref()).await);
     }
 
     HttpOutput::as_json(response).into_ok_result(true).into()

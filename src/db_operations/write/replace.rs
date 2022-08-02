@@ -2,12 +2,13 @@ use std::sync::Arc;
 
 use crate::{
     app::AppContext,
+    db::DbTableWrapper,
     db_operations::DbOperationError,
     db_sync::{states::UpdateRowsSyncData, EventSource, SyncEvent},
 };
 
 use my_no_sql_core::{
-    db::{DbRow, DbTable, UpdatePartitionReadMoment},
+    db::{DbRow, UpdatePartitionReadMoment},
     db_json_entity::JsonTimeStamp,
 };
 use rust_extensions::date_time::DateTimeAsMicroseconds;
@@ -18,7 +19,7 @@ use super::WriteOperationResult;
 #[inline]
 pub async fn validate_before(
     app: &AppContext,
-    db_table: &DbTable,
+    db_table_wrapper: &DbTableWrapper,
     partition_key: &str,
     row_key: &str,
     entity_timestamp: Option<&str>,
@@ -29,9 +30,9 @@ pub async fn validate_before(
         return Err(DbOperationError::TimeStampFieldRequires);
     }
 
-    let read_access = db_table.data.read().await;
+    let read_access = db_table_wrapper.data.read().await;
 
-    let db_partition = read_access.get_partition(partition_key);
+    let db_partition = read_access.db_table.get_partition(partition_key);
 
     if db_partition.is_none() {
         return Err(DbOperationError::RecordNotFound);
@@ -54,7 +55,7 @@ pub async fn validate_before(
 
 pub async fn execute(
     app: &AppContext,
-    db_table: &DbTable,
+    db_table_wrapper: &DbTableWrapper,
     partition_key: &str,
     db_row: Arc<DbRow>,
     event_src: EventSource,
@@ -62,10 +63,10 @@ pub async fn execute(
     now: &JsonTimeStamp,
     persist_moment: DateTimeAsMicroseconds,
 ) -> Result<WriteOperationResult, DbOperationError> {
-    let mut table_data = db_table.data.write().await;
+    let mut write_access = db_table_wrapper.data.write().await;
 
     let remove_result = {
-        let db_partition = table_data.get_partition_mut(partition_key);
+        let db_partition = write_access.db_table.get_partition_mut(partition_key);
 
         if db_partition.is_none() {
             return Err(DbOperationError::RecordNotFound);
@@ -86,7 +87,10 @@ pub async fn execute(
                 return Err(DbOperationError::RecordNotFound);
             }
         }
-        let removed_result = table_data.remove_row(partition_key, &db_row.row_key, false, now);
+        let removed_result =
+            write_access
+                .db_table
+                .remove_row(partition_key, &db_row.row_key, false, now);
 
         if removed_result.is_none() {
             None
@@ -95,18 +99,18 @@ pub async fn execute(
         }
     };
 
-    table_data.insert_row(&db_row, now);
+    write_access.db_table.insert_row(&db_row, now);
 
-    app.persist_markers
-        .persist_partition(
-            db_table.name.as_str(),
-            db_row.partition_key.as_ref(),
+    write_access
+        .persist_markers
+        .data_to_persist
+        .mark_row_to_persit(
+            db_row.partition_key.as_str(),
+            db_row.row_key.as_ref(),
             persist_moment,
-        )
-        .await;
+        );
 
-    let mut update_rows_state =
-        UpdateRowsSyncData::new(&table_data, db_table.attributes.get_persist(), event_src);
+    let mut update_rows_state = UpdateRowsSyncData::new(&write_access.db_table, event_src);
 
     update_rows_state.rows_by_partition.add_row(db_row);
 

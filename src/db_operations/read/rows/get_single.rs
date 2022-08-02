@@ -1,13 +1,13 @@
-use my_no_sql_core::db::{DbTable, UpdateExpirationTimeModel, UpdatePartitionReadMoment};
+use my_no_sql_core::db::{UpdateExpirationTimeModel, UpdatePartitionReadMoment};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-use crate::{app::AppContext, db_operations::DbOperationError};
+use crate::{app::AppContext, db::DbTableWrapper, db_operations::DbOperationError};
 
 use super::super::ReadOperationResult;
 
 pub async fn get_single(
     app: &AppContext,
-    table: &DbTable,
+    db_table_wrapper: &DbTableWrapper,
     partition_key: &str,
     row_key: &str,
     update_expiration_time: Option<UpdateExpirationTimeModel>,
@@ -16,29 +16,29 @@ pub async fn get_single(
 
     if let Some(update_expiration_time) = update_expiration_time {
         get_single_and_update_expiration_time(
-            table,
+            db_table_wrapper,
             partition_key,
             row_key,
             &update_expiration_time,
         )
         .await
     } else {
-        get_single_and_update_no_expiration_time(table, partition_key, row_key).await
+        get_single_and_update_no_expiration_time(db_table_wrapper, partition_key, row_key).await
     }
 }
 
 async fn get_single_and_update_no_expiration_time(
-    table: &DbTable,
+    db_table_wrapper: &DbTableWrapper,
     partition_key: &str,
     row_key: &str,
 ) -> Result<ReadOperationResult, DbOperationError> {
     let now = DateTimeAsMicroseconds::now();
 
-    let table_data = table.data.read().await;
+    let read_access = db_table_wrapper.data.read().await;
 
-    table_data.last_read_time.update(now);
+    read_access.db_table.last_read_time.update(now);
 
-    let partition = table_data.get_partition(partition_key);
+    let partition = read_access.db_table.get_partition(partition_key);
 
     if partition.is_none() {
         return Err(DbOperationError::RecordNotFound);
@@ -62,18 +62,18 @@ async fn get_single_and_update_no_expiration_time(
 }
 
 async fn get_single_and_update_expiration_time(
-    table: &DbTable,
+    db_table_wrapper: &DbTableWrapper,
     partition_key: &str,
     row_key: &str,
     update_expiration_time: &UpdateExpirationTimeModel,
 ) -> Result<ReadOperationResult, DbOperationError> {
     let now = DateTimeAsMicroseconds::now();
 
-    let mut table_data = table.data.write().await;
+    let mut write_access = db_table_wrapper.data.write().await;
 
-    table_data.last_read_time.update(now);
+    write_access.db_table.last_read_time.update(now);
 
-    let partition = table_data.get_partition_mut(partition_key);
+    let partition = write_access.db_table.get_partition_mut(partition_key);
 
     if partition.is_none() {
         return Err(DbOperationError::RecordNotFound);

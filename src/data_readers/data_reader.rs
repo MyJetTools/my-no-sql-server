@@ -3,9 +3,10 @@ use std::sync::{
     Arc,
 };
 
-use my_no_sql_core::db::DbTable;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 use tokio::sync::RwLock;
+
+use crate::db::DbTableWrapper;
 
 use super::{DataReaderConnection, DataReaderUpdatableData};
 
@@ -63,9 +64,9 @@ impl DataReader {
         self.connection.get_name().await
     }
 
-    pub async fn subscribe(&self, db_table: Arc<DbTable>) {
+    pub async fn subscribe(&self, db_table_wrapper: Arc<DbTableWrapper>) {
         let mut write_access = self.data.write().await;
-        write_access.subscribe(db_table);
+        write_access.subscribe(db_table_wrapper);
     }
 
     pub async fn unsubscribe(&self, table_name: &str) {

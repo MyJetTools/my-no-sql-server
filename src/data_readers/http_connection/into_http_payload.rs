@@ -12,8 +12,8 @@ pub async fn convert(sync_event: &SyncEvent) -> Option<Vec<u8>> {
             write_init_table_result(sync_data.db_table.name.as_str(), content).into()
         }
         SyncEvent::InitTable(sync_data) => {
-            let content = sync_data.table_snapshot.as_json_array();
-            write_init_table_result(sync_data.table_data.table_name.as_str(), content).into()
+            let content = sync_data.db_table.get_table_as_json_array().await;
+            write_init_table_result(sync_data.db_table.name.as_str(), content).into()
         }
         SyncEvent::InitPartitions(sync_data) => write_init_partitions_result(sync_data).into(),
         SyncEvent::UpdateRows(sync_data) => compile_update_rows_result(sync_data).into(),
@@ -23,7 +23,6 @@ pub async fn convert(sync_event: &SyncEvent) -> Option<Vec<u8>> {
             JsonArrayWriter::new(),
         )
         .into(),
-        SyncEvent::UpdateTableAttributes(_) => None,
     }
 }
 

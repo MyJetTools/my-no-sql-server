@@ -1,27 +1,13 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
+use my_no_sql_core::db::DbRow;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-pub enum PersistResult {
-    PersistAttrs,
-    PersistTable,
-    PersistPartition(String),
-}
-
-impl PersistResult {
-    #[cfg(test)]
-    pub fn is_table(&self) -> bool {
-        match self {
-            PersistResult::PersistAttrs => false,
-            PersistResult::PersistTable => true,
-            PersistResult::PersistPartition(_) => false,
-        }
-    }
-}
+use super::{PartitionPersistData, PersistResult};
 
 pub struct DataToPersist {
     pub persisit_whole_table: Option<DateTimeAsMicroseconds>,
-    pub partitions: HashMap<String, DateTimeAsMicroseconds>,
+    pub partitions: HashMap<String, PartitionPersistData>,
     pub persist_attrs: bool,
 }
 
@@ -58,22 +44,89 @@ impl DataToPersist {
         }
     }
 
+    pub fn mark_row_to_persit(
+        &mut self,
+        partition_key: &str,
+        row_key: &str,
+        new_persist_moment: DateTimeAsMicroseconds,
+    ) {
+        if !self.partitions.contains_key(partition_key) {
+            self.partitions.insert(
+                partition_key.to_string(),
+                PartitionPersistData::Rows(HashMap::new()),
+            );
+        }
+
+        match self.partitions.get_mut(partition_key).unwrap() {
+            PartitionPersistData::WholePartition(date_time) => {
+                if new_persist_moment.unix_microseconds < date_time.unix_microseconds {
+                    date_time.unix_microseconds = new_persist_moment.unix_microseconds;
+                }
+            }
+            PartitionPersistData::Rows(rows) => {
+                if !rows.contains_key(row_key) {
+                    rows.insert(row_key.to_string(), new_persist_moment);
+                }
+            }
+        }
+    }
+
+    pub fn mark_rows_to_persit(
+        &mut self,
+        partition_key: &str,
+        rows: &[Arc<DbRow>],
+        new_persist_moment: DateTimeAsMicroseconds,
+    ) {
+        for db_row in rows {
+            self.mark_row_to_persit(partition_key, &db_row.row_key.as_str(), new_persist_moment);
+        }
+    }
+
+    pub fn mark_row_keys_to_persit(
+        &mut self,
+        partition_key: &str,
+        row_keys: &[String],
+        new_persist_moment: DateTimeAsMicroseconds,
+    ) {
+        for row_key in row_keys {
+            self.mark_row_to_persit(partition_key, row_key.as_str(), new_persist_moment);
+        }
+    }
+
     pub fn mark_partition_to_persist(
         &mut self,
         partition_key: &str,
         persist_moment: DateTimeAsMicroseconds,
     ) {
         if !self.partitions.contains_key(partition_key) {
-            self.partitions
-                .insert(partition_key.to_string(), persist_moment);
+            self.partitions.insert(
+                partition_key.to_string(),
+                PartitionPersistData::WholePartition(persist_moment),
+            );
             return;
         }
 
-        let moment = self.partitions.get(partition_key).unwrap().clone();
+        let upgrade_to_partition = self.partitions.get(partition_key).unwrap().is_rows();
 
-        if moment.unix_microseconds > persist_moment.unix_microseconds {
-            self.partitions
-                .insert(partition_key.to_string(), persist_moment);
+        if upgrade_to_partition {
+            self.partitions.insert(
+                partition_key.to_string(),
+                PartitionPersistData::WholePartition(persist_moment),
+            );
+            return;
+        }
+
+        let partition_persist_moment = self
+            .partitions
+            .get(partition_key)
+            .unwrap()
+            .unwrap_as_partition_persist_moment();
+
+        if partition_persist_moment.unix_microseconds > persist_moment.unix_microseconds {
+            self.partitions.insert(
+                partition_key.to_string(),
+                PartitionPersistData::WholePartition(persist_moment),
+            );
         }
     }
 
@@ -81,118 +134,80 @@ impl DataToPersist {
         self.persist_attrs = true;
     }
 
-    fn get_partition_ready_to_persist(
-        &mut self,
-        now: DateTimeAsMicroseconds,
-        is_shutting_down: bool,
-    ) -> Option<String> {
-        for (key, value) in &self.partitions {
-            if is_shutting_down || value.unix_microseconds <= now.unix_microseconds {
-                return Some(key.to_string());
+    fn get_next_partition_result(&mut self) -> Option<PersistResult> {
+        for (partition_key, persist_data) in &self.partitions {
+            match persist_data {
+                PartitionPersistData::WholePartition(persist_moment) => {
+                    return Some(PersistResult::PersistPartition {
+                        partition_key: partition_key.to_string(),
+                        persist_moment: *persist_moment,
+                    });
+                }
+                PartitionPersistData::Rows(rows) => {
+                    let result = PersistResult::PersistRows {
+                        partition_key: partition_key.to_string(),
+                        row_keys: rows.clone(),
+                    };
+
+                    return Some(result);
+                }
             }
         }
 
         None
     }
 
-    pub fn get_next_persist_time(&self) -> Option<DateTimeAsMicroseconds> {
+    pub fn get_what_to_persist(&mut self) -> Option<PersistResult> {
         if let Some(persisit_whole_table) = self.persisit_whole_table {
-            return Some(persisit_whole_table);
-        }
-
-        let mut result: Option<DateTimeAsMicroseconds> = None;
-
-        for partition_dt in self.partitions.values() {
-            match result.clone() {
-                Some(current_result) => {
-                    if current_result.unix_microseconds > partition_dt.unix_microseconds {
-                        result = Some(*partition_dt)
-                    }
-                }
-                None => {
-                    result = Some(*partition_dt);
-                }
-            }
-        }
-
-        result
-    }
-
-    pub fn get_what_to_persist(
-        &mut self,
-        now: DateTimeAsMicroseconds,
-        is_shutting_down: bool,
-    ) -> Option<PersistResult> {
-        if let Some(persisit_whole_table) = self.persisit_whole_table {
-            if persisit_whole_table.unix_microseconds <= now.unix_microseconds || is_shutting_down {
-                self.persisit_whole_table = None;
-                self.partitions.clear();
-                return Some(PersistResult::PersistTable);
-            }
-        }
-
-        if let Some(partition_key) = self.get_partition_ready_to_persist(now, is_shutting_down) {
-            self.partitions.remove(partition_key.as_str());
-            return Some(PersistResult::PersistPartition(partition_key));
+            self.persisit_whole_table = None;
+            self.partitions.clear();
+            return Some(PersistResult::PersistTable(persisit_whole_table));
         }
 
         if self.persist_attrs {
             self.persist_attrs = false;
             return Some(PersistResult::PersistAttrs);
         }
-        None
-    }
-}
 
-#[cfg(test)]
-mod test {
-    use super::*;
+        let result = self.get_next_partition_result()?;
 
-    #[test]
-    fn test_add_partition_with_later_date() {
-        let mut data_to_persist = DataToPersist::new();
-
-        data_to_persist.mark_partition_to_persist("test", DateTimeAsMicroseconds::new(5));
-
-        data_to_persist.mark_partition_to_persist("test", DateTimeAsMicroseconds::new(6));
-
-        let result = data_to_persist
-            .get_what_to_persist(DateTimeAsMicroseconds::new(5), false)
-            .unwrap();
-
-        if let PersistResult::PersistPartition(table_name) = result {
-            assert_eq!("test", table_name);
-        } else {
-            panic!("Should not be here");
-        }
-    }
-
-    #[test]
-    fn test_add_partition_with_table_later() {
-        let mut data_to_persist = DataToPersist::new();
-
-        data_to_persist.mark_partition_to_persist("test", DateTimeAsMicroseconds::new(5));
-
-        data_to_persist.mark_table_to_persist(DateTimeAsMicroseconds::new(6));
-
-        let result = data_to_persist
-            .get_what_to_persist(DateTimeAsMicroseconds::new(5), false)
-            .unwrap();
-
-        if let PersistResult::PersistPartition(table_name) = result {
-            assert_eq!("test", table_name);
-        } else {
-            panic!("Should not be here");
+        if let Some(partition_key) = result.get_partition_key() {
+            self.partitions.remove(partition_key);
         }
 
-        let result = data_to_persist.get_what_to_persist(DateTimeAsMicroseconds::new(5), false);
+        Some(result)
+    }
 
-        assert_eq!(true, result.is_none());
+    pub fn get_next_persist_time(&self) -> Option<DateTimeAsMicroseconds> {
+        let mut result: Option<DateTimeAsMicroseconds> = None;
 
-        let result = data_to_persist
-            .get_what_to_persist(DateTimeAsMicroseconds::new(6), false)
-            .unwrap();
+        if let Some(whole_table_date_time) = self.persisit_whole_table {
+            match &mut result {
+                Some(result_date_time) => {
+                    if result_date_time.unix_microseconds > whole_table_date_time.unix_microseconds
+                    {
+                        result_date_time.unix_microseconds =
+                            whole_table_date_time.unix_microseconds;
+                    }
+                }
+                None => result = Some(whole_table_date_time),
+            }
+        }
 
-        assert_eq!(true, result.is_table());
+        for row_date_time in self.partitions.values() {
+            match &mut result {
+                Some(result_date_time) => {
+                    if result_date_time.unix_microseconds
+                        > row_date_time.get_min_persist_time().unix_microseconds
+                    {
+                        result_date_time.unix_microseconds =
+                            row_date_time.get_min_persist_time().unix_microseconds;
+                    }
+                }
+                None => result = Some(row_date_time.get_min_persist_time()),
+            }
+        }
+
+        result
     }
 }

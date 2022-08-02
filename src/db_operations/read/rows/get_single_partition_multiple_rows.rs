@@ -1,14 +1,14 @@
 use my_json::json_writer::JsonArrayWriter;
-use my_no_sql_core::db::{DbTable, UpdateExpirationTimeModel, UpdatePartitionReadMoment};
+use my_no_sql_core::db::{UpdateExpirationTimeModel, UpdatePartitionReadMoment};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-use crate::{app::AppContext, db_operations::DbOperationError};
+use crate::{app::AppContext, db::DbTableWrapper, db_operations::DbOperationError};
 
 use super::super::ReadOperationResult;
 
 pub async fn get_single_partition_multiple_rows(
     app: &AppContext,
-    table: &DbTable,
+    db_table_wrapper: &DbTableWrapper,
     partition_key: &str,
     row_keys: Vec<String>,
     update_expiration_time: Option<UpdateExpirationTimeModel>,
@@ -17,7 +17,7 @@ pub async fn get_single_partition_multiple_rows(
 
     let result = if let Some(update_expiration_time) = update_expiration_time {
         get_single_partition_multiple_rows_with_expiration_time_update(
-            table,
+            db_table_wrapper,
             partition_key,
             row_keys,
             update_expiration_time,
@@ -25,7 +25,7 @@ pub async fn get_single_partition_multiple_rows(
         .await
     } else {
         get_single_partition_multiple_rows_with_no_expiration_time_update(
-            table,
+            db_table_wrapper,
             partition_key,
             row_keys,
         )
@@ -36,14 +36,14 @@ pub async fn get_single_partition_multiple_rows(
 }
 
 pub async fn get_single_partition_multiple_rows_with_no_expiration_time_update(
-    table: &DbTable,
+    db_table_wrapper: &DbTableWrapper,
     partition_key: &str,
     row_keys: Vec<String>,
 ) -> ReadOperationResult {
     let now = DateTimeAsMicroseconds::now();
-    let read_access = table.data.read().await;
+    let read_access = db_table_wrapper.data.read().await;
 
-    let db_partition = read_access.get_partition(partition_key);
+    let db_partition = read_access.db_table.get_partition(partition_key);
 
     if db_partition.is_none() {
         return ReadOperationResult::EmptyArray;
@@ -66,15 +66,15 @@ pub async fn get_single_partition_multiple_rows_with_no_expiration_time_update(
 }
 
 pub async fn get_single_partition_multiple_rows_with_expiration_time_update(
-    table: &DbTable,
+    db_table_wrapper: &DbTableWrapper,
     partition_key: &str,
     row_keys: Vec<String>,
     update_expiration_time: UpdateExpirationTimeModel,
 ) -> ReadOperationResult {
     let now = DateTimeAsMicroseconds::now();
-    let mut write_access = table.data.write().await;
+    let mut write_access = db_table_wrapper.data.write().await;
 
-    let db_partition = write_access.get_partition_mut(partition_key);
+    let db_partition = write_access.db_table.get_partition_mut(partition_key);
 
     if db_partition.is_none() {
         return ReadOperationResult::EmptyArray;

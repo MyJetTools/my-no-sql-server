@@ -1,7 +1,7 @@
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 
 use super::models::UpdatePersistTableContract;
-use crate::{app::AppContext, db_sync::EventSource};
+use crate::app::AppContext;
 use std::{result::Result, sync::Arc};
 
 #[my_http_server_swagger::http_route(
@@ -34,13 +34,10 @@ async fn handle_request(
         crate::db_operations::read::table::get(action.app.as_ref(), input_data.table_name.as_str())
             .await?;
 
-    let event_src = EventSource::as_client_request(action.app.as_ref());
-
     crate::db_operations::write::table::update_persist_state(
         &action.app,
         db_table,
         input_data.persist,
-        event_src,
     )
     .await?;
 

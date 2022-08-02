@@ -25,8 +25,8 @@ pub async fn load_tables(app: Arc<AppContext>) {
         thread.await.unwrap();
     }
 
-    while let Some((db_table_data, attrs)) = app.init_state.get_table_data_result().await {
-        crate::db_operations::write::table::init(app.as_ref(), db_table_data, attrs).await;
+    while let Some(db_table) = app.init_state.get_table_data_result().await {
+        crate::db_operations::write::table::init(app.as_ref(), db_table).await;
     }
 
     app.states.set_initialized();

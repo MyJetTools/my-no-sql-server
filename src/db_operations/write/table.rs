@@ -1,19 +1,14 @@
 use std::sync::Arc;
 
-use my_no_sql_core::db::{DbTable, DbTableAttributesSnapshot, DbTableInner};
+use my_no_sql_core::db::{DbTable, DbTableAttributes};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
+use crate::db::DbTableWrapper;
 use crate::db_operations::validation;
 use crate::{
     app::AppContext,
     db_operations::DbOperationError,
-    db_sync::{
-        states::{
-            DeleteTableSyncData, InitTableEventSyncData, SyncTableData,
-            UpdateTableAttributesSyncData,
-        },
-        EventSource, SyncEvent,
-    },
+    db_sync::{states::InitTableEventSyncData, EventSource, SyncEvent},
 };
 
 pub async fn create(
@@ -22,8 +17,7 @@ pub async fn create(
     persist_table: bool,
     max_partitions_amount: Option<usize>,
     event_src: EventSource,
-    persist_moment: DateTimeAsMicroseconds,
-) -> Result<Arc<DbTable>, DbOperationError> {
+) -> Result<Arc<DbTableWrapper>, DbOperationError> {
     super::super::check_app_states(app)?;
 
     validation::validate_table_name(table_name)?;
@@ -34,28 +28,21 @@ pub async fn create(
         get_or_create_table(app, table_name, persist_table, max_partitions_amount, now).await;
 
     match create_table_result {
-        CreateTableResult::JustCreated(db_table) => {
+        CreateTableResult::JustCreated(db_table_wrapper) => {
             {
-                let table_data = db_table.data.write().await;
+                let mut write_access = db_table_wrapper.data.write().await;
 
-                app.persist_markers
-                    .persist_table(db_table.name.as_str(), persist_moment)
-                    .await;
-
-                app.persist_markers
-                    .persist_table(db_table.name.as_str(), persist_moment)
-                    .await;
-
-                let state = InitTableEventSyncData::new(
-                    &table_data,
-                    db_table.attributes.get_snapshot(),
-                    event_src,
-                );
-
-                crate::operations::sync::dispatch(app, SyncEvent::InitTable(state));
+                write_access
+                    .persist_markers
+                    .data_to_persist
+                    .mark_persist_attrs();
             }
 
-            return Ok(db_table);
+            let state = InitTableEventSyncData::new(db_table_wrapper.clone(), event_src);
+
+            crate::operations::sync::dispatch(app, SyncEvent::InitTable(state));
+
+            return Ok(db_table_wrapper);
         }
         CreateTableResult::AlreadyHadTable(_) => {
             return Err(DbOperationError::TableAlreadyExists);
@@ -69,8 +56,7 @@ async fn get_or_create(
     persist_table: bool,
     max_partitions_amount: Option<usize>,
     event_src: EventSource,
-    persist_moment: DateTimeAsMicroseconds,
-) -> Result<Arc<DbTable>, DbOperationError> {
+) -> Result<Arc<DbTableWrapper>, DbOperationError> {
     validation::validate_table_name(table_name)?;
     let now = DateTimeAsMicroseconds::now();
 
@@ -78,27 +64,21 @@ async fn get_or_create(
         get_or_create_table(app, table_name, persist_table, max_partitions_amount, now).await;
 
     match create_table_result {
-        CreateTableResult::JustCreated(db_table) => {
+        CreateTableResult::JustCreated(db_table_wrapper) => {
+            let state = InitTableEventSyncData::new(db_table_wrapper.clone(), event_src);
+
+            crate::operations::sync::dispatch(app, SyncEvent::InitTable(state));
+
             {
-                let table_data = db_table.data.write().await;
-                let state = InitTableEventSyncData::new(
-                    &table_data,
-                    db_table.attributes.get_snapshot(),
-                    event_src,
-                );
+                let mut write_access = db_table_wrapper.data.write().await;
 
-                crate::operations::sync::dispatch(app, SyncEvent::InitTable(state));
-
-                app.persist_markers
-                    .persist_table(db_table.name.as_str(), persist_moment)
-                    .await;
-
-                app.persist_markers
-                    .persist_table_attrs(db_table.name.as_str())
-                    .await;
+                write_access
+                    .persist_markers
+                    .data_to_persist
+                    .mark_persist_attrs();
             }
 
-            return Ok(db_table);
+            return Ok(db_table_wrapper);
         }
         CreateTableResult::AlreadyHadTable(db_table) => {
             return Ok(db_table);
@@ -112,86 +92,88 @@ pub async fn create_if_not_exist(
     persist_table: bool,
     max_partitions_amount: Option<usize>,
     event_src: EventSource,
-    persist_moment: DateTimeAsMicroseconds,
-) -> Result<Arc<DbTable>, DbOperationError> {
+) -> Result<Arc<DbTableWrapper>, DbOperationError> {
     super::super::check_app_states(app)?;
     validation::validate_table_name(table_name)?;
 
-    let db_table = get_or_create(
+    let db_table_wrapper = get_or_create(
         app,
         table_name,
         persist_table,
         max_partitions_amount,
         event_src.clone(),
-        persist_moment,
     )
     .await?;
 
     set_table_attrubutes(
         app,
-        db_table.clone(),
+        db_table_wrapper.clone(),
         persist_table,
         max_partitions_amount,
-        event_src,
     )
     .await?;
 
-    Ok(db_table)
+    Ok(db_table_wrapper)
 }
 
 pub async fn update_persist_state(
     app: &Arc<AppContext>,
-    db_table: Arc<DbTable>,
+    db_table_wrapper: Arc<DbTableWrapper>,
     persist: bool,
-    event_src: EventSource,
 ) -> Result<(), DbOperationError> {
     super::super::check_app_states(app)?;
-    let max_partitions_amount = db_table.attributes.get_max_partitions_amount();
-    set_table_attrubutes(app, db_table, persist, max_partitions_amount, event_src).await?;
+
+    let mut write_access = db_table_wrapper.data.write().await;
+
+    if write_access.db_table.attributes.persist == persist {
+        return Ok(());
+    }
+
+    write_access.db_table.attributes.persist = persist;
+
+    write_access
+        .persist_markers
+        .data_to_persist
+        .mark_persist_attrs();
+
     Ok(())
 }
 
 pub async fn set_table_attrubutes(
     app: &Arc<AppContext>,
-    db_table: Arc<DbTable>,
+    db_table_wrapper: Arc<DbTableWrapper>,
 
     persist: bool,
     max_partitions_amount: Option<usize>,
-    event_src: EventSource,
 ) -> Result<(), DbOperationError> {
     super::super::check_app_states(app)?;
-    let result = db_table.attributes.update(persist, max_partitions_amount);
+
+    let mut write_access = db_table_wrapper.data.write().await;
+    let result = write_access
+        .db_table
+        .attributes
+        .update(persist, max_partitions_amount);
 
     if !result {
         return Ok(());
     }
 
-    crate::operations::sync::dispatch(
-        app,
-        SyncEvent::UpdateTableAttributes(UpdateTableAttributesSyncData {
-            table_data: SyncTableData {
-                table_name: db_table.name.to_string(),
-                persist,
-            },
-            event_src,
-            persist,
-            max_partitions_amount,
-        }),
-    );
-
-    app.persist_markers
-        .persist_table_attrs(db_table.name.as_str())
-        .await;
+    write_access
+        .persist_markers
+        .data_to_persist
+        .mark_persist_attrs();
 
     Ok(())
 }
 
 pub async fn delete(
-    app: Arc<AppContext>,
-    table_name: String,
-    event_src: EventSource,
-    persist_moment: DateTimeAsMicroseconds,
+    _app: Arc<AppContext>,
+    _table_name: String,
+    _event_src: EventSource,
+    _persist_moment: DateTimeAsMicroseconds,
 ) -> Result<(), DbOperationError> {
+    todo!("Delete Temporary deleted");
+    /*
     super::super::check_app_states(app.as_ref())?;
     let result = app.db.delete_table(table_name.as_str()).await;
 
@@ -202,7 +184,9 @@ pub async fn delete(
     let db_table = result.unwrap();
 
     {
-        let table_data = db_table.data.read().await;
+        let db_table = db_table.data.read().await;
+
+        //TODO - Fix Delete Table Case
 
         app.persist_markers
             .persist_table(db_table.name.as_str(), persist_moment)
@@ -210,41 +194,23 @@ pub async fn delete(
 
         crate::operations::sync::dispatch(
             app.as_ref(),
-            SyncEvent::DeleteTable(DeleteTableSyncData::new(
-                &table_data,
-                event_src,
-                db_table.attributes.get_persist(),
-            )),
+            SyncEvent::DeleteTable(DeleteTableSyncData::new(&db_table, event_src)),
         );
     }
 
-    let app = app.clone();
-    let table_name = table_name.to_string();
-    tokio::spawn(
-        async move { crate::persist_operations::sync::delete_table(app, table_name).await },
-    );
-
     Ok(())
+     */
 }
 
-pub async fn init(
-    app: &AppContext,
-    table_data: DbTableInner,
-    attributes: DbTableAttributesSnapshot,
-) {
-    app.blob_content_cache
-        .init(&table_data, attributes.clone())
-        .await;
-
-    let db_table = DbTable::new(table_data, attributes);
+pub async fn init(app: &AppContext, db_table: DbTable) {
+    let db_table = DbTableWrapper::new(db_table);
     let mut tables_write_access = app.db.tables.write().await;
-
-    tables_write_access.insert(db_table.name.to_string(), Arc::new(db_table));
+    tables_write_access.insert(db_table.name.to_string(), db_table);
 }
 
 enum CreateTableResult {
-    JustCreated(Arc<DbTable>),
-    AlreadyHadTable(Arc<DbTable>),
+    JustCreated(Arc<DbTableWrapper>),
+    AlreadyHadTable(Arc<DbTableWrapper>),
 }
 
 async fn get_or_create_table(
@@ -260,17 +226,14 @@ async fn get_or_create_table(
         return CreateTableResult::AlreadyHadTable(table.clone());
     }
 
-    let table_attributes = DbTableAttributesSnapshot {
+    let attributes = DbTableAttributes {
         persist,
         max_partitions_amount,
         created: now,
     };
 
-    let db_table_data = DbTableInner::new(table_name.to_string(), DateTimeAsMicroseconds::now());
+    let new_table = DbTableWrapper::new(DbTable::new(table_name.to_string(), attributes));
 
-    let new_table = DbTable::new(db_table_data, table_attributes);
-
-    let new_table = Arc::new(new_table);
     write_access.insert(table_name.to_string(), new_table.clone());
 
     return CreateTableResult::JustCreated(new_table);

@@ -12,6 +12,7 @@ use tcp::TcpServerEvents;
 
 mod app;
 mod grpc;
+mod persist_grpc_service;
 
 mod persist;
 
@@ -24,8 +25,8 @@ mod tcp;
 
 mod background;
 mod data_readers;
+mod db;
 mod operations;
-mod persist_io;
 mod settings_reader;
 mod utils;
 
@@ -35,23 +36,26 @@ pub mod mynosqlserver_grpc {
     tonic::include_proto!("mynosqlserver");
 }
 
+pub mod mynosqlserverpersistence_grpc {
+    tonic::include_proto!("mynosqlserverpersistence");
+}
+
 #[tokio::main]
 async fn main() {
     let settings = settings_reader::read_settings().await;
 
-    let settings = Arc::new(settings);
-
     let logs = Arc::new(Logs::new());
 
-    let persist_io = settings.get_persist_io(logs.clone());
-
-    let app = AppContext::new(logs.clone(), settings, persist_io);
+    let app = AppContext::new(logs.clone(), settings).await;
 
     let app = Arc::new(app);
-
+    
+    //TODO -Restore
+    /*
     tokio::spawn(crate::persist_operations::data_initializer::load_tables(
         app.clone(),
     ));
+     */
 
     app.sync
         .register_event_loop(Arc::new(SyncEventLoop::new(app.clone())))

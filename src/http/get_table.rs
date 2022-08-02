@@ -1,15 +1,17 @@
 use std::sync::Arc;
 
 use my_http_server::{HttpFailResult, WebContentType};
-use my_no_sql_core::db::DbTable;
 
-use crate::{app::AppContext, http::mappers::db_operation_error::OPERATION_FAIL_HTTP_STATUS_CODE};
+use crate::{
+    app::AppContext, db::DbTableWrapper,
+    http::mappers::db_operation_error::OPERATION_FAIL_HTTP_STATUS_CODE,
+};
 
 use super::mappers::{OperationFailHttpContract, OperationFailReason};
 
 #[async_trait::async_trait]
 pub trait GetTableHttpSupport {
-    async fn get_table(&self, table_name: &str) -> Result<Arc<DbTable>, HttpFailResult>;
+    async fn get_table(&self, table_name: &str) -> Result<Arc<DbTableWrapper>, HttpFailResult>;
 }
 pub fn table_not_found_http_result(table_name: &str) -> HttpFailResult {
     let err_model = OperationFailHttpContract {
@@ -28,7 +30,7 @@ pub fn table_not_found_http_result(table_name: &str) -> HttpFailResult {
 
 #[async_trait::async_trait]
 impl GetTableHttpSupport for AppContext {
-    async fn get_table(&self, table_name: &str) -> Result<Arc<DbTable>, HttpFailResult> {
+    async fn get_table(&self, table_name: &str) -> Result<Arc<DbTableWrapper>, HttpFailResult> {
         if let Some(db_table) = self.db.get_table(table_name).await {
             return Ok(db_table);
         }

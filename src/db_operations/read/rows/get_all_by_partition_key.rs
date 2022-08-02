@@ -1,13 +1,13 @@
-use my_no_sql_core::db::{DbTable, UpdateExpirationTimeModel};
+use my_no_sql_core::db::UpdateExpirationTimeModel;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-use crate::{app::AppContext, db_operations::DbOperationError};
+use crate::{app::AppContext, db::DbTableWrapper, db_operations::DbOperationError};
 
 use super::super::{read_filter, ReadOperationResult};
 
 pub async fn get_all_by_partition_key(
     app: &AppContext,
-    table: &DbTable,
+    db_table_wrapper: &DbTableWrapper,
     partition_key: &str,
     limit: Option<usize>,
     skip: Option<usize>,
@@ -17,7 +17,7 @@ pub async fn get_all_by_partition_key(
 
     let result = if let Some(update_expiration_time) = update_expiration_time {
         get_all_by_partition_key_and_update_expiration_time(
-            table,
+            db_table_wrapper,
             partition_key,
             limit,
             skip,
@@ -25,25 +25,25 @@ pub async fn get_all_by_partition_key(
         )
         .await
     } else {
-        get_all_by_partition_key_and_no_updates(table, partition_key, limit, skip).await
+        get_all_by_partition_key_and_no_updates(db_table_wrapper, partition_key, limit, skip).await
     };
 
     Ok(result)
 }
 
 pub async fn get_all_by_partition_key_and_no_updates(
-    table: &DbTable,
+    db_table_wrapper: &DbTableWrapper,
     partition_key: &str,
     limit: Option<usize>,
     skip: Option<usize>,
 ) -> ReadOperationResult {
     let now = DateTimeAsMicroseconds::now();
 
-    let table_data = table.data.read().await;
+    let read_access = db_table_wrapper.data.read().await;
 
-    table_data.last_read_time.update(now);
+    read_access.db_table.last_read_time.update(now);
 
-    let get_partition_result = table_data.get_partition(partition_key);
+    let get_partition_result = read_access.db_table.get_partition(partition_key);
 
     match get_partition_result {
         Some(partition) => ReadOperationResult::RowsArray(read_filter::filter_it(
@@ -57,7 +57,7 @@ pub async fn get_all_by_partition_key_and_no_updates(
 }
 
 pub async fn get_all_by_partition_key_and_update_expiration_time(
-    table: &DbTable,
+    db_table_wrapper: &DbTableWrapper,
     partition_key: &str,
     limit: Option<usize>,
     skip: Option<usize>,
@@ -65,11 +65,11 @@ pub async fn get_all_by_partition_key_and_update_expiration_time(
 ) -> ReadOperationResult {
     let now = DateTimeAsMicroseconds::now();
 
-    let mut table_data = table.data.write().await;
+    let mut write_access = db_table_wrapper.data.write().await;
 
-    table_data.last_read_time.update(now);
+    write_access.db_table.last_read_time.update(now);
 
-    let get_partition_result = table_data.get_partition_mut(partition_key);
+    let get_partition_result = write_access.db_table.get_partition_mut(partition_key);
 
     match get_partition_result {
         Some(partition) => ReadOperationResult::RowsArray(read_filter::filter_it(

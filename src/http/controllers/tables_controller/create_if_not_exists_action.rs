@@ -39,11 +39,10 @@ async fn handle_request(
         input_data.persist,
         input_data.max_partitions_amount,
         even_src,
-        input_data.sync_period.get_sync_moment(),
     )
     .await?;
 
-    let response: TableContract = table.as_ref().into();
+    let response = TableContract::from_table_wrapper(table.as_ref()).await;
 
     HttpOutput::as_json(response).into_ok_result(true).into()
 }

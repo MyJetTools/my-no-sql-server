@@ -3,22 +3,14 @@ use std::{
     time::Duration,
 };
 
-use my_no_sql_core::db::DbInstance;
 use rust_extensions::{
     date_time::DateTimeAsMicroseconds, events_loop::EventsLoop, AppStates, Logger,
 };
 
 use crate::{
-    data_readers::DataReadersList,
-    db_operations::multipart::MultipartList,
-    db_sync::SyncEvent,
-    db_transactions::ActiveTransactions,
-    persist::PersistMarkersByTable,
-    persist_io::PersistIoOperations,
-    persist_operations::{
-        blob_content_cache::BlobContentCache, data_initializer::load_tasks::InitState,
-    },
-    settings_reader::SettingsModel,
+    data_readers::DataReadersList, db::DbInstance, db_operations::multipart::MultipartList,
+    db_sync::SyncEvent, db_transactions::ActiveTransactions,
+    persist_grpc_service::PersistGrpcService, settings_reader::SettingsModel,
 };
 
 use super::{
@@ -41,29 +33,24 @@ pub struct AppContext {
     pub active_transactions: ActiveTransactions,
     pub process_id: String,
 
-    pub blob_content_cache: BlobContentCache,
     pub data_readers: DataReadersList,
 
     pub multipart_list: MultipartList,
-    pub persist_io: PersistIoOperations,
-    pub init_state: InitState,
-    pub settings: Arc<SettingsModel>,
+    pub settings: SettingsModel,
     pub sync: EventsLoop<SyncEvent>,
     pub states: Arc<AppStates>,
-    pub persist_markers: PersistMarkersByTable,
+
+    pub persist_grpc_service: PersistGrpcService,
+    pub persist_retry_timeout: Duration,
     persist_amount: AtomicUsize,
 }
 
 impl AppContext {
-    pub fn new(
-        logs: Arc<Logs>,
-        settings: Arc<SettingsModel>,
-        persist_io: PersistIoOperations,
-    ) -> Self {
+    pub async fn new(logs: Arc<Logs>, settings: SettingsModel) -> Self {
+        let persist_grpc_service = PersistGrpcService::new(settings.persistence_dest.clone()).await;
         AppContext {
-            persist_markers: PersistMarkersByTable::new(),
+            persist_retry_timeout: Duration::from_secs(5),
             created: DateTimeAsMicroseconds::now(),
-            init_state: InitState::new(),
             db: DbInstance::new(),
             logs,
             metrics: PrometheusMetrics::new(),
@@ -71,13 +58,12 @@ impl AppContext {
             process_id: uuid::Uuid::new_v4().to_string(),
             states: Arc::new(AppStates::create_un_initialized()),
 
-            blob_content_cache: BlobContentCache::new(),
             data_readers: DataReadersList::new(Duration::from_secs(30)),
             multipart_list: MultipartList::new(),
-            persist_io,
             settings,
             persist_amount: AtomicUsize::new(0),
             sync: EventsLoop::new("SyncEventsLoop".to_string()),
+            persist_grpc_service,
         }
     }
 

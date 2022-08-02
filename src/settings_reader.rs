@@ -1,9 +1,6 @@
-use my_azure_storage_sdk::AzureStorageConnection;
 use serde::{Deserialize, Serialize};
-use std::{env, sync::Arc};
+use std::env;
 use tokio::{fs::File, io::AsyncReadExt};
-
-use crate::{app::logs::Logs, persist_io::PersistIoOperations};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SettingsModel {
@@ -27,13 +24,6 @@ pub struct SettingsModel {
 
     #[serde(rename = "TcpSendTimeoutSec")]
     pub tcp_send_time_out: u64,
-}
-
-impl SettingsModel {
-    pub fn get_persist_io(&self, logs: Arc<Logs>) -> PersistIoOperations {
-        let conn_string = AzureStorageConnection::from_conn_string(self.persistence_dest.as_str());
-        PersistIoOperations::new(Arc::new(conn_string), logs)
-    }
 }
 
 pub async fn read_settings() -> SettingsModel {

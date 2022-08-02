@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use my_json::json_writer::JsonObjectWriter;
-use my_no_sql_core::db::{db_snapshots::DbPartitionSnapshot, DbTableInner};
+use my_no_sql_core::db::{db_snapshots::DbPartitionSnapshot, DbTable};
 
 use crate::db_sync::EventSource;
 
@@ -14,19 +14,18 @@ pub struct InitPartitionsSyncData {
 }
 
 impl InitPartitionsSyncData {
-    pub fn new(table_data: &DbTableInner, event_src: EventSource, persist: bool) -> Self {
+    pub fn new(table_data: &DbTable, event_src: EventSource) -> Self {
         Self {
-            table_data: SyncTableData::new(table_data, persist),
+            table_data: SyncTableData::new(table_data),
             event_src,
             partitions_to_update: BTreeMap::new(),
         }
     }
 
     pub fn new_as_update_partition(
-        table_data: &DbTableInner,
+        table_data: &DbTable,
         partition_key: &str,
         event_src: EventSource,
-        persist: bool,
     ) -> Self {
         let mut partitions_to_update = BTreeMap::new();
 
@@ -38,7 +37,7 @@ impl InitPartitionsSyncData {
         }
 
         Self {
-            table_data: SyncTableData::new(table_data, persist),
+            table_data: SyncTableData::new(table_data),
             event_src,
             partitions_to_update,
         }

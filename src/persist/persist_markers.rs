@@ -1,17 +1,16 @@
-use std::{collections::HashMap, time::Duration};
+use std::time::Duration;
 
 use rust_extensions::date_time::DateTimeAsMicroseconds;
-use tokio::sync::Mutex;
 
-use super::data_to_persist::{DataToPersist, PersistResult};
+use super::data_to_persist::DataToPersist;
 
-pub struct PersistMarkersByTableInner {
+pub struct PersistMarkers {
     pub data_to_persist: DataToPersist,
     pub persist_duration: Vec<usize>,
     pub last_persist_time: Option<DateTimeAsMicroseconds>,
 }
 
-impl PersistMarkersByTableInner {
+impl PersistMarkers {
     pub fn new() -> Self {
         Self {
             data_to_persist: DataToPersist::new(),
@@ -29,6 +28,15 @@ impl PersistMarkersByTableInner {
 
         self.last_persist_time = DateTimeAsMicroseconds::now().into();
     }
+
+    pub fn get_persist_metrics(&self) -> PersistMetrics {
+        PersistMetrics {
+            last_persist_time: self.last_persist_time.clone(),
+            next_persist_time: self.data_to_persist.get_next_persist_time(),
+            persist_amount: self.data_to_persist.get_persist_amount(),
+            last_persist_duration: self.persist_duration.clone(),
+        }
+    }
 }
 
 pub struct PersistMetrics {
@@ -38,6 +46,7 @@ pub struct PersistMetrics {
     pub last_persist_duration: Vec<usize>,
 }
 
+/*
 pub struct PersistMarkersByTable {
     persist_by_table: Mutex<HashMap<String, PersistMarkersByTableInner>>,
 }
@@ -146,3 +155,4 @@ impl PersistMarkersByTable {
         }
     }
 }
+ */

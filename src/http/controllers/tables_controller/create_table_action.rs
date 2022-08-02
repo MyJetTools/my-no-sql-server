@@ -40,7 +40,6 @@ async fn handle_request(
         input_data.persist,
         input_data.max_partitions_amount,
         even_src,
-        input_data.sync_period.get_sync_moment(),
     )
     .await?;
 

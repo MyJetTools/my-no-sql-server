@@ -1,13 +1,13 @@
-use my_no_sql_core::db::{DbTable, UpdateExpirationTimeModel, UpdatePartitionReadMoment};
+use my_no_sql_core::db::{UpdateExpirationTimeModel, UpdatePartitionReadMoment};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-use crate::{app::AppContext, db_operations::DbOperationError};
+use crate::{app::AppContext, db::DbTableWrapper, db_operations::DbOperationError};
 
 use super::super::{read_filter, ReadOperationResult};
 
 pub async fn get_all_by_row_key(
     app: &AppContext,
-    table: &DbTable,
+    db_table_wrapper: &DbTableWrapper,
     row_key: &str,
     limit: Option<usize>,
     skip: Option<usize>,
@@ -17,7 +17,7 @@ pub async fn get_all_by_row_key(
 
     let result = if let Some(update_expiration_time) = update_expiration_time {
         get_all_by_row_key_and_update_expiration_time(
-            table,
+            db_table_wrapper,
             row_key,
             limit,
             skip,
@@ -25,29 +25,30 @@ pub async fn get_all_by_row_key(
         )
         .await
     } else {
-        get_all_by_row_key_and_update_no_expiration_time(table, row_key, limit, skip).await
+        get_all_by_row_key_and_update_no_expiration_time(db_table_wrapper, row_key, limit, skip)
+            .await
     };
 
     Ok(result)
 }
 
 async fn get_all_by_row_key_and_update_no_expiration_time(
-    table: &DbTable,
+    db_table_wrapper: &DbTableWrapper,
     row_key: &str,
     limit: Option<usize>,
     skip: Option<usize>,
 ) -> ReadOperationResult {
     let now = DateTimeAsMicroseconds::now();
 
-    let table_data = table.data.read().await;
+    let read_access = db_table_wrapper.data.read().await;
 
-    table_data.last_read_time.update(now);
+    read_access.db_table.last_read_time.update(now);
 
     let mut result = Vec::new();
 
     let now = DateTimeAsMicroseconds::now();
 
-    for partition in table_data.get_partitions() {
+    for partition in read_access.db_table.get_partitions() {
         let get_row_result = partition.get_row(
             row_key,
             UpdatePartitionReadMoment::UpdateIfElementIsFound(now),
@@ -67,7 +68,7 @@ async fn get_all_by_row_key_and_update_no_expiration_time(
 }
 
 async fn get_all_by_row_key_and_update_expiration_time(
-    table: &DbTable,
+    db_table_wrapper: &DbTableWrapper,
     row_key: &str,
     limit: Option<usize>,
     skip: Option<usize>,
@@ -75,15 +76,15 @@ async fn get_all_by_row_key_and_update_expiration_time(
 ) -> ReadOperationResult {
     let now = DateTimeAsMicroseconds::now();
 
-    let mut table_data = table.data.write().await;
+    let mut write_access = db_table_wrapper.data.write().await;
 
-    table_data.last_read_time.update(now);
+    write_access.db_table.last_read_time.update(now);
 
     let mut result = Vec::new();
 
     let now = DateTimeAsMicroseconds::now();
 
-    for partition in table_data.partitions.values_mut() {
+    for partition in write_access.db_table.partitions.values_mut() {
         let get_row_result = partition.get_row_and_update_expiration_time(
             row_key,
             UpdatePartitionReadMoment::UpdateIfElementIsFound(now),
