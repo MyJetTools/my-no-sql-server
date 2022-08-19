@@ -1,5 +1,16 @@
 # MY SERVICE BUS
 
+## Http methods overview
+#### NoSql writers use API for tables management, there small overview of methods: 
+* Bulk: Bulk operations with tables.
+* Row: Main methods for working with single row (delete, update, insert).
+* Rows: Main methods for working with set of rows.
+* DataReader: Methods for HTTP data readers.
+* GarbageCollector: Methods for cache size control.
+* Tables: Methods for tables management. Delete, create, get list ...
+* Transactions: Methods for transaction operations (same as in RDBMS)
+
+
 ## Changes
 ### 0.0.18
 * BUG: Entities PartitionKey and RowKey now can not be uploaded with Null Values;
