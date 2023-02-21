@@ -1,9 +1,9 @@
-use my_no_sql_core::db::{DbPartition, DbTableAttributesSnapshot};
+use my_no_sql_core::db::{DbPartition, DbTableAttributes};
 
 use crate::{persist_io::TableFile, persist_operations::serializers::TableMetadataFileContract};
 
 pub enum LoadedTableItem {
-    TableAttributes(DbTableAttributesSnapshot),
+    TableAttributes(DbTableAttributes),
     DbPartition {
         partition_key: String,
         db_partition: DbPartition,
@@ -20,7 +20,9 @@ impl LoadedTableItem {
             }
             TableFile::DbPartition(partition_key) => {
                 let db_partition =
-                    crate::persist_operations::serializers::db_partition::deserialize(content)?;
+                    crate::persist_operations::serializers::db_partition::deserialize_from_io(
+                        content,
+                    )?;
 
                 let result = LoadedTableItem::DbPartition {
                     partition_key: partition_key.to_string(),

@@ -34,7 +34,7 @@ impl TableEntityTransportGrpcContract {
                 return self.parse_as_json(time_stamp);
             }
             GrpcContentType::Protobuf => {
-                todo!("Not Implemented")
+                panic!("Not supported")
             }
         }
     }

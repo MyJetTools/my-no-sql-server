@@ -1,5 +1,5 @@
 use my_http_server_swagger::*;
-use my_no_sql_core::db::DbTable;
+use my_no_sql_server_core::DbTableWrapper;
 use serde::{Deserialize, Serialize};
 
 use crate::db_sync::DataSynchronizationPeriod;
@@ -41,11 +41,11 @@ pub struct TableContract {
     pub max_partitions_amount: Option<usize>,
 }
 
-impl Into<TableContract> for &DbTable {
-    fn into(self) -> TableContract {
-        let table_snapshot = self.attributes.get_snapshot();
+impl TableContract {
+    pub async fn from_table_wrapper(table_wrapper: &DbTableWrapper) -> TableContract {
+        let table_snapshot = table_wrapper.get_attributes().await;
         TableContract {
-            name: self.name.to_string(),
+            name: table_wrapper.name.to_string(),
             persist: table_snapshot.persist,
             max_partitions_amount: table_snapshot.max_partitions_amount,
         }

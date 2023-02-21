@@ -1,18 +1,21 @@
 use std::sync::Arc;
 
+use crate::{app::AppContext, http::http_sessions::*};
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
-use my_http_server_controllers::controllers::{
-    actions::PostAction,
-    documentation::{data_types::HttpDataType, out_results::HttpResult, HttpActionDescription},
-};
-
-use crate::{
-    app::AppContext,
-    http::http_sessions::{self, *},
-};
 
 use super::models::SubscribeToTableInputModel;
 
+#[my_http_server_swagger::http_route(
+    method: "POST",
+    route: "/DataReader/Subscribe",
+    controller: "DataReader",
+    summary: "Subscribes to table",
+    description: "Subscribe to table",
+    input_data: "SubscribeToTableInputModel",
+    result:[
+        {status_code: 202, description: "Successful operation"},
+    ]
+)]
 pub struct SubscribeAction {
     app: Arc<AppContext>,
 }
@@ -23,6 +26,7 @@ impl SubscribeAction {
     }
 }
 
+/*
 #[async_trait::async_trait]
 impl PostAction for SubscribeAction {
     fn get_route(&self) -> &str {
@@ -65,4 +69,25 @@ impl PostAction for SubscribeAction {
 
         HttpOutput::Empty.into_ok_result(true).into()
     }
+}
+ */
+
+async fn handle_request(
+    action: &SubscribeAction,
+    input_data: SubscribeToTableInputModel,
+    _ctx: &mut HttpContext,
+) -> Result<HttpOkResult, HttpFailResult> {
+    let data_reader = action
+        .app
+        .get_http_session(input_data.session_id.as_str())
+        .await?;
+
+    crate::operations::data_readers::subscribe(
+        action.app.as_ref(),
+        data_reader,
+        input_data.table_name.as_str(),
+    )
+    .await?;
+
+    HttpOutput::Empty.into_ok_result(true).into()
 }

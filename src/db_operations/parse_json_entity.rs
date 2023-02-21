@@ -17,11 +17,11 @@ pub fn as_single_entity(as_bytes: &[u8]) -> Result<DbJsonEntity, DbOperationErro
     }
 }
 
-pub fn as_btree_map(
+pub fn parse_as_btree_map(
     as_bytes: &[u8],
-    time_stamp: &JsonTimeStamp,
+    inject_time_stamp: &JsonTimeStamp,
 ) -> Result<BTreeMap<String, Vec<Arc<DbRow>>>, DbOperationError> {
-    match DbJsonEntity::parse_as_btreemap(as_bytes, time_stamp) {
+    match DbJsonEntity::parse_as_btreemap(as_bytes, inject_time_stamp) {
         Ok(result) => Ok(result),
         Err(err) => {
             let result = DbOperationError::DbEntityParseFail(err);

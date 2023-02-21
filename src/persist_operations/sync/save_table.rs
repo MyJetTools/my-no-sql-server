@@ -1,14 +1,14 @@
 use std::collections::HashMap;
 
-use my_no_sql_core::db::{db_snapshots::DbTableSnapshot, DbTable};
+use my_no_sql_server_core::{db_snapshots::DbTableSnapshot, DbTableWrapper};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::app::AppContext;
 
 use super::super::sync;
 
-pub async fn save_table(app: &AppContext, db_table: &DbTable) {
-    let snapshot = db_table.get_table_snapshot().await;
+pub async fn save_table(app: &AppContext, db_table: &DbTableWrapper) {
+    let snapshot: DbTableSnapshot = db_table.get_table_snapshot().await;
 
     let in_blob = app
         .blob_content_cache

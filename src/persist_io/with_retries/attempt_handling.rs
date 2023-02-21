@@ -1,5 +1,6 @@
-use crate::app::logs::Logs;
-use std::time::Duration;
+use std::{collections::HashMap, time::Duration};
+
+use my_no_sql_server_core::logs::*;
 
 pub async fn execute(
     logs: &Logs,
@@ -12,12 +13,16 @@ pub async fn execute(
         panic!("{}", message.as_str());
     }
 
+    let mut ctx = HashMap::new();
+
+    ctx.insert("attempt".to_string(), attempt_no.to_string());
+
     logs.add_error(
         table_name,
-        crate::app::logs::SystemProcess::Init,
+        SystemProcess::Init,
         process_name.to_string(),
         message,
-        Some(format!("Attempt: {}", attempt_no)),
+        Some(ctx),
     );
 
     tokio::time::sleep(Duration::from_secs(1)).await;

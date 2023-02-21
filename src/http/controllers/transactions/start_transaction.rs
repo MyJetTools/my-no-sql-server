@@ -1,13 +1,18 @@
+use super::models::StartTransactionResponse;
 use crate::app::AppContext;
-use async_trait::async_trait;
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
-use my_http_server_controllers::controllers::{
-    actions::PostAction,
-    documentation::{out_results::HttpResult, HttpActionDescription},
-};
 use std::sync::Arc;
 
-use super::models::StartTransactionResponse;
+#[my_http_server_swagger::http_route(
+    method: "POST",
+    route: "/Transactions/Start",
+    description: "Start new Transaction",
+    summary: "Starts new Transaction",
+    controller: "Transactions",
+    result:[
+        {status_code: 200, description: "Issued transaction". model:"StartTransactionResponse"},        
+    ]
+)]
 
 pub struct StartTransactionAction {
     app: Arc<AppContext>,
@@ -18,6 +23,8 @@ impl StartTransactionAction {
         Self { app }
     }
 }
+
+/*
 
 #[async_trait]
 impl PostAction for StartTransactionAction {
@@ -41,12 +48,16 @@ impl PostAction for StartTransactionAction {
         }
         .into()
     }
+}
+ */
 
-    async fn handle_request(&self, _: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
-        let transaction_id = self.app.active_transactions.issue_new().await;
+async fn handle_request(
+    action: &StartTransactionAction,
+    _: &mut HttpContext,
+) -> Result<HttpOkResult, HttpFailResult> {
+    let transaction_id = action.app.active_transactions.issue_new().await;
 
-        let response = StartTransactionResponse { transaction_id };
+    let response = StartTransactionResponse { transaction_id };
 
-        HttpOutput::as_json(response).into_ok_result(true).into()
-    }
+    HttpOutput::as_json(response).into_ok_result(true).into()
 }

@@ -3,6 +3,7 @@ use std::{sync::Arc, time::Duration};
 use crate::{app::AppContext, persist_io::TableFile};
 
 use super::{load_tasks::NextFileToLoadResult, LoadedTableItem};
+use my_no_sql_server_core::logs::*;
 
 pub async fn spawn(app: Arc<AppContext>) {
     loop {
@@ -18,7 +19,7 @@ pub async fn spawn(app: Arc<AppContext>) {
                 if let Err(err) = table_file {
                     app.logs.add_error(
                         Some(file_name.to_string()),
-                        crate::app::logs::SystemProcess::Init,
+                        SystemProcess::Init,
                         "init_tables".to_string(),
                         format!("Error loading table file {}: {}", file_name, err),
                         None,
@@ -43,7 +44,7 @@ pub async fn spawn(app: Arc<AppContext>) {
                         Err(err) => {
                             app.logs.add_error(
                                 Some(file_name.to_string()),
-                                crate::app::logs::SystemProcess::Init,
+                                SystemProcess::Init,
                                 "init_tables".to_string(),
                                 format!("Error parsing table file {}: {}", file_name, err),
                                 None,

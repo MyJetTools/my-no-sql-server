@@ -1,14 +1,21 @@
-use crate::{app::AppContext, db_sync::EventSource, http::contracts::response};
-use async_trait::async_trait;
+use crate::{app::AppContext, db_sync::EventSource};
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
-use my_http_server_controllers::controllers::{
-    actions::PostAction, documentation::HttpActionDescription,
-};
-use my_no_sql_core::db_json_entity::JsonTimeStamp;
+
 use std::sync::Arc;
 
 use super::models::ProcessTransactionInputModel;
 
+#[my_http_server_swagger::http_route(
+    method: "POST",
+    route: "/Transactions/Commit",
+    description: "Commit transaction",
+    summary: "Commits transaction",
+    input_data: "ProcessTransactionInputModel",
+    controller: "Transactions",
+    result:[
+        {status_code: 202, description: "Transaction is canceled"},        
+    ]
+)]
 pub struct CommitTransactionAction {
     app: Arc<AppContext>,
 }
@@ -19,6 +26,7 @@ impl CommitTransactionAction {
     }
 }
 
+/*
 #[async_trait]
 impl PostAction for CommitTransactionAction {
     fn get_route(&self) -> &str {
@@ -38,24 +46,23 @@ impl PostAction for CommitTransactionAction {
         }
         .into()
     }
+}
+ */
 
-    async fn handle_request(&self, ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
-        let input_model: ProcessTransactionInputModel =
-            ProcessTransactionInputModel::parse_http_input(ctx).await?;
+async fn handle_request(
+    action: &CommitTransactionAction,
+    input_model: ProcessTransactionInputModel,
+    _ctx: &mut HttpContext,
+) -> Result<HttpOkResult, HttpFailResult> {
+    let even_src = EventSource::as_client_request(action.app.as_ref());
 
-        let even_src = EventSource::as_client_request(self.app.as_ref());
+    crate::db_operations::transactions::commit(
+        action.app.as_ref(),
+        input_model.transaction_id.as_ref(),
+        even_src,
+        crate::db_sync::DataSynchronizationPeriod::Sec1.get_sync_moment(),
+    )
+    .await?;
 
-        let now = JsonTimeStamp::now();
-
-        crate::db_operations::transactions::commit(
-            self.app.as_ref(),
-            input_model.transaction_id.as_ref(),
-            even_src,
-            &now,
-            crate::db_sync::DataSynchronizationPeriod::Sec1.get_sync_moment(),
-        )
-        .await?;
-
-        return HttpOutput::Empty.into_ok_result(true).into();
-    }
+    return HttpOutput::Empty.into_ok_result(true).into();
 }

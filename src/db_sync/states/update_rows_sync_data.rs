@@ -1,4 +1,5 @@
-use my_no_sql_core::db::{db_snapshots::DbRowsByPartitionsSnapshot, DbTableInner};
+use my_no_sql_core::db::DbTable;
+use my_no_sql_server_core::db_snapshots::DbRowsByPartitionsSnapshot;
 
 use crate::db_sync::EventSource;
 
@@ -11,9 +12,9 @@ pub struct UpdateRowsSyncData {
 }
 
 impl UpdateRowsSyncData {
-    pub fn new(table_data: &DbTableInner, persist: bool, event_src: EventSource) -> Self {
+    pub fn new(db_table: &DbTable, event_src: EventSource) -> Self {
         Self {
-            table_data: SyncTableData::new(table_data, persist),
+            table_data: SyncTableData::new(db_table),
             event_src,
             rows_by_partition: DbRowsByPartitionsSnapshot::new(),
         }

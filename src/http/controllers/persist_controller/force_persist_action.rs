@@ -7,7 +7,8 @@ use crate::app::AppContext;
 #[my_http_server_swagger::http_route(
     method: "POST",
     route: "/Persist/Force",
-    description: "Execute persist loop",
+    summary: "Execute persist loop",
+    description: "Executes persist loop",
     controller: "Persist",
     result:[
         {status_code: 202, description: "Executed succesfully"},
@@ -28,5 +29,5 @@ async fn handle_request(
     _ctx: &HttpContext,
 ) -> Result<HttpOkResult, HttpFailResult> {
     crate::operations::persist(&action.app).await;
-    return Ok(HttpOutput::Empty.into_ok_result(true));
+    HttpOutput::Empty.into_ok_result(true)
 }

@@ -1,7 +1,8 @@
 use std::collections::BTreeMap;
 
 use my_json::json_writer::JsonObjectWriter;
-use my_no_sql_core::db::{db_snapshots::DbPartitionSnapshot, DbTableInner};
+use my_no_sql_core::db::DbTable;
+use my_no_sql_server_core::db_snapshots::DbPartitionSnapshot;
 
 use crate::db_sync::EventSource;
 
@@ -14,23 +15,22 @@ pub struct InitPartitionsSyncData {
 }
 
 impl InitPartitionsSyncData {
-    pub fn new(table_data: &DbTableInner, event_src: EventSource, persist: bool) -> Self {
+    pub fn new(table_data: &DbTable, event_src: EventSource) -> Self {
         Self {
-            table_data: SyncTableData::new(table_data, persist),
+            table_data: SyncTableData::new(table_data),
             event_src,
             partitions_to_update: BTreeMap::new(),
         }
     }
 
     pub fn new_as_update_partition(
-        table_data: &DbTableInner,
+        db_table: &DbTable,
         partition_key: &str,
         event_src: EventSource,
-        persist: bool,
     ) -> Self {
         let mut partitions_to_update = BTreeMap::new();
 
-        if let Some(db_partition) = table_data.get_partition(partition_key) {
+        if let Some(db_partition) = db_table.get_partition(partition_key) {
             let partition_snapshot: DbPartitionSnapshot = db_partition.into();
             partitions_to_update.insert(partition_key.to_string(), Some(partition_snapshot));
         } else {
@@ -38,7 +38,7 @@ impl InitPartitionsSyncData {
         }
 
         Self {
-            table_data: SyncTableData::new(table_data, persist),
+            table_data: SyncTableData::new(db_table),
             event_src,
             partitions_to_update,
         }

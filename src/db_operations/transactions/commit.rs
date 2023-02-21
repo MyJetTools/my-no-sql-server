@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use my_no_sql_core::db_json_entity::JsonTimeStamp;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
@@ -13,7 +12,7 @@ pub async fn commit(
     app: &AppContext,
     transaction_id: &str,
     event_src: EventSource,
-    now: &JsonTimeStamp,
+
     persist_moment: DateTimeAsMicroseconds,
 ) -> Result<(), TransactionOperationError> {
     let transaction = app.active_transactions.remove(transaction_id).await;
@@ -40,7 +39,7 @@ pub async fn commit(
                     let db_table = tables.get(table_name.as_str()).unwrap();
                     crate::db_operations::write::clean_table::execute(
                         app,
-                        db_table.clone(),
+                        &db_table,
                         event_src.clone(),
                         persist_moment,
                     )
@@ -53,7 +52,7 @@ pub async fn commit(
                     let db_table = tables.get(table_name.as_str()).unwrap();
                     crate::db_operations::write::delete_partitions(
                         app,
-                        db_table.as_ref(),
+                        &db_table,
                         partition_keys,
                         event_src.clone(),
                         persist_moment,
@@ -73,7 +72,6 @@ pub async fn commit(
                         db_table.as_ref(),
                         rows_to_delete,
                         event_src.clone(),
-                        now.date_time,
                         persist_moment,
                     )
                     .await?;
@@ -82,10 +80,9 @@ pub async fn commit(
                     let db_table = tables.get(state.table_name.as_str()).unwrap();
                     crate::db_operations::write::bulk_insert_or_update::execute(
                         app,
-                        db_table.clone(),
+                        &db_table,
                         state.rows_by_partition,
                         event_src.clone(),
-                        now,
                         persist_moment,
                     )
                     .await?;

@@ -1,14 +1,22 @@
 use std::sync::Arc;
 
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
-use my_http_server_controllers::controllers::{
-    actions::PostAction, documentation::HttpActionDescription,
-};
 
-use crate::{app::AppContext, http::contracts::response};
+use crate::app::AppContext;
 
 use super::models::ProcessTransactionInputModel;
 
+#[my_http_server_swagger::http_route(
+    method: "POST",
+    route: "/Transactions/Cancel",
+    description: "Cancel transaction",
+    summary: "Cancels transaction",
+    input_data: "ProcessTransactionInputModel",
+    controller: "Transactions",
+    result:[
+        {status_code: 202, description: "Transaction is canceled"},        
+    ]
+)]
 pub struct CancelTransactionAction {
     app: Arc<AppContext>,
 }
@@ -19,6 +27,7 @@ impl CancelTransactionAction {
     }
 }
 
+/*
 #[async_trait::async_trait]
 impl PostAction for CancelTransactionAction {
     fn get_route(&self) -> &str {
@@ -39,15 +48,19 @@ impl PostAction for CancelTransactionAction {
         .into()
     }
 
-    async fn handle_request(&self, ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
-        let input_model: ProcessTransactionInputModel =
-            ProcessTransactionInputModel::parse_http_input(ctx).await?;
 
-        crate::db_operations::transactions::cancel(
-            self.app.as_ref(),
-            input_model.transaction_id.as_str(),
-        )
-        .await?;
-        return Ok(HttpOutput::Empty.into_ok_result(true));
-    }
+}
+ */
+
+async fn handle_request(
+    action: &CancelTransactionAction,
+    input_model: ProcessTransactionInputModel,
+    _ctx: &mut HttpContext,
+) -> Result<HttpOkResult, HttpFailResult> {
+    crate::db_operations::transactions::cancel(
+        action.app.as_ref(),
+        input_model.transaction_id.as_str(),
+    )
+    .await?;
+    return HttpOutput::Empty.into_ok_result(true);
 }

@@ -1,11 +1,12 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
-use my_no_sql_tcp_shared::{MyNoSqlReaderTcpSerializer, TcpContract};
+use my_no_sql_server_core::logs::*;
+use my_no_sql_tcp_shared::{MyNoSqlReaderTcpSerializer, MyNoSqlTcpContract};
 use my_tcp_sockets::{tcp_connection::SocketConnection, ConnectionEvent, SocketEventCallback};
 
-use crate::app::{logs::SystemProcess, AppContext};
+use crate::app::AppContext;
 
-pub type MyNoSqlTcpConnection = SocketConnection<TcpContract, MyNoSqlReaderTcpSerializer>;
+pub type MyNoSqlTcpConnection = SocketConnection<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer>;
 
 pub struct TcpServerEvents {
     app: Arc<AppContext>,
@@ -18,14 +19,14 @@ impl TcpServerEvents {
 
     pub async fn handle_incoming_packet(
         &self,
-        tcp_contract: TcpContract,
+        tcp_contract: MyNoSqlTcpContract,
         connection: Arc<MyNoSqlTcpConnection>,
     ) {
         match tcp_contract {
-            TcpContract::Ping => {
-                connection.send(TcpContract::Pong).await;
+            MyNoSqlTcpContract::Ping => {
+                connection.send(MyNoSqlTcpContract::Pong).await;
             }
-            TcpContract::Greeting { name } => {
+            MyNoSqlTcpContract::Greeting { name } => {
                 if let Some(data_reader) = self.app.data_readers.get_tcp(connection.as_ref()).await
                 {
                     self.app.logs.add_info(
@@ -39,7 +40,7 @@ impl TcpServerEvents {
                 }
             }
 
-            TcpContract::GreetingFromNode {
+            MyNoSqlTcpContract::GreetingFromNode {
                 node_location,
                 node_version,
                 compress,
@@ -67,7 +68,7 @@ impl TcpServerEvents {
                 }
             }
 
-            TcpContract::Subscribe { table_name } => {
+            MyNoSqlTcpContract::Subscribe { table_name } => {
                 if let Some(data_reader) = self.app.data_readers.get_tcp(connection.as_ref()).await
                 {
                     let result = crate::operations::data_readers::subscribe(
@@ -89,30 +90,34 @@ impl TcpServerEvents {
                         let message =
                             format!("Subscribe to table {} error. Err: {:?}", table_name, err);
 
+                        let mut ctx = HashMap::new();
+
+                        ctx.insert("sessionId".to_string(), connection.id.to_string());
+                        if let Some(session_name) = session_name {
+                            ctx.insert("sessionName".to_string(), session_name);
+                        }
+
                         self.app.logs.add_error(
                             Some(table_name.to_string()),
                             SystemProcess::TcpSocket,
                             "Subscribe to table".to_string(),
                             message.to_string(),
-                            Some(format!(
-                                "SessionId:{}, Name:{:?}",
-                                connection.id, session_name
-                            )),
+                            Some(ctx),
                         );
 
-                        connection.send(TcpContract::Error { message }).await;
+                        connection.send(MyNoSqlTcpContract::Error { message }).await;
                     }
                 }
             }
 
-            TcpContract::SubscribeAsNode(table_name) => {
+            MyNoSqlTcpContract::SubscribeAsNode(table_name) => {
                 if let Some(data_reader) = self.app.data_readers.get_tcp(connection.as_ref()).await
                 {
                     let table = self.app.db.get_table(table_name.as_str()).await;
 
                     if table.is_none() {
                         connection
-                            .send(TcpContract::TableNotFound(table_name))
+                            .send(MyNoSqlTcpContract::TableNotFound(table_name))
                             .await;
 
                         return;
@@ -137,25 +142,93 @@ impl TcpServerEvents {
                         let message =
                             format!("Subscribe to table {} error. Err: {:?}", table_name, err);
 
+                        let mut ctx = HashMap::new();
+
+                        ctx.insert("sessionId".to_string(), connection.id.to_string());
+                        if let Some(session_name) = session_name {
+                            ctx.insert("sessionName".to_string(), session_name);
+                        }
+
                         self.app.logs.add_error(
                             Some(table_name.to_string()),
                             SystemProcess::TcpSocket,
                             "Subscribe to table".to_string(),
                             message.to_string(),
-                            Some(format!(
-                                "SessionId:{}, Name:{:?}",
-                                connection.id, session_name
-                            )),
+                            Some(ctx),
                         );
                     }
                 }
             }
 
-            TcpContract::Unsubscribe(table_name) => {
+            MyNoSqlTcpContract::Unsubscribe(table_name) => {
                 if let Some(data_reader) = self.app.data_readers.get_tcp(connection.as_ref()).await
                 {
                     data_reader.unsubscribe(table_name.as_str()).await;
                 }
+            }
+
+            MyNoSqlTcpContract::UpdatePartitionsLastReadTime {
+                confirmation_id,
+                table_name,
+                partitions,
+            } => {
+                let db_table = self.app.db.get_table(table_name.as_str()).await;
+
+                if let Some(db_table) = db_table {
+                    crate::db_operations::update_partitions_last_read_time(
+                        &db_table,
+                        partitions.iter(),
+                    )
+                    .await;
+                }
+
+                connection
+                    .send(MyNoSqlTcpContract::Confirmation { confirmation_id })
+                    .await;
+            }
+
+            MyNoSqlTcpContract::UpdateRowsLastReadTime {
+                confirmation_id,
+                table_name,
+                partition_key,
+                row_keys,
+            } => {
+                let db_table = self.app.db.get_table(table_name.as_str()).await;
+
+                if let Some(db_table) = db_table {
+                    crate::db_operations::update_row_keys_last_read_access_time(
+                        &db_table,
+                        &partition_key,
+                        row_keys.iter(),
+                    )
+                    .await;
+                }
+
+                connection
+                    .send(MyNoSqlTcpContract::Confirmation { confirmation_id })
+                    .await;
+            }
+
+            MyNoSqlTcpContract::UpdatePartitionsExpirationTime {
+                confirmation_id,
+                table_name,
+                partitions,
+            } => {
+                let db_table = self.app.db.get_table(table_name.as_str()).await;
+
+                if let Some(db_table) = &db_table {
+                    for (partition_key, set_expiration_time) in partitions {
+                        crate::db_operations::update_partition_expiration_time(
+                            db_table,
+                            &partition_key,
+                            set_expiration_time,
+                        )
+                    }
+                }
+
+                connection
+                    .send(MyNoSqlTcpContract::Confirmation { confirmation_id })
+                    .await;
             }
 
             _ => {}
@@ -164,10 +237,10 @@ impl TcpServerEvents {
 }
 
 #[async_trait::async_trait]
-impl SocketEventCallback<TcpContract, MyNoSqlReaderTcpSerializer> for TcpServerEvents {
+impl SocketEventCallback<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer> for TcpServerEvents {
     async fn handle(
         &self,
-        connection_event: ConnectionEvent<TcpContract, MyNoSqlReaderTcpSerializer>,
+        connection_event: ConnectionEvent<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer>,
     ) {
         match connection_event {
             ConnectionEvent::Connected(connection) => {

@@ -55,8 +55,6 @@ impl Writer for MyNoSqlServerWriterGrpcSerice {
                 .await
                 .unwrap();
 
-        let persist = db_table.attributes.get_persist();
-
         let event_src = EventSource::as_client_request(self.app.as_ref());
 
         let max_partitions_amount =
@@ -66,6 +64,7 @@ impl Writer for MyNoSqlServerWriterGrpcSerice {
                 None
             };
 
+        let persist = db_table.get_persist_table().await;
         crate::db_operations::write::table::set_table_attrubutes(
             &self.app,
             db_table,
@@ -227,7 +226,6 @@ impl Writer for MyNoSqlServerWriterGrpcSerice {
                 self.app.as_ref(),
                 &transaction_id,
                 event_src,
-                &now,
                 crate::app::DEFAULT_PERSIST_PERIOD.get_sync_moment(),
             )
             .await

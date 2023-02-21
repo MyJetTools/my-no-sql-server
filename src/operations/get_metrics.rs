@@ -1,4 +1,4 @@
-use my_no_sql_core::db::DbTable;
+use my_no_sql_server_core::DbTableWrapper;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::app::AppContext;
@@ -15,7 +15,7 @@ pub struct DbTableMetrics {
     pub last_persist_duration: Vec<usize>,
 }
 
-pub async fn get_table_metrics(app: &AppContext, db_table: &DbTable) -> DbTableMetrics {
+pub async fn get_table_metrics(app: &AppContext, db_table: &DbTableWrapper) -> DbTableMetrics {
     let persist_metrics = app
         .persist_markers
         .get_persist_metrics(db_table.name.as_str())

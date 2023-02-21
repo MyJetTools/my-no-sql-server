@@ -33,7 +33,8 @@ impl MyTimerTick for MetricsUpdater {
                 {
                     let duration = table_metrics
                         .last_update_time
-                        .duration_since(last_persist_time);
+                        .duration_since(last_persist_time)
+                        .as_positive_or_zero();
 
                     duration.as_secs() as i64
                 } else {

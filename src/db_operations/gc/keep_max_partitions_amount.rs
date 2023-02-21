@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
-use my_no_sql_core::db::{DbTable, DbTableInner};
+use my_no_sql_core::db::DbTable;
+use my_no_sql_server_core::DbTableWrapper;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
@@ -12,7 +13,7 @@ use crate::{
 //TODO - Use Method from TableData
 pub async fn keep_max_partitions_amount(
     app: &AppContext,
-    db_table: &Arc<DbTable>,
+    db_table: &Arc<DbTableWrapper>,
     max_partitions_amount: usize,
     event_src: EventSource,
     persist_moment: DateTimeAsMicroseconds,
@@ -29,7 +30,6 @@ pub async fn keep_max_partitions_amount(
 
     gc_partitions(
         app,
-        db_table.as_ref(),
         &mut table_data,
         event_src,
         max_partitions_amount,
@@ -42,16 +42,14 @@ pub async fn keep_max_partitions_amount(
 
 pub async fn gc_partitions(
     app: &AppContext,
-    db_table: &DbTable,
-    table_data: &mut DbTableInner,
+    table_data: &mut DbTable,
     event_src: EventSource,
     max_partitions_amount: usize,
     persist_moment: DateTimeAsMicroseconds,
 ) -> Result<(), DbOperationError> {
     super::super::check_app_states(app)?;
 
-    let mut sync_state =
-        InitPartitionsSyncData::new(&table_data, event_src, db_table.attributes.get_persist());
+    let mut sync_state = InitPartitionsSyncData::new(&table_data, event_src);
 
     let gced_partitions_result =
         table_data.gc_and_keep_max_partitions_amount(max_partitions_amount);

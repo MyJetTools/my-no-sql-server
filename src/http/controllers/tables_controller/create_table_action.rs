@@ -11,6 +11,7 @@ use super::models::CreateTableCotnract;
     route: "/Tables/Create",
     input_data: "CreateTableCotnract",
     description: "Create table",
+    summary: "Creates table",
     controller: "Tables",
     result:[
         {status_code: 202, description: "Table is created"},
@@ -44,5 +45,5 @@ async fn handle_request(
     )
     .await?;
 
-    return Ok(HttpOutput::Empty.into_ok_result(true));
+    return HttpOutput::Empty.into_ok_result(true);
 }

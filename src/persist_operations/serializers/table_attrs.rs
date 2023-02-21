@@ -1,4 +1,4 @@
-use my_no_sql_core::db::DbTableAttributesSnapshot;
+use my_no_sql_core::db::DbTableAttributes;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 use serde::{Deserialize, Serialize};
 
@@ -29,9 +29,9 @@ fn default_persist() -> bool {
     true
 }
 
-impl Into<DbTableAttributesSnapshot> for TableMetadataFileContract {
-    fn into(self) -> DbTableAttributesSnapshot {
-        DbTableAttributesSnapshot {
+impl Into<DbTableAttributes> for TableMetadataFileContract {
+    fn into(self) -> DbTableAttributes {
+        DbTableAttributes {
             created: DateTimeAsMicroseconds::now(),
             max_partitions_amount: self.max_partitions_amount,
             persist: self.persist,
@@ -39,7 +39,7 @@ impl Into<DbTableAttributesSnapshot> for TableMetadataFileContract {
     }
 }
 
-pub fn serialize(attrs: &DbTableAttributesSnapshot) -> Vec<u8> {
+pub fn serialize(attrs: &DbTableAttributes) -> Vec<u8> {
     let contract = TableMetadataFileContract {
         max_partitions_amount: attrs.max_partitions_amount,
         persist: attrs.persist,

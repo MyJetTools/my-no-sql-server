@@ -12,6 +12,7 @@ use super::models::CleanAndBulkInsertInputContract;
     method: "POST",
     route: "/Bulk/CleanAndBulkInsert",
     input_data: "CleanAndBulkInsertInputContract",
+    summary: "Cleans partition and does bulk insert operation transactionally",
     description: "Cleans partition and does bulk insert operation transactionally",
     controller: "Bulk",
     result:[
@@ -42,8 +43,10 @@ async fn handle_request(
 
     let now = JsonTimeStamp::now();
 
-    let rows_by_partition =
-        crate::db_operations::parse_json_entity::as_btree_map(input_data.body.as_slice(), &now)?;
+    let rows_by_partition = crate::db_operations::parse_json_entity::parse_as_btree_map(
+        input_data.body.as_slice(),
+        &now,
+    )?;
 
     match &input_data.partition_key {
         Some(partition_key) => {
@@ -53,7 +56,6 @@ async fn handle_request(
                 partition_key,
                 rows_by_partition,
                 event_src,
-                &now,
                 input_data.sync_period.get_sync_moment(),
             )
             .await?;
@@ -64,7 +66,6 @@ async fn handle_request(
                 db_table,
                 rows_by_partition,
                 Some(event_src),
-                &now,
                 input_data.sync_period.get_sync_moment(),
             )
             .await?;

@@ -9,6 +9,7 @@ use super::models::CleanAndKeepMaxPartitionsAmountInputContract;
 #[my_http_server_swagger::http_route(
     method: "POST",
     route: "/GarbageCollector/CleanAndKeepMaxPartitions",
+    summary: "Makes sure we keep maximum partitions amount required",
     description: "After operation some partitions can be deleted to make sure we keep maximum partitions amount required",
     controller: "GarbageCollector",
     input_data: "CleanAndKeepMaxPartitionsAmountInputContract",

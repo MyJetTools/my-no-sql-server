@@ -9,6 +9,7 @@ use std::{result::Result, sync::Arc};
     route: "/Tables/UpdatePersist",
     input_data: "UpdatePersistTableContract",
     description: "Update table persistence state",
+    summary: "Updates table persistence state",
     controller: "Tables",
     result:[
         {status_code: 202, description: "Updated succesfully"},

@@ -1,9 +1,7 @@
 use std::sync::Arc;
 
-use my_no_sql_core::{
-    db::{DbRow, DbTable},
-    db_json_entity::JsonTimeStamp,
-};
+use my_no_sql_core::db::DbRow;
+use my_no_sql_server_core::DbTableWrapper;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
@@ -16,19 +14,17 @@ use super::WriteOperationResult;
 
 pub async fn execute(
     app: &AppContext,
-    db_table: Arc<DbTable>,
+    db_table: Arc<DbTableWrapper>,
     db_row: Arc<DbRow>,
     event_src: EventSource,
-    now: &JsonTimeStamp,
     persist_moment: DateTimeAsMicroseconds,
 ) -> Result<WriteOperationResult, DbOperationError> {
     super::super::check_app_states(app)?;
     let mut table_data = db_table.data.write().await;
 
-    let result = table_data.insert_or_replace_row(&db_row, now);
+    let result = table_data.insert_or_replace_row(&db_row);
 
-    let mut update_rows_state =
-        UpdateRowsSyncData::new(&table_data, db_table.attributes.get_persist(), event_src);
+    let mut update_rows_state = UpdateRowsSyncData::new(&table_data, event_src);
 
     app.persist_markers
         .persist_partition(

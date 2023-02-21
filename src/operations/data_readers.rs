@@ -26,7 +26,7 @@ pub async fn subscribe(
 
     let db_table = table.unwrap();
 
-    data_reader.subscribe(db_table.clone()).await;
+    data_reader.subscribe(&db_table).await;
 
     crate::operations::sync::dispatch(
         app,

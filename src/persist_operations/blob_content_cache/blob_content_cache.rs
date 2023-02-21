@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 
-use my_no_sql_core::db::{
-    db_snapshots::DbPartitionSnapshot, DbTableAttributesSnapshot, DbTableInner,
-};
+use my_no_sql_core::db::{DbTable, DbTableAttributes};
+use my_no_sql_server_core::db_snapshots::DbPartitionSnapshot;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 use tokio::sync::RwLock;
 
@@ -30,19 +29,19 @@ impl BlobContentCache {
         read_access.contains_key(table_name)
     }
 
-    pub async fn init(&self, table_data: &DbTableInner, attr: DbTableAttributesSnapshot) {
-        let data_to_insert = PersistedTableData::init(table_data, attr);
+    pub async fn init(&self, table_data: &DbTable) {
+        let data_to_insert = PersistedTableData::init(table_data);
         let mut write_access = self.data_by_table.write().await;
         write_access.insert(table_data.name.to_string(), data_to_insert);
     }
 
-    pub async fn create_table(&self, table_name: &str, attr: &DbTableAttributesSnapshot) {
+    pub async fn create_table(&self, table_name: &str, attr: &DbTableAttributes) {
         let table_data = PersistedTableData::new(attr.clone());
         let mut write_access = self.data_by_table.write().await;
         write_access.insert(table_name.to_string(), table_data);
     }
 
-    pub async fn update_table_attributes(&self, table_name: &str, attr: DbTableAttributesSnapshot) {
+    pub async fn update_table_attributes(&self, table_name: &str, attr: DbTableAttributes) {
         let mut write_access = self.data_by_table.write().await;
 
         if !write_access.contains_key(table_name) {

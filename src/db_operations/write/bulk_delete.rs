@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use my_no_sql_core::db::DbTable;
+use my_no_sql_server_core::DbTableWrapper;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
@@ -11,22 +11,20 @@ use crate::{
 
 pub async fn bulk_delete(
     app: &AppContext,
-    db_table: &DbTable,
+    db_table: &DbTableWrapper,
     rows_to_delete: HashMap<String, Vec<String>>,
     event_src: EventSource,
-    now: DateTimeAsMicroseconds,
     persist_moment: DateTimeAsMicroseconds,
 ) -> Result<(), DbOperationError> {
     super::super::check_app_states(app)?;
 
     let mut table_data = db_table.data.write().await;
 
-    let mut sync_data =
-        DeleteRowsEventSyncData::new(&table_data, db_table.attributes.get_persist(), event_src);
+    let mut sync_data = DeleteRowsEventSyncData::new(&table_data, event_src);
 
     for (partition_key, row_keys) in rows_to_delete {
         let removed_rows_result =
-            table_data.bulk_remove_rows(partition_key.as_str(), row_keys.iter(), true, now);
+            table_data.bulk_remove_rows(partition_key.as_str(), row_keys.iter(), true);
 
         if let Some(removed_rows_result) = removed_rows_result {
             app.persist_markers

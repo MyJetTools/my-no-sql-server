@@ -1,10 +1,6 @@
 use std::sync::Arc;
 
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
-use my_http_server_controllers::controllers::actions::PostAction;
-use my_http_server_controllers::controllers::documentation::data_types::HttpDataType;
-use my_http_server_controllers::controllers::documentation::out_results::HttpResult;
-use my_http_server_controllers::controllers::documentation::HttpActionDescription;
 use my_no_sql_core::db_json_entity::JsonTimeStamp;
 
 use crate::app::AppContext;
@@ -12,8 +8,17 @@ use crate::db_sync::EventSource;
 
 use super::models::InsertInputContract;
 
-use crate::http::docs;
-
+#[my_http_server_swagger::http_route(
+    method: "POST",
+    route: "/Row/Insert",
+    controller: "Row",
+    description: "Insert Row",
+    summary: "Inserts Row",
+    input_data: "InsertInputContract",
+    result:[
+        {status_code: 200, description: "Amount of rows of the table or the partition"},
+    ]
+)]
 pub struct InsertRowAction {
     app: Arc<AppContext>,
 }
@@ -23,6 +28,8 @@ impl InsertRowAction {
         Self { app }
     }
 }
+
+/*
 #[async_trait::async_trait]
 impl PostAction for InsertRowAction {
     fn get_route(&self) -> &str {
@@ -48,42 +55,46 @@ impl PostAction for InsertRowAction {
         .into()
     }
 
-    async fn handle_request(&self, ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
-        let input_data = InsertInputContract::parse_http_input(ctx).await?;
 
-        let db_table = crate::db_operations::read::table::get(
-            self.app.as_ref(),
-            input_data.table_name.as_str(),
-        )
-        .await?;
+}
+ */
 
-        let db_json_entity =
-            crate::db_operations::parse_json_entity::as_single_entity(input_data.body.as_slice())?;
+async fn handle_request(
+    action: &InsertRowAction,
+    input_data: InsertInputContract,
+    _ctx: &mut HttpContext,
+) -> Result<HttpOkResult, HttpFailResult> {
+    // let input_data = InsertInputContract::parse_http_input(ctx).await?;
 
-        crate::db_operations::write::insert::validate_before(
-            self.app.as_ref(),
-            db_table.as_ref(),
-            db_json_entity.partition_key,
-            db_json_entity.row_key,
-        )
-        .await?;
+    let db_table =
+        crate::db_operations::read::table::get(action.app.as_ref(), input_data.table_name.as_str())
+            .await?;
 
-        let event_src = EventSource::as_client_request(self.app.as_ref());
+    let db_json_entity =
+        crate::db_operations::parse_json_entity::as_single_entity(input_data.body.as_slice())?;
 
-        let now = JsonTimeStamp::now();
+    crate::db_operations::write::insert::validate_before(
+        action.app.as_ref(),
+        &db_table,
+        db_json_entity.partition_key,
+        db_json_entity.row_key,
+    )
+    .await?;
 
-        let db_row = Arc::new(db_json_entity.to_db_row(&now));
+    let event_src = EventSource::as_client_request(action.app.as_ref());
 
-        crate::db_operations::write::insert::execute(
-            self.app.as_ref(),
-            db_table.as_ref(),
-            db_row,
-            event_src,
-            &now,
-            input_data.sync_period.get_sync_moment(),
-        )
-        .await?;
+    let now = JsonTimeStamp::now();
 
-        HttpOutput::Empty.into_ok_result(true).into()
-    }
+    let db_row = Arc::new(db_json_entity.to_db_row(&now));
+
+    crate::db_operations::write::insert::execute(
+        &action.app,
+        db_table,
+        db_row,
+        event_src,
+        input_data.sync_period.get_sync_moment(),
+    )
+    .await?;
+
+    HttpOutput::Empty.into_ok_result(true).into()
 }

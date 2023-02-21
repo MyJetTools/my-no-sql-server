@@ -1,6 +1,3 @@
-use my_http_server_controllers::controllers::documentation::{
-    data_types::HttpDataType, out_results::HttpResult,
-};
 use my_http_server_swagger::*;
 use serde::{Deserialize, Serialize};
 
@@ -23,13 +20,4 @@ pub struct JsonBaseTransaction {
 pub struct StartTransactionResponse {
     #[serde(rename = "transactionId")]
     pub transaction_id: String,
-}
-
-pub fn transaction_not_found_response_doc() -> HttpResult {
-    HttpResult {
-        http_code: 401,
-        nullable: false,
-        description: "Transaction not found".to_string(),
-        data_type: HttpDataType::None,
-    }
 }

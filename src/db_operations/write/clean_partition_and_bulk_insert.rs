@@ -1,9 +1,7 @@
 use std::{collections::BTreeMap, sync::Arc};
 
-use my_no_sql_core::{
-    db::{DbRow, DbTable},
-    db_json_entity::JsonTimeStamp,
-};
+use my_no_sql_core::db::DbRow;
+use my_no_sql_server_core::DbTableWrapper;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
@@ -14,11 +12,10 @@ use crate::{
 
 pub async fn execute(
     app: &AppContext,
-    db_table: Arc<DbTable>,
+    db_table: Arc<DbTableWrapper>,
     partition_key: &str,
     entities: BTreeMap<String, Vec<Arc<DbRow>>>,
     event_src: EventSource,
-    now: &JsonTimeStamp,
     persist_moment: DateTimeAsMicroseconds,
 ) -> Result<(), DbOperationError> {
     super::super::check_app_states(app)?;
@@ -27,19 +24,15 @@ pub async fn execute(
     table_data.remove_partition(partition_key);
 
     for (partition_key, db_rows) in entities {
-        table_data.bulk_insert_or_replace(partition_key.as_str(), &db_rows, now);
+        table_data.bulk_insert_or_replace(partition_key.as_str(), &db_rows);
     }
 
     app.persist_markers
         .persist_partition(table_data.name.as_str(), partition_key, persist_moment)
         .await;
 
-    let state = InitPartitionsSyncData::new_as_update_partition(
-        &table_data,
-        partition_key,
-        event_src,
-        db_table.attributes.get_persist(),
-    );
+    let state =
+        InitPartitionsSyncData::new_as_update_partition(&table_data, partition_key, event_src);
 
     crate::operations::sync::dispatch(app, SyncEvent::InitPartitions(state));
 

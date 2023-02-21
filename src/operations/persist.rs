@@ -1,12 +1,9 @@
 use std::sync::Arc;
 
-use my_no_sql_core::db::DbTable;
+use my_no_sql_server_core::{logs::*, DbTableWrapper};
 use rust_extensions::{date_time::DateTimeAsMicroseconds, StopWatch};
 
-use crate::{
-    app::{logs::SystemProcess, AppContext},
-    persist::data_to_persist::PersistResult,
-};
+use crate::{app::AppContext, persist::data_to_persist::PersistResult};
 
 pub async fn persist(app: &Arc<AppContext>) {
     let is_shutting_down = app.states.is_shutting_down();
@@ -64,12 +61,12 @@ pub async fn persist(app: &Arc<AppContext>) {
 
 async fn persist_to_blob(
     app: Arc<AppContext>,
-    db_table: Arc<DbTable>,
+    db_table: Arc<DbTableWrapper>,
     persist_result: PersistResult,
 ) {
     match persist_result {
         PersistResult::PersistAttrs => {
-            let attrs = db_table.attributes.get_snapshot();
+            let attrs = db_table.get_attributes().await;
             crate::persist_operations::sync::save_table_attributes(
                 app.as_ref(),
                 db_table.name.as_str(),
@@ -83,7 +80,7 @@ async fn persist_to_blob(
         PersistResult::PersistPartition(partition_key) => {
             crate::persist_operations::sync::save_partition(
                 app.as_ref(),
-                db_table.as_ref(),
+                &db_table,
                 partition_key.as_str(),
             )
             .await;

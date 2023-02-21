@@ -1,12 +1,8 @@
-use my_no_sql_core::db::DbTableAttributesSnapshot;
+use my_no_sql_core::db::DbTableAttributes;
 
 use super::super::serializers;
 use crate::{app::AppContext, persist_io::TableFile};
-pub async fn save_table_attributes(
-    app: &AppContext,
-    table_name: &str,
-    attrs: &DbTableAttributesSnapshot,
-) {
+pub async fn save_table_attributes(app: &AppContext, table_name: &str, attrs: &DbTableAttributes) {
     app.persist_io.create_table_folder(table_name).await;
 
     let content = serializers::table_attrs::serialize(attrs);

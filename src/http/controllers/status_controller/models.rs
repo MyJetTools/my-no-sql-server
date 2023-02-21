@@ -1,6 +1,6 @@
 use crate::app::AppContext;
 use my_http_server_swagger::*;
-use rust_extensions::{date_time::DateTimeAsMicroseconds, ApplicationStates};
+use rust_extensions::date_time::DateTimeAsMicroseconds;
 use serde::{Deserialize, Serialize};
 
 use super::{non_initialized::NonInitializedModel, status_bar_model::StatusBarModel};
@@ -139,6 +139,7 @@ async fn get_readers(app: &AppContext) -> (Vec<ReaderModel>, usize, usize) {
                 last_incoming_time: format!(
                     "{:?}",
                     now.duration_since(metrics.last_incoming_moment)
+                        .as_positive_or_zero()
                 ),
                 id: metrics.session_id,
                 ip: metrics.ip,

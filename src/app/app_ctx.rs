@@ -1,9 +1,10 @@
 use std::{
+    collections::HashMap,
     sync::{atomic::AtomicUsize, Arc},
     time::Duration,
 };
 
-use my_no_sql_core::db::DbInstance;
+use my_no_sql_server_core::{logs::*, DbInstance};
 use rust_extensions::{
     date_time::DateTimeAsMicroseconds, events_loop::EventsLoop, AppStates, Logger,
 };
@@ -21,10 +22,7 @@ use crate::{
     settings_reader::SettingsModel,
 };
 
-use super::{
-    logs::{Logs, SystemProcess},
-    PrometheusMetrics,
-};
+use super::PrometheusMetrics;
 
 pub const APP_VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
@@ -93,23 +91,53 @@ impl AppContext {
 }
 
 impl Logger for AppContext {
-    fn write_info(&self, process_name: String, message: String, context: Option<String>) {
+    fn write_info(
+        &self,
+        process_name: String,
+        message: String,
+        context: Option<HashMap<String, String>>,
+    ) {
         self.logs
             .add_info(None, SystemProcess::System, process_name, message, context);
     }
 
-    fn write_error(&self, process_name: String, message: String, context: Option<String>) {
+    fn write_error(
+        &self,
+        process_name: String,
+        message: String,
+        context: Option<HashMap<String, String>>,
+    ) {
         self.logs
             .add_fatal_error(None, SystemProcess::System, process_name, message, context);
     }
 
-    fn write_warning(&self, process_name: String, message: String, ctx: Option<String>) {
+    fn write_warning(
+        &self,
+        process_name: String,
+        message: String,
+        ctx: Option<HashMap<String, String>>,
+    ) {
         self.logs
             .add_error(None, SystemProcess::System, process_name, message, ctx);
     }
 
-    fn write_fatal_error(&self, process_name: String, message: String, ctx: Option<String>) {
+    fn write_fatal_error(
+        &self,
+        process_name: String,
+        message: String,
+        ctx: Option<HashMap<String, String>>,
+    ) {
         self.logs
             .add_error(None, SystemProcess::System, process_name, message, ctx);
+    }
+
+    fn write_debug_info(
+        &self,
+        process_name: String,
+        message: String,
+        ctx: Option<HashMap<String, String>>,
+    ) {
+        self.logs
+            .add_error(None, SystemProcess::Debug, process_name, message, ctx);
     }
 }

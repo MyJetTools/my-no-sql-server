@@ -1,4 +1,4 @@
-use my_no_sql_core::db::DbTable;
+use my_no_sql_server_core::DbTableWrapper;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
@@ -9,7 +9,7 @@ use crate::{
 
 pub async fn execute(
     app: &AppContext,
-    db_table: &DbTable,
+    db_table: &DbTableWrapper,
     partition_key: &str,
     max_rows_amount: usize,
     event_source: EventSource,
@@ -34,11 +34,7 @@ pub async fn execute(
             .persist_partition(&table_data.name.as_str(), partition_key, sync_moment)
             .await;
 
-        let mut sync_data = DeleteRowsEventSyncData::new(
-            &table_data,
-            db_table.attributes.get_persist(),
-            event_source,
-        );
+        let mut sync_data = DeleteRowsEventSyncData::new(&table_data, event_source);
 
         sync_data.add_deleted_rows(partition_key, &gced_rows);
         crate::operations::sync::dispatch(app, SyncEvent::DeleteRows(sync_data));

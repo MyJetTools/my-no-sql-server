@@ -1,7 +1,6 @@
 mod append;
 mod cancel;
 pub mod commit;
-mod consts;
 pub mod models;
 
 mod start_transaction;

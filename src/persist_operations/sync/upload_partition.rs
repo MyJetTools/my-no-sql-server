@@ -1,4 +1,4 @@
-use my_no_sql_core::db::db_snapshots::DbPartitionSnapshot;
+use my_no_sql_server_core::db_snapshots::DbPartitionSnapshot;
 
 use crate::{app::AppContext, persist_io::TableFile};
 

@@ -3,7 +3,8 @@ use my_azure_storage_sdk::{
     AzureStorageConnection, AzureStorageConnectionData,
 };
 
-use crate::{app::logs::Logs, persist_io::persist_io_operations::TableListOfFilesUploader};
+use crate::persist_io::persist_io_operations::TableListOfFilesUploader;
+use my_no_sql_server_core::logs::*;
 
 pub async fn get_list_of_files<TTableListOfFilesUploader: TableListOfFilesUploader>(
     logs: &Logs,

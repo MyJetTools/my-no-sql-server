@@ -1,6 +1,6 @@
 use my_azure_storage_sdk::{block_blob::BlockBlobApi, AzureStorageConnection};
 
-use crate::app::logs::Logs;
+use my_no_sql_server_core::logs::*;
 
 pub async fn save_table_file(
     logs: &Logs,

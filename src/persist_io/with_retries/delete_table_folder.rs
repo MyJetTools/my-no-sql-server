@@ -1,6 +1,6 @@
 use my_azure_storage_sdk::{blob_container::BlobContainersApi, AzureStorageConnection};
 
-use crate::app::logs::Logs;
+use my_no_sql_server_core::logs::*;
 
 pub async fn delete_table_folder(
     logs: &Logs,

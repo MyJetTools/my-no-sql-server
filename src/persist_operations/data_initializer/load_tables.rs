@@ -3,6 +3,7 @@ use std::sync::Arc;
 use rust_extensions::StopWatch;
 
 use crate::app::AppContext;
+use my_no_sql_server_core::logs::*;
 
 pub async fn load_tables(app: Arc<AppContext>) {
     let table_names = app.persist_io.get_list_of_tables().await;
@@ -25,8 +26,8 @@ pub async fn load_tables(app: Arc<AppContext>) {
         thread.await.unwrap();
     }
 
-    while let Some((db_table_data, attrs)) = app.init_state.get_table_data_result().await {
-        crate::db_operations::write::table::init(app.as_ref(), db_table_data, attrs).await;
+    while let Some(db_table) = app.init_state.get_table_data_result().await {
+        crate::db_operations::write::table::init(app.as_ref(), db_table).await;
     }
 
     app.states.set_initialized();
@@ -35,7 +36,7 @@ pub async fn load_tables(app: Arc<AppContext>) {
 
     app.logs.add_info(
         None,
-        crate::app::logs::SystemProcess::Init,
+        SystemProcess::Init,
         "init_tables".to_string(),
         format!("All tables initialized in {:?}", sw.duration()),
         None,

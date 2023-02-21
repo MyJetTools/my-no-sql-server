@@ -12,7 +12,8 @@ use super::models::BulkInsertOrReplaceInputContract;
     method: "POST",
     route: "/Bulk/InsertOrReplace",
     input_data: "BulkInsertOrReplaceInputContract",
-    description: "Bulk insert or replace operation",
+    summary: "Bulk insert or replace operation",
+    description: "Executes Bulk insert or replace operation",
     controller: "Bulk",
     result:[
         {status_code: 202, description: "Successful operation"},
@@ -42,15 +43,16 @@ async fn handle_request(
 
     let now = JsonTimeStamp::now();
 
-    let rows_by_partition =
-        crate::db_operations::parse_json_entity::as_btree_map(input_data.body.as_slice(), &now)?;
+    let rows_by_partition = crate::db_operations::parse_json_entity::parse_as_btree_map(
+        input_data.body.as_slice(),
+        &now,
+    )?;
 
     crate::db_operations::write::bulk_insert_or_update::execute(
         action.app.as_ref(),
-        db_table,
+        &db_table,
         rows_by_partition,
         event_src,
-        &now,
         input_data.sync_period.get_sync_moment(),
     )
     .await?;

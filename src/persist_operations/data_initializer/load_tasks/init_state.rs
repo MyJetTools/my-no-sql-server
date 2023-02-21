@@ -1,13 +1,14 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::{
-    app::logs::Logs, persist_io::TableListOfFilesUploader,
-    persist_operations::data_initializer::LoadedTableItem,
+    persist_io::TableListOfFilesUploader, persist_operations::data_initializer::LoadedTableItem,
 };
-use my_no_sql_core::db::{DbTableAttributesSnapshot, DbTableInner};
+use my_no_sql_core::db::DbTable;
 use tokio::sync::Mutex;
 
 use super::{init_state_data::NextFileToLoadResult, InitStateData, InitStateSnapshot};
+
+use my_no_sql_server_core::logs::*;
 
 pub struct InitState {
     data: Mutex<InitStateData>,
@@ -65,14 +66,14 @@ impl InitState {
         }
     }
 
-    pub async fn get_table_data_result(&self) -> Option<(DbTableInner, DbTableAttributesSnapshot)> {
+    pub async fn get_table_data_result(&self) -> Option<DbTable> {
         let mut write_access = self.data.lock().await;
 
         let (table_name, task) = write_access.remove_next_task()?;
 
-        let (db_table_data, db_table_attributes) = task.get_result(table_name);
+        let db_table = task.get_result(table_name);
 
-        Some((db_table_data, db_table_attributes))
+        Some(db_table)
     }
 }
 

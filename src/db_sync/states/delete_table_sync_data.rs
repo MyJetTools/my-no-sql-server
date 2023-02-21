@@ -1,4 +1,4 @@
-use my_no_sql_core::db::DbTableInner;
+use my_no_sql_core::db::DbTable;
 
 use crate::db_sync::EventSource;
 
@@ -10,9 +10,9 @@ pub struct DeleteTableSyncData {
 }
 
 impl DeleteTableSyncData {
-    pub fn new(db_table_data: &DbTableInner, event_src: EventSource, persist: bool) -> Self {
+    pub fn new(db_table: &DbTable, event_src: EventSource) -> Self {
         Self {
-            table_data: SyncTableData::new(db_table_data, persist),
+            table_data: SyncTableData::new(db_table),
             event_src,
         }
     }
