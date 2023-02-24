@@ -68,10 +68,12 @@ async fn handle_request(
 
     let event_src = EventSource::as_client_request(action.app.as_ref());
 
+    let partition_keys = input_data.body.deserialize_json()?;
+
     crate::db_operations::write::delete_partitions(
         action.app.as_ref(),
         &db_table,
-        input_data.body.partition_keys,
+        partition_keys.partition_keys,
         event_src,
         input_data.sync_period.get_sync_moment(),
     )
