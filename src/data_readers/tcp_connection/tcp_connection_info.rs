@@ -1,4 +1,7 @@
-use std::sync::{atomic::AtomicUsize, Arc};
+use std::sync::{
+    atomic::{AtomicBool, AtomicUsize, Ordering},
+    Arc,
+};
 
 use tokio::sync::Mutex;
 
@@ -6,21 +9,35 @@ use crate::tcp::MyNoSqlTcpConnection;
 
 use super::SendPerSecond;
 
+pub enum ReaderName {
+    AsReader(String),
+    AsNode { location: String, version: String },
+    None,
+}
+
 pub struct TcpConnectionInfo {
     pub connection: Arc<MyNoSqlTcpConnection>,
-    pub name: Mutex<Option<String>>,
+    pub name: Mutex<ReaderName>,
     sent_per_second_accumulator: AtomicUsize,
     pub sent_per_second: SendPerSecond,
+    pub is_node: AtomicBool,
+    pub compress_data: AtomicBool,
 }
 
 impl TcpConnectionInfo {
     pub fn new(connection: Arc<MyNoSqlTcpConnection>) -> Self {
         Self {
             connection,
-            name: Mutex::new(None),
+            name: Mutex::new(ReaderName::None),
             sent_per_second_accumulator: AtomicUsize::new(0),
             sent_per_second: SendPerSecond::new(),
+            is_node: AtomicBool::new(false),
+            compress_data: AtomicBool::new(false),
         }
+    }
+
+    pub fn is_node(&self) -> bool {
+        self.is_node.load(Ordering::Relaxed)
     }
 
     pub fn get_id(&self) -> i32 {
@@ -34,14 +51,33 @@ impl TcpConnectionInfo {
         }
     }
 
-    pub async fn get_name(&self) -> Option<String> {
-        let read_access = self.name.lock().await;
-        read_access.clone()
+    pub fn set_compress_data(&self) {
+        self.compress_data.store(true, Ordering::SeqCst)
     }
 
-    pub async fn set_name(&self, name: String) {
+    pub fn is_compressed_data(&self) -> bool {
+        self.compress_data.load(Ordering::Relaxed)
+    }
+
+    pub async fn get_name(&self) -> Option<String> {
+        let read_access = self.name.lock().await;
+
+        match &*read_access {
+            ReaderName::AsReader(name) => Some(name.clone()),
+            ReaderName::AsNode { location, version } => Some(format!("{}:{}", location, version)),
+            ReaderName::None => None,
+        }
+    }
+
+    pub async fn set_name_as_reader(&self, name: String) {
         let mut write_access = self.name.lock().await;
-        *write_access = Some(name);
+        *write_access = ReaderName::AsReader(name);
+    }
+
+    pub async fn set_name_as_node(&self, location: String, version: String) {
+        self.is_node.store(true, Ordering::SeqCst);
+        let mut write_access = self.name.lock().await;
+        *write_access = ReaderName::AsNode { location, version };
     }
 
     pub async fn send(&self, payload_to_send: &[u8]) {

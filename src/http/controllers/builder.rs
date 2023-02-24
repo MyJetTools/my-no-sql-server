@@ -5,14 +5,10 @@ use my_http_server_controllers::controllers::ControllersMiddleware;
 use crate::app::AppContext;
 
 pub fn build(app: &Arc<AppContext>) -> ControllersMiddleware {
-    let mut result = ControllersMiddleware::new();
+    let mut result = ControllersMiddleware::new(None, None);
 
     let api_controller = super::api::ApiController::new();
     result.register_get_action(Arc::new(api_controller));
-
-    result.register_get_action(Arc::new(super::logs_controller::GetFatalErrorsAction::new(
-        app.clone(),
-    )));
 
     result.register_get_action(Arc::new(super::tables_controller::GetListAction::new(
         app.clone(),
@@ -81,15 +77,15 @@ pub fn build(app: &Arc<AppContext>) -> ControllersMiddleware {
 
     result.register_post_action(transactions_controller);
 
-    result.register_post_action(Arc::new(super::multipart::FirstMultipartController::new(
+    result.register_post_action(Arc::new(super::multipart::FirstMultipartAction::new(
         app.clone(),
     )));
 
-    result.register_post_action(Arc::new(super::multipart::NextMultipartController::new(
+    result.register_post_action(Arc::new(super::multipart::NextMultipartAction::new(
         app.clone(),
     )));
 
-    result.register_get_action(Arc::new(super::status_controller::StatusController::new(
+    result.register_get_action(Arc::new(super::status_controller::StatusAction::new(
         app.clone(),
     )));
 
@@ -117,10 +113,6 @@ pub fn build(app: &Arc<AppContext>) -> ControllersMiddleware {
         app.clone(),
     )));
 
-    result.register_post_action(Arc::new(
-        super::tables_controller::SpawnPersistThreadAction::new(app.clone()),
-    ));
-
     result.register_post_action(Arc::new(super::row_controller::InsertOrReplaceAction::new(
         app.clone(),
     )));
@@ -129,15 +121,17 @@ pub fn build(app: &Arc<AppContext>) -> ControllersMiddleware {
         app.clone(),
     )));
 
-    result.register_get_action(Arc::new(super::row_controller::RowAction::new(app.clone())));
+    result.register_get_action(Arc::new(super::row_controller::GetRowsAction::new(
+        app.clone(),
+    )));
 
-    result.register_put_action(Arc::new(super::row_controller::RowAction::new(app.clone())));
+    result.register_put_action(Arc::new(super::row_controller::ReplaceRowAction::new(
+        app.clone(),
+    )));
 
-    result.register_delete_action(Arc::new(super::row_controller::RowAction::new(app.clone())));
-
-    result.register_get_action(Arc::new(
-        super::rows_controller::GetHighestRowAndBelowAction::new(app.clone()),
-    ));
+    result.register_delete_action(Arc::new(super::row_controller::DeleteRowAction::new(
+        app.clone(),
+    )));
 
     result.register_get_action(Arc::new(
         super::rows_controller::GetHighestRowAndBelowAction::new(app.clone()),
@@ -151,13 +145,23 @@ pub fn build(app: &Arc<AppContext>) -> ControllersMiddleware {
         super::rows_controller::DeletePartitionsAction::new(app.clone()),
     ));
 
-    result.register_get_action(Arc::new(super::logs_controller::LogsByTableAction::new(
+    result.register_get_action(Arc::new(super::logs_controller::GetFatalErrorsAction::new(
         app.clone(),
     )));
 
-    result.register_get_action(Arc::new(super::logs_controller::LogsByProcessAction::new(
+    result.register_get_action(Arc::new(super::logs_controller::GetLogsByTableAction::new(
         app.clone(),
     )));
+
+    result.register_get_action(Arc::new(super::logs_controller::SelectTableAction::new(
+        app.clone(),
+    )));
+
+    result.register_get_action(Arc::new(
+        super::logs_controller::GetLogsByProcessAction::new(app.clone()),
+    ));
+
+    result.register_get_action(Arc::new(super::logs_controller::SelectProcessAction::new()));
 
     result.register_get_action(Arc::new(super::logs_controller::HomeAction::new(
         app.clone(),
@@ -190,10 +194,6 @@ pub fn build(app: &Arc<AppContext>) -> ControllersMiddleware {
     let force_persist_action = super::persist_controller::ForcePersistAction::new(app.clone());
 
     result.register_post_action(Arc::new(force_persist_action));
-
-    result.register_get_action(Arc::new(super::status_controller::RequestsAction::new(
-        app.clone(),
-    )));
 
     result
 }

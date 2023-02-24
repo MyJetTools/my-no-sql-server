@@ -1,9 +1,9 @@
-use my_http_server::{HttpOkResult, HttpOutput, WebContentType};
+use my_http_server::{HttpFailResult, HttpOkResult, HttpOutput, WebContentType};
 
 use crate::db_operations::write::WriteOperationResult;
 
-impl Into<HttpOkResult> for WriteOperationResult {
-    fn into(self) -> HttpOkResult {
+impl Into<Result<HttpOkResult, HttpFailResult>> for WriteOperationResult {
+    fn into(self) -> Result<HttpOkResult, HttpFailResult> {
         match self {
             WriteOperationResult::SingleRow(db_row) => {
                 let output = HttpOutput::Content {
@@ -12,10 +12,10 @@ impl Into<HttpOkResult> for WriteOperationResult {
                     content: db_row.data.to_vec(),
                 };
 
-                HttpOkResult {
+                Ok(HttpOkResult {
                     write_telemetry: false,
                     output,
-                }
+                })
             }
             WriteOperationResult::Empty => HttpOutput::Empty.into_ok_result(true),
         }

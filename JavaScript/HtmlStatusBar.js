@@ -20,8 +20,6 @@ var HtmlStatusBar = /** @class */ (function () {
             '<td><div class="statusbar-separator"></div></td>' +
             '<td>Sync queue: <b id="sync-queue-size" style="text-shadow: 0 0 2px white;"></b></td>' +
             '<td><div class="statusbar-separator"></div></td>' +
-            '<td>Connected to master node: <b id="master-node" style="text-shadow: 0 0 1px white;"></b></td>' +
-            '<td><div class="statusbar-separator"></div></td>' +
             '</tr></table></div>';
     };
     HtmlStatusBar.updateStatusbar = function (data) {
@@ -42,12 +40,6 @@ var HtmlStatusBar = /** @class */ (function () {
             document.getElementById('compression').innerHTML = this.compression
                 ? '<span style="color: green">enabled</span>'
                 : '<span style="color: gray">disabled</span>';
-        }
-        if (this.masterNode != data.masterNode) {
-            this.masterNode = data.masterNode;
-            document.getElementById('master-node').innerHTML = this.masterNode
-                ? '<span style="color: green">' + this.masterNode + '</span>'
-                : '<span style="color: gray">---</span>';
         }
         if (this.tcpConnections != data.tcpConnections) {
             this.tcpConnections = data.tcpConnections;

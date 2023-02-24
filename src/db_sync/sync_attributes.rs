@@ -11,7 +11,7 @@ pub enum DataSynchronizationPeriod {
     Immediately,
     #[http_enum_case(id="1"; name="1"; description="Persist during 1 sec")]
     Sec1,
-    #[http_enum_case(id="5"; name="5";  description="Persist during 5 sec")]
+    #[http_enum_case(id="5"; name="5";  description="Persist during 5 sec"; default)]
     Sec5,
     #[http_enum_case(id="15"; name="15"; description="Persist during 15 sec")]
     Sec15,

@@ -5,7 +5,6 @@ class HtmlStatusBar {
     private static location: string;
     private static connected: boolean;
     private static compression: boolean;
-    private static masterNode: string;
     private static tablesAmount: number;
 
     private static persistAmount: number;
@@ -48,8 +47,6 @@ class HtmlStatusBar {
             '<td>Sync queue: <b id="sync-queue-size" style="text-shadow: 0 0 2px white;"></b></td>' +
             '<td><div class="statusbar-separator"></div></td>' +
 
-            '<td>Connected to master node: <b id="master-node" style="text-shadow: 0 0 1px white;"></b></td>' +
-            '<td><div class="statusbar-separator"></div></td>' +
 
             '</tr></table></div>';
     }
@@ -80,13 +77,6 @@ class HtmlStatusBar {
                 : '<span style="color: gray">disabled</span>';
         }
 
-        if (this.masterNode != data.masterNode) {
-            this.masterNode = data.masterNode;
-
-            document.getElementById('master-node').innerHTML = this.masterNode
-                ? '<span style="color: green">' + this.masterNode + '</span>'
-                : '<span style="color: gray">---</span>';
-        }
 
         if (this.tcpConnections != data.tcpConnections) {
             this.tcpConnections = data.tcpConnections;

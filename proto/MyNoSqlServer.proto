@@ -35,11 +35,14 @@ message TransactionGrpcResponse{
 message CreateTableIfNotExistsGrpcRequest{
     string TableName = 1;
     bool PersistTable = 2;
+    optional int32 MaxPartitionsAmount = 3;
+    optional int32 MaxRowsPerPartitionAmount = 4;
 }
 
 message SetTableAttributesGrpcRequest{
     string TableName = 1;
     optional int32 MaxPartitionsAmount = 2;
+    optional int32 MaxRowsPerPartitionAmount = 3;
 }
 
 message GetEntitiesGrpcRequest{

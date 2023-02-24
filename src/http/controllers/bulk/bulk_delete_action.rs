@@ -2,8 +2,6 @@ use std::{collections::HashMap, sync::Arc};
 
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 
-use crate::db_json_entity::JsonTimeStamp;
-
 use crate::app::AppContext;
 use crate::db_sync::EventSource;
 
@@ -13,7 +11,8 @@ use super::models::BulkDeleteInputContract;
     method: "POST",
     route: "/Bulk/Delete",
     input_data: "BulkDeleteInputContract",
-    description: "Bulk delete operation",
+    summary: "Bulk delete operation",
+    description: "Does bulk delete operation",
     controller: "Bulk",
     result:[
         {status_code: 202, description: "Successful operation"},
@@ -44,14 +43,11 @@ async fn handle_request(
     let rows_to_delete: HashMap<String, Vec<String>> =
         serde_json::from_slice(input_data.body.as_slice()).unwrap();
 
-    let now = JsonTimeStamp::now();
-
     crate::db_operations::write::bulk_delete(
         action.app.as_ref(),
         db_table.as_ref(),
         rows_to_delete,
         event_src,
-        now.date_time,
         input_data.sync_period.get_sync_moment(),
     )
     .await?;

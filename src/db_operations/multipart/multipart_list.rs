@@ -4,10 +4,10 @@ use std::{
     time::Duration,
 };
 
+use my_no_sql_core::db::DbRow;
+use my_no_sql_server_core::db_snapshots::DbRowsSnapshot;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 use tokio::sync::Mutex;
-
-use crate::db::{db_snapshots::DbRowsSnapshot, DbRow};
 
 use super::Multipart;
 
@@ -76,7 +76,7 @@ impl MultipartList {
             let mut result = None;
 
             for multipart in write_access.values() {
-                if now.duration_since(multipart.created) >= timeout {
+                if now.duration_since(multipart.created).as_positive_or_zero() >= timeout {
                     if result.is_none() {
                         result = Some(Vec::new());
                     }

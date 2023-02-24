@@ -1,12 +1,6 @@
-use rust_extensions::date_time::DateTimeAsMicroseconds;
+use crate::{app::AppContext, data_readers::DataReaderConnection, db_sync::SyncEvent};
 
-use crate::{app::AppContext, data_readers::DataReaderConnection, db::DbTable, db_sync::SyncEvent};
-
-pub fn dispatch(app: &AppContext, db_table: Option<&DbTable>, sync_event: SyncEvent) {
-    if let Some(db_table) = db_table {
-        db_table.set_last_update_time(DateTimeAsMicroseconds::now());
-    }
-
+pub fn dispatch(app: &AppContext, sync_event: SyncEvent) {
     app.sync.send(sync_event);
 }
 
@@ -16,9 +10,12 @@ pub async fn sync(app: &AppContext, sync_event: &SyncEvent) {
 
         match &data.data_reader.connection {
             DataReaderConnection::Tcp(tcp_info) => {
+                let compressed = tcp_info.is_compressed_data();
                 if let Some(payload_to_send) =
-                    crate::data_readers::tcp_connection::tcp_payload_to_send::serialize(sync_event)
-                        .await
+                    crate::data_readers::tcp_connection::tcp_payload_to_send::serialize(
+                        sync_event, compressed,
+                    )
+                    .await
                 {
                     tcp_info.send(&payload_to_send).await;
                 }
@@ -42,7 +39,8 @@ pub async fn sync(app: &AppContext, sync_event: &SyncEvent) {
         }
         let data_readers = data_readers.unwrap();
 
-        let mut tcp_contracts: Option<Vec<u8>> = None;
+        let mut tcp_contracts_non_compresed: Option<Vec<u8>> = None;
+        let mut tcp_contracts_compressed: Option<Vec<u8>> = None;
 
         for data_reader in &data_readers {
             if !data_reader.has_first_init() {
@@ -51,17 +49,33 @@ pub async fn sync(app: &AppContext, sync_event: &SyncEvent) {
 
             match &data_reader.connection {
                 DataReaderConnection::Tcp(info) => {
-                    if let Some(to_send) = &tcp_contracts {
-                        info.send(to_send).await;
+                    if info.is_compressed_data() {
+                        if let Some(to_send) = &tcp_contracts_compressed {
+                            info.send(to_send).await;
+                        } else {
+                            if let Some(to_send) =
+                                crate::data_readers::tcp_connection::tcp_payload_to_send::serialize(
+                                    sync_event, true,
+                                )
+                                .await
+                            {
+                                info.send(&to_send).await;
+                                tcp_contracts_compressed = Some(to_send);
+                            }
+                        }
                     } else {
-                        if let Some(to_send) =
-                            crate::data_readers::tcp_connection::tcp_payload_to_send::serialize(
-                                sync_event,
-                            )
-                            .await
-                        {
-                            info.send(&to_send).await;
-                            tcp_contracts = Some(to_send);
+                        if let Some(to_send) = &tcp_contracts_non_compresed {
+                            info.send(to_send).await;
+                        } else {
+                            if let Some(to_send) =
+                                crate::data_readers::tcp_connection::tcp_payload_to_send::serialize(
+                                    sync_event, false,
+                                )
+                                .await
+                            {
+                                info.send(&to_send).await;
+                                tcp_contracts_non_compresed = Some(to_send);
+                            }
                         }
                     }
                 }

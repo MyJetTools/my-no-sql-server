@@ -7,21 +7,13 @@ interface IReaderStatus {
     lastIncomingTime: string;
     pendingToSend: number;
     sentPerSecond: number[];
-}
-
-interface INodeStatus {
-    location: string,
-    lastAccessed: string,
-    connected: string,
-    compress: boolean
-    latency: string
+    isNode: boolean;
 }
 
 interface ILocationStatus {
     id: string,
     compress: boolean
 }
-
 
 interface INonInitializedModel {
     tablesTotal: number,
@@ -42,7 +34,6 @@ interface IStatus {
 
 interface IInitializedStatus {
     readers: IReaderStatus[],
-    nodes: INodeStatus[]
     tables: ITableModel[]
 }
 
@@ -67,5 +58,4 @@ interface ITableModel {
     nextPersistTime: number;
     lastPersistDuration: number[];
     persistAmount: number;
-    hasCommonThread: boolean;
 }

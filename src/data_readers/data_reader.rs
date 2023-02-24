@@ -3,10 +3,9 @@ use std::sync::{
     Arc,
 };
 
+use my_no_sql_server_core::DbTableWrapper;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 use tokio::sync::RwLock;
-
-use crate::db::DbTable;
 
 use super::{DataReaderConnection, DataReaderUpdatableData};
 
@@ -50,17 +49,28 @@ impl DataReader {
         read_access.has_table(table_name)
     }
 
-    pub async fn set_name(&self, name: String) {
-        self.connection.set_name(name).await;
+    pub async fn set_name_as_reader(&self, name: String) {
+        self.connection.set_name_as_reader(name).await;
+    }
+
+    pub async fn set_name_as_node(&self, location: String, version: String, compress_data: bool) {
+        self.connection
+            .set_name_as_node(location, version, compress_data)
+            .await;
     }
 
     pub async fn get_name(&self) -> Option<String> {
         self.connection.get_name().await
     }
 
-    pub async fn subscribe(&self, db_table: Arc<DbTable>) {
+    pub async fn subscribe(&self, db_table: &Arc<DbTableWrapper>) {
         let mut write_access = self.data.write().await;
         write_access.subscribe(db_table);
+    }
+
+    pub async fn unsubscribe(&self, table_name: &str) {
+        let mut write_access = self.data.write().await;
+        write_access.unsubscribe(table_name);
     }
 
     fn get_ip(&self) -> String {
@@ -110,6 +120,13 @@ impl DataReader {
             name,
             tables: read_access.get_table_names(),
             pending_to_send,
+        }
+    }
+
+    pub fn is_node(&self) -> bool {
+        match &self.connection {
+            DataReaderConnection::Tcp(tcp_connection) => tcp_connection.is_node(),
+            DataReaderConnection::Http(_) => false,
         }
     }
 

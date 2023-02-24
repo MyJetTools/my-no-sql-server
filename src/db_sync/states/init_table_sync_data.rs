@@ -1,7 +1,7 @@
-use crate::{
-    db::{db_snapshots::DbTableSnapshot, DbTable, DbTableAttributesSnapshot, DbTableData},
-    db_sync::EventSource,
-};
+use my_no_sql_core::db::DbTable;
+use my_no_sql_server_core::db_snapshots::DbTableSnapshot;
+
+use crate::db_sync::EventSource;
 
 use super::SyncTableData;
 
@@ -12,20 +12,11 @@ pub struct InitTableEventSyncData {
 }
 
 impl InitTableEventSyncData {
-    pub fn new(
-        db_table: &DbTable,
-        table_data: &DbTableData,
-        table_attrs: DbTableAttributesSnapshot,
-        event_src: EventSource,
-    ) -> Self {
+    pub fn new(db_table: &DbTable, event_src: EventSource) -> Self {
         Self {
-            table_data: SyncTableData::new(table_data, table_attrs.persist),
+            table_data: SyncTableData::new(db_table),
             event_src,
-            table_snapshot: DbTableSnapshot::new(
-                db_table.get_last_update_time(),
-                table_data,
-                table_attrs,
-            ),
+            table_snapshot: DbTableSnapshot::new(db_table.get_last_update_time(), db_table),
         }
     }
 }

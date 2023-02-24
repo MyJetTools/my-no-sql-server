@@ -1,6 +1,6 @@
 use my_azure_storage_sdk::{blob::BlobApi, AzureStorageConnection, AzureStorageError};
 
-use crate::app::logs::Logs;
+use my_no_sql_server_core::logs::*;
 
 pub async fn load_table_file(
     logs: &Logs,

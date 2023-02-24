@@ -2,11 +2,22 @@ var HtmlSubscribersGenerator = /** @class */ (function () {
     function HtmlSubscribersGenerator() {
     }
     HtmlSubscribersGenerator.generateHtml = function (data) {
+        var nodes = [];
+        var readers = [];
+        for (var _i = 0, _a = data.readers; _i < _a.length; _i++) {
+            var reader = _a[_i];
+            if (reader.isNode) {
+                nodes.push(reader);
+            }
+            else {
+                readers.push(reader);
+            }
+        }
         return '<h3>Connected Nodes</h3>'
-            + this.generateNodesHtml(data.nodes)
+            + this.generateReadersHtml(nodes)
             + '<h3>Readers</h3>'
             + this.generateTotalSend(data.readers)
-            + this.generateReadersHtml(data.readers)
+            + this.generateReadersHtml(readers)
             + '<h3>Tables</h3>'
             + this.generateTablesHtml(data.tables);
     };
@@ -29,16 +40,19 @@ var HtmlSubscribersGenerator = /** @class */ (function () {
     HtmlSubscribersGenerator.generateReadersHtml = function (data) {
         var html = "<table class=\"table table-striped\"><tr><th>Id</th><th>Client</th><th>Ip</th><th>tables</th><th></th></tr>";
         for (var _i = 0, data_2 = data; _i < data_2.length; _i++) {
-            var itm = data_2[_i];
-            html += '<tr><td>' + itm.id + '</td><td>' + this.renderName(itm.name) + '</td><td>' + itm.ip + '<div>' + HtmlGraph.renderGraph(itm.sentPerSecond, function (v) { return Utils.format_bytes(v); }, function (v) { return v; }, function (_) { return false; }) + '</div></td><td>' + this.renderTables(itm.tables) + '</td>' +
-                '<td style="font-size: 10px">' +
-                '<div><b>C:</b>' + itm.connectedTime + '</div>' +
-                '<div><b>L:</b>' + itm.lastIncomingTime + '</div>' +
-                '<div><b>S:</b>' + itm.pendingToSend + '</div>' +
-                '</td></tr>';
+            var reader = data_2[_i];
+            html += this.generateReader(reader);
         }
         html += '</table>';
         return html;
+    };
+    HtmlSubscribersGenerator.generateReader = function (reader) {
+        return '<tr><td>' + reader.id + '</td><td>' + this.renderName(reader.name) + '</td><td>' + reader.ip + '<div>' + HtmlGraph.renderGraph(reader.sentPerSecond, function (v) { return Utils.format_bytes(v); }, function (v) { return v; }, function (_) { return false; }) + '</div></td><td>' + this.renderTables(reader.tables) + '</td>' +
+            '<td style="font-size: 10px">' +
+            '<div><b>C:</b>' + reader.connectedTime + '</div>' +
+            '<div><b>L:</b>' + reader.lastIncomingTime + '</div>' +
+            '<div><b>S:</b>' + reader.pendingToSend + '</div>' +
+            '</td></tr>';
     };
     HtmlSubscribersGenerator.generateTablesHtml = function (tables) {
         var html = "<table class=\"table table-striped\"><tr><th>Table</th><th>Persist</th><th>DataSize</th><th>Partitions</th><th>Records</th><th>Indexed Records</th><th>Last update</th></tr>";
@@ -49,22 +63,24 @@ var HtmlSubscribersGenerator = /** @class */ (function () {
         for (var _i = 0, _a = tables.sort(function (a, b) { return a.name > b.name ? 1 : -1; }); _i < _a.length; _i++) {
             var table = _a[_i];
             var style = ' style="color:green" ';
-            if (table.lastPersistTime < table.lastUpdateTime) {
+            if (!table.lastPersistTime) {
+                style = ' style="color:gray" ';
+            }
+            else if (table.lastPersistTime < table.lastUpdateTime) {
                 style = ' style="color:red" ';
             }
             var lastUpdateTime = new Date(table.lastUpdateTime / 1000);
-            var lastPersistTime = new Date(table.lastPersistTime / 1000);
+            var lastPersistTime = "----";
+            if (table.lastPersistTime) {
+                lastPersistTime = new Date(table.lastPersistTime / 1000).toISOString();
+            }
             var nextPersistTime = "---";
             if (table.nextPersistTime) {
                 var as_time = new Date(table.nextPersistTime / 1000);
                 nextPersistTime = as_time.toISOString();
             }
-            var lineColor = "";
-            if (!table.hasCommonThread) {
-                lineColor = ' style="background-color: #8bc34a4f" ';
-            }
-            html += '<tr ' + lineColor + '><td>' + table.name + '</td><td>' + table.persistAmount + '</td><td>' + table.dataSize + '</td><td>' + table.partitionsCount + '</td><td>' + table.recordsAmount + '</td><td>' + table.expirationIndex + '</td>' +
-                '<td' + style + '><div>UpdateTime: ' + lastUpdateTime.toISOString() + '</div><div>PersistTime: ' + lastPersistTime.toISOString() + '</div>' +
+            html += '<tr><td>' + table.name + '</td><td>' + table.persistAmount + '</td><td>' + table.dataSize + '</td><td>' + table.partitionsCount + '</td><td>' + table.recordsAmount + '</td><td>' + table.expirationIndex + '</td>' +
+                '<td' + style + '><div>UpdateTime: ' + lastUpdateTime.toISOString() + '</div><div>PersistTime: ' + lastPersistTime + '</div>' +
                 '<div>NextPersist: ' + nextPersistTime + '</div>' + HtmlGraph.renderGraph(table.lastPersistDuration, function (v) { return Utils.format_duration(v); }, function (v) { return v; }, function (v) { return false; }) + '</td></tr>';
             total_size += table.dataSize;
             total_partitions += table.partitionsCount;
@@ -73,15 +89,6 @@ var HtmlSubscribersGenerator = /** @class */ (function () {
         }
         html += '<tr style="font-weight: bold; background-color:black; color:white;"><td>Total</td><td></td><td>DataSize: ' + total_size + '</td><td>Partitions: ' + total_partitions + '</td><td>Records: ' + total_records + '</td><td>Indexed records: ' + total_indexed_records + '</td>'
             + '<td></td></tr>';
-        html += '</table>';
-        return html;
-    };
-    HtmlSubscribersGenerator.generateNodesHtml = function (data) {
-        var html = "<table class=\"table table-striped\"><tr><th>Location</th><th>Connected</th><th>LastAccess</th><th>Compress</th><th>Latency</th></tr>";
-        for (var _i = 0, data_3 = data; _i < data_3.length; _i++) {
-            var itm = data_3[_i];
-            html += '<tr><td>' + itm.location + '</td><td>' + itm.connected + '</td><td>' + itm.lastAccessed + '</td><td>' + itm.compress + '</td><td>' + itm.latency + '</td></tr>';
-        }
         html += '</table>';
         return html;
     };
@@ -96,8 +103,8 @@ var HtmlSubscribersGenerator = /** @class */ (function () {
     };
     HtmlSubscribersGenerator.renderTables = function (data) {
         var result = "";
-        for (var _i = 0, data_4 = data; _i < data_4.length; _i++) {
-            var itm = data_4[_i];
+        for (var _i = 0, data_3 = data; _i < data_3.length; _i++) {
+            var itm = data_3[_i];
             result += '<span class="badge badge-info" style="margin-left: 5px">' + itm + '</span>';
         }
         return result;

@@ -1,11 +1,9 @@
 use std::{collections::BTreeMap, sync::Arc};
 
 use my_json::json_writer::{JsonArrayWriter, JsonObjectWriter};
+use my_no_sql_core::db::{DbRow, DbTable};
 
-use crate::{
-    db::{DbRow, DbTableData},
-    db_sync::EventSource,
-};
+use crate::db_sync::EventSource;
 
 use super::SyncTableData;
 
@@ -17,9 +15,9 @@ pub struct DeleteRowsEventSyncData {
 }
 
 impl DeleteRowsEventSyncData {
-    pub fn new(table_data: &DbTableData, persist: bool, event_src: EventSource) -> Self {
+    pub fn new(db_table: &DbTable, event_src: EventSource) -> Self {
         Self {
-            table_data: SyncTableData::new(table_data, persist),
+            table_data: SyncTableData::new(db_table),
             event_src,
             deleted_partitions: None,
             deleted_rows: None,

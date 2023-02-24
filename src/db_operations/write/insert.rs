@@ -1,18 +1,18 @@
 use std::sync::Arc;
 
+use my_no_sql_core::db::DbRow;
+use my_no_sql_server_core::DbTableWrapper;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
     app::AppContext,
-    db::{DbRow, DbTable, UpdatePartitionReadMoment},
-    db_json_entity::JsonTimeStamp,
     db_operations::DbOperationError,
     db_sync::{states::UpdateRowsSyncData, EventSource, SyncEvent},
 };
 
 pub async fn validate_before(
     app: &AppContext,
-    db_table: &DbTable,
+    db_table: &Arc<DbTableWrapper>,
     partition_key: &str,
     row_key: &str,
 ) -> Result<(), DbOperationError> {
@@ -27,10 +27,7 @@ pub async fn validate_before(
 
     let partition = partition.unwrap();
 
-    if partition
-        .get_row(row_key, UpdatePartitionReadMoment::None)
-        .is_some()
-    {
+    if partition.get_row(row_key).is_some() {
         return Err(DbOperationError::RecordAlreadyExists);
     }
 
@@ -39,34 +36,32 @@ pub async fn validate_before(
 
 pub async fn execute(
     app: &AppContext,
-    db_table: &DbTable,
+    db_table: Arc<DbTableWrapper>,
     db_row: Arc<DbRow>,
     event_src: EventSource,
-    now: &JsonTimeStamp,
     persist_moment: DateTimeAsMicroseconds,
 ) -> Result<(), DbOperationError> {
     let mut table_data = db_table.data.write().await;
 
-    let inserted = table_data.insert_row(&db_row, now);
+    let inserted = table_data.insert_row(&db_row);
 
     if !inserted {
         return Err(DbOperationError::RecordAlreadyExists);
     }
 
-    table_data
-        .data_to_persist
-        .mark_partition_to_persist(db_row.partition_key.as_ref(), persist_moment);
+    app.persist_markers
+        .persist_partition(
+            db_table.name.as_str(),
+            db_row.partition_key.as_ref(),
+            persist_moment,
+        )
+        .await;
 
-    let mut update_rows_state =
-        UpdateRowsSyncData::new(&table_data, db_table.attributes.get_persist(), event_src);
+    let mut update_rows_state = UpdateRowsSyncData::new(&table_data, event_src);
 
     update_rows_state.rows_by_partition.add_row(db_row);
 
-    crate::operations::sync::dispatch(
-        app,
-        db_table.into(),
-        SyncEvent::UpdateRows(update_rows_state),
-    );
+    crate::operations::sync::dispatch(app, SyncEvent::UpdateRows(update_rows_state));
 
     return Ok(());
 }

@@ -1,21 +1,21 @@
-use app::{logs::Logs, AppContext};
+use app::AppContext;
 use background::{
     gc_db_rows::GcDbRows, gc_http_sessions::GcHttpSessionsTimer, gc_multipart::GcMultipart,
     metrics_updater::MetricsUpdater, persist::PersistTimer, sync::SyncEventLoop,
 };
 
+use my_no_sql_server_core::logs::Logs;
 use my_no_sql_tcp_shared::MyNoSqlReaderTcpSerializer;
 use my_tcp_sockets::TcpServer;
-use operations::PersistType;
-use rust_extensions::{ApplicationStates, MyTimer};
+use rust_extensions::MyTimer;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tcp::TcpServerEvents;
 
 mod app;
 mod grpc;
 
-mod db;
-mod db_json_entity;
+mod persist;
+
 mod db_operations;
 mod db_sync;
 mod db_transactions;
@@ -29,6 +29,8 @@ mod operations;
 mod persist_io;
 mod settings_reader;
 mod utils;
+
+//TODO - Add Amount of Subscribers to table on UI;
 
 pub mod mynosqlserver_grpc {
     tonic::include_proto!("mynosqlserver");
@@ -60,10 +62,7 @@ async fn main() {
 
     let mut persist_timer = MyTimer::new(Duration::from_secs(1));
 
-    persist_timer.register_timer(
-        "Persist",
-        Arc::new(PersistTimer::new(app.clone(), PersistType::Common)),
-    );
+    persist_timer.register_timer("Persist", Arc::new(PersistTimer::new(app.clone())));
     timer_1s.register_timer("MetricsUpdated", Arc::new(MetricsUpdater::new(app.clone())));
 
     let mut timer_10s = MyTimer::new(Duration::from_secs(10));

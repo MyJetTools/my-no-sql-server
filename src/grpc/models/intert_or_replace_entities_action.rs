@@ -1,11 +1,10 @@
 use std::{collections::BTreeMap, sync::Arc};
 
-use crate::{db::DbRow, db_json_entity::JsonTimeStamp};
-
 use super::{
     table_entity_transport_grpc_contract::TableEntityTransportGrpcContract,
     GrpcContractConvertError,
 };
+use my_no_sql_core::{db::DbRow, db_json_entity::JsonTimeStamp};
 use prost::DecodeError;
 
 #[derive(Clone, PartialEq, ::prost::Message)]

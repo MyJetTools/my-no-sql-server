@@ -1,11 +1,12 @@
+use my_no_sql_server_core::DbTableWrapper;
+
 use crate::{
-    app::AppContext, db::DbTable,
-    persist_operations::blob_content_cache::BlobPartitionUpdateTimeResult,
+    app::AppContext, persist_operations::blob_content_cache::BlobPartitionUpdateTimeResult,
 };
 
 use super::super::sync;
 
-pub async fn save_partition(app: &AppContext, db_table: &DbTable, partition_key: &str) {
+pub async fn save_partition(app: &AppContext, db_table: &DbTableWrapper, partition_key: &str) {
     let get_blob_content_cache = app
         .blob_content_cache
         .get(db_table.name.as_str(), partition_key)

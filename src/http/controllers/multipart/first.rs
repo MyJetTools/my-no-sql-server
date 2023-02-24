@@ -1,25 +1,33 @@
 use std::sync::Arc;
 
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
-use my_http_server_controllers::controllers::{
-    actions::PostAction,
-    documentation::{out_results::IntoHttpResult, HttpActionDescription},
-};
 
 use crate::app::AppContext;
 
 use super::models::{NewMultipartInputContract, NewMultipartResponse};
 
-pub struct FirstMultipartController {
+#[my_http_server_swagger::http_route(
+    method: "POST",
+    route: "/Multipart/First",
+    controller: "Multipart",
+    description: "New multipart request is started",
+    summary: "Returns first multipart amount of rows",
+    input_data: "NewMultipartInputContract",
+    result:[
+        {status_code: 200, description: "Rows"},
+    ]
+)]
+pub struct FirstMultipartAction {
     app: Arc<AppContext>,
 }
 
-impl FirstMultipartController {
+impl FirstMultipartAction {
     pub fn new(app: Arc<AppContext>) -> Self {
         Self { app }
     }
 }
 
+/*
 #[async_trait::async_trait]
 impl PostAction for FirstMultipartController {
     fn get_route(&self) -> &str {
@@ -57,4 +65,23 @@ impl PostAction for FirstMultipartController {
 
         HttpOutput::as_json(response).into_ok_result(true).into()
     }
+}
+ */
+
+async fn handle_request(
+    action: &FirstMultipartAction,
+    input_data: NewMultipartInputContract,
+    _ctx: &mut HttpContext,
+) -> Result<HttpOkResult, HttpFailResult> {
+    let result = crate::db_operations::read::multipart::start_read_all(
+        action.app.as_ref(),
+        input_data.table_name.as_ref(),
+    )
+    .await?;
+
+    let response = NewMultipartResponse {
+        snapshot_id: format!("{}", result),
+    };
+
+    HttpOutput::as_json(response).into_ok_result(true).into()
 }

@@ -10,14 +10,18 @@ impl From<TransactionOperationError> for HttpFailResult {
                 content_type: WebContentType::Text,
                 status_code: 401,
                 write_telemetry: true,
+                write_to_log: true,
             },
-            TransactionOperationError::DbEntityParseFail(err) => err.into(),
+            TransactionOperationError::DbEntityParseFail(err) => {
+                super::db_operation_error::from_db_entity_parse_fail_to_http_result(err)
+            }
             TransactionOperationError::DbOperationError(op_err) => op_err.into(),
             TransactionOperationError::SerdeJsonError(err) => HttpFailResult {
                 content: format!("{}", err).into_bytes(),
                 content_type: WebContentType::Text,
                 status_code: 500,
                 write_telemetry: true,
+                write_to_log: true,
             },
         }
     }

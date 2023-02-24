@@ -1,6 +1,4 @@
-use my_http_server_controllers::controllers::documentation::{
-    data_types::HttpDataType, out_results::HttpResult,
-};
+use my_http_server::types::RawDataTyped;
 use my_http_server_swagger::*;
 use serde::{Deserialize, Serialize};
 
@@ -9,8 +7,8 @@ pub struct ProcessTransactionInputModel {
     #[http_query(name = "transactionId" description = "Id of transaction")]
     pub transaction_id: String,
 
-    #[http_body(description = "Process transaction" body_type="JsonBaseTransaction")]
-    pub body: Vec<u8>,
+    #[http_body_raw(description = "Process transaction")]
+    pub body: RawDataTyped<JsonBaseTransaction>,
 }
 
 #[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
@@ -23,13 +21,4 @@ pub struct JsonBaseTransaction {
 pub struct StartTransactionResponse {
     #[serde(rename = "transactionId")]
     pub transaction_id: String,
-}
-
-pub fn transaction_not_found_response_doc() -> HttpResult {
-    HttpResult {
-        http_code: 401,
-        nullable: false,
-        description: "Transaction not found".to_string(),
-        data_type: HttpDataType::None,
-    }
 }

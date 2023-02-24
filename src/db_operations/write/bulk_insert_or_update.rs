@@ -1,53 +1,49 @@
 use std::{collections::BTreeMap, sync::Arc};
 
+use my_no_sql_core::db::DbRow;
+use my_no_sql_server_core::DbTableWrapper;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
     app::AppContext,
-    db::{DbRow, DbTable},
-    db_json_entity::JsonTimeStamp,
     db_operations::DbOperationError,
     db_sync::{states::UpdateRowsSyncData, EventSource, SyncEvent},
 };
 
 pub async fn execute(
     app: &AppContext,
-    db_table: Arc<DbTable>,
+    db_table: &Arc<DbTableWrapper>,
     rows_by_partition: BTreeMap<String, Vec<Arc<DbRow>>>,
     event_src: EventSource,
-    now: &JsonTimeStamp,
     persist_moment: DateTimeAsMicroseconds,
 ) -> Result<(), DbOperationError> {
     super::super::check_app_states(app)?;
 
     let mut table_data = db_table.data.write().await;
 
-    let mut update_rows_state =
-        UpdateRowsSyncData::new(&table_data, db_table.attributes.get_persist(), event_src);
+    let mut update_rows_state = UpdateRowsSyncData::new(&table_data, event_src);
 
     let mut has_insert_or_replace = false;
 
     for (partition_key, db_rows) in rows_by_partition {
-        table_data.bulk_insert_or_replace(&partition_key, &db_rows, now);
+        table_data.bulk_insert_or_replace(&partition_key, &db_rows);
         has_insert_or_replace = true;
 
         update_rows_state
             .rows_by_partition
             .add_rows(partition_key.as_str(), db_rows);
 
-        table_data
-            .data_to_persist
-            .mark_partition_to_persist(partition_key.as_str(), persist_moment);
+        app.persist_markers
+            .persist_partition(
+                table_data.name.as_str(),
+                partition_key.as_str(),
+                persist_moment,
+            )
+            .await;
     }
 
     if has_insert_or_replace {
-        db_table.set_last_update_time(DateTimeAsMicroseconds::now());
-
-        crate::operations::sync::dispatch(
-            app,
-            db_table.as_ref().into(),
-            SyncEvent::UpdateRows(update_rows_state),
-        );
+        crate::operations::sync::dispatch(app, SyncEvent::UpdateRows(update_rows_state));
     }
 
     Ok(())

@@ -32,3 +32,6 @@
 
 ### 0.0.20-rc03
 * MyTcpSockets is updated to 0.1.4
+
+### 0.0.21-rc02
+* Compression is now supported on TCP level for Nodes

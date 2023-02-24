@@ -1,14 +1,22 @@
 use std::sync::Arc;
 
-use crate::{app::AppContext, http::contracts::response};
-use async_trait::async_trait;
+use crate::app::AppContext;
+
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
-use my_http_server_controllers::controllers::{
-    actions::PostAction, documentation::HttpActionDescription,
-};
 
 use super::models::ProcessTransactionInputModel;
 
+#[my_http_server_swagger::http_route(
+    method: "POST",
+    route: "/Transactions/Append",
+    description: "Get Table size",
+    summary: "Returns Table size",
+    input_data: "ProcessTransactionInputModel",
+    controller: "Transactions",
+    result:[
+        {status_code: 202, description: "Actions are added suscessfully"},        
+    ]
+)]
 pub struct AppendTransactionAction {
     app: Arc<AppContext>,
 }
@@ -19,6 +27,7 @@ impl AppendTransactionAction {
     }
 }
 
+/*
 #[async_trait]
 impl PostAction for AppendTransactionAction {
     fn get_route(&self) -> &str {
@@ -38,21 +47,22 @@ impl PostAction for AppendTransactionAction {
         }
         .into()
     }
+}
+ */
+async fn handle_request(
+    action: &AppendTransactionAction,
+    input_model: ProcessTransactionInputModel,
+    _ctx: &mut HttpContext,
+) -> Result<HttpOkResult, HttpFailResult> {
+    let tranactions =
+        crate::db_transactions::json_parser::parse_transactions(input_model.body.as_slice())?;
 
-    async fn handle_request(&self, ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
-        let input_model: ProcessTransactionInputModel =
-            ProcessTransactionInputModel::parse_http_input(ctx).await?;
+    crate::db_operations::transactions::append_events(
+        action.app.as_ref(),
+        input_model.transaction_id.as_str(),
+        tranactions,
+    )
+    .await?;
 
-        let tranactions =
-            crate::db_transactions::json_parser::parse_transactions(input_model.body.as_slice())?;
-
-        crate::db_operations::transactions::append_events(
-            self.app.as_ref(),
-            input_model.transaction_id.as_str(),
-            tranactions,
-        )
-        .await?;
-
-        return Ok(HttpOutput::Empty.into_ok_result(true));
-    }
+    HttpOutput::Empty.into_ok_result(true)
 }

@@ -1,17 +1,13 @@
 use std::sync::Arc;
 
-use crate::{
-    app::AppContext,
-    db::{DbRow, DbTable, UpdatePartitionReadMoment},
-    db_json_entity::JsonTimeStamp,
-    db_operations::DbOperationError,
-};
+use my_no_sql_core::{db::DbRow, db_json_entity::JsonTimeStamp};
+use my_no_sql_server_core::DbTableWrapper;
 
-use super::read_filter::DbRowsFilter;
+use crate::{app::AppContext, db_operations::DbOperationError};
 
 pub async fn execute(
     app: &AppContext,
-    table: &DbTable,
+    table: &DbTableWrapper,
     partition_key: Option<&String>,
     row_key: Option<&String>,
     limit: Option<usize>,
@@ -43,7 +39,7 @@ pub async fn execute(
 }
 
 pub async fn get_as_partition_key_and_row_key(
-    table: &DbTable,
+    table: &DbTableWrapper,
     partition_key: &String,
     row_key: &String,
     now: &JsonTimeStamp,
@@ -52,7 +48,7 @@ pub async fn get_as_partition_key_and_row_key(
 
     let db_partition = read_access.get_partition(partition_key)?;
 
-    let db_row = db_partition.get_row_and_clone(row_key, Some(now.date_time))?;
+    let db_row = db_partition.get_row_and_clone(row_key)?;
 
     db_row.last_read_access.update(now.date_time);
 
@@ -60,7 +56,7 @@ pub async fn get_as_partition_key_and_row_key(
 }
 
 async fn get_as_partition_key_only(
-    table: &DbTable,
+    table: &DbTableWrapper,
     partition_key: &String,
     limit: Option<usize>,
     skip: Option<usize>,
@@ -70,25 +66,16 @@ async fn get_as_partition_key_only(
 
     let db_partition = read_access.get_partition(partition_key)?;
 
-    let db_row_filter =
-        DbRowsFilter::new(db_partition.get_all_rows(Some(now.date_time)), limit, skip);
-
-    let mut result = None;
-
-    for db_row in db_row_filter {
-        if result.is_none() {
-            result = Some(Vec::new());
-        }
-
-        result.as_mut().unwrap().push(db_row.clone());
-        db_row.last_read_access.update(now.date_time);
-    }
-
-    result
+    super::read_filter::filter_it_and_clone(
+        db_partition.get_all_rows().into_iter(),
+        limit,
+        skip,
+        now.date_time,
+    )
 }
 
 async fn get_as_row_key_only(
-    table: &DbTable,
+    table: &DbTableWrapper,
     row_key: &String,
     limit: Option<usize>,
     skip: Option<usize>,
@@ -101,18 +88,16 @@ async fn get_as_row_key_only(
     let mut data_by_row = Vec::new();
 
     for partition in read_access.get_partitions() {
-        let get_row_result = partition.get_row(
-            row_key,
-            UpdatePartitionReadMoment::UpdateIfElementIsFound(now.date_time),
-        );
+        let get_row_result = partition.get_row(row_key);
 
         if let Some(db_row) = get_row_result {
             data_by_row.push(db_row);
         }
     }
 
-    let mut result = None;
+    super::read_filter::filter_it_and_clone(data_by_row.into_iter(), limit, skip, now.date_time)
 
+    /*
     let db_row_filter = DbRowsFilter::new(data_by_row.into_iter(), limit, skip);
 
     for db_row in db_row_filter {
@@ -121,32 +106,25 @@ async fn get_as_row_key_only(
         }
 
         result.as_mut().unwrap().push(db_row.clone());
-        db_row.last_read_access.update(now.date_time);
+
     }
 
     result
+     */
 }
 
 async fn get_all(
-    table: &DbTable,
+    table: &DbTableWrapper,
     limit: Option<usize>,
     skip: Option<usize>,
     now: &JsonTimeStamp,
 ) -> Option<Vec<Arc<DbRow>>> {
     let read_access = table.data.read().await;
 
-    let db_row_filter = DbRowsFilter::new(read_access.get_all_rows().into_iter(), limit, skip);
-
-    let mut result = None;
-
-    for db_row in db_row_filter {
-        if result.is_none() {
-            result = Some(Vec::new());
-        }
-
-        result.as_mut().unwrap().push(db_row.clone());
-        db_row.last_read_access.update(now.date_time);
-    }
-
-    result
+    super::read_filter::filter_it_and_clone(
+        read_access.get_all_rows().into_iter(),
+        limit,
+        skip,
+        now.date_time,
+    )
 }

@@ -40,11 +40,15 @@ impl<'s> TableFileName<'s> {
 
 impl TableFile {
     pub fn from_file_name(file_name: &str) -> Result<Self, String> {
+        use base64::Engine;
+
         if file_name == TABLE_METADATA_FILE_NAME {
             return Ok(Self::TableAttributes);
         }
 
-        let partition_key = base64::decode(file_name).unwrap();
+        let partition_key = base64::engine::general_purpose::STANDARD
+            .decode(file_name)
+            .unwrap();
 
         match String::from_utf8(partition_key) {
             Ok(result) => Ok(Self::DbPartition(result)),
@@ -58,7 +62,10 @@ impl TableFile {
         match self {
             TableFile::TableAttributes => TableFileName::new(TABLE_METADATA_FILE_NAME),
             TableFile::DbPartition(partition_key) => {
-                TableFileName::new_as_string(base64::encode(partition_key.as_bytes()))
+                use base64::Engine;
+                let encoded =
+                    base64::engine::general_purpose::STANDARD.encode(partition_key.as_bytes());
+                TableFileName::new_as_string(encoded)
             }
         }
     }

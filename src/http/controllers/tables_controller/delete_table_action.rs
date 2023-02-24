@@ -11,6 +11,7 @@ use super::{super::super::contracts::input_params::*, models::DeleteTableContrac
     route: "/Tables/Delete",
     input_data: "DeleteTableContract",
     description: "Delete Table",
+    summary: "Deletes Table",
     controller: "Tables",
     result:[
         {status_code: 202, description: "Table is deleted"},
@@ -45,5 +46,5 @@ async fn handle_request(
     )
     .await?;
 
-    return Ok(HttpOutput::Empty.into_ok_result(true));
+    return HttpOutput::Empty.into_ok_result(true);
 }

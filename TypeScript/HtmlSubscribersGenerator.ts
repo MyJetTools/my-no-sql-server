@@ -4,11 +4,26 @@ class HtmlSubscribersGenerator {
 
     public static generateHtml(data: IInitializedStatus): string {
 
+        let nodes = [];
+        let readers = [];
+
+
+        for (let reader of data.readers) {
+
+            if (reader.isNode) {
+                nodes.push(reader);
+            }
+            else {
+                readers.push(reader);
+            }
+
+        }
+
         return '<h3>Connected Nodes</h3>'
-            + this.generateNodesHtml(data.nodes)
+            + this.generateReadersHtml(nodes)
             + '<h3>Readers</h3>'
             + this.generateTotalSend(data.readers)
-            + this.generateReadersHtml(data.readers)
+            + this.generateReadersHtml(readers)
             + '<h3>Tables</h3>'
             + this.generateTablesHtml(data.tables);
     }
@@ -40,20 +55,23 @@ class HtmlSubscribersGenerator {
     private static generateReadersHtml(data: IReaderStatus[]): string {
         let html = `<table class="table table-striped"><tr><th>Id</th><th>Client</th><th>Ip</th><th>tables</th><th></th></tr>`;
 
-        for (let itm of data) {
-
-            html += '<tr><td>' + itm.id + '</td><td>' + this.renderName(itm.name) + '</td><td>' + itm.ip + '<div>' + HtmlGraph.renderGraph(itm.sentPerSecond, v => Utils.format_bytes(v), v => v, _ => false) + '</div></td><td>' + this.renderTables(itm.tables) + '</td>' +
-                '<td style="font-size: 10px">' +
-                '<div><b>C:</b>' + itm.connectedTime + '</div>' +
-                '<div><b>L:</b>' + itm.lastIncomingTime + '</div>' +
-                '<div><b>S:</b>' + itm.pendingToSend + '</div>' +
-                '</td></tr>';
-
+        for (let reader of data) {
+            html += this.generateReader(reader);
         }
 
         html += '</table>';
 
         return html;
+    }
+
+
+    private static generateReader(reader: IReaderStatus): string {
+        return '<tr><td>' + reader.id + '</td><td>' + this.renderName(reader.name) + '</td><td>' + reader.ip + '<div>' + HtmlGraph.renderGraph(reader.sentPerSecond, v => Utils.format_bytes(v), v => v, _ => false) + '</div></td><td>' + this.renderTables(reader.tables) + '</td>' +
+            '<td style="font-size: 10px">' +
+            '<div><b>C:</b>' + reader.connectedTime + '</div>' +
+            '<div><b>L:</b>' + reader.lastIncomingTime + '</div>' +
+            '<div><b>S:</b>' + reader.pendingToSend + '</div>' +
+            '</td></tr>';
     }
 
 
@@ -68,12 +86,23 @@ class HtmlSubscribersGenerator {
 
             let style = ' style="color:green" ';
 
-            if (table.lastPersistTime < table.lastUpdateTime) {
-                style = ' style="color:red" ';
+
+            if (!table.lastPersistTime) {
+                style = ' style="color:gray" ';
             }
+            else
+                if (table.lastPersistTime < table.lastUpdateTime) {
+                    style = ' style="color:red" ';
+                }
 
             let lastUpdateTime = new Date(table.lastUpdateTime / 1000);
-            let lastPersistTime = new Date(table.lastPersistTime / 1000);
+
+            let lastPersistTime = "----";
+
+            if (table.lastPersistTime) {
+                lastPersistTime = new Date(table.lastPersistTime / 1000).toISOString();
+            }
+
 
             let nextPersistTime = "---";
 
@@ -82,20 +111,11 @@ class HtmlSubscribersGenerator {
                 nextPersistTime = as_time.toISOString();
             }
 
-            let lineColor = "";
-
-            if (!table.hasCommonThread) {
-                lineColor = ' style="background-color: #8bc34a4f" ';
-
-            }
 
 
-
-
-            html += '<tr ' + lineColor + '><td>' + table.name + '</td><td>' + table.persistAmount + '</td><td>' + table.dataSize + '</td><td>' + table.partitionsCount + '</td><td>' + table.recordsAmount + '</td><td>' + table.expirationIndex + '</td>' +
-                '<td' + style + '><div>UpdateTime: ' + lastUpdateTime.toISOString() + '</div><div>PersistTime: ' + lastPersistTime.toISOString() + '</div>' +
+            html += '<tr><td>' + table.name + '</td><td>' + table.persistAmount + '</td><td>' + table.dataSize + '</td><td>' + table.partitionsCount + '</td><td>' + table.recordsAmount + '</td><td>' + table.expirationIndex + '</td>' +
+                '<td' + style + '><div>UpdateTime: ' + lastUpdateTime.toISOString() + '</div><div>PersistTime: ' + lastPersistTime + '</div>' +
                 '<div>NextPersist: ' + nextPersistTime + '</div>' + HtmlGraph.renderGraph(table.lastPersistDuration, v => Utils.format_duration(v), v => v, v => false) + '</td></tr>';
-
 
             total_size += table.dataSize;
             total_partitions += table.partitionsCount;
@@ -111,17 +131,7 @@ class HtmlSubscribersGenerator {
 
         return html;
     }
-    private static generateNodesHtml(data: INodeStatus[]): string {
-        let html = `<table class="table table-striped"><tr><th>Location</th><th>Connected</th><th>LastAccess</th><th>Compress</th><th>Latency</th></tr>`;
 
-        for (let itm of data) {
-            html += '<tr><td>' + itm.location + '</td><td>' + itm.connected + '</td><td>' + itm.lastAccessed + '</td><td>' + itm.compress + '</td><td>' + itm.latency + '</td></tr>';
-        }
-
-        html += '</table>';
-
-        return html;
-    }
 
 
 

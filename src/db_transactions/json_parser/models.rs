@@ -1,11 +1,9 @@
 use std::{collections::BTreeMap, sync::Arc};
 
+use my_no_sql_core::db_json_entity::{DbEntityParseFail, DbJsonEntity, JsonTimeStamp};
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    db_json_entity::{DbEntityParseFail, DbJsonEntity, JsonTimeStamp},
-    db_transactions::steps::{TransactionalOperationStep, UpdateRowsStepState},
-};
+use crate::db_transactions::steps::{TransactionalOperationStep, UpdateRowsStepState};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CleanTableTransactionJsonModel {
@@ -82,7 +80,7 @@ impl InsertOrUpdateTransactionJsonModel {
 
         for entity in &self.entities {
             let db_entity = DbJsonEntity::parse(entity)?;
-            let db_row = Arc::new(db_entity.to_db_row(&now));
+            let db_row = Arc::new(db_entity.new_db_row(&now));
 
             if !rows_by_partition.contains_key(db_entity.partition_key) {
                 rows_by_partition.insert(db_entity.partition_key.to_string(), Vec::new());

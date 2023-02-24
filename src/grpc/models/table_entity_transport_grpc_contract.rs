@@ -1,8 +1,9 @@
-use crate::{
+use std::sync::Arc;
+
+use my_no_sql_core::{
     db::DbRow,
     db_json_entity::{DbJsonEntity, JsonTimeStamp},
 };
-use std::sync::Arc;
 
 use super::GrpcContractConvertError;
 
@@ -33,7 +34,7 @@ impl TableEntityTransportGrpcContract {
                 return self.parse_as_json(time_stamp);
             }
             GrpcContentType::Protobuf => {
-                todo!("Not Implemented")
+                panic!("Not supported")
             }
         }
     }

@@ -1,26 +1,25 @@
 use std::collections::HashMap;
 
+use my_no_sql_core::db::{DbTable, DbTableAttributes};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-use crate::db::{DbTableAttributesSnapshot, DbTableData};
-
 pub struct PersistedTableData {
-    pub attr: DbTableAttributesSnapshot,
+    pub attr: DbTableAttributes,
     pub partitions: HashMap<String, DateTimeAsMicroseconds>,
 }
 
 impl PersistedTableData {
-    pub fn new(attr: DbTableAttributesSnapshot) -> Self {
+    pub fn new(attr: DbTableAttributes) -> Self {
         Self {
             attr,
             partitions: HashMap::new(),
         }
     }
 
-    pub fn init(table_data: &DbTableData, attr: DbTableAttributesSnapshot) -> Self {
+    pub fn init(db_table: &DbTable) -> Self {
         Self {
-            attr,
-            partitions: table_data.get_partitions_last_write_moment(),
+            attr: db_table.attributes.clone(),
+            partitions: db_table.get_partitions_last_write_moment(),
         }
     }
 }

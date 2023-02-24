@@ -15,10 +15,25 @@ impl DataReaderConnection {
         }
     }
 
-    pub async fn set_name(&self, name: String) {
+    pub async fn set_name_as_reader(&self, name: String) {
         match self {
-            DataReaderConnection::Tcp(tcp_info) => tcp_info.set_name(name).await,
-            DataReaderConnection::Http(http_info) => http_info.set_name(name).await,
+            DataReaderConnection::Tcp(tcp_info) => tcp_info.set_name_as_reader(name).await,
+            DataReaderConnection::Http(http_info) => http_info.set_name_as_reader(name).await,
+        }
+    }
+
+    pub async fn set_name_as_node(&self, location: String, version: String, compress_data: bool) {
+        match self {
+            DataReaderConnection::Tcp(tcp_info) => {
+                tcp_info.set_name_as_node(location, version).await;
+
+                if compress_data {
+                    tcp_info.set_compress_data();
+                }
+            }
+            DataReaderConnection::Http(_) => {
+                panic!("Node does not exist in HTTP Mode")
+            }
         }
     }
 

@@ -22,18 +22,24 @@ impl MyTimerTick for MetricsUpdater {
         let mut persist_amount = 0;
 
         for db_table in tables {
-            let table_metrics = db_table.get_metrics().await;
+            let table_metrics =
+                crate::operations::get_table_metrics(self.app.as_ref(), db_table.as_ref()).await;
 
             persist_amount += table_metrics.persist_amount;
 
-            let persist_delay = if table_metrics.last_persist_time.unix_microseconds
-                < table_metrics.last_update_time.unix_microseconds
-            {
-                let duration = table_metrics
-                    .last_update_time
-                    .duration_since(table_metrics.last_persist_time);
+            let persist_delay = if let Some(last_persist_time) = table_metrics.last_persist_time {
+                if last_persist_time.unix_microseconds
+                    < table_metrics.last_update_time.unix_microseconds
+                {
+                    let duration = table_metrics
+                        .last_update_time
+                        .duration_since(last_persist_time)
+                        .as_positive_or_zero();
 
-                duration.as_secs() as i64
+                    duration.as_secs() as i64
+                } else {
+                    0
+                }
             } else {
                 0
             };

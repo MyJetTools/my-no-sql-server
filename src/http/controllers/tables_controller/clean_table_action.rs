@@ -11,6 +11,7 @@ use super::models::CleanTableContract;
     route: "/Tables/Clean",
     input_data: "CleanTableContract",
     description: "Clean Table",
+    summary: "Cleans Table",
     controller: "Tables",
     result:[
         {status_code: 202, description: "Table is cleaned"},
@@ -38,11 +39,11 @@ async fn handle_request(
 
     crate::db_operations::write::clean_table::execute(
         action.app.as_ref(),
-        db_table,
+        &db_table,
         event_src,
         input_data.sync_period.get_sync_moment(),
     )
     .await?;
 
-    return Ok(HttpOutput::Empty.into_ok_result(true));
+    return HttpOutput::Empty.into_ok_result(true);
 }

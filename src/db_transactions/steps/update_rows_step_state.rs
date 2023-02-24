@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, sync::Arc};
 
-use crate::db::DbRow;
+use my_no_sql_core::db::DbRow;
 
 pub struct UpdateRowsStepState {
     pub table_name: String,

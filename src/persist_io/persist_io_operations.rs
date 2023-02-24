@@ -2,7 +2,9 @@ use std::sync::Arc;
 
 use my_azure_storage_sdk::AzureStorageConnection;
 
-use crate::{app::logs::Logs, persist_io::TableFile};
+use crate::persist_io::TableFile;
+
+use my_no_sql_server_core::logs::*;
 
 pub struct PersistIoOperations {
     logs: Arc<Logs>,

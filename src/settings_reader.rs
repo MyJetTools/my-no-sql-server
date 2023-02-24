@@ -1,9 +1,10 @@
 use my_azure_storage_sdk::AzureStorageConnection;
+use my_no_sql_server_core::logs::Logs;
 use serde::{Deserialize, Serialize};
 use std::{env, sync::Arc};
 use tokio::{fs::File, io::AsyncReadExt};
 
-use crate::{app::logs::Logs, persist_io::PersistIoOperations};
+use crate::persist_io::PersistIoOperations;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SettingsModel {

@@ -1,15 +1,22 @@
 use std::sync::Arc;
 
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
-use my_http_server_controllers::controllers::{
-    actions::DeleteAction,
-    documentation::{data_types::HttpDataType, out_results::HttpResult, HttpActionDescription},
-};
 
 use crate::{app::AppContext, db_sync::EventSource};
 
 use super::models::DeletePartitionsInputContract;
 
+#[my_http_server_swagger::http_route(
+    method: "DELETE",
+    route: "/Rows/DeletePartitions",
+    controller: "Rows",
+    description: "Delete Partitions",
+    summary: "Deletes Partitions",
+    input_data: "DeletePartitionsInputContract",
+    result:[
+        {status_code: 200, description: "Removed entities"},
+    ]
+)]
 pub struct DeletePartitionsAction {
     app: Arc<AppContext>,
 }
@@ -20,6 +27,7 @@ impl DeletePartitionsAction {
     }
 }
 
+/*
 #[async_trait::async_trait]
 impl DeleteAction for DeletePartitionsAction {
     fn get_route(&self) -> &str {
@@ -45,26 +53,31 @@ impl DeleteAction for DeletePartitionsAction {
         .into()
     }
 
-    async fn handle_request(&self, ctx: &mut HttpContext) -> Result<HttpOkResult, HttpFailResult> {
-        let input_data = DeletePartitionsInputContract::parse_http_input(ctx).await?;
 
-        let db_table = crate::db_operations::read::table::get(
-            self.app.as_ref(),
-            input_data.table_name.as_ref(),
-        )
-        .await?;
+}
+ */
 
-        let event_src = EventSource::as_client_request(self.app.as_ref());
+async fn handle_request(
+    action: &DeletePartitionsAction,
+    input_data: DeletePartitionsInputContract,
+    _ctx: &mut HttpContext,
+) -> Result<HttpOkResult, HttpFailResult> {
+    let db_table =
+        crate::db_operations::read::table::get(action.app.as_ref(), input_data.table_name.as_ref())
+            .await?;
 
-        crate::db_operations::write::delete_partitions(
-            self.app.as_ref(),
-            db_table.as_ref(),
-            input_data.body.partition_keys,
-            event_src,
-            input_data.sync_period.get_sync_moment(),
-        )
-        .await?;
+    let event_src = EventSource::as_client_request(action.app.as_ref());
 
-        HttpOutput::Empty.into_ok_result(true).into()
-    }
+    let partition_keys = input_data.body.deserialize_json()?;
+
+    crate::db_operations::write::delete_partitions(
+        action.app.as_ref(),
+        &db_table,
+        partition_keys.partition_keys,
+        event_src,
+        input_data.sync_period.get_sync_moment(),
+    )
+    .await?;
+
+    HttpOutput::Empty.into_ok_result(true).into()
 }

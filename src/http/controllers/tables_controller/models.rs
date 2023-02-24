@@ -1,7 +1,8 @@
 use my_http_server_swagger::*;
+use my_no_sql_server_core::DbTableWrapper;
 use serde::{Deserialize, Serialize};
 
-use crate::{db::DbTable, db_sync::DataSynchronizationPeriod};
+use crate::db_sync::DataSynchronizationPeriod;
 
 #[derive(MyHttpInput)]
 pub struct GetTableSizeContract {
@@ -19,7 +20,7 @@ pub struct GetPartitionsAmountContract {
 pub struct CleanTableContract {
     #[http_query(name = "tableName"; description = "Name of a table")]
     pub table_name: String,
-    #[http_query(name = "syncPeriod"; description = "Synchronization period"; default="Sec5")]
+    #[http_query(name = "syncPeriod"; description = "Synchronization period"; default)]
     pub sync_period: DataSynchronizationPeriod,
 }
 
@@ -38,15 +39,18 @@ pub struct TableContract {
     pub persist: bool,
     #[serde(rename = "maxPartitionsAmount")]
     pub max_partitions_amount: Option<usize>,
+    #[serde(rename = "maxRowsPerPartitionAmount")]
+    pub max_rows_per_partition_amount: Option<usize>,
 }
 
-impl Into<TableContract> for &DbTable {
-    fn into(self) -> TableContract {
-        let table_snapshot = self.attributes.get_snapshot();
+impl TableContract {
+    pub async fn from_table_wrapper(table_wrapper: &DbTableWrapper) -> TableContract {
+        let table_snapshot = table_wrapper.get_attributes().await;
         TableContract {
-            name: self.name.to_string(),
+            name: table_wrapper.name.to_string(),
             persist: table_snapshot.persist,
             max_partitions_amount: table_snapshot.max_partitions_amount,
+            max_rows_per_partition_amount: table_snapshot.max_rows_per_partition_amount,
         }
     }
 }
@@ -62,7 +66,10 @@ pub struct CreateTableCotnract {
     #[http_query(name = "maxPartitionsAmount"; description = "Maximim partitions amount. Empty - means unlimited")]
     pub max_partitions_amount: Option<usize>,
 
-    #[http_query(name = "syncPeriod"; description = "Synchronization period"; default="Sec5")]
+    #[http_query(name = "maxRowsPerPartitionAmount"; description = "Maximim rows per partition amount. Empty - means unlimited")]
+    pub max_rows_per_partition_amount: Option<usize>,
+
+    #[http_query(name = "syncPeriod"; description = "Synchronization period"; default)]
     pub sync_period: DataSynchronizationPeriod,
 }
 
@@ -84,10 +91,4 @@ pub struct DeleteTableContract {
     pub table_name: String,
     #[http_header(name = "apikey"; description = "Api Key protecting the table to be deleted")]
     pub api_key: String,
-}
-
-#[derive(MyHttpInput)]
-pub struct SpawnPersistThreadInputContract {
-    #[http_query(name = "tableName"; description = "Name of a table")]
-    pub table_name: String,
 }

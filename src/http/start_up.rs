@@ -1,11 +1,9 @@
 use std::{net::SocketAddr, sync::Arc};
 
-use my_http_server::{middlewares::StaticFilesMiddleware, MyHttpServer};
+use my_http_server::MyHttpServer;
 use my_http_server_controllers::swagger::SwaggerMiddleware;
 
 use crate::app::AppContext;
-
-use super::controllers::request_metrics_writer::RequestMetricsWriter;
 
 pub fn setup_server(app: &Arc<AppContext>) {
     let mut http_server = MyHttpServer::new(SocketAddr::from(([0, 0, 0, 0], 5123)));
@@ -19,9 +17,10 @@ pub fn setup_server(app: &Arc<AppContext>) {
     );
 
     http_server.add_middleware(Arc::new(swagger_middleware));
-    http_server.add_middleware(Arc::new(RequestMetricsWriter::new(app.clone())));
     http_server.add_middleware(controllers);
 
-    http_server.add_middleware(Arc::new(StaticFilesMiddleware::new(None)));
+    http_server.add_middleware(Arc::new(my_http_server::StaticFilesMiddleware::new(
+        None, None,
+    )));
     http_server.start(app.states.clone(), app.clone());
 }

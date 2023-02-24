@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 
-use crate::{
-    app::logs::Logs, db_operations::validation,
-    persist_operations::data_initializer::LoadedTableItem,
-};
+use crate::{db_operations::validation, persist_operations::data_initializer::LoadedTableItem};
+
+use my_no_sql_server_core::logs::*;
 
 use super::LoadTableTask;
 
@@ -32,7 +31,7 @@ impl InitStateData {
             if let Err(err) = validation::validate_table_name(table_name.as_str()) {
                 logs.add_error(
                     Some(table_name),
-                    crate::app::logs::SystemProcess::Init,
+                    SystemProcess::Init,
                     "init_tables".to_string(),
                     format!(
                         "Table name does not fit validation. Skipping loading it... Reason:{:?}",

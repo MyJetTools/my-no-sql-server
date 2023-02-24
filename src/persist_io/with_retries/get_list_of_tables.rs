@@ -4,7 +4,7 @@ use my_azure_storage_sdk::AzureStorageConnectionData;
 use my_azure_storage_sdk::sdk_azure::containers::AzureContainersListReader;
 use my_azure_storage_sdk::AzureStorageConnection;
 
-use crate::app::logs::Logs;
+use my_no_sql_server_core::logs::*;
 
 pub async fn get_list_of_tables(
     logs: &Logs,

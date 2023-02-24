@@ -1,9 +1,9 @@
 use super::server::MyNoSqlServerWriterGrpcSerice;
-use crate::db_json_entity::JsonTimeStamp;
 use crate::db_sync::EventSource;
 use crate::mynosqlserver_grpc::writer_server::Writer;
 use crate::mynosqlserver_grpc::*;
 use futures_core::Stream;
+use my_no_sql_core::db_json_entity::JsonTimeStamp;
 use std::pin::Pin;
 use tonic::Status;
 
@@ -30,11 +30,26 @@ impl Writer for MyNoSqlServerWriterGrpcSerice {
 
         let event_src = EventSource::as_client_request(self.app.as_ref());
 
+        let max_partitions_amount =
+            if let Some(max_partitions_amount) = request.max_partitions_amount {
+                Some(max_partitions_amount as usize)
+            } else {
+                None
+            };
+
+        let max_rows_per_partition_amount =
+            if let Some(max_rows_per_partition_amount) = request.max_rows_per_partition_amount {
+                Some(max_rows_per_partition_amount as usize)
+            } else {
+                None
+            };
+
         crate::db_operations::write::table::create_if_not_exist(
             &self.app,
             &request.table_name,
             request.persist_table,
-            None,
+            max_partitions_amount,
+            max_rows_per_partition_amount,
             event_src,
             crate::app::DEFAULT_PERSIST_PERIOD.get_sync_moment(),
         )
@@ -55,8 +70,6 @@ impl Writer for MyNoSqlServerWriterGrpcSerice {
                 .await
                 .unwrap();
 
-        let persist = db_table.attributes.get_persist();
-
         let event_src = EventSource::as_client_request(self.app.as_ref());
 
         let max_partitions_amount =
@@ -66,11 +79,20 @@ impl Writer for MyNoSqlServerWriterGrpcSerice {
                 None
             };
 
+        let max_rows_per_partition_amount =
+            if let Some(max_rows_per_partition_amount) = request.max_rows_per_partition_amount {
+                Some(max_rows_per_partition_amount as usize)
+            } else {
+                None
+            };
+
+        let persist = db_table.get_persist_table().await;
         crate::db_operations::write::table::set_table_attrubutes(
             &self.app,
             db_table,
             persist,
             max_partitions_amount,
+            max_rows_per_partition_amount,
             event_src,
         )
         .await
@@ -227,7 +249,6 @@ impl Writer for MyNoSqlServerWriterGrpcSerice {
                 self.app.as_ref(),
                 &transaction_id,
                 event_src,
-                &now,
                 crate::app::DEFAULT_PERSIST_PERIOD.get_sync_moment(),
             )
             .await
