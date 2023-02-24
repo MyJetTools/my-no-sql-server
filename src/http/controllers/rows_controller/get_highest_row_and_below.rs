@@ -27,36 +27,6 @@ impl GetHighestRowAndBelowAction {
     }
 }
 
-/*
-#[async_trait::async_trait]
-impl GetAction for GetHighestRowAndBelowAction {
-    fn get_route(&self) -> &str {
-        "/Rows/HighestRowAndBelow"
-    }
-
-    fn get_description(&self) -> Option<HttpActionDescription> {
-        HttpActionDescription {
-            controller_name: super::consts::CONTROLLER_NAME,
-            description: "Get Rows Count",
-
-            input_params: GetHighestRowsAndBelowInputContract::get_input_params().into(),
-            results: vec![
-                HttpResult {
-                    http_code: 200,
-                    nullable: false,
-                    description: "Rows".to_string(),
-                    data_type: BaseDbRowContract::get_http_data_structure()
-                        .into_http_data_type_array(),
-                },
-                crate::http::docs::rejects::op_with_table_is_failed(),
-            ],
-        }
-        .into()
-    }
-}
-
- */
-
 async fn handle_request(
     action: &GetHighestRowAndBelowAction,
     input_data: GetHighestRowsAndBelowInputContract,
