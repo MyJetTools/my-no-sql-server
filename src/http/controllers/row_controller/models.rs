@@ -55,15 +55,16 @@ pub struct ReplaceInputContract {
 
 #[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
 pub struct BaseDbRowContract {
-    #[serde(rename = "partitionKey")]
+    #[serde(rename = "PartitionKey")]
     pub partition_key: String,
 
-    #[serde(rename = "rowKey")]
+    #[serde(rename = "RowKey")]
     pub row_key: String,
 
-    #[serde(rename = "timeStamp")]
+    #[serde(rename = "TimeStamp")]
     pub time_stamp: String,
 
+    #[serde(rename = "Expires")]
     pub expires: Option<String>,
 }
 
