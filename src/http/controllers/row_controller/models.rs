@@ -1,3 +1,4 @@
+use my_http_server::types::RawDataTyped;
 use my_http_server_swagger::*;
 
 use serde::{Deserialize, Serialize};
@@ -24,8 +25,8 @@ pub struct InsertOrReplaceInputContract {
     #[http_query(name = "syncPeriod"; description = "Synchronization period"; default)]
     pub sync_period: DataSynchronizationPeriod,
 
-    #[http_body(description = "DbEntity description"; body_type="BaseDbRowContract")]
-    pub body: Vec<u8>,
+    #[http_body_raw(description = "DbEntity description")]
+    pub body: RawDataTyped<BaseDbRowContract>,
 }
 
 #[derive(MyHttpInput)]
@@ -36,8 +37,8 @@ pub struct InsertInputContract {
     #[http_query(name = "syncPeriod"; description = "Synchronization period"; default)]
     pub sync_period: DataSynchronizationPeriod,
 
-    #[http_body(description = "DbEntity description"; body_type = "BaseDbRowContract")]
-    pub body: Vec<u8>,
+    #[http_body_raw(description = "DbEntity description")]
+    pub body: RawDataTyped<BaseDbRowContract>,
 }
 
 #[derive(MyHttpInput)]
@@ -48,8 +49,8 @@ pub struct ReplaceInputContract {
     #[http_query(name = "syncPeriod"; description = "Synchronization period"; default)]
     pub sync_period: DataSynchronizationPeriod,
 
-    #[http_body(description = "DbEntity description"; body_type = "BaseDbRowContract")]
-    pub body: Vec<u8>,
+    #[http_body_raw(description = "DbEntity description")]
+    pub body: RawDataTyped<BaseDbRowContract>,
 }
 
 #[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]

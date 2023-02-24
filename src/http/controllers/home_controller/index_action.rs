@@ -17,22 +17,6 @@ impl IndexAction {
     }
 }
 
-/*
-
-#[async_trait::async_trait]
-impl GetAction for IndexAction {
-    fn get_route(&self) -> &str {
-        "/"
-    }
-
-    fn get_description(&self) -> Option<HttpActionDescription> {
-        None
-    }
-
-
-}
- */
-
 async fn handle_request(
     action: &IndexAction,
     _: &mut HttpContext,
