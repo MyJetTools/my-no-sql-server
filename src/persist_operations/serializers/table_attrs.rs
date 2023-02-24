@@ -9,6 +9,8 @@ pub struct TableMetadataFileContract {
     pub persist: bool,
     #[serde(rename = "MaxPartitionsAmount")]
     pub max_partitions_amount: Option<usize>,
+    #[serde(rename = "MaxRowsPerPartitionAmount")]
+    pub max_rows_per_partition_amount: Option<usize>,
 }
 
 impl TableMetadataFileContract {
@@ -19,6 +21,7 @@ impl TableMetadataFileContract {
             Ok(res) => res,
             Err(_) => TableMetadataFileContract {
                 max_partitions_amount: None,
+                max_rows_per_partition_amount: None,
                 persist: true,
             },
         }
@@ -34,6 +37,7 @@ impl Into<DbTableAttributes> for TableMetadataFileContract {
         DbTableAttributes {
             created: DateTimeAsMicroseconds::now(),
             max_partitions_amount: self.max_partitions_amount,
+            max_rows_per_partition_amount: self.max_rows_per_partition_amount,
             persist: self.persist,
         }
     }
@@ -42,6 +46,7 @@ impl Into<DbTableAttributes> for TableMetadataFileContract {
 pub fn serialize(attrs: &DbTableAttributes) -> Vec<u8> {
     let contract = TableMetadataFileContract {
         max_partitions_amount: attrs.max_partitions_amount,
+        max_rows_per_partition_amount: attrs.max_rows_per_partition_amount,
         persist: attrs.persist,
     };
 

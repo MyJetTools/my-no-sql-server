@@ -39,6 +39,8 @@ pub struct TableContract {
     pub persist: bool,
     #[serde(rename = "maxPartitionsAmount")]
     pub max_partitions_amount: Option<usize>,
+    #[serde(rename = "maxRowsPerPartitionAmount")]
+    pub max_rows_per_partition_amount: Option<usize>,
 }
 
 impl TableContract {
@@ -48,6 +50,7 @@ impl TableContract {
             name: table_wrapper.name.to_string(),
             persist: table_snapshot.persist,
             max_partitions_amount: table_snapshot.max_partitions_amount,
+            max_rows_per_partition_amount: table_snapshot.max_rows_per_partition_amount,
         }
     }
 }
@@ -62,6 +65,9 @@ pub struct CreateTableCotnract {
 
     #[http_query(name = "maxPartitionsAmount"; description = "Maximim partitions amount. Empty - means unlimited")]
     pub max_partitions_amount: Option<usize>,
+
+    #[http_query(name = "maxRowsPerPartitionAmount"; description = "Maximim rows per partition amount. Empty - means unlimited")]
+    pub max_rows_per_partition_amount: Option<usize>,
 
     #[http_query(name = "syncPeriod"; description = "Synchronization period"; default)]
     pub sync_period: DataSynchronizationPeriod,

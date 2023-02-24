@@ -40,6 +40,7 @@ async fn handle_request(
         input_data.table_name.as_str(),
         input_data.persist,
         input_data.max_partitions_amount,
+        input_data.max_rows_per_partition_amount,
         even_src,
         input_data.sync_period.get_sync_moment(),
     )

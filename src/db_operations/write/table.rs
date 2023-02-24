@@ -22,6 +22,7 @@ pub async fn create(
     table_name: &str,
     persist_table: bool,
     max_partitions_amount: Option<usize>,
+    max_rows_per_partition_amount: Option<usize>,
     event_src: EventSource,
     persist_moment: DateTimeAsMicroseconds,
 ) -> Result<Arc<DbTableWrapper>, DbOperationError> {
@@ -31,8 +32,15 @@ pub async fn create(
 
     let now = DateTimeAsMicroseconds::now();
 
-    let create_table_result =
-        get_or_create_table(app, table_name, persist_table, max_partitions_amount, now).await;
+    let create_table_result = get_or_create_table(
+        app,
+        table_name,
+        persist_table,
+        max_partitions_amount,
+        max_rows_per_partition_amount,
+        now,
+    )
+    .await;
 
     match create_table_result {
         CreateTableResult::JustCreated(db_table) => {
@@ -65,14 +73,22 @@ async fn get_or_create(
     table_name: &str,
     persist_table: bool,
     max_partitions_amount: Option<usize>,
+    max_rows_per_partition_amount: Option<usize>,
     event_src: EventSource,
     persist_moment: DateTimeAsMicroseconds,
 ) -> Result<Arc<DbTableWrapper>, DbOperationError> {
     validation::validate_table_name(table_name)?;
     let now = DateTimeAsMicroseconds::now();
 
-    let create_table_result =
-        get_or_create_table(app, table_name, persist_table, max_partitions_amount, now).await;
+    let create_table_result = get_or_create_table(
+        app,
+        table_name,
+        persist_table,
+        max_partitions_amount,
+        max_rows_per_partition_amount,
+        now,
+    )
+    .await;
 
     match create_table_result {
         CreateTableResult::JustCreated(db_table) => {
@@ -104,6 +120,7 @@ pub async fn create_if_not_exist(
     table_name: &str,
     persist_table: bool,
     max_partitions_amount: Option<usize>,
+    max_rows_per_partition_amount: Option<usize>,
     event_src: EventSource,
     persist_moment: DateTimeAsMicroseconds,
 ) -> Result<Arc<DbTableWrapper>, DbOperationError> {
@@ -115,6 +132,7 @@ pub async fn create_if_not_exist(
         table_name,
         persist_table,
         max_partitions_amount,
+        max_rows_per_partition_amount,
         event_src.clone(),
         persist_moment,
     )
@@ -125,6 +143,7 @@ pub async fn create_if_not_exist(
         db_table.clone(),
         persist_table,
         max_partitions_amount,
+        max_rows_per_partition_amount,
         event_src,
     )
     .await?;
@@ -139,8 +158,17 @@ pub async fn update_persist_state(
     event_src: EventSource,
 ) -> Result<(), DbOperationError> {
     super::super::check_app_states(app)?;
-    let max_partitions_amount = db_table.get_max_partitions_amount().await;
-    set_table_attrubutes(app, db_table, persist, max_partitions_amount, event_src).await?;
+    let attrs = db_table.get_attributes().await;
+
+    set_table_attrubutes(
+        app,
+        db_table,
+        persist,
+        attrs.max_partitions_amount,
+        attrs.max_rows_per_partition_amount,
+        event_src,
+    )
+    .await?;
     Ok(())
 }
 
@@ -149,15 +177,18 @@ pub async fn set_table_attrubutes(
     db_table: Arc<DbTableWrapper>,
     persist: bool,
     max_partitions_amount: Option<usize>,
+    max_rows_per_partition_amount: Option<usize>,
     event_src: EventSource,
 ) -> Result<(), DbOperationError> {
     super::super::check_app_states(app)?;
 
     let result = {
         let mut write_access = db_table.data.write().await;
-        write_access
-            .attributes
-            .update(persist, max_partitions_amount)
+        write_access.attributes.update(
+            persist,
+            max_partitions_amount,
+            max_rows_per_partition_amount,
+        )
     };
 
     if !result {
@@ -172,8 +203,6 @@ pub async fn set_table_attrubutes(
                 persist,
             },
             event_src,
-            persist,
-            max_partitions_amount,
         }),
     );
 
@@ -240,6 +269,7 @@ async fn get_or_create_table(
     table_name: &str,
     persist: bool,
     max_partitions_amount: Option<usize>,
+    max_rows_per_partition_amount: Option<usize>,
     now: DateTimeAsMicroseconds,
 ) -> CreateTableResult {
     let mut write_access = app.db.tables.write().await;
@@ -252,6 +282,7 @@ async fn get_or_create_table(
         persist,
         max_partitions_amount,
         created: now,
+        max_rows_per_partition_amount,
     };
 
     let db_table = DbTable::new(table_name.to_string(), table_attributes);

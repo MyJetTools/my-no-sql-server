@@ -30,11 +30,26 @@ impl Writer for MyNoSqlServerWriterGrpcSerice {
 
         let event_src = EventSource::as_client_request(self.app.as_ref());
 
+        let max_partitions_amount =
+            if let Some(max_partitions_amount) = request.max_partitions_amount {
+                Some(max_partitions_amount as usize)
+            } else {
+                None
+            };
+
+        let max_rows_per_partition_amount =
+            if let Some(max_rows_per_partition_amount) = request.max_rows_per_partition_amount {
+                Some(max_rows_per_partition_amount as usize)
+            } else {
+                None
+            };
+
         crate::db_operations::write::table::create_if_not_exist(
             &self.app,
             &request.table_name,
             request.persist_table,
-            None,
+            max_partitions_amount,
+            max_rows_per_partition_amount,
             event_src,
             crate::app::DEFAULT_PERSIST_PERIOD.get_sync_moment(),
         )
@@ -64,12 +79,20 @@ impl Writer for MyNoSqlServerWriterGrpcSerice {
                 None
             };
 
+        let max_rows_per_partition_amount =
+            if let Some(max_rows_per_partition_amount) = request.max_rows_per_partition_amount {
+                Some(max_rows_per_partition_amount as usize)
+            } else {
+                None
+            };
+
         let persist = db_table.get_persist_table().await;
         crate::db_operations::write::table::set_table_attrubutes(
             &self.app,
             db_table,
             persist,
             max_partitions_amount,
+            max_rows_per_partition_amount,
             event_src,
         )
         .await
