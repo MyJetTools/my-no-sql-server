@@ -11,7 +11,7 @@ use crate::{
 use super::super::ReadOperationResult;
 
 pub async fn get_single(
-    app: &AppContext,
+    app: &Arc<AppContext>,
     db_table: &Arc<DbTableWrapper>,
     partition_key: &String,
     row_key: &String,
@@ -43,7 +43,7 @@ pub async fn get_single(
 
     if update_statistics.has_statistics_to_update() {
         update_statistics
-            .update_statistics(db_table, partition_key, || [row_key].into_iter())
+            .update_statistics(app, db_table, partition_key, || [row_key].into_iter())
             .await;
     }
 

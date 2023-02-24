@@ -70,7 +70,7 @@ async fn handle_request(
     if let Some(partition_key) = input_data.partition_key.as_ref() {
         if let Some(row_key) = input_data.row_key.as_ref() {
             let result = crate::db_operations::read::rows::get_single(
-                action.app.as_ref(),
+                &action.app,
                 &db_table,
                 partition_key,
                 row_key,

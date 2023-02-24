@@ -21,8 +21,7 @@ pub struct InsertOrReplaceInputContract {
     #[http_query(name = "tableName"; description = "Name of a table")]
     pub table_name: String,
 
-    #[http_query(name = "syncPeriod"; description = "Synchronization period"; default="Sec5")]
-    //todo!("Check how default is parsed")
+    #[http_query(name = "syncPeriod"; description = "Synchronization period"; default)]
     pub sync_period: DataSynchronizationPeriod,
 
     #[http_body(description = "DbEntity description"; body_type="BaseDbRowContract")]
@@ -34,7 +33,7 @@ pub struct InsertInputContract {
     #[http_query(name = "tableName"; description = "Name of a table")]
     pub table_name: String,
 
-    #[http_query(name = "syncPeriod"; description = "Synchronization period"; default="Sec5")]
+    #[http_query(name = "syncPeriod"; description = "Synchronization period"; default)]
     pub sync_period: DataSynchronizationPeriod,
 
     #[http_body(description = "DbEntity description"; body_type = "BaseDbRowContract")]
@@ -46,7 +45,7 @@ pub struct ReplaceInputContract {
     #[http_query(name = "tableName"; description = "Name of a table")]
     pub table_name: String,
 
-    #[http_query(name = "syncPeriod"; description = "Synchronization period"; default="Sec5")]
+    #[http_query(name = "syncPeriod"; description = "Synchronization period"; default)]
     pub sync_period: DataSynchronizationPeriod,
 
     #[http_body(description = "DbEntity description"; body_type = "BaseDbRowContract")]
@@ -121,6 +120,6 @@ pub struct DeleteRowInputModel {
     #[http_query(name = "rowKey"; description = "Row Key")]
     pub row_key: String,
 
-    #[http_query(name = "syncPeriod"; description = "Synchronization period"; default="Sec5")]
+    #[http_query(name = "syncPeriod"; description = "Synchronization period"; default)]
     pub sync_period: DataSynchronizationPeriod,
 }

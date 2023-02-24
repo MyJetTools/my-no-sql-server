@@ -37,6 +37,7 @@ pub async fn get_all_by_partition_key(
             );
 
             ReadOperationResult::compile_array_or_empty_from_partition(
+                app,
                 db_table,
                 partition_key,
                 db_rows,

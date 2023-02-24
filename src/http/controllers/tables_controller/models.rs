@@ -20,7 +20,7 @@ pub struct GetPartitionsAmountContract {
 pub struct CleanTableContract {
     #[http_query(name = "tableName"; description = "Name of a table")]
     pub table_name: String,
-    #[http_query(name = "syncPeriod"; description = "Synchronization period"; default="Sec5")]
+    #[http_query(name = "syncPeriod"; description = "Synchronization period"; default)]
     pub sync_period: DataSynchronizationPeriod,
 }
 
@@ -63,7 +63,7 @@ pub struct CreateTableCotnract {
     #[http_query(name = "maxPartitionsAmount"; description = "Maximim partitions amount. Empty - means unlimited")]
     pub max_partitions_amount: Option<usize>,
 
-    #[http_query(name = "syncPeriod"; description = "Synchronization period"; default="Sec5")]
+    #[http_query(name = "syncPeriod"; description = "Synchronization period"; default)]
     pub sync_period: DataSynchronizationPeriod,
 }
 

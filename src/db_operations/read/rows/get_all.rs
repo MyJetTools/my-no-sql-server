@@ -46,6 +46,7 @@ pub async fn get_all(
     };
 
     return Ok(ReadOperationResult::compile_array_or_empty(
+        app,
         db_table_wrapper,
         db_rows,
         update_statistics,

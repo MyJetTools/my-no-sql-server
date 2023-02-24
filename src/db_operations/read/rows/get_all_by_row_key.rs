@@ -55,9 +55,13 @@ pub async fn get_all_by_row_key(
         None
     };
 
-    return Ok(
-        ReadOperationResult::compile_array_or_empty(db_table, db_rows, update_statistics).await,
-    );
+    return Ok(ReadOperationResult::compile_array_or_empty(
+        app,
+        db_table,
+        db_rows,
+        update_statistics,
+    )
+    .await);
 }
 
 /*

@@ -81,7 +81,7 @@ async fn handle_request(
     )
     .await?;
 
-    let db_row = Arc::new(db_json_entity.to_db_row(&now));
+    let db_row = Arc::new(db_json_entity.new_db_row(&now));
 
     let event_src = EventSource::as_client_request(action.app.as_ref());
 

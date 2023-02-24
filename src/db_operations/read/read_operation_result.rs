@@ -4,7 +4,7 @@ use my_json::json_writer::JsonArrayWriter;
 use my_no_sql_core::db::DbRow;
 use my_no_sql_server_core::DbTableWrapper;
 
-use crate::db_operations::UpdateStatistics;
+use crate::{app::AppContext, db_operations::UpdateStatistics};
 
 pub enum ReadOperationResult {
     SingleRow(Vec<u8>),
@@ -14,6 +14,7 @@ pub enum ReadOperationResult {
 
 impl ReadOperationResult {
     pub async fn compile_array_or_empty(
+        app: &Arc<AppContext>,
         db_table: &Arc<DbTableWrapper>,
         db_rows: Option<HashMap<String, Vec<&Arc<DbRow>>>>,
         update_statistics: UpdateStatistics,
@@ -29,7 +30,7 @@ impl ReadOperationResult {
         if update_statistics.has_statistics_to_update() {
             for (partition_key, db_rows) in &db_rows {
                 update_statistics
-                    .update_statistics(db_table, partition_key, || {
+                    .update_statistics(app, db_table, partition_key, || {
                         db_rows.iter().map(|db_row| &db_row.row_key)
                     })
                     .await;
@@ -46,6 +47,7 @@ impl ReadOperationResult {
     }
 
     pub async fn compile_array_or_empty_from_partition(
+        app: &Arc<AppContext>,
         db_table: &Arc<DbTableWrapper>,
         partition_key: &String,
         db_rows: Option<Vec<&Arc<DbRow>>>,
@@ -60,7 +62,7 @@ impl ReadOperationResult {
         let db_rows = db_rows.unwrap();
 
         update_statistics
-            .update_statistics(db_table, partition_key, || {
+            .update_statistics(app, db_table, partition_key, || {
                 db_rows.iter().map(|db_row| &db_row.row_key)
             })
             .await;

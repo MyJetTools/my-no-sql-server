@@ -71,7 +71,7 @@ async fn handle_request(
     let db_json_entity =
         crate::db_operations::parse_json_entity::as_single_entity(input_data.body.as_slice())?;
 
-    let db_row = Arc::new(db_json_entity.to_db_row(&now));
+    let db_row = Arc::new(db_json_entity.new_db_row(&now));
 
     crate::db_operations::write::insert_or_replace::execute(
         action.app.as_ref(),

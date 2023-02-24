@@ -147,7 +147,7 @@ async fn handle_request(
     if let Ok(body) = serde_json::from_slice::<GetChangesBodyModel>(&input_data.body) {
         for update_model in &body.update_expiration_time {
             update_expiration_time(
-                action.app.as_ref(),
+                &action.app,
                 update_model.table_name.as_str(),
                 &update_model.items,
             )
@@ -181,7 +181,7 @@ async fn handle_request(
 }
 
 async fn update_expiration_time(
-    app: &AppContext,
+    app: &Arc<AppContext>,
     table_name: &str,
     items: &[UpdateExpirationDateTime],
 ) -> Result<(), DbOperationError> {
@@ -198,6 +198,7 @@ async fn update_expiration_time(
             .to_set_expiration_time()
         {
             crate::db_operations::update_partition_expiration_time(
+                app,
                 &db_table,
                 &item.partition_key,
                 set_expiration_time,
@@ -207,6 +208,7 @@ async fn update_expiration_time(
         if let Some(set_expiration_time) = item.set_db_rows_expiration_time.to_set_expiration_time()
         {
             crate::db_operations::update_rows_expiration_time(
+                app,
                 &db_table,
                 &item.partition_key,
                 item.row_keys.iter(),

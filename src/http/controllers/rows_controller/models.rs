@@ -90,7 +90,7 @@ pub struct DeletePartitionsInputContract {
     #[http_body(name = "partitionKeys"; description = "Partition Keys to delete", required = true )]
     pub body: DeletePartitionsModel,
 
-    #[http_query(name = "syncPeriod"; description = "Synchronization period"; default="Sec5")]
+    #[http_query(name = "syncPeriod"; description = "Synchronization period"; default)]
     pub sync_period: DataSynchronizationPeriod,
 }
 

@@ -85,7 +85,7 @@ async fn handle_request(
 
     let now = JsonTimeStamp::now();
 
-    let db_row = Arc::new(db_json_entity.to_db_row(&now));
+    let db_row = Arc::new(db_json_entity.new_db_row(&now));
 
     crate::db_operations::write::insert::execute(
         &action.app,

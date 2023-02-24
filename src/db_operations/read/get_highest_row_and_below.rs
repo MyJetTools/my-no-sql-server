@@ -32,6 +32,7 @@ pub async fn get_highest_row_and_below(
     let db_rows = db_partition.get_highest_row_and_below(row_key, limit);
 
     return Ok(ReadOperationResult::compile_array_or_empty_from_partition(
+        app,
         db_table_wrapper,
         partition_key,
         db_rows,

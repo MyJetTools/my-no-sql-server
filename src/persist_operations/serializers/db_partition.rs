@@ -1,10 +1,7 @@
 use std::sync::Arc;
 
 use my_json::json_reader::array_parser::ArrayToJsonObjectsSplitter;
-use my_no_sql_core::{
-    db::DbPartition,
-    db_json_entity::{DbJsonEntity, JsonTimeStamp},
-};
+use my_no_sql_core::{db::DbPartition, db_json_entity::DbJsonEntity};
 
 pub fn deserialize_from_io(raw: &[u8]) -> Result<DbPartition, String> {
     let mut db_partition = DbPartition::new();
@@ -18,13 +15,7 @@ pub fn deserialize_from_io(raw: &[u8]) -> Result<DbPartition, String> {
 
         match DbJsonEntity::parse(db_entity_json) {
             Ok(db_entity) => {
-                let db_row = if let Some(time_stamp) = db_entity.time_stamp {
-                    let time_stamp = JsonTimeStamp::parse_or_now(time_stamp);
-                    db_entity.to_db_row(&time_stamp)
-                } else {
-                    db_entity.restore_db_row()
-                };
-
+                let db_row = db_entity.restore_db_row();
                 db_partition.insert_row(Arc::new(db_row));
             }
             Err(err) => {

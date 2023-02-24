@@ -39,6 +39,7 @@ pub async fn get_single_partition_multiple_rows(
     }
 
     return Ok(ReadOperationResult::compile_array_or_empty_from_partition(
+        app,
         db_table_wrapper,
         partition_key,
         db_rows.get_result(),

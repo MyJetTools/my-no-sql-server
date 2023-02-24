@@ -7,7 +7,7 @@ pub struct BulkDeleteInputContract {
     #[http_query(name = "tableName"; description = "Name of a table")]
     pub table_name: String,
 
-    #[http_query(name = "syncPeriod"; description = "Synchronization period"; default="Sec5")]
+    #[http_query(name = "syncPeriod"; description = "Synchronization period"; default)]
     pub sync_period: DataSynchronizationPeriod,
 
     #[http_body(
@@ -24,7 +24,7 @@ pub struct CleanAndBulkInsertInputContract {
     #[http_query(name = "partitionKey"; description = "Partition Key to clean before bulk insert operation";)]
     pub partition_key: Option<String>,
 
-    #[http_query(name = "syncPeriod"; description = "Synchronization period"; default="Sec5")]
+    #[http_query(name = "syncPeriod"; description = "Synchronization period"; default)]
     pub sync_period: DataSynchronizationPeriod,
 
     #[http_body(
@@ -38,7 +38,7 @@ pub struct BulkInsertOrReplaceInputContract {
     #[http_query(name = "tableName"; description = "Name of a table")]
     pub table_name: String,
 
-    #[http_query(name = "syncPeriod"; description = "Synchronization period"; default="Sec5")]
+    #[http_query(name = "syncPeriod"; description = "Synchronization period"; default)]
     pub sync_period: DataSynchronizationPeriod,
 
     #[http_body(
