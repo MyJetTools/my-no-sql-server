@@ -40,10 +40,11 @@ pub async fn execute(
     db_row: Arc<DbRow>,
     event_src: EventSource,
     persist_moment: DateTimeAsMicroseconds,
+    now: DateTimeAsMicroseconds,
 ) -> Result<(), DbOperationError> {
     let mut table_data = db_table.data.write().await;
 
-    let inserted = table_data.insert_row(&db_row);
+    let inserted = table_data.insert_row(&db_row, Some(now));
 
     if !inserted {
         return Err(DbOperationError::RecordAlreadyExists);

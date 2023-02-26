@@ -51,11 +51,18 @@ message GetEntitiesGrpcRequest{
     optional string RowKey = 3;
     optional int32 Skip = 4;
     optional int32 Limit = 5;
+
+    optional bool UpdatePartitionLastReadTime = 6;
+    optional string SetPartitionExpirationTime = 7;
+    optional bool UpdateRowsLastReadTime = 8;
+    optional string SetRowsExpirationTime = 9;
 }
 
 message TableEntityTransportGrpcContract{
     int32 ContentType = 1;
     bytes Content = 2;
+
+
 }
 
 message GetDbRowGrpcResponse{
@@ -67,6 +74,10 @@ message GetEntityGrpcRequest{
     string TableName = 1;
     string PartitionKey = 2;
     string RowKey = 3;
+    optional bool UpdatePartitionLastReadTime = 4;
+    optional string SetPartitionExpirationTime = 5;
+    optional bool UpdateRowsLastReadTime = 6;
+    optional string SetRowsExpirationTime = 7;
 }
 
 message CancelTransactionGrpcRequest{

@@ -35,6 +35,7 @@ pub async fn keep_max_partitions_amount(
             partitions_to_gc.into_iter(),
             event_src,
             persist_moment,
+            DateTimeAsMicroseconds::now(),
         )
         .await?;
     }

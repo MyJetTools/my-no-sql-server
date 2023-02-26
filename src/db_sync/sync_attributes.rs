@@ -5,7 +5,7 @@ use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::app::AppContext;
 
-#[derive(Clone, Copy, MyHttpStringEnum)]
+#[derive(Debug, Clone, Copy, MyHttpStringEnum)]
 pub enum DataSynchronizationPeriod {
     #[http_enum_case(id="0"; name="i"; description="Immediately Persist")]
     Immediately,

@@ -66,6 +66,7 @@ async fn handle_request(
         rows_by_partition,
         event_src,
         crate::db_sync::DataSynchronizationPeriod::Sec5.get_sync_moment(),
+        now.date_time,
     )
     .await?;
 

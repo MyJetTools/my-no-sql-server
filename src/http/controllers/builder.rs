@@ -193,6 +193,10 @@ pub fn build(app: &Arc<AppContext>) -> ControllersMiddleware {
 
     let force_persist_action = super::persist_controller::ForcePersistAction::new(app.clone());
 
+    result.register_get_action(Arc::new(
+        super::debug_controller::GetRowStatisticsAction::new(app.clone()),
+    ));
+
     result.register_post_action(Arc::new(force_persist_action));
 
     result

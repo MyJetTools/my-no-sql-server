@@ -65,6 +65,7 @@ async fn handle_request(
         event_src,
         db_json_entity.time_stamp.unwrap(),
         input_data.sync_period.get_sync_moment(),
+        &now,
     )
     .await?
     .into()

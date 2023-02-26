@@ -6,7 +6,7 @@ use crate::{
     db_sync::{states::UpdateRowsSyncData, EventSource, SyncEvent},
 };
 
-use my_no_sql_core::db::DbRow;
+use my_no_sql_core::{db::DbRow, db_json_entity::JsonTimeStamp};
 use my_no_sql_server_core::DbTableWrapper;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 use serde::{Deserialize, Serialize};
@@ -56,6 +56,7 @@ pub async fn execute(
     event_src: EventSource,
     entity_timestamp: &str,
     persist_moment: DateTimeAsMicroseconds,
+    now: &JsonTimeStamp,
 ) -> Result<WriteOperationResult, DbOperationError> {
     let mut table_data = db_table.data.write().await;
 
@@ -80,7 +81,7 @@ pub async fn execute(
                 return Err(DbOperationError::RecordNotFound);
             }
         }
-        let removed_result = table_data.remove_row(partition_key, &db_row.row_key, false);
+        let removed_result = table_data.remove_row(partition_key, &db_row.row_key, false, None);
 
         if removed_result.is_none() {
             None
@@ -89,7 +90,7 @@ pub async fn execute(
         }
     };
 
-    table_data.insert_row(&db_row);
+    table_data.insert_row(&db_row, Some(now.date_time));
 
     app.persist_markers
         .persist_partition(

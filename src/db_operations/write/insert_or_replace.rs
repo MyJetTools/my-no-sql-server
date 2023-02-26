@@ -18,11 +18,13 @@ pub async fn execute(
     db_row: Arc<DbRow>,
     event_src: EventSource,
     persist_moment: DateTimeAsMicroseconds,
+    now: DateTimeAsMicroseconds,
 ) -> Result<WriteOperationResult, DbOperationError> {
     super::super::check_app_states(app)?;
+
     let mut table_data = db_table.data.write().await;
 
-    let result = table_data.insert_or_replace_row(&db_row);
+    let result = table_data.insert_or_replace_row(&db_row, Some(now));
 
     let mut update_rows_state = UpdateRowsSyncData::new(&table_data, event_src);
 

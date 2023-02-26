@@ -39,10 +39,10 @@ async fn handle_request<'s>(
 
     let event_src = EventSource::as_client_request(action.app.as_ref());
 
-    crate::db_operations::gc::clean_partition_and_keep_max_records::execute(
+    crate::db_operations::gc::keep_partition_max_records::execute(
         action.app.as_ref(),
         db_table.as_ref(),
-        input_data.partition_key.as_ref(),
+        &input_data.partition_key,
         input_data.max_amount,
         event_src,
         input_data.sync_period.get_sync_moment(),

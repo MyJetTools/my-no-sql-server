@@ -1,5 +1,7 @@
 use super::server::MyNoSqlServerWriterGrpcSerice;
+use crate::db_operations::UpdateStatistics;
 use crate::db_sync::EventSource;
+use crate::http::controllers::ToSetExpirationTime;
 use crate::mynosqlserver_grpc::writer_server::Writer;
 use crate::mynosqlserver_grpc::*;
 use futures_core::Stream;
@@ -131,14 +133,36 @@ impl Writer for MyNoSqlServerWriterGrpcSerice {
 
         let date_time = JsonTimeStamp::now();
 
+        let update_statistics = UpdateStatistics {
+            update_partition_last_read_access_time: if let Some(value) =
+                request.update_partition_last_read_time
+            {
+                value
+            } else {
+                false
+            },
+            update_rows_last_read_access_time: if let Some(value) =
+                request.update_rows_last_read_time
+            {
+                value
+            } else {
+                false
+            },
+            update_partition_expiration_time: request
+                .set_partition_expiration_time
+                .to_set_expiration_time(),
+            update_rows_expiration_time: request.set_rows_expiration_time.to_set_expiration_time(),
+        };
+
         let db_rows = crate::db_operations::read::get_rows_as_vec::execute(
-            self.app.as_ref(),
-            db_table.as_ref(),
+            &self.app,
+            &db_table,
             partition_key,
             row_key,
             limit,
             skip,
             &date_time,
+            update_statistics,
         )
         .await
         .unwrap();
@@ -183,11 +207,34 @@ impl Writer for MyNoSqlServerWriterGrpcSerice {
 
         let date_time = JsonTimeStamp::now();
 
+        let update_statistics = UpdateStatistics {
+            update_partition_last_read_access_time: if let Some(value) =
+                request.update_partition_last_read_time
+            {
+                value
+            } else {
+                false
+            },
+            update_rows_last_read_access_time: if let Some(value) =
+                request.update_rows_last_read_time
+            {
+                value
+            } else {
+                false
+            },
+            update_partition_expiration_time: request
+                .set_partition_expiration_time
+                .to_set_expiration_time(),
+            update_rows_expiration_time: request.set_rows_expiration_time.to_set_expiration_time(),
+        };
+
         let db_row = crate::db_operations::read::get_rows_as_vec::get_as_partition_key_and_row_key(
-            db_table.as_ref(),
+            &self.app,
+            &db_table,
             &request.partition_key,
             &request.row_key,
             &date_time,
+            update_statistics,
         )
         .await;
 
@@ -250,6 +297,7 @@ impl Writer for MyNoSqlServerWriterGrpcSerice {
                 &transaction_id,
                 event_src,
                 crate::app::DEFAULT_PERSIST_PERIOD.get_sync_moment(),
+                now.date_time,
             )
             .await
             .unwrap();

@@ -17,14 +17,15 @@ pub async fn execute(
     entities: BTreeMap<String, Vec<Arc<DbRow>>>,
     event_src: EventSource,
     persist_moment: DateTimeAsMicroseconds,
+    now: DateTimeAsMicroseconds,
 ) -> Result<(), DbOperationError> {
     super::super::check_app_states(app)?;
     let mut table_data = db_table.data.write().await;
 
-    table_data.remove_partition(partition_key);
+    table_data.remove_partition(partition_key, None);
 
     for (partition_key, db_rows) in entities {
-        table_data.bulk_insert_or_replace(&partition_key, &db_rows);
+        table_data.bulk_insert_or_replace(&partition_key, &db_rows, Some(now));
     }
 
     app.persist_markers

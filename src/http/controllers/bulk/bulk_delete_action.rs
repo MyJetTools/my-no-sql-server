@@ -1,6 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
+use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::app::AppContext;
 use crate::db_sync::EventSource;
@@ -43,12 +44,15 @@ async fn handle_request(
     let rows_to_delete: HashMap<String, Vec<String>> =
         serde_json::from_slice(input_data.body.as_slice()).unwrap();
 
+    let now = DateTimeAsMicroseconds::now();
+
     crate::db_operations::write::bulk_delete(
         action.app.as_ref(),
         db_table.as_ref(),
         rows_to_delete,
         event_src,
         input_data.sync_period.get_sync_moment(),
+        now,
     )
     .await?;
 

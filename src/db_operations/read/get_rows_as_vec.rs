@@ -1,24 +1,37 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use my_no_sql_core::{db::DbRow, db_json_entity::JsonTimeStamp};
 use my_no_sql_server_core::DbTableWrapper;
 
-use crate::{app::AppContext, db_operations::DbOperationError};
+use crate::{
+    app::AppContext,
+    db_operations::{DbOperationError, UpdateStatistics},
+};
 
 pub async fn execute(
-    app: &AppContext,
-    table: &DbTableWrapper,
+    app: &Arc<AppContext>,
+    table: &Arc<DbTableWrapper>,
     partition_key: Option<&String>,
     row_key: Option<&String>,
     limit: Option<usize>,
     skip: Option<usize>,
     now: &JsonTimeStamp,
+    update_statistics: UpdateStatistics,
 ) -> Result<Option<Vec<Arc<DbRow>>>, DbOperationError> {
     super::super::check_app_states(app)?;
 
     if let Some(partition_key) = partition_key {
         if let Some(row_key) = row_key {
-            match get_as_partition_key_and_row_key(table, partition_key, row_key, now).await {
+            match get_as_partition_key_and_row_key(
+                app,
+                table,
+                partition_key,
+                row_key,
+                now,
+                update_statistics,
+            )
+            .await
+            {
                 Some(result) => {
                     return Ok(Some(vec![result]));
                 }
@@ -32,23 +45,33 @@ pub async fn execute(
     }
 
     if let Some(row_key) = row_key {
-        return Ok(get_as_row_key_only(table, row_key, limit, skip, now).await);
+        return Ok(
+            get_as_row_key_only(app, table, row_key, limit, skip, now, update_statistics).await,
+        );
     }
 
     return Ok(get_all(table, limit, skip, now).await);
 }
 
 pub async fn get_as_partition_key_and_row_key(
-    table: &DbTableWrapper,
+    app: &Arc<AppContext>,
+    table: &Arc<DbTableWrapper>,
     partition_key: &String,
     row_key: &String,
     now: &JsonTimeStamp,
+    update_statistics: UpdateStatistics,
 ) -> Option<Arc<DbRow>> {
     let read_access = table.data.read().await;
 
     let db_partition = read_access.get_partition(partition_key)?;
 
     let db_row = db_partition.get_row_and_clone(row_key)?;
+
+    if update_statistics.has_statistics_to_update() {
+        update_statistics
+            .update_statistics(app, table, partition_key, || [row_key].into_iter())
+            .await;
+    }
 
     db_row.last_read_access.update(now.date_time);
 
@@ -75,15 +98,15 @@ async fn get_as_partition_key_only(
 }
 
 async fn get_as_row_key_only(
-    table: &DbTableWrapper,
+    app: &Arc<AppContext>,
+    table: &Arc<DbTableWrapper>,
     row_key: &String,
     limit: Option<usize>,
     skip: Option<usize>,
     now: &JsonTimeStamp,
+    update_statistics: UpdateStatistics,
 ) -> Option<Vec<Arc<DbRow>>> {
     let read_access = table.data.read().await;
-
-    read_access.last_read_time.update(now.date_time);
 
     let mut data_by_row = Vec::new();
 
@@ -95,22 +118,39 @@ async fn get_as_row_key_only(
         }
     }
 
-    super::read_filter::filter_it_and_clone(data_by_row.into_iter(), limit, skip, now.date_time)
+    let result = super::read_filter::filter_it_and_clone(
+        data_by_row.into_iter(),
+        limit,
+        skip,
+        now.date_time,
+    );
 
-    /*
-    let db_row_filter = DbRowsFilter::new(data_by_row.into_iter(), limit, skip);
+    if let Some(result) = &result {
+        if update_statistics.has_statistics_to_update() {
+            let mut by_partition = HashMap::new();
 
-    for db_row in db_row_filter {
-        if result.is_none() {
-            result = Some(Vec::new());
+            for db_row in result {
+                if !by_partition.contains_key(&db_row.partition_key) {
+                    by_partition.insert(db_row.partition_key.to_string(), Vec::new());
+                }
+
+                by_partition
+                    .get_mut(&db_row.partition_key)
+                    .unwrap()
+                    .push(db_row);
+            }
+
+            for (partition_key, row_keys) in by_partition {
+                update_statistics
+                    .update_statistics(app, table, &partition_key, || {
+                        row_keys.iter().map(|itm| &itm.row_key)
+                    })
+                    .await;
+            }
         }
-
-        result.as_mut().unwrap().push(db_row.clone());
-
     }
 
     result
-     */
 }
 
 async fn get_all(

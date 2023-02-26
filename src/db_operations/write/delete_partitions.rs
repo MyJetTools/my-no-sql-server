@@ -15,6 +15,7 @@ pub async fn delete_partitions<TPartitions: Iterator<Item = String>>(
     partition_keys: TPartitions,
     event_src: EventSource,
     persist_moment: DateTimeAsMicroseconds,
+    now: DateTimeAsMicroseconds,
 ) -> Result<(), DbOperationError> {
     super::super::check_app_states(app)?;
     let mut table_write_access = db_table.data.write().await;
@@ -22,7 +23,8 @@ pub async fn delete_partitions<TPartitions: Iterator<Item = String>>(
     let mut sync_data = InitPartitionsSyncData::new(&table_write_access, event_src);
 
     for partition_key in partition_keys {
-        let remove_partition_result = table_write_access.remove_partition(&partition_key);
+        let remove_partition_result =
+            table_write_access.remove_partition(&partition_key, Some(now));
 
         if remove_partition_result.is_some() {
             app.persist_markers

@@ -42,16 +42,19 @@ async fn gc_it(app: &AppContext) {
         };
 
         if let Some(data_to_gc) = data_to_gc.get_data_to_gc() {
-            let mut persist_moment = DateTimeAsMicroseconds::now();
+            let now = DateTimeAsMicroseconds::now();
+            let mut persist_moment = now.clone();
             persist_moment.add_seconds(5);
 
             if data_to_gc.partitions.len() > 0 {
+                println!("GcPartitions: {}", data_to_gc.partitions.len());
                 if let Err(err) = crate::db_operations::write::delete_partitions(
                     app,
                     &table,
                     data_to_gc.partitions.into_iter().map(|x| x.0),
                     EventSource::GarbageCollector,
                     persist_moment,
+                    now,
                 )
                 .await
                 {
@@ -66,12 +69,14 @@ async fn gc_it(app: &AppContext) {
             }
 
             if data_to_gc.db_rows.len() > 0 {
+                println!("GcRows: {}", data_to_gc.db_rows.len());
                 if let Err(err) = crate::db_operations::write::bulk_delete(
                     app,
                     &table,
                     data_to_gc.db_rows,
                     EventSource::GarbageCollector,
                     persist_moment,
+                    now,
                 )
                 .await
                 {

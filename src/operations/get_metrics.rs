@@ -28,7 +28,7 @@ pub async fn get_table_metrics(app: &AppContext, db_table: &DbTableWrapper) -> D
         partitions_amount: table_read_access.get_partitions_amount(),
         expiration_index_records_amount: table_read_access.get_expiration_index_rows_amount(),
         records_amount: table_read_access.get_rows_amount(),
-        last_update_time: table_read_access.get_last_update_time(),
+        last_update_time: table_read_access.get_last_write_moment(),
         last_persist_time: persist_metrics.last_persist_time,
         next_persist_time: persist_metrics.next_persist_time,
         persist_amount: persist_metrics.persist_amount,

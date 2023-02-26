@@ -16,6 +16,7 @@ pub async fn execute(
     rows_by_partition: BTreeMap<String, Vec<Arc<DbRow>>>,
     event_src: EventSource,
     persist_moment: DateTimeAsMicroseconds,
+    now: DateTimeAsMicroseconds,
 ) -> Result<(), DbOperationError> {
     super::super::check_app_states(app)?;
 
@@ -26,7 +27,7 @@ pub async fn execute(
     let mut has_insert_or_replace = false;
 
     for (partition_key, db_rows) in rows_by_partition {
-        table_data.bulk_insert_or_replace(&partition_key, &db_rows);
+        table_data.bulk_insert_or_replace(&partition_key, &db_rows, Some(now));
         has_insert_or_replace = true;
 
         update_rows_state

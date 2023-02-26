@@ -18,11 +18,12 @@ pub async fn execute(
     row_key: &str,
     event_src: EventSource,
     persist_moment: DateTimeAsMicroseconds,
+    now: DateTimeAsMicroseconds,
 ) -> Result<WriteOperationResult, DbOperationError> {
     super::super::check_app_states(app)?;
     let mut table_data = db_table.data.write().await;
 
-    let remove_row_result = table_data.remove_row(partition_key, row_key, true);
+    let remove_row_result = table_data.remove_row(partition_key, row_key, true, Some(now));
 
     if remove_row_result.is_none() {
         return Ok(WriteOperationResult::Empty);

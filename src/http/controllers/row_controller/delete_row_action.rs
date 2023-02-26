@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
+use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::db_operations;
 
@@ -70,6 +71,8 @@ async fn handle_request(
 
     let event_src = EventSource::as_client_request(action.app.as_ref());
 
+    let now = DateTimeAsMicroseconds::now();
+
     db_operations::write::delete_row::execute(
         action.app.as_ref(),
         &db_table,
@@ -77,6 +80,7 @@ async fn handle_request(
         http_input.row_key.as_str(),
         event_src,
         http_input.sync_period.get_sync_moment(),
+        now,
     )
     .await?
     .into()

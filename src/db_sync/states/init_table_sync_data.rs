@@ -16,7 +16,7 @@ impl InitTableEventSyncData {
         Self {
             table_data: SyncTableData::new(db_table),
             event_src,
-            table_snapshot: DbTableSnapshot::new(db_table.get_last_update_time(), db_table),
+            table_snapshot: DbTableSnapshot::new(db_table.get_last_write_moment(), db_table),
         }
     }
 }

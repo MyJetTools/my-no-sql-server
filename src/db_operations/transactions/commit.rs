@@ -12,8 +12,8 @@ pub async fn commit(
     app: &AppContext,
     transaction_id: &str,
     event_src: EventSource,
-
     persist_moment: DateTimeAsMicroseconds,
+    now: DateTimeAsMicroseconds,
 ) -> Result<(), TransactionOperationError> {
     let transaction = app.active_transactions.remove(transaction_id).await;
 
@@ -56,6 +56,7 @@ pub async fn commit(
                         partition_keys.into_iter(),
                         event_src.clone(),
                         persist_moment,
+                        now,
                     )
                     .await?;
                 }
@@ -73,6 +74,7 @@ pub async fn commit(
                         rows_to_delete,
                         event_src.clone(),
                         persist_moment,
+                        now,
                     )
                     .await?;
                 }
@@ -84,6 +86,7 @@ pub async fn commit(
                         state.rows_by_partition,
                         event_src.clone(),
                         persist_moment,
+                        now,
                     )
                     .await?;
                 }

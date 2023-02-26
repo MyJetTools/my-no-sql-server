@@ -57,6 +57,7 @@ async fn handle_request(
                 rows_by_partition,
                 event_src,
                 input_data.sync_period.get_sync_moment(),
+                now.date_time,
             )
             .await?;
         }
@@ -67,6 +68,7 @@ async fn handle_request(
                 rows_by_partition,
                 Some(event_src),
                 input_data.sync_period.get_sync_moment(),
+                now.date_time,
             )
             .await?;
         }

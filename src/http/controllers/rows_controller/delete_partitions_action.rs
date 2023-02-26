@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
+use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{app::AppContext, db_sync::EventSource};
 
@@ -27,36 +28,6 @@ impl DeletePartitionsAction {
     }
 }
 
-/*
-#[async_trait::async_trait]
-impl DeleteAction for DeletePartitionsAction {
-    fn get_route(&self) -> &str {
-        "/Rows/DeletePartitions"
-    }
-
-    fn get_description(&self) -> Option<HttpActionDescription> {
-        HttpActionDescription {
-            controller_name: super::consts::CONTROLLER_NAME,
-            description: "Delete Partitions",
-
-            input_params: DeletePartitionsInputContract::get_input_params().into(),
-            results: vec![
-                HttpResult {
-                    http_code: 202,
-                    nullable: false,
-                    description: "Rows".to_string(),
-                    data_type: HttpDataType::None,
-                },
-                crate::http::docs::rejects::op_with_table_is_failed(),
-            ],
-        }
-        .into()
-    }
-
-
-}
- */
-
 async fn handle_request(
     action: &DeletePartitionsAction,
     input_data: DeletePartitionsInputContract,
@@ -70,12 +41,15 @@ async fn handle_request(
 
     let partition_keys = input_data.body.deserialize_json()?;
 
+    let now = DateTimeAsMicroseconds::now();
+
     crate::db_operations::write::delete_partitions(
         action.app.as_ref(),
         &db_table,
         partition_keys.partition_keys.into_iter(),
         event_src,
         input_data.sync_period.get_sync_moment(),
+        now,
     )
     .await?;
 

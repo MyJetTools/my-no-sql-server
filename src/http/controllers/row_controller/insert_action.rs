@@ -29,36 +29,6 @@ impl InsertRowAction {
     }
 }
 
-/*
-#[async_trait::async_trait]
-impl PostAction for InsertRowAction {
-    fn get_route(&self) -> &str {
-        "/Row/Insert"
-    }
-
-    fn get_description(&self) -> Option<HttpActionDescription> {
-        HttpActionDescription {
-            controller_name: super::consts::CONTROLLER_NAME,
-            description: "Insert Row",
-
-            input_params: InsertInputContract::get_input_params().into(),
-            results: vec![
-                HttpResult {
-                    http_code: 202,
-                    nullable: false,
-                    description: "Insert operation performed succesfully".to_string(),
-                    data_type: HttpDataType::None,
-                },
-                docs::rejects::op_with_table_is_failed(),
-            ],
-        }
-        .into()
-    }
-
-
-}
- */
-
 async fn handle_request(
     action: &InsertRowAction,
     input_data: InsertInputContract,
@@ -93,6 +63,7 @@ async fn handle_request(
         db_row,
         event_src,
         input_data.sync_period.get_sync_moment(),
+        now.date_time,
     )
     .await?;
 
