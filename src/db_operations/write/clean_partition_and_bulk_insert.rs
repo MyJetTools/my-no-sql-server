@@ -13,7 +13,7 @@ use crate::{
 pub async fn execute(
     app: &AppContext,
     db_table: Arc<DbTableWrapper>,
-    partition_key: &str,
+    partition_key: &String,
     entities: BTreeMap<String, Vec<Arc<DbRow>>>,
     event_src: EventSource,
     persist_moment: DateTimeAsMicroseconds,
@@ -24,7 +24,7 @@ pub async fn execute(
     table_data.remove_partition(partition_key);
 
     for (partition_key, db_rows) in entities {
-        table_data.bulk_insert_or_replace(partition_key.as_str(), &db_rows);
+        table_data.bulk_insert_or_replace(&partition_key, &db_rows);
     }
 
     app.persist_markers

@@ -51,7 +51,7 @@ pub async fn validate_before(
 pub async fn execute(
     app: &AppContext,
     db_table: &Arc<DbTableWrapper>,
-    partition_key: &str,
+    partition_key: &String,
     db_row: Arc<DbRow>,
     event_src: EventSource,
     entity_timestamp: &str,

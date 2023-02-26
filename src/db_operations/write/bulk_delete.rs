@@ -24,7 +24,7 @@ pub async fn bulk_delete(
 
     for (partition_key, row_keys) in rows_to_delete {
         let removed_rows_result =
-            table_data.bulk_remove_rows(partition_key.as_str(), row_keys.iter(), true);
+            table_data.bulk_remove_rows(&partition_key, row_keys.iter(), true);
 
         if let Some(removed_rows_result) = removed_rows_result {
             app.persist_markers

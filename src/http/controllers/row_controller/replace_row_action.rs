@@ -30,34 +30,6 @@ impl ReplaceRowAction {
     }
 }
 
-/*
-#[async_trait::async_trait]
-impl PutAction for RowAction {
-    fn get_route(&self) -> &str {
-        "/Row/Replace"
-    }
-
-    fn get_description(&self) -> Option<HttpActionDescription> {
-        HttpActionDescription {
-            controller_name: super::consts::CONTROLLER_NAME,
-            description: "Replace Entitiy",
-
-            input_params: DeleteRowInputModel::get_input_params().into(),
-            results: vec![
-                HttpResult {
-                    http_code: 200,
-                    nullable: false,
-                    description: "Replaced row".to_string(),
-                    data_type: BaseDbRowContract::get_http_data_structure()
-                        .into_http_data_type_object(),
-                },
-                crate::http::docs::rejects::op_with_table_is_failed(),
-            ],
-        }
-        .into()
-    }
-}
- */
 async fn handle_request(
     action: &ReplaceRowAction,
     input_data: ReplaceInputContract,
@@ -88,7 +60,7 @@ async fn handle_request(
     crate::db_operations::write::replace::execute(
         action.app.as_ref(),
         &db_table,
-        db_json_entity.partition_key,
+        &db_json_entity.partition_key.to_string(),
         db_row,
         event_src,
         db_json_entity.time_stamp.unwrap(),

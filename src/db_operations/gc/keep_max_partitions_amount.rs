@@ -1,16 +1,10 @@
 use std::sync::Arc;
 
-use my_no_sql_core::db::DbTable;
 use my_no_sql_server_core::DbTableWrapper;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-use crate::{
-    app::AppContext,
-    db_operations::DbOperationError,
-    db_sync::{states::InitPartitionsSyncData, EventSource, SyncEvent},
-};
+use crate::{app::AppContext, db_operations::DbOperationError, db_sync::EventSource};
 
-//TODO - Use Method from TableData
 pub async fn keep_max_partitions_amount(
     app: &AppContext,
     db_table: &Arc<DbTableWrapper>,
@@ -20,54 +14,29 @@ pub async fn keep_max_partitions_amount(
 ) -> Result<(), DbOperationError> {
     super::super::check_app_states(app)?;
 
-    let partitions_amount = db_table.get_partitions_amount().await;
+    let partitions_to_gc: Option<Vec<String>> = {
+        let read_access = db_table.data.read().await;
 
-    if partitions_amount <= max_partitions_amount {
-        return Ok(());
-    }
+        let result = read_access
+            .partitions
+            .get_partitions_to_gc_by_max_amount(max_partitions_amount);
 
-    let mut table_data = db_table.data.write().await;
-
-    gc_partitions(
-        app,
-        &mut table_data,
-        event_src,
-        max_partitions_amount,
-        persist_moment,
-    )
-    .await?;
-
-    Ok(())
-}
-
-pub async fn gc_partitions(
-    app: &AppContext,
-    table_data: &mut DbTable,
-    event_src: EventSource,
-    max_partitions_amount: usize,
-    persist_moment: DateTimeAsMicroseconds,
-) -> Result<(), DbOperationError> {
-    super::super::check_app_states(app)?;
-
-    let mut sync_state = InitPartitionsSyncData::new(&table_data, event_src);
-
-    let gced_partitions_result =
-        table_data.gc_and_keep_max_partitions_amount(max_partitions_amount);
-
-    if let Some(gced_partitions) = gced_partitions_result {
-        for (partition_key, _) in gced_partitions {
-            app.persist_markers
-                .persist_partition(
-                    &table_data.name.as_str(),
-                    partition_key.as_ref(),
-                    persist_moment,
-                )
-                .await;
-
-            sync_state.add(partition_key, None);
+        if let Some(result) = result {
+            Some(result.into_iter().map(|p| p.clone()).collect())
+        } else {
+            None
         }
+    };
 
-        crate::operations::sync::dispatch(app, SyncEvent::InitPartitions(sync_state));
+    if let Some(partitions_to_gc) = partitions_to_gc {
+        super::super::write::delete_partitions(
+            app,
+            db_table,
+            partitions_to_gc.into_iter(),
+            event_src,
+            persist_moment,
+        )
+        .await?;
     }
 
     Ok(())

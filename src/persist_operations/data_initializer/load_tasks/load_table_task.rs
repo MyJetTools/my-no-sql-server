@@ -109,7 +109,7 @@ impl LoadTableTask {
                     partition_key,
                     db_partition,
                 } => {
-                    db_table.partitions.insert(partition_key, db_partition);
+                    db_table.partitions.insert(&partition_key, db_partition);
                 }
             }
         }

@@ -20,10 +20,10 @@ pub async fn execute(
     super::super::check_app_states(app)?;
     let mut table_data = db_table.data.write().await;
 
-    table_data.clean_table();
+    table_data.clear_table();
 
     for (partition_key, db_rows) in entities {
-        table_data.bulk_insert_or_replace(partition_key.as_str(), &db_rows);
+        table_data.bulk_insert_or_replace(&partition_key, &db_rows);
     }
 
     app.persist_markers

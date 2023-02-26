@@ -28,7 +28,6 @@ mod data_readers;
 mod operations;
 mod persist_io;
 mod settings_reader;
-mod utils;
 
 //TODO - Add Amount of Subscribers to table on UI;
 

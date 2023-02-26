@@ -9,10 +9,10 @@ use crate::{
     db_sync::{states::InitPartitionsSyncData, EventSource, SyncEvent},
 };
 
-pub async fn delete_partitions(
+pub async fn delete_partitions<TPartitions: Iterator<Item = String>>(
     app: &AppContext,
     db_table: &Arc<DbTableWrapper>,
-    partition_keys: Vec<String>,
+    partition_keys: TPartitions,
     event_src: EventSource,
     persist_moment: DateTimeAsMicroseconds,
 ) -> Result<(), DbOperationError> {

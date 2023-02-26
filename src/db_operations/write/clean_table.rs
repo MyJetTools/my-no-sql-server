@@ -18,7 +18,7 @@ pub async fn execute(
     super::super::check_app_states(app)?;
     let mut table_data = db_table.data.write().await;
 
-    let removed_partitions = table_data.clean_table();
+    let removed_partitions = table_data.clear_table();
 
     if removed_partitions.is_some() {
         let sync_data = InitTableEventSyncData::new(&table_data, event_src);

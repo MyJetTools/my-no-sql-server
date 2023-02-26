@@ -54,10 +54,6 @@ pub enum EventSource {
 }
 
 impl EventSource {
-    pub fn as_gc() -> Self {
-        EventSource::GarbageCollector
-    }
-
     pub fn as_client_request(app: &AppContext) -> Self {
         let locations = vec![app.settings.location.to_string()];
 

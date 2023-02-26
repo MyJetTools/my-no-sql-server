@@ -1,18 +1,18 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use my_no_sql_core::db::{DbTable, DbTableAttributes};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 pub struct PersistedTableData {
     pub attr: DbTableAttributes,
-    pub partitions: HashMap<String, DateTimeAsMicroseconds>,
+    pub partitions: BTreeMap<String, DateTimeAsMicroseconds>,
 }
 
 impl PersistedTableData {
     pub fn new(attr: DbTableAttributes) -> Self {
         Self {
             attr,
-            partitions: HashMap::new(),
+            partitions: BTreeMap::new(),
         }
     }
 

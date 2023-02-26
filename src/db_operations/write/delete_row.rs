@@ -14,7 +14,7 @@ use super::WriteOperationResult;
 pub async fn execute(
     app: &AppContext,
     db_table: &Arc<DbTableWrapper>,
-    partition_key: &str,
+    partition_key: &String,
     row_key: &str,
     event_src: EventSource,
     persist_moment: DateTimeAsMicroseconds,
