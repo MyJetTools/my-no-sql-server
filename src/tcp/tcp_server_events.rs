@@ -231,6 +231,29 @@ impl TcpServerEvents {
                     .send(MyNoSqlTcpContract::Confirmation { confirmation_id })
                     .await;
             }
+            MyNoSqlTcpContract::UpdateRowsExpirationTime {
+                confirmation_id,
+                table_name,
+                partition_key,
+                row_keys,
+                expiration_time,
+            } => {
+                let db_table = self.app.db.get_table(table_name.as_str()).await;
+
+                if let Some(db_table) = &db_table {
+                    crate::db_operations::update_rows_expiration_time(
+                        &self.app,
+                        db_table,
+                        &partition_key,
+                        row_keys.iter(),
+                        expiration_time,
+                    )
+                }
+
+                connection
+                    .send(MyNoSqlTcpContract::Confirmation { confirmation_id })
+                    .await;
+            }
 
             _ => {}
         }
