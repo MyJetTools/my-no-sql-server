@@ -21,7 +21,7 @@ impl MyTimerTick for GcDbRows {
             return;
         }
 
-        if !self.app.states.is_shutting_down() {
+        if self.app.states.is_shutting_down() {
             return;
         }
 
