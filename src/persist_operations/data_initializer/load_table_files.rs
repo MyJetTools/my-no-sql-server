@@ -46,7 +46,10 @@ pub async fn spawn(app: Arc<AppContext>) {
                                 Some(file_name.to_string()),
                                 SystemProcess::Init,
                                 "init_tables".to_string(),
-                                format!("Error parsing table file {}: {}", file_name, err),
+                                format!(
+                                    "Error parsing table file {}/{}: {}",
+                                    table_name, file_name, err
+                                ),
                                 None,
                             );
                         }
