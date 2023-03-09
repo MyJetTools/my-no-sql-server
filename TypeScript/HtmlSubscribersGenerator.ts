@@ -55,7 +55,7 @@ class HtmlSubscribersGenerator {
     private static generateReadersHtml(data: IReaderStatus[]): string {
         let html = `<table class="table table-striped"><tr><th>Id</th><th>Client</th><th>Ip</th><th>tables</th><th></th></tr>`;
 
-        for (let reader of data) {
+        for (let reader of data.sort((a, b) => a.connectedTime > b.connectedTime ? 1 : -1)) {
             html += this.generateReader(reader);
         }
 

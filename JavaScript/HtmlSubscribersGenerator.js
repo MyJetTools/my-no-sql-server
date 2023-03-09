@@ -39,8 +39,8 @@ var HtmlSubscribersGenerator = /** @class */ (function () {
     };
     HtmlSubscribersGenerator.generateReadersHtml = function (data) {
         var html = "<table class=\"table table-striped\"><tr><th>Id</th><th>Client</th><th>Ip</th><th>tables</th><th></th></tr>";
-        for (var _i = 0, data_2 = data; _i < data_2.length; _i++) {
-            var reader = data_2[_i];
+        for (var _i = 0, _a = data.sort(function (a, b) { return a.connectedTime > b.connectedTime ? 1 : -1; }); _i < _a.length; _i++) {
+            var reader = _a[_i];
             html += this.generateReader(reader);
         }
         html += '</table>';
@@ -103,8 +103,8 @@ var HtmlSubscribersGenerator = /** @class */ (function () {
     };
     HtmlSubscribersGenerator.renderTables = function (data) {
         var result = "";
-        for (var _i = 0, data_3 = data; _i < data_3.length; _i++) {
-            var itm = data_3[_i];
+        for (var _i = 0, data_2 = data; _i < data_2.length; _i++) {
+            var itm = data_2[_i];
             result += '<span class="badge badge-info" style="margin-left: 5px">' + itm + '</span>';
         }
         return result;
