@@ -48,6 +48,11 @@ async fn handle_request(
         &now,
     )?;
 
+    println!(
+        "/Bulk/CleanAndBulkInsert rows_by_partition amount: {}",
+        rows_by_partition.len()
+    );
+
     match &input_data.partition_key {
         Some(partition_key) => {
             crate::db_operations::write::clean_partition_and_bulk_insert::execute(
