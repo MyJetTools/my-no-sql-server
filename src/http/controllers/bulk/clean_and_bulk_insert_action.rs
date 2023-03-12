@@ -12,8 +12,8 @@ use super::models::CleanAndBulkInsertInputContract;
     method: "POST",
     route: "/Bulk/CleanAndBulkInsert",
     input_data: "CleanAndBulkInsertInputContract",
-    summary: "Cleans partition and does bulk insert operation transactionally",
-    description: "Cleans partition and does bulk insert operation transactionally",
+    summary: "Cleans partition and does bulk insert operation as a single transaction",
+    description: "Cleans partition and does bulk insert operation as a single transaction",
     controller: "Bulk",
     result:[
         {status_code: 202, description: "Successful operation"},

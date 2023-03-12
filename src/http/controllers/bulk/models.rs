@@ -33,10 +33,8 @@ pub struct CleanAndBulkInsertInputContract {
     #[http_query(name = "syncPeriod"; description = "Synchronization period"; default)]
     pub sync_period: DataSynchronizationPeriod,
 
-    #[http_body_raw(
-        description = "PartitionToDelete1:[RowToDelete1, RowToDelete2, RowToDelete3],[PartitionToDelete1]:[RowToDelete1, RowToDelete2, RowToDelete3]"
-    )]
-    pub body: RawDataTyped<HashMap<String, Vec<BaseDbRowContract>>>,
+    #[http_body_raw(description = "DbRows")]
+    pub body: RawDataTyped<Vec<BaseDbRowContract>>,
 }
 
 #[derive(MyHttpInput)]
