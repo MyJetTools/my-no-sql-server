@@ -39,14 +39,12 @@ async fn handle_request(
 
     let event_src = EventSource::as_client_request(action.app.as_ref());
 
-    let partition_keys = input_data.body.deserialize_json()?;
-
     let now = DateTimeAsMicroseconds::now();
 
     crate::db_operations::write::delete_partitions(
         action.app.as_ref(),
         &db_table,
-        partition_keys.partition_keys.into_iter(),
+        input_data.partition_keys.into_iter(),
         event_src,
         input_data.sync_period.get_sync_moment(),
         now,
