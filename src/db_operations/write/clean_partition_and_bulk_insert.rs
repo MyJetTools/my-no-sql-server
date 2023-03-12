@@ -25,6 +25,11 @@ pub async fn execute(
     table_data.remove_partition(partition_key, None);
 
     for (partition_key, db_rows) in entities {
+        println!("Inserting to partition: {}", partition_key);
+
+        for db_row in &db_rows {
+            println!("Inserting row: {}/{}", db_row.partition_key, db_row.row_key);
+        }
         table_data.bulk_insert_or_replace(&partition_key, &db_rows, Some(now));
     }
 

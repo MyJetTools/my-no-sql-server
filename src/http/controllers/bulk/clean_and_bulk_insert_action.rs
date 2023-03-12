@@ -49,7 +49,8 @@ async fn handle_request(
     )?;
 
     println!(
-        "/Bulk/CleanAndBulkInsert rows_by_partition PartitionKey:{:?}, amount: {}",
+        "/Bulk/CleanAndBulkInsert rows_by_partition. Table: {}, PartitionKey:{:?}, amount: {}",
+        input_data.table_name,
         input_data.partition_key,
         rows_by_partition.len()
     );
