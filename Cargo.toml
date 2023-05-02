@@ -57,7 +57,7 @@ prometheus = "*"
 signal-hook = "*"
 async-trait = "*"
 tokio-stream = "*"
-
+zip = "*"
 
 [build-dependencies]
 tonic-build = { version = "*", features = ["prost"] }

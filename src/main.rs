@@ -10,6 +10,7 @@ use my_tcp_sockets::TcpServer;
 use rust_extensions::MyTimer;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tcp::TcpServerEvents;
+mod zip;
 
 mod app;
 mod grpc;

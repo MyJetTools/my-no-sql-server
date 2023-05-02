@@ -45,19 +45,21 @@ pub fn build(app: &Arc<AppContext>) -> ControllersMiddleware {
 
     result.register_get_action(get_table_size_action);
 
-    let tables_controller = Arc::new(super::tables_controller::MigrationAction::new(app.clone()));
-    result.register_post_action(tables_controller);
-
-    let tables_controller = Arc::new(super::tables_controller::CreateIfNotExistsAction::new(
+    result.register_post_action(Arc::new(super::tables_controller::MigrationAction::new(
         app.clone(),
-    ));
-    result.register_post_action(tables_controller);
+    )));
 
-    let transactions_controller = Arc::new(super::transactions::StartTransactionAction::new(
-        app.clone(),
+    result.register_post_action(Arc::new(
+        super::tables_controller::CreateIfNotExistsAction::new(app.clone()),
     ));
 
-    result.register_post_action(transactions_controller);
+    result.register_get_action(Arc::new(super::tables_controller::DownloadAction::new(
+        app.clone(),
+    )));
+
+    result.register_post_action(Arc::new(super::transactions::StartTransactionAction::new(
+        app.clone(),
+    )));
 
     let transactions_controller = Arc::new(super::transactions::AppendTransactionAction::new(
         app.clone(),
