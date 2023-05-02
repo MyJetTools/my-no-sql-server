@@ -44,12 +44,9 @@ async fn handle_request(
 
     let now = DateTimeAsMicroseconds::now();
 
-    let filename = now.to_rfc3339().replace(":", "_");
+    let filename = format!("{}.zip", &now.to_rfc3339().replace(":", "_")[..19]);
 
-    HttpOutput::as_file(
-        filename[..19].to_string(),
-        zip_builder.get_payload().unwrap(),
-    )
-    .into_ok_result(true)
-    .into()
+    HttpOutput::as_file(filename.to_string(), zip_builder.get_payload().unwrap())
+        .into_ok_result(true)
+        .into()
 }
