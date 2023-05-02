@@ -37,10 +37,8 @@ async fn handle_request(
     for db_table in &tables {
         let table_snapshot = db_table.get_table_snapshot().await;
 
-        let json = table_snapshot.as_json_array();
-
         zip_builder
-            .add_table(&db_table.name, json.build().as_slice())
+            .add_table(&db_table.name, &table_snapshot)
             .unwrap();
     }
 

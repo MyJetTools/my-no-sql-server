@@ -1,5 +1,7 @@
 use std::io::Write;
 
+use my_no_sql_server_core::db_snapshots::DbTableSnapshot;
+
 use super::VecWriter;
 
 pub struct DbZipBuilder {
@@ -21,15 +23,26 @@ impl DbZipBuilder {
     pub fn add_table(
         &mut self,
         table_name: &str,
-        content: &[u8],
+        content: &DbTableSnapshot,
     ) -> Result<(), zip::result::ZipError> {
-        self.zip_writer.start_file(table_name, self.options)?;
+        for (partition_key, content) in &content.by_partition {
+            use base64::Engine;
+            let encoded_file_name =
+                base64::engine::general_purpose::STANDARD.encode(partition_key.as_bytes());
+            let file_name = format!("{}/{}", table_name, encoded_file_name);
 
-        let mut pos = 0;
-        while pos < content.len() {
-            let size = self.zip_writer.write(&content[pos..])?;
+            self.zip_writer.start_file(file_name, self.options)?;
 
-            pos += size;
+            let json = content.db_rows_snapshot.as_json_array();
+
+            let payload = json.build();
+
+            let mut pos = 0;
+            while pos < payload.len() {
+                let size = self.zip_writer.write(&payload[pos..])?;
+
+                pos += size;
+            }
         }
 
         Ok(())
