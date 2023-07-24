@@ -109,13 +109,13 @@ impl GetSinglePartitionMultipleRowsActionInputContract {
 
 #[derive(MyHttpInput, Debug)]
 pub struct DeletePartitionsInputContract {
-    #[http_query(name = "tableName"; description = "Name of a table")]
+    #[http_query(name: "tableName"; description: "Name of a table")]
     pub table_name: String,
 
-    #[http_query(name = "partitionKeys"; description = "Partition Keys to delete", required = true )]
+    #[http_query(name: "partitionKeys"; description: "Partition Keys to delete" )]
     pub partition_keys: Vec<String>,
 
-    #[http_query(name = "syncPeriod"; description = "Synchronization period"; default)]
+    #[http_query(name: "syncPeriod"; description: "Synchronization period"; default)]
     pub sync_period: DataSynchronizationPeriod,
 }
 

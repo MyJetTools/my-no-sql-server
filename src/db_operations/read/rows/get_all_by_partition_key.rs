@@ -19,9 +19,9 @@ pub async fn get_all_by_partition_key(
 ) -> Result<ReadOperationResult, DbOperationError> {
     super::super::super::check_app_states(app)?;
 
-    let mut table_data = db_table.data.write().await;
+    let table_data = db_table.data.read().await;
 
-    let get_partition_result = table_data.get_partition_mut(partition_key);
+    let get_partition_result = table_data.get_partition(partition_key);
 
     let result = match get_partition_result {
         Some(partition) => {

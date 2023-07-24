@@ -18,9 +18,9 @@ pub async fn get_single_partition_multiple_rows(
     update_statistics: UpdateStatistics,
 ) -> Result<ReadOperationResult, DbOperationError> {
     super::super::super::check_app_states(app)?;
-    let mut write_access = db_table_wrapper.data.write().await;
+    let write_access = db_table_wrapper.data.read().await;
 
-    let db_partition = write_access.get_partition_mut(partition_key);
+    let db_partition = write_access.get_partition(partition_key);
 
     if db_partition.is_none() {
         return Ok(ReadOperationResult::EmptyArray);

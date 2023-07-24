@@ -7,7 +7,7 @@ pub enum DbOperationError {
     RecordAlreadyExists,
     TimeStampFieldRequires,
     RecordNotFound,
-    OptimisticConcurencyUpdateFails,
+    OptimisticConcurrencyUpdateFails,
     TableNameValidationError(String),
     ApplicationIsNotInitializedYet,
     DbEntityParseFail(DbEntityParseFail),

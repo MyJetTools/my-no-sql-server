@@ -42,7 +42,7 @@ pub async fn validate_before(
     }
 
     if db_row.unwrap().time_stamp != entity_timestamp.unwrap() {
-        return Err(DbOperationError::OptimisticConcurencyUpdateFails);
+        return Err(DbOperationError::OptimisticConcurrencyUpdateFails);
     }
 
     Ok(())
@@ -74,7 +74,7 @@ pub async fn execute(
         match current_db_row {
             Some(current_db_row) => {
                 if current_db_row.time_stamp != entity_timestamp {
-                    return Err(DbOperationError::OptimisticConcurencyUpdateFails);
+                    return Err(DbOperationError::OptimisticConcurrencyUpdateFails);
                 }
             }
             None => {

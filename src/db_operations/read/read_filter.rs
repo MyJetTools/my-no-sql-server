@@ -52,11 +52,11 @@ impl<'s, TIter: Iterator<Item = &'s Arc<DbRow>>> Iterator for DbRowsFilter<'s, T
 }
  */
 
-pub fn filter_it<'s, TIter: Iterator<Item = &'s Arc<DbRow>>>(
-    iterator: TIter,
+pub fn filter_it<'s, TItem>(
+    iterator: impl Iterator<Item = &'s TItem>,
     limit: Option<usize>,
     skip: Option<usize>,
-) -> Option<Vec<&'s Arc<DbRow>>> {
+) -> Option<Vec<&'s TItem>> {
     let mut result = if let Some(limit) = limit {
         LazyVec::with_capacity(limit)
     } else {
@@ -66,7 +66,7 @@ pub fn filter_it<'s, TIter: Iterator<Item = &'s Arc<DbRow>>>(
     let mut no = 0;
     let mut added = 0;
 
-    for db_row in iterator {
+    for item in iterator {
         if let Some(skip) = skip {
             if no < skip {
                 no += 1;
@@ -74,7 +74,7 @@ pub fn filter_it<'s, TIter: Iterator<Item = &'s Arc<DbRow>>>(
             }
         }
 
-        result.add(db_row);
+        result.add(item);
         added += 1;
 
         if let Some(limit) = limit {

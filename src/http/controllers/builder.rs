@@ -201,5 +201,15 @@ pub fn build(app: &Arc<AppContext>) -> ControllersMiddleware {
 
     result.register_post_action(Arc::new(force_persist_action));
 
+    // Partitions Controller
+
+    result.register_get_action(Arc::new(super::partitions::GetPartitionsAction::new(
+        app.clone(),
+    )));
+
+    result.register_get_action(Arc::new(super::partitions::GetPartitionsCountAction::new(
+        app.clone(),
+    )));
+
     result
 }

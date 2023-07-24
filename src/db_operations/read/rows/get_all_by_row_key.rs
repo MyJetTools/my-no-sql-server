@@ -20,11 +20,11 @@ pub async fn get_all_by_row_key(
 ) -> Result<ReadOperationResult, DbOperationError> {
     super::super::super::check_app_states(app)?;
 
-    let mut table_data = db_table.data.write().await;
+    let table_data = db_table.data.read().await;
 
     let mut db_rows = LazyVec::new();
 
-    for partition in table_data.partitions.get_partitions_mut() {
+    for partition in table_data.partitions.get_partitions() {
         let get_row_result = partition.get_row(row_key);
 
         if let Some(db_row) = get_row_result {

@@ -4,12 +4,12 @@ use std::{result::Result, sync::Arc};
 
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 
-use super::models::{CreateTableCotnract, TableContract};
+use super::models::{CreateTableContract, TableContract};
 
 #[my_http_server_swagger::http_route(
     method: "POST",
     route: "/Tables/CreateIfNotExists",
-    input_data: "CreateTableCotnract",
+    input_data: "CreateTableContract",
     description: "Create table if not exists",
     summary: "Creates table if not exists",
     controller: "Tables",
@@ -29,7 +29,7 @@ impl CreateIfNotExistsAction {
 
 async fn handle_request(
     action: &CreateIfNotExistsAction,
-    input_data: CreateTableCotnract,
+    input_data: CreateTableContract,
     _ctx: &HttpContext,
 ) -> Result<HttpOkResult, HttpFailResult> {
     let even_src = EventSource::as_client_request(action.app.as_ref());

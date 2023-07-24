@@ -8,3 +8,4 @@ pub mod table;
 
 pub use get_highest_row_and_below::get_highest_row_and_below;
 pub use read_operation_result::ReadOperationResult;
+pub mod partitions;

@@ -43,7 +43,7 @@ impl From<DbOperationError> for HttpFailResult {
                 write_telemetry: false,
                 write_to_log: false,
             },
-            DbOperationError::OptimisticConcurencyUpdateFails => HttpFailResult {
+            DbOperationError::OptimisticConcurrencyUpdateFails => HttpFailResult {
                 content_type: WebContentType::Json,
                 status_code: 409,
                 content: format!("Record is changed").into_bytes(),
@@ -67,7 +67,7 @@ impl From<DbOperationError> for HttpFailResult {
             }
             DbOperationError::TimeStampFieldRequires => {
                 let err_model = OperationFailHttpContract {
-                    reason: OperationFailReason::RequieredEntityFieldIsMissing,
+                    reason: OperationFailReason::RequiredEntityFieldIsMissing,
                     message: format!("Timestamp field requires"),
                 };
 
@@ -82,7 +82,7 @@ impl From<DbOperationError> for HttpFailResult {
             }
             DbOperationError::TableNameValidationError(reason) => {
                 let err_model = OperationFailHttpContract {
-                    reason: OperationFailReason::RequieredEntityFieldIsMissing,
+                    reason: OperationFailReason::RequiredEntityFieldIsMissing,
                     message: format!("Invalid table name: {}", reason),
                 };
 
@@ -115,7 +115,7 @@ impl From<DbOperationError> for HttpFailResult {
     }
 }
 
-pub fn from_json_parse_error_to_http_resul(value: JsonParseError) -> HttpFailResult {
+pub fn from_json_parse_error_to_http_result(value: JsonParseError) -> HttpFailResult {
     let err_model = OperationFailHttpContract {
         reason: OperationFailReason::JsonParseFail,
         message: value.to_string(),
@@ -136,7 +136,7 @@ pub fn from_db_entity_parse_fail_to_http_result(src: DbEntityParseFail) -> HttpF
     match src {
         DbEntityParseFail::FieldPartitionKeyIsRequired => {
             let err_model = OperationFailHttpContract {
-                reason: OperationFailReason::RequieredEntityFieldIsMissing,
+                reason: OperationFailReason::RequiredEntityFieldIsMissing,
                 message: format!("PartitionKey field is required"),
             };
 
@@ -152,7 +152,7 @@ pub fn from_db_entity_parse_fail_to_http_result(src: DbEntityParseFail) -> HttpF
         }
         DbEntityParseFail::PartitionKeyIsTooLong => {
             let err_model = OperationFailHttpContract {
-                reason: OperationFailReason::RequieredEntityFieldIsMissing,
+                reason: OperationFailReason::RequiredEntityFieldIsMissing,
                 message: format!("PartitionKey is too long"),
             };
 
@@ -168,7 +168,7 @@ pub fn from_db_entity_parse_fail_to_http_result(src: DbEntityParseFail) -> HttpF
         }
         DbEntityParseFail::FieldRowKeyIsRequired => {
             let err_model = OperationFailHttpContract {
-                reason: OperationFailReason::RequieredEntityFieldIsMissing,
+                reason: OperationFailReason::RequiredEntityFieldIsMissing,
                 message: format!("RowKey field is required"),
             };
 
@@ -184,11 +184,11 @@ pub fn from_db_entity_parse_fail_to_http_result(src: DbEntityParseFail) -> HttpF
         }
 
         DbEntityParseFail::JsonParseError(json_parse_error) => {
-            from_json_parse_error_to_http_resul(json_parse_error)
+            from_json_parse_error_to_http_result(json_parse_error)
         }
         DbEntityParseFail::FieldPartitionKeyCanNotBeNull => {
             let err_model = OperationFailHttpContract {
-                reason: OperationFailReason::RequieredEntityFieldIsMissing,
+                reason: OperationFailReason::RequiredEntityFieldIsMissing,
                 message: format!("PartitionKey can not be null"),
             };
 
@@ -204,7 +204,7 @@ pub fn from_db_entity_parse_fail_to_http_result(src: DbEntityParseFail) -> HttpF
         }
         DbEntityParseFail::FieldRowKeyCanNotBeNull => {
             let err_model = OperationFailHttpContract {
-                reason: OperationFailReason::RequieredEntityFieldIsMissing,
+                reason: OperationFailReason::RequiredEntityFieldIsMissing,
                 message: format!("RowKey can not be null"),
             };
 

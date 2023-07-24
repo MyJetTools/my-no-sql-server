@@ -4,12 +4,12 @@ use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 
 use crate::{app::AppContext, db_sync::EventSource};
 
-use super::models::CreateTableCotnract;
+use super::models::CreateTableContract;
 
 #[my_http_server_swagger::http_route(
     method: "POST",
     route: "/Tables/Create",
-    input_data: "CreateTableCotnract",
+    input_data: "CreateTableContract",
     description: "Create table",
     summary: "Creates table",
     controller: "Tables",
@@ -30,7 +30,7 @@ impl CreateTableAction {
 
 async fn handle_request(
     action: &CreateTableAction,
-    input_data: CreateTableCotnract,
+    input_data: CreateTableContract,
     _ctx: &mut HttpContext,
 ) -> Result<HttpOkResult, HttpFailResult> {
     let even_src = EventSource::as_client_request(action.app.as_ref());
