@@ -43,7 +43,7 @@ async fn handle_request(
         .append_path_segment("Row")
         .append_query_param(
             input_params::PARAM_TABLE_NAME,
-            input_data.remote_table_name.as_str(),
+            Some(input_data.remote_table_name.as_str()),
         )
         .get()
         .await

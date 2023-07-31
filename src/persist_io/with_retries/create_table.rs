@@ -8,7 +8,7 @@ pub async fn create_table(
 ) {
     let mut attempt_no = 0;
     while let Err(err) = azure_connection
-        .create_container_if_not_exist(table_name)
+        .create_container_if_not_exists(table_name)
         .await
     {
         super::attempt_handling::execute(

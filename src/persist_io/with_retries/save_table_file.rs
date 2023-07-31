@@ -12,7 +12,7 @@ pub async fn save_table_file(
     let mut attempt_no = 0;
 
     while let Err(err) = azure_connection
-        .upload(container_name, blob_name, content.to_vec())
+        .upload_block_blob(container_name, blob_name, content.to_vec())
         .await
     {
         super::attempt_handling::execute(
