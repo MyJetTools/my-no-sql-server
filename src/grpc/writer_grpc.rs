@@ -276,7 +276,7 @@ impl Writer for MyNoSqlServerWriterGrpcSerice {
         let now = JsonTimeStamp::now();
         for action in &request.actions {
             let action = super::models::deserializer::deserialize(
-                action.transaction_type.into(),
+                action.transaction_type(),
                 &action.payload,
                 &now,
             )
@@ -322,19 +322,5 @@ impl Writer for MyNoSqlServerWriterGrpcSerice {
         self.app.active_transactions.remove(&request.id).await;
 
         return Ok(tonic::Response::new(()));
-    }
-}
-
-impl Into<TransactionType> for i32 {
-    fn into(self) -> TransactionType {
-        match self {
-            0 => TransactionType::CleanTable,
-            1 => TransactionType::DeletePartitions,
-            2 => TransactionType::DeleteRows,
-            3 => TransactionType::InsertOrReplaceEntities,
-            _ => {
-                panic!("Invalid transaction type {}", self)
-            }
-        }
     }
 }

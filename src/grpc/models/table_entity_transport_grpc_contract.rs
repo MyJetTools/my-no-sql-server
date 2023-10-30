@@ -27,7 +27,7 @@ impl TableEntityTransportGrpcContract {
         &self,
         time_stamp: &JsonTimeStamp,
     ) -> Result<Vec<Arc<DbRow>>, GrpcContractConvertError> {
-        let result = GrpcContentType::from_i32(self.content_type).unwrap();
+        let result = GrpcContentType::try_from(self.content_type).unwrap();
 
         match result {
             GrpcContentType::Json => {
