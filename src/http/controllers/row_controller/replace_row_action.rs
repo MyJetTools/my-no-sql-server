@@ -1,15 +1,15 @@
+use my_http_server::macros::*;
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
 use std::sync::Arc;
 
-use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
-
-use my_no_sql_core::db_json_entity::JsonTimeStamp;
+use my_no_sql_sdk::core::db_json_entity::JsonTimeStamp;
 
 use crate::app::AppContext;
 use crate::db_sync::EventSource;
 
 use super::models::{BaseDbRowContract, ReplaceInputContract};
 
-#[my_http_server_swagger::http_route(
+#[http_route(
     method: "PUT",
     route: "/Row/Replace",
     controller: "Row",

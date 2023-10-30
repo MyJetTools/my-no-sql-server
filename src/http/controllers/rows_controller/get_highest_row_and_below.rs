@@ -1,12 +1,12 @@
-use std::sync::Arc;
-
+use my_http_server::macros::*;
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
+use std::sync::Arc;
 
 use crate::{app::AppContext, http::controllers::row_controller::models::BaseDbRowContract};
 
 use super::models::GetHighestRowsAndBelowInputContract;
 
-#[my_http_server_swagger::http_route(
+#[http_route(
     method: "GET",
     route: "/Rows/HighestRowAndBelow",
     controller: "Rows",

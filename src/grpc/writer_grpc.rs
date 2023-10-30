@@ -5,7 +5,7 @@ use crate::http::controllers::ToSetExpirationTime;
 use crate::mynosqlserver_grpc::writer_server::Writer;
 use crate::mynosqlserver_grpc::*;
 use futures_core::Stream;
-use my_no_sql_core::db_json_entity::JsonTimeStamp;
+use my_no_sql_sdk::core::db_json_entity::JsonTimeStamp;
 use std::pin::Pin;
 use tonic::Status;
 

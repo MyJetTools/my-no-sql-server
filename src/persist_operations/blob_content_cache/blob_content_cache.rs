@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use my_no_sql_core::db::{DbTable, DbTableAttributes};
+use my_no_sql_sdk::core::db::{DbTable, DbTableAttributes};
 use my_no_sql_server_core::db_snapshots::DbPartitionSnapshot;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 use tokio::sync::RwLock;

@@ -1,14 +1,14 @@
-use std::sync::Arc;
-
+use my_http_server::macros::*;
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
-use my_no_sql_core::db_json_entity::JsonTimeStamp;
+use my_no_sql_sdk::core::db_json_entity::JsonTimeStamp;
+use std::sync::Arc;
 
 use crate::app::AppContext;
 use crate::db_sync::EventSource;
 
 use super::models::CleanAndBulkInsertInputContract;
 
-#[my_http_server_swagger::http_route(
+#[http_route(
     method: "POST",
     route: "/Bulk/CleanAndBulkInsert",
     input_data: "CleanAndBulkInsertInputContract",

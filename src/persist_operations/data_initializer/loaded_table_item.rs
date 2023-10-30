@@ -1,4 +1,4 @@
-use my_no_sql_core::db::{DbPartition, DbTableAttributes};
+use my_no_sql_sdk::core::db::{DbPartition, DbTableAttributes};
 
 use crate::{persist_io::TableFile, persist_operations::serializers::TableMetadataFileContract};
 

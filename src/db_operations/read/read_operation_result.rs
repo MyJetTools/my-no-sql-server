@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use my_json::json_writer::JsonArrayWriter;
-use my_no_sql_core::db::DbRow;
+use my_no_sql_sdk::core::db::DbRow;
 use my_no_sql_server_core::DbTableWrapper;
 
 use crate::{app::AppContext, db_operations::UpdateStatistics};

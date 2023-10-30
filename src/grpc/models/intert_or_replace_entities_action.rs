@@ -4,7 +4,7 @@ use super::{
     table_entity_transport_grpc_contract::TableEntityTransportGrpcContract,
     GrpcContractConvertError,
 };
-use my_no_sql_core::{db::DbRow, db_json_entity::JsonTimeStamp};
+use my_no_sql_sdk::core::{db::DbRow, db_json_entity::JsonTimeStamp};
 use prost::DecodeError;
 
 #[derive(Clone, PartialEq, ::prost::Message)]

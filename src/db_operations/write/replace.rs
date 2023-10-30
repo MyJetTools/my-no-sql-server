@@ -6,7 +6,7 @@ use crate::{
     db_sync::{states::UpdateRowsSyncData, EventSource, SyncEvent},
 };
 
-use my_no_sql_core::{db::DbRow, db_json_entity::JsonTimeStamp};
+use my_no_sql_sdk::core::{db::DbRow, db_json_entity::JsonTimeStamp};
 use my_no_sql_server_core::DbTableWrapper;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 use serde::{Deserialize, Serialize};

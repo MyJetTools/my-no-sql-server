@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, sync::Arc};
 
-use my_no_sql_core::db_json_entity::{DbEntityParseFail, DbJsonEntity, JsonTimeStamp};
+use my_no_sql_sdk::core::db_json_entity::{DbEntityParseFail, DbJsonEntity, JsonTimeStamp};
 use serde::{Deserialize, Serialize};
 
 use crate::db_transactions::steps::{TransactionalOperationStep, UpdateRowsStepState};

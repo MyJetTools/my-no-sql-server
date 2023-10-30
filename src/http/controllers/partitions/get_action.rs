@@ -1,10 +1,10 @@
-use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
-
 use super::models::*;
 use crate::app::AppContext;
+use my_http_server::macros::*;
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 use std::{result::Result, sync::Arc};
 
-#[my_http_server_swagger::http_route(
+#[http_route(
     method: "GET",
     route: "/Partitions",
     input_data: "GetPartitionsListContract",

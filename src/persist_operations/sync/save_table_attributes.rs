@@ -1,4 +1,4 @@
-use my_no_sql_core::db::DbTableAttributes;
+use my_no_sql_sdk::core::db::DbTableAttributes;
 
 use super::super::serializers;
 use crate::{app::AppContext, persist_io::TableFile};

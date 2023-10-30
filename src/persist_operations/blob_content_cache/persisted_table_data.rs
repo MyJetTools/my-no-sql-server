@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use my_no_sql_core::db::{DbTable, DbTableAttributes};
+use my_no_sql_sdk::core::db::{DbTable, DbTableAttributes};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 pub struct PersistedTableData {

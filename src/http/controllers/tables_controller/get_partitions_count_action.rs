@@ -1,9 +1,9 @@
-use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
-
 use crate::{app::AppContext, http::controllers::partitions::GetPartitionsAmountContract};
+use my_http_server::macros::*;
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 use std::{result::Result, sync::Arc};
 
-#[my_http_server_swagger::http_route(
+#[http_route(
     method: "GET",
     route: "/Tables/PartitionsCount",
     input_data: "GetPartitionsAmountContract",

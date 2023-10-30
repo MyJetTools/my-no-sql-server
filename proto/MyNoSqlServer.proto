@@ -16,14 +16,14 @@ enum TransactionOperationResult{
 }
 
  message TransactionActionGrpcModel {
-    mynosqlserver.TransactionType TransactionType = 1;
+    TransactionType TransactionType = 1;
     bytes Payload = 2;
 }
 
 
 message TransactionPayloadGrpcRequest{
     optional string TransactionId = 1;
-    repeated mynosqlserver.TransactionActionGrpcModel Actions = 2;
+    repeated TransactionActionGrpcModel Actions = 2;
     bool Commit = 3;
 }
 
@@ -67,7 +67,7 @@ message TableEntityTransportGrpcContract{
 
 message GetDbRowGrpcResponse{
     int32 ResponseCode = 1;
-    optional mynosqlserver.TableEntityTransportGrpcContract Entity = 2;
+    optional TableEntityTransportGrpcContract Entity = 2;
 }
 
 message GetEntityGrpcRequest{
@@ -86,10 +86,10 @@ message CancelTransactionGrpcRequest{
 
 
 service Writer{
-    rpc CreateTableIfNotExists(mynosqlserver.CreateTableIfNotExistsGrpcRequest) returns (google.protobuf.Empty);
-    rpc SetTableAttributes(mynosqlserver.SetTableAttributesGrpcRequest) returns (google.protobuf.Empty);
-    rpc GetRows(mynosqlserver.GetEntitiesGrpcRequest) returns (stream TableEntityTransportGrpcContract);
-    rpc GetRow(mynosqlserver.GetEntityGrpcRequest) returns (GetDbRowGrpcResponse);
-    rpc PostTransactionActions(mynosqlserver.TransactionPayloadGrpcRequest) returns (mynosqlserver.TransactionGrpcResponse);
-    rpc CancelTransaction(mynosqlserver.CancelTransactionGrpcRequest) returns (google.protobuf.Empty);
+    rpc CreateTableIfNotExists(CreateTableIfNotExistsGrpcRequest) returns (google.protobuf.Empty);
+    rpc SetTableAttributes(SetTableAttributesGrpcRequest) returns (google.protobuf.Empty);
+    rpc GetRows(GetEntitiesGrpcRequest) returns (stream TableEntityTransportGrpcContract);
+    rpc GetRow(GetEntityGrpcRequest) returns (GetDbRowGrpcResponse);
+    rpc PostTransactionActions(TransactionPayloadGrpcRequest) returns (TransactionGrpcResponse);
+    rpc CancelTransaction(CancelTransactionGrpcRequest) returns (google.protobuf.Empty);
 }

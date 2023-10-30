@@ -1,4 +1,4 @@
-use my_http_server_swagger::*;
+use my_http_server::macros::*;
 use my_no_sql_server_core::DbTableWrapper;
 use serde::{Deserialize, Serialize};
 

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
+use my_http_server::macros::*;
 use my_http_server::types::RawDataTyped;
-use my_http_server_swagger::*;
 
 use crate::{
     db_sync::DataSynchronizationPeriod,

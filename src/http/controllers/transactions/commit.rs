@@ -1,12 +1,12 @@
 use crate::{app::AppContext, db_sync::EventSource};
+use my_http_server::macros::*;
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
-
 use std::sync::Arc;
 
 use super::models::ProcessTransactionInputModel;
 
-#[my_http_server_swagger::http_route(
+#[http_route(
     method: "POST",
     route: "/Transactions/Commit",
     description: "Commit transaction",

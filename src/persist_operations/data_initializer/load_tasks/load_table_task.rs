@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use my_no_sql_core::db::{DbPartition, DbTable, DbTableAttributes};
+use my_no_sql_sdk::core::db::{DbPartition, DbTable, DbTableAttributes};
 
 pub enum FileStatus {
     Waiting,

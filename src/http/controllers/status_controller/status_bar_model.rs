@@ -1,5 +1,5 @@
 use crate::app::AppContext;
-use my_http_server_swagger::*;
+use my_http_server::macros::*;
 
 use serde::{Deserialize, Serialize};
 

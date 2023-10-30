@@ -1,4 +1,4 @@
-use my_no_sql_core::db::DbTable;
+use my_no_sql_sdk::core::db::DbTable;
 
 pub struct SyncTableData {
     pub table_name: String,

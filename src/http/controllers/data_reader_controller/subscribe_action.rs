@@ -1,11 +1,11 @@
-use std::sync::Arc;
-
 use crate::{app::AppContext, http::http_sessions::*};
+use my_http_server::macros::*;
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
+use std::sync::Arc;
 
 use super::models::SubscribeToTableInputModel;
 
-#[my_http_server_swagger::http_route(
+#[http_route(
     method: "POST",
     route: "/DataReader/Subscribe",
     controller: "DataReader",

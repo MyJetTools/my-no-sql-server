@@ -1,4 +1,4 @@
-use my_http_server_swagger::{MyHttpInput, MyHttpObjectStructure};
+use my_http_server::macros::*;
 use serde_derive::Serialize;
 
 #[derive(MyHttpInput)]

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use my_no_sql_core::db::{DbTable, DbTableAttributes};
+use my_no_sql_sdk::core::db::{DbTable, DbTableAttributes};
 use my_no_sql_server_core::DbTableWrapper;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 

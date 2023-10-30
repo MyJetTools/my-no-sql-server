@@ -1,4 +1,4 @@
-use my_no_sql_core::db_json_entity::JsonTimeStamp;
+use my_no_sql_sdk::core::db_json_entity::JsonTimeStamp;
 
 use crate::{
     db_transactions::steps::{TransactionalOperationStep, UpdateRowsStepState},

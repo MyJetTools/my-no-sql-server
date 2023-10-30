@@ -1,9 +1,10 @@
 use super::models::StartTransactionResponse;
 use crate::app::AppContext;
+use my_http_server::macros::*;
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 use std::sync::Arc;
 
-#[my_http_server_swagger::http_route(
+#[http_route(
     method: "POST",
     route: "/Transactions/Start",
     description: "Start new Transaction",

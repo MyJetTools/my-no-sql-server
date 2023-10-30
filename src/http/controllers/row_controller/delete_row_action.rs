@@ -1,7 +1,7 @@
-use std::sync::Arc;
-
+use my_http_server::macros::*;
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
+use std::sync::Arc;
 
 use crate::db_operations;
 
@@ -10,7 +10,7 @@ use crate::db_sync::EventSource;
 
 use super::models::{BaseDbRowContract, DeleteRowInputModel};
 
-#[my_http_server_swagger::http_route(
+#[http_route(
     method: "DELETE",
     route: "/Row",
     controller: "Row",

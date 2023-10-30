@@ -3,7 +3,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use crate::{
     persist_io::TableListOfFilesUploader, persist_operations::data_initializer::LoadedTableItem,
 };
-use my_no_sql_core::db::DbTable;
+use my_no_sql_sdk::core::db::DbTable;
 use tokio::sync::Mutex;
 
 use super::{init_state_data::NextFileToLoadResult, InitStateData, InitStateSnapshot};
