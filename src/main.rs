@@ -100,11 +100,7 @@ async fn main() {
 
     tokio::task::spawn(crate::grpc::server::start(app.clone(), 5124));
 
-    signal_hook::flag::register(
-        signal_hook::consts::SIGTERM,
-        app.states.shutting_down.clone(),
-    )
-    .unwrap();
+    app.states.wait_until_shutdown().await;
 
     shut_down_task(app).await;
 }

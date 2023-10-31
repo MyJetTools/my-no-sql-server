@@ -60,7 +60,6 @@ base64 = "*"
 serde_yaml = "*"
 uuid = { version = "*", features = ["serde", "v4"] }
 prometheus = "*"
-signal-hook = "*"
 async-trait = "*"
 tokio-stream = "*"
 zip = "*"

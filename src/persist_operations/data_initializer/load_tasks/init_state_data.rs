@@ -88,7 +88,13 @@ impl InitStateData {
     ) -> bool {
         if let Some(table) = self.tables.get_mut(table_name) {
             match table_item {
-                LoadedTableItem::TableAttributes(attrs) => {
+                LoadedTableItem::TableAttributes(mut attrs) => {
+                    if let Some(max_partitions_amount) = attrs.max_partitions_amount {
+                        if max_partitions_amount == 0 {
+                            attrs.max_partitions_amount = None;
+                        }
+                    }
+
                     table.add_attribute(file_name, attrs);
                 }
                 LoadedTableItem::DbPartition {
