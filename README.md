@@ -1,37 +1,32 @@
 # MY SERVICE BUS
 
-## Http methods overview
-#### NoSql writers use API for tables management, there small overview of methods: 
-* Bulk: Bulk operations with tables.
-* Row: Main methods for working with single row (delete, update, insert).
-* Rows: Main methods for working with set of rows.
-* DataReader: Methods for HTTP data readers.
-* GarbageCollector: Methods for cache size control.
-* Tables: Methods for tables management. Delete, create, get list ...
-* Transactions: Methods for transaction operations (same as in RDBMS)
+
+### Example of config file
+
+PersistenceDest: ~/.mynosqldb/data 
+CompressData: true
+MaxPayloadSize: 4000000
+Location: M1
+TableApiKey: 123
+InitThreadsAmount: 1
+SkipBrokenPartitions: false
+SaveThreadsAmount: 2
+TcpSendTimeoutSec: 30
+BackupFolder: ~/.mynosqldb/backup
+BackupIntervalHours: 24
+MaxBackupsToKeep: 5
 
 
-## Changes
-### 0.0.18
-* BUG: Entities PartitionKey and RowKey now can not be uploaded with Null Values;
-* Init procedure now skippes nulled values
-* Bulk/InsertOrReplace - if we post payload with no entities -  TableUpdateMoment does not update;
-
-
-### 0.0.19
-* Improved loading performance;
-* Added   settings parameter
-
-### 0.0.20-rc01
-* Sync to Readers now works in a separate thread
-* Exposed sync to readers bytes to Prometheus reader by reader
-
-### 0.0.20-rc02
-* MyHttp DataForm now supports JSON
-* Now we have Tcp Delivery feature on TCP Level since my-tcp-sockets 0.1.3 supports it
-
-### 0.0.20-rc03
-* MyTcpSockets is updated to 0.1.4
-
-### 0.0.21-rc02
-* Compression is now supported on TCP level for Nodes
+### Parameters:
+PersistenceDest - can be path of a folder and can be an Microsoft Azure Storage account;
+CompressData - true/false - enable/disable compression of data between nodes;
+MaxPayloadSize - max size of payload in bytes which is sent to Readers per round trip;
+Location - shows in statusbar of the UI;
+TableApiKey - API key to make irreversible operations with tables through api;
+InitThreadsAmount - amount of threads to initialize data from Storage;
+SkipBrokenPartitions - skip broken partitions during initialization;
+SaveThreadsAmount - amount of threads to save data to Storage;
+TcpSendTimeoutSec - timeout for tcp send operation, otherwise connection will be closed;
+BackupFolder - folder to store backups as ZIP Archives;
+BackupIntervalHours - interval between backups;
+MaxBackupsToKeep - max amount of backups to keep in BackupFolder;
