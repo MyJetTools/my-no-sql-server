@@ -3,7 +3,7 @@ use std::sync::Arc;
 use my_json::json_reader::array_parser::ArrayToJsonObjectsSplitter;
 use my_no_sql_sdk::core::{db::DbPartition, db_json_entity::DbJsonEntity};
 
-pub fn deserialize_from_io(raw: &[u8]) -> Result<DbPartition, String> {
+pub fn deserialize(raw: &[u8]) -> Result<DbPartition, String> {
     let mut db_partition = DbPartition::new();
 
     for db_entity_json_result in raw.split_array_json_to_objects() {

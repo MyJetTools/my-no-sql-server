@@ -1,4 +1,4 @@
-pub const TABLE_METADATA_FILE_NAME: &str = ".metadata";
+use crate::persist_io::TABLE_METADATA_FILE_NAME;
 
 pub enum TableFile {
     TableAttributes,

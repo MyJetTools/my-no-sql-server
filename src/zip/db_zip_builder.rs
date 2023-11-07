@@ -25,6 +25,15 @@ impl DbZipBuilder {
         table_name: &str,
         content: &DbTableSnapshot,
     ) -> Result<(), zip::result::ZipError> {
+        let file_name = format!(
+            "{}/{}",
+            table_name,
+            crate::persist_io::TABLE_METADATA_FILE_NAME
+        );
+        self.zip_writer.start_file(file_name, self.options)?;
+        let payload = crate::persist_operations::serializers::table_attrs::serialize(&content.attr);
+        write_to_zip_file(&mut self.zip_writer, &payload)?;
+
         for (partition_key, content) in &content.by_partition {
             use base64::Engine;
             let encoded_file_name =
@@ -37,12 +46,7 @@ impl DbZipBuilder {
 
             let payload = json.build();
 
-            let mut pos = 0;
-            while pos < payload.len() {
-                let size = self.zip_writer.write(&payload[pos..])?;
-
-                pos += size;
-            }
+            write_to_zip_file(&mut self.zip_writer, &payload)?;
         }
 
         Ok(())
@@ -52,4 +56,18 @@ impl DbZipBuilder {
         let result = self.zip_writer.finish()?;
         Ok(result.buf)
     }
+}
+
+fn write_to_zip_file(
+    zip_writer: &mut zip::ZipWriter<VecWriter>,
+    payload: &[u8],
+) -> Result<(), zip::result::ZipError> {
+    let mut pos = 0;
+    while pos < payload.len() {
+        let size = zip_writer.write(&payload[pos..])?;
+
+        pos += size;
+    }
+
+    Ok(())
 }

@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use rust_extensions::{date_time::DateTimeAsMicroseconds, MyTimerTick};
 
@@ -80,12 +80,16 @@ async fn gc_it(app: &AppContext) {
                 )
                 .await
                 {
+                    let mut ctx = HashMap::new();
+
+                    ctx.insert("TableName".to_string(), table.name.to_string());
+
                     app.logs.add_error(
                         table.name.to_string().into(),
                         SystemProcess::Timer,
                         "GcRows".to_string().into(),
                         format!("{:?}", err),
-                        None,
+                        Some(ctx),
                     )
                 }
             }

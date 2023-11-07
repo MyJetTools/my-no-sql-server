@@ -1,7 +1,7 @@
 use app::AppContext;
 use background::{
     gc_db_rows::GcDbRows, gc_http_sessions::GcHttpSessionsTimer, gc_multipart::GcMultipart,
-    metrics_updater::MetricsUpdater, persist::PersistTimer, sync::SyncEventLoop,
+    metrics_updater::MetricsUpdater, persist::PersistTimer, sync::SyncEventLoop, BackupTimer,
 };
 
 use my_no_sql_sdk::tcp_contracts::MyNoSqlReaderTcpSerializer;
@@ -79,6 +79,12 @@ async fn main() {
     timer_10s.start(app.states.clone(), app.clone());
     timer_30s.start(app.states.clone(), app.clone());
     persist_timer.start(app.states.clone(), app.clone());
+
+    let mut backup_timer = MyTimer::new(Duration::from_secs(60));
+
+    backup_timer.register_timer("BackupDb", Arc::new(BackupTimer::new(app.clone())));
+
+    backup_timer.start(app.states.clone(), app.clone());
 
     app.sync.start(app.states.clone(), app.clone()).await;
 

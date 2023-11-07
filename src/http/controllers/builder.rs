@@ -53,10 +53,6 @@ pub fn build(app: &Arc<AppContext>) -> ControllersMiddleware {
         super::tables_controller::CreateIfNotExistsAction::new(app.clone()),
     ));
 
-    result.register_get_action(Arc::new(super::tables_controller::DownloadAction::new(
-        app.clone(),
-    )));
-
     result.register_post_action(Arc::new(super::transactions::StartTransactionAction::new(
         app.clone(),
     )));
@@ -208,6 +204,12 @@ pub fn build(app: &Arc<AppContext>) -> ControllersMiddleware {
     )));
 
     result.register_get_action(Arc::new(super::partitions::GetPartitionsCountAction::new(
+        app.clone(),
+    )));
+
+    // Backup controller
+
+    result.register_get_action(Arc::new(super::backup_controller::DownloadAction::new(
         app.clone(),
     )));
 
