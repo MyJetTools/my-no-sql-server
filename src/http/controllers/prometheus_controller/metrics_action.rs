@@ -1,4 +1,4 @@
-use my_http_server::{macros::*, WebContentType};
+use my_http_server::macros::*;
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 use std::sync::Arc;
 
@@ -25,11 +25,9 @@ async fn handle_request(
 ) -> Result<HttpOkResult, HttpFailResult> {
     let result = action.app.metrics.build();
 
-    println!("{}", result);
-
     HttpOutput::Content {
         headers: None,
-        content_type: Some(WebContentType::Text),
+        content_type: None,
         content: result.into_bytes(),
     }
     .into_ok_result(true)
