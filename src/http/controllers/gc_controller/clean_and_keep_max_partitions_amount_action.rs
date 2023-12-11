@@ -12,7 +12,7 @@ use super::models::CleanAndKeepMaxPartitionsAmountInputContract;
     summary: "Makes sure we keep maximum partitions amount required",
     description: "After operation some partitions can be deleted to make sure we keep maximum partitions amount required",
     controller: "GarbageCollector",
-    input_data: "CleanAndKeepMaxPartitionsAmountInputContract",
+    input_data: CleanAndKeepMaxPartitionsAmountInputContract,
     result:[
         {status_code: 202, description: "Successful operation"},
         {status_code: 400, description: "Table not found"}
