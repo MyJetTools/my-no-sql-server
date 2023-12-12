@@ -8,7 +8,8 @@ use super::models::ProcessTransactionInputModel;
 
 #[http_route(
     method: "POST",
-    route: "/Transactions/Commit",
+    route: "/api/Transactions/Commit",
+    deprecated_routes: ["/Transactions/Commit"],
     description: "Commit transaction",
     summary: "Commits transaction",
     input_data: "ProcessTransactionInputModel",

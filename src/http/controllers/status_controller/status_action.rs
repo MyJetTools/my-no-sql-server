@@ -6,7 +6,7 @@ use std::sync::Arc;
 use super::models::StatusModel;
 #[http_route(
     method: "GET",
-    route: "/Api/Status",
+    route: "/api/Status",
     controller: "Monitoring",
     description: "Monitoring API",
     summary: "Returns monitoring metrics",

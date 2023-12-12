@@ -10,7 +10,8 @@ use super::models::BulkDeleteInputContract;
 
 #[http_route(
     method: "POST",
-    route: "/Bulk/Delete",
+    route: "/api/Bulk/Delete",
+    deprecated_routes: ["/Bulk/Delete"],
     input_data: "BulkDeleteInputContract",
     summary: "Bulk delete operation",
     description: "Does bulk delete operation",

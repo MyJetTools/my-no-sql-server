@@ -8,7 +8,8 @@ use super::models::CleanAndKeepMaxPartitionsAmountInputContract;
 
 #[http_route(
     method: "POST",
-    route: "/GarbageCollector/CleanAndKeepMaxPartitions",
+    route: "/api/GarbageCollector/CleanAndKeepMaxPartitions",
+    deprecated_routes: ["/GarbageCollector/CleanAndKeepMaxPartitions"],
     summary: "Makes sure we keep maximum partitions amount required",
     description: "After operation some partitions can be deleted to make sure we keep maximum partitions amount required",
     controller: "GarbageCollector",

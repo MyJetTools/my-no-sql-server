@@ -11,10 +11,11 @@ use super::models::{BaseDbRowContract, ReplaceInputContract};
 
 #[http_route(
     method: "PUT",
-    route: "/Row/Replace",
+    route: "/api/Row/Replace",
+    deprecated_routes: ["/Row/Replace"],
     controller: "Row",
-    description: "Replace Entitiy",
-    summary: "Replaces Entitiy",
+    description: "Replace Entity",
+    summary: "Replaces Entity",
     input_data: "ReplaceInputContract",
     result:[
         {status_code: 200, description: "Replaced row",  model:"BaseDbRowContract"},

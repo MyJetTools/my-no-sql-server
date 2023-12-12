@@ -8,7 +8,8 @@ use super::models::GetSinglePartitionMultipleRowsActionInputContract;
 
 #[http_route(
     method: "POST",
-    route: "/Rows/SinglePartitionMultipleRows",
+    route: "/api/Rows/SinglePartitionMultipleRows",
+    deprecated_routes: ["/Rows/SinglePartitionMultipleRows"],
     controller: "Rows",
     description: "Return speciefic rows from the partition",
     summary: "Returns speciefic rows from the partition",

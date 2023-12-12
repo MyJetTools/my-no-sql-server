@@ -8,7 +8,8 @@ use super::contracts::*;
 
 #[http_route(
     method: "GET",
-    route: "/Debug/GetRowStatistics",
+    route: "/api/Debug/GetRowStatistics",
+    deprecated_routes: ["/Debug/GetRowStatistics"],
     summary: "Get DbRow statistics",
     description: "Returns DbRow statistics",
     controller: "Debug",

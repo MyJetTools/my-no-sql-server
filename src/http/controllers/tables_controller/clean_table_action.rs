@@ -8,7 +8,8 @@ use super::models::CleanTableContract;
 
 #[http_route(
     method: "PUT",
-    route: "/Tables/Clean",
+    route: "/api/Tables/Clean",
+    deprecated_routes: ["/Tables/Clean"],
     input_data: "CleanTableContract",
     description: "Clean Table",
     summary: "Cleans Table",

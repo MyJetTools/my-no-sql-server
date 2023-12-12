@@ -8,7 +8,8 @@ use super::models::{NewMultipartInputContract, NewMultipartResponse};
 
 #[http_route(
     method: "POST",
-    route: "/Multipart/First",
+    route: "/api/Multipart/First",
+    deprecated_routes: ["/Multipart/First"],
     controller: "Multipart",
     description: "New multipart request is started",
     summary: "Returns first multipart amount of rows",

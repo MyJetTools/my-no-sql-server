@@ -8,7 +8,8 @@ use super::models::CleanPartitionAndKeepMaxRowsAmountInputContract;
 
 #[http_route(
     method: "POST",
-    route: "/GarbageCollector/CleanAndKeepMaxRecords",
+    route: "/api/GarbageCollector/CleanAndKeepMaxRecords",
+    deprecated_routes: ["/GarbageCollector/CleanAndKeepMaxRecords"],
     summary: "Makes sure we keep maximum rows amount required",
     description: "After operation some rows are going to be deleted to make sure we keep maximum rows amount required",
     controller: "GarbageCollector",

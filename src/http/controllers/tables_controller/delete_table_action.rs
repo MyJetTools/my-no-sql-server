@@ -8,7 +8,8 @@ use super::{super::super::contracts::input_params::*, models::DeleteTableContrac
 
 #[http_route(
     method: "DELETE",
-    route: "/Tables/Delete",
+    route: "/api/Tables/Delete",
+    deprecated_routes: ["/Tables/Delete"],
     input_data: "DeleteTableContract",
     description: "Delete Table",
     summary: "Deletes Table",

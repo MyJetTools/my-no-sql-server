@@ -7,7 +7,8 @@ use super::models::SubscribeToTableInputModel;
 
 #[http_route(
     method: "POST",
-    route: "/DataReader/Subscribe",
+    route: "/api/DataReader/Subscribe",
+    deprecated_routes: ["/DataReader/Subscribe"],
     controller: "DataReader",
     summary: "Subscribes to table",
     description: "Subscribe to table",

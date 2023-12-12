@@ -6,7 +6,8 @@ use crate::app::AppContext;
 
 #[http_route(
     method: "POST",
-    route: "/Persist/Force",
+    route: "/api/Persist/Force",
+    deprecated_routes: ["/Persist/Force"],
     summary: "Execute persist loop",
     description: "Executes persist loop",
     controller: "Persist",

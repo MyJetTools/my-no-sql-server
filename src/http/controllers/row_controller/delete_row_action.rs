@@ -12,7 +12,8 @@ use super::models::{BaseDbRowContract, DeleteRowInputModel};
 
 #[http_route(
     method: "DELETE",
-    route: "/Row",
+    route: "/api/Row",
+    deprecated_routes: ["/Row"],
     controller: "Row",
     description: "Delete Entitiy",
     summary: "Delete Entitiy",

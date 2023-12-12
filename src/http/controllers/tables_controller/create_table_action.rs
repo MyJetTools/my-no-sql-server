@@ -8,7 +8,8 @@ use super::models::CreateTableContract;
 
 #[http_route(
     method: "POST",
-    route: "/Tables/Create",
+    route: "/api/Tables/Create",
+    deprecated_routes: ["/Tables/Create"],
     input_data: "CreateTableContract",
     description: "Create table",
     summary: "Creates table",

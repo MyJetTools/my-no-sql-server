@@ -10,8 +10,10 @@ use super::models::BulkInsertOrReplaceInputContract;
 
 #[http_route(
     method: "POST",
-    route: "/Bulk/InsertOrReplace",
+    route: "/api/Bulk/InsertOrReplace",
+    deprecated_routes: ["/Bulk/InsertOrReplace"],
     input_data: "BulkInsertOrReplaceInputContract",
+
     summary: "Bulk insert or replace operation",
     description: "Executes Bulk insert or replace operation",
     controller: "Bulk",

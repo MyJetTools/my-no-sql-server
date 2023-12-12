@@ -6,7 +6,9 @@ use std::{result::Result, sync::Arc};
 
 #[http_route(
     method: "POST",
-    route: "/Tables/UpdatePersist",
+    route: "/api/Tables/UpdatePersist",
+    deprecated_routes: ["/Tables/UpdatePersist"],
+    
     input_data: "UpdatePersistTableContract",
     description: "Update table persistence state",
     summary: "Updates table persistence state",

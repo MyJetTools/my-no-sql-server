@@ -8,7 +8,8 @@ use super::models::GetHighestRowsAndBelowInputContract;
 
 #[http_route(
     method: "GET",
-    route: "/Rows/HighestRowAndBelow",
+    route: "/api/Rows/HighestRowAndBelow",
+    deprecated_routes: ["/Rows/HighestRowAndBelow"],
     controller: "Rows",
     description: "Return rows from highes db_row and below",
     summary: "Return rows from highes db_row and below",

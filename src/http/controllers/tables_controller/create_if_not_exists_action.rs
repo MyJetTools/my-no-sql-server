@@ -8,7 +8,8 @@ use super::models::{CreateTableContract, TableContract};
 
 #[http_route(
     method: "POST",
-    route: "/Tables/CreateIfNotExists",
+    route: "/api/Tables/CreateIfNotExists",
+    deprecated_routes: ["/Tables/CreateIfNotExists"],
     input_data: "CreateTableContract",
     description: "Create table if not exists",
     summary: "Creates table if not exists",

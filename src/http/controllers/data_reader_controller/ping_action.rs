@@ -8,7 +8,8 @@ use super::models::PingInputModel;
 
 #[http_route(
     method: "POST",
-    route: "/DataReader/Ping",
+    route: "/api/DataReader/Ping",
+    deprecated_routes: ["/DataReader/Ping"],
     controller: "DataReader",
     summary: "Pings that subscriber is alive",
     description: "Pings that subscriber is alive",

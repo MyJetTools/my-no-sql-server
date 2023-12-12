@@ -9,7 +9,8 @@ use super::models::DeletePartitionsInputContract;
 
 #[http_route(
     method: "DELETE",
-    route: "/Rows/DeletePartitions",
+    route: "/api/Rows/DeletePartitions",
+    deprecated_routes: ["/Rows/DeletePartitions"],
     controller: "Rows",
     description: "Delete Partitions",
     summary: "Deletes Partitions",

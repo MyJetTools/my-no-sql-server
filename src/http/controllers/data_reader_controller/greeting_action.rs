@@ -8,7 +8,8 @@ use super::models::{DataReaderGreetingInputModel, DataReaderGreetingResult};
 
 #[http_route(
     method: "POST",
-    route: "/DataReader/Greeting",
+    route: "/api/DataReader/Greeting",
+    deprecated_routes: ["/DataReader/Greeting"],
     controller: "DataReader",
     summary: "Issue session for http data reader",
     description: "Issues session for http data reader",

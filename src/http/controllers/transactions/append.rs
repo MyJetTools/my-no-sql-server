@@ -8,7 +8,8 @@ use super::models::ProcessTransactionInputModel;
 
 #[http_route(
     method: "POST",
-    route: "/Transactions/Append",
+    route: "/api/Transactions/Append",
+    deprecated_routes: ["/Transactions/Append"],
     description: "Get Table size",
     summary: "Returns Table size",
     input_data: "ProcessTransactionInputModel",

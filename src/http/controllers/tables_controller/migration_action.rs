@@ -10,7 +10,8 @@ use super::models::TableMigrationInputContract;
 
 #[http_route(
     method: "POST",
-    route: "/Tables/MigrateFrom",
+    route: "/api/Tables/MigrateFrom",
+    deprecated_routes: ["/Tables/MigrateFrom"],
     input_data: "TableMigrationInputContract",
     description: "Migrate records from the other table of other instance",
     summary: "Migrates records from the other table of other instance",

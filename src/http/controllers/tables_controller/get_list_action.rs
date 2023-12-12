@@ -8,7 +8,8 @@ use super::models::TableContract;
 
 #[http_route(
     method: "GET",
-    route: "/Tables/List",
+    route: "/api/Tables/List",
+    deprecated_routes: ["/Tables/List"],
     description: "Get List of Tables",
     summary: "Returns List of Tables",
     controller: "Tables",

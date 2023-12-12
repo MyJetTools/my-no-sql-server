@@ -12,7 +12,8 @@ use crate::{
 use super::models::{GetChangesInputModel, UpdateExpirationDateTime};
 #[http_route(
     method: "POST",
-    route: "/DataReader/GetChanges",
+    route: "/api/DataReader/GetChanges",
+    deprecated_routes: ["/DataReader/GetChanges"],
     controller: "DataReader",
     description: "Get Subscriber changes",
     summary: "Returns Subscriber changes",

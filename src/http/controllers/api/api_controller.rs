@@ -5,7 +5,7 @@ use super::models::IsAliveResponse;
 
 #[http_route(
     method: "GET",
-    route: "/Api/IsAlive",
+    route: "/api/IsAlive",
     controller: "Monitoring",
     description: "Returns model shows that service is alive",
     summary: "Returns model shows that service is alive",

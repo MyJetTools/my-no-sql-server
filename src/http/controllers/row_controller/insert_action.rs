@@ -10,7 +10,8 @@ use super::models::InsertInputContract;
 
 #[http_route(
     method: "POST",
-    route: "/Row/Insert",
+    route: "/api/Row/Insert",
+    deprecated_routes: ["/Row/Insert"],
     controller: "Row",
     description: "Insert Row",
     summary: "Inserts Row",

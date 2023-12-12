@@ -10,7 +10,8 @@ use super::models::CleanAndBulkInsertInputContract;
 
 #[http_route(
     method: "POST",
-    route: "/Bulk/CleanAndBulkInsert",
+    route: "/api/Bulk/CleanAndBulkInsert",
+    deprecated_routes: ["/Bulk/CleanAndBulkInsert"],
     input_data: "CleanAndBulkInsertInputContract",
     summary: "Cleans partition and does bulk insert operation as a single transaction",
     description: "Cleans partition and does bulk insert operation as a single transaction",

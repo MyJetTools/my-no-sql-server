@@ -11,7 +11,8 @@ use super::models::InsertOrReplaceInputContract;
 
 #[http_route(
     method: "POST",
-    route: "/Row/InsertOrReplace",
+    route: "/api/Row/InsertOrReplace",
+    deprecated_routes: ["/Row/InsertOrReplace"],
     controller: "Row",
     description: "Insert or replace DbEntity",
     summary: "Inserts or replaces DbEntity",

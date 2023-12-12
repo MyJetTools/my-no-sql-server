@@ -8,7 +8,8 @@ use super::models::ProcessTransactionInputModel;
 
 #[http_route(
     method: "POST",
-    route: "/Transactions/Cancel",
+    route: "/api/Transactions/Cancel",
+    deprecated_routes: ["/Transactions/Cancel"],
     description: "Cancel transaction",
     summary: "Cancels transaction",
     input_data: "ProcessTransactionInputModel",

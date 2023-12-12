@@ -8,7 +8,8 @@ use super::models::GetTableSizeContract;
 
 #[http_route(
     method: "GET",
-    route: "/Tables/TableSize",
+    route: "/api/Tables/TableSize",
+    deprecated_routes: ["/Tables/TableSize"],
     input_data: "GetTableSizeContract",
     description: "Get Table size",
     summary: "Returns Table size",

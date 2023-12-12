@@ -6,7 +6,8 @@ use std::sync::Arc;
 
 #[http_route(
     method: "POST",
-    route: "/Transactions/Start",
+    route: "/api/Transactions/Start",
+    deprecated_routes: ["/Transactions/Start"],
     description: "Start new Transaction",
     summary: "Starts new Transaction",
     controller: "Transactions",

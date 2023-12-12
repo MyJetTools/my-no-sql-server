@@ -7,7 +7,8 @@ use crate::app::AppContext;
 use super::models::RowsCountInputContract;
 #[http_route(
     method: "GET",
-    route: "/Count",
+    route: "/api/Count",
+    deprecated_routes: ["/Count"],
     controller: "Row",
     description: "Get Rows Count",
     summary: "Returns Rows Count",

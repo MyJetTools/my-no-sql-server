@@ -6,7 +6,8 @@ use std::{result::Result, sync::Arc};
 
 #[http_route(
     method: "GET",
-    route: "/Partitions/Count",
+    route: "/api/Partitions/Count",
+    deprecated_routes: ["/Partitions/Count"],
     input_data: "GetPartitionsAmountContract",
     description: "Get Partitions amount of selected table",
     summary: "Returns Partitions amount of selected table",

@@ -7,7 +7,8 @@ use crate::app::AppContext;
 
 #[http_route(
     method: "GET",
-    route: "/Row",
+    route: "/api/Row",
+    deprecated_routes: ["/Row"],
     controller: "Row",
     description: "Get Entitity or entities",
     summary: "Returns Entitity or entities",
