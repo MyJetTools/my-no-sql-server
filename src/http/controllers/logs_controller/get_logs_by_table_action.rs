@@ -42,7 +42,7 @@ async fn handle_request(
             sw.pause();
 
             let content = format!(
-                "Result compiled in: {:?}. No log recods for the table '{}'",
+                "Result compiled in: {:?}. No log records for the table '{}'",
                 sw.duration(),
                 input_data.table_name
             );

@@ -11,8 +11,8 @@ use super::models::GetSinglePartitionMultipleRowsActionInputContract;
     route: "/api/Rows/SinglePartitionMultipleRows",
     deprecated_routes: ["/Rows/SinglePartitionMultipleRows"],
     controller: "Rows",
-    description: "Return speciefic rows from the partition",
-    summary: "Returns speciefic rows from the partition",
+    description: "Return specific rows from the partition",
+    summary: "Returns specific rows from the partition",
     input_data: "GetSinglePartitionMultipleRowsActionInputContract",
     result:[
         {status_code: 200, description: "Rows", model: "Vec<BaseDbRowContract>"},
@@ -27,37 +27,6 @@ impl GetSinglePartitionMultipleRowsAction {
         Self { app }
     }
 }
-
-/*
-#[async_trait::async_trait]
-impl PostAction for GetSinglePartitionMultipleRowsAction {
-    fn get_route(&self) -> &str {
-        "/Rows/SinglePartitionMultipleRows"
-    }
-
-    fn get_description(&self) -> Option<HttpActionDescription> {
-        HttpActionDescription {
-            controller_name: super::consts::CONTROLLER_NAME,
-            description: "Get Rows Count",
-
-            input_params: GetSinglePartitionMultipleRowsActionInputContract::get_input_params()
-                .into(),
-            results: vec![
-                HttpResult {
-                    http_code: 200,
-                    nullable: false,
-                    description: "Rows".to_string(),
-                    data_type: BaseDbRowContract::get_http_data_structure()
-                        .into_http_data_type_array(),
-                },
-                crate::http::docs::rejects::op_with_table_is_failed(),
-            ],
-        }
-        .into()
-    }
-
-}
- */
 
 async fn handle_request(
     action: &GetSinglePartitionMultipleRowsAction,

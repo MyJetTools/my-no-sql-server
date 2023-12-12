@@ -21,18 +21,18 @@ use super::models::CleanAndBulkInsertInputContract;
         {status_code: 404, description: "Table not found"},
     ]
 )]
-pub struct CleanAndBulkInsertControllerAction {
+pub struct CleanAndBulkInsertAction {
     app: Arc<AppContext>,
 }
 
-impl CleanAndBulkInsertControllerAction {
+impl CleanAndBulkInsertAction {
     pub fn new(app: Arc<AppContext>) -> Self {
         Self { app }
     }
 }
 
 async fn handle_request(
-    action: &CleanAndBulkInsertControllerAction,
+    action: &CleanAndBulkInsertAction,
     input_data: CleanAndBulkInsertInputContract,
     _ctx: &mut HttpContext,
 ) -> Result<HttpOkResult, HttpFailResult> {

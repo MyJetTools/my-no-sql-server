@@ -87,17 +87,15 @@ pub fn build(app: &Arc<AppContext>) -> ControllersMiddleware {
         app.clone(),
     )));
 
-    result.register_post_action(Arc::new(super::bulk::BulkDeleteControllerAction::new(
+    result.register_post_action(Arc::new(super::bulk::BulkDeleteAction::new(app.clone())));
+
+    result.register_post_action(Arc::new(super::bulk::CleanAndBulkInsertAction::new(
         app.clone(),
     )));
 
-    result.register_post_action(Arc::new(
-        super::bulk::CleanAndBulkInsertControllerAction::new(app.clone()),
-    ));
-
-    result.register_post_action(Arc::new(
-        super::bulk::BlukInsertOrReplaceControllerAction::new(app.clone()),
-    ));
+    result.register_post_action(Arc::new(super::bulk::BulkInsertOrReplaceAction::new(
+        app.clone(),
+    )));
 
     result.register_post_action(Arc::new(
         super::gc_controller::CleanAndKeepMaxPartitionsAmountAction::new(app.clone()),

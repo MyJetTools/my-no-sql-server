@@ -11,8 +11,8 @@ use super::models::GetHighestRowsAndBelowInputContract;
     route: "/api/Rows/HighestRowAndBelow",
     deprecated_routes: ["/Rows/HighestRowAndBelow"],
     controller: "Rows",
-    description: "Return rows from highes db_row and below",
-    summary: "Return rows from highes db_row and below",
+    description: "Return rows from highest db_row and below",
+    summary: "Return rows from highest db_row and below",
     input_data: "GetHighestRowsAndBelowInputContract",
     result:[
         {status_code: 200, description: "Rows", model: "Vec<BaseDbRowContract>"},

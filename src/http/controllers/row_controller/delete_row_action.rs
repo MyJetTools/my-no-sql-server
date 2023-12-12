@@ -15,8 +15,8 @@ use super::models::{BaseDbRowContract, DeleteRowInputModel};
     route: "/api/Row",
     deprecated_routes: ["/Row"],
     controller: "Row",
-    description: "Delete Entitiy",
-    summary: "Delete Entitiy",
+    description: "Delete Entity",
+    summary: "Delete Entity",
     input_data: "DeleteRowInputModel",
     result:[
         {status_code: 200, description: "Deleted row",  model:"BaseDbRowContract"},
@@ -31,35 +31,6 @@ impl DeleteRowAction {
         Self { app }
     }
 }
-
-/*
-#[async_trait::async_trait]
-impl DeleteAction for RowAction {
-    fn get_route(&self) -> &str {
-        "/Row"
-    }
-
-    fn get_description(&self) -> Option<HttpActionDescription> {
-        HttpActionDescription {
-            controller_name: super::consts::CONTROLLER_NAME,
-            description: "Delete Entitiy",
-
-            input_params: DeleteRowInputModel::get_input_params().into(),
-            results: vec![
-                HttpResult {
-                    http_code: 200,
-                    nullable: false,
-                    description: "Deleted row".to_string(),
-                    data_type: BaseDbRowContract::get_http_data_structure()
-                        .into_http_data_type_object(),
-                },
-                crate::http::docs::rejects::op_with_table_is_failed(),
-            ],
-        }
-        .into()
-    }
-}
- */
 
 async fn handle_request(
     action: &DeleteRowAction,

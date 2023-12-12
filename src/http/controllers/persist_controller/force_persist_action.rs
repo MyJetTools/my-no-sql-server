@@ -12,7 +12,7 @@ use crate::app::AppContext;
     description: "Executes persist loop",
     controller: "Persist",
     result:[
-        {status_code: 202, description: "Executed succesfully"},
+        {status_code: 202, description: "Executed successfully"},
     ]
 )]
 pub struct ForcePersistAction {

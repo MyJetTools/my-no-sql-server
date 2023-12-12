@@ -56,7 +56,7 @@ async fn handle_request(
                 headers: None,
                 content_type: Some(WebContentType::Text),
                 content: format!(
-                    "Result compiled in: {:?}. No log recods for the process '{}'",
+                    "Result compiled in: {:?}. No log records for the process '{}'",
                     sw.duration(),
                     input_data.process_name
                 )

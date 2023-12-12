@@ -21,18 +21,18 @@ use super::models::BulkDeleteInputContract;
         {status_code: 404, description: "Table not found"},
     ]
 )]
-pub struct BulkDeleteControllerAction {
+pub struct BulkDeleteAction {
     app: Arc<AppContext>,
 }
 
-impl BulkDeleteControllerAction {
+impl BulkDeleteAction {
     pub fn new(app: Arc<AppContext>) -> Self {
         Self { app }
     }
 }
 
 async fn handle_request(
-    action: &BulkDeleteControllerAction,
+    action: &BulkDeleteAction,
     input_data: BulkDeleteInputContract,
     _ctx: &mut HttpContext,
 ) -> Result<HttpOkResult, HttpFailResult> {

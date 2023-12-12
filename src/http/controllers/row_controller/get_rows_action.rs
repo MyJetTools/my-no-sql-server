@@ -10,8 +10,8 @@ use crate::app::AppContext;
     route: "/api/Row",
     deprecated_routes: ["/Row"],
     controller: "Row",
-    description: "Get Entitity or entities",
-    summary: "Returns Entitity or entities",
+    description: "Get Entity or entities",
+    summary: "Returns Entity or entities",
     input_data: "GetRowInputModel",
     result:[
         {status_code: 200, description: "Single Row or array of rows"},
@@ -26,38 +26,6 @@ impl GetRowsAction {
         Self { app }
     }
 }
-
-/*
-
-#[async_trait::async_trait]
-impl GetAction for RowAction {
-    fn get_route(&self) -> &str {
-        "/Row"
-    }
-
-    fn get_description(&self) -> Option<HttpActionDescription> {
-        HttpActionDescription {
-            controller_name: super::consts::CONTROLLER_NAME,
-            description: "Get Entities",
-
-            input_params: GetRowInputModel::get_input_params().into(),
-            results: vec![
-                HttpResult {
-                    http_code: 200,
-                    nullable: false,
-                    description: "Rows".to_string(),
-                    data_type: BaseDbRowContract::get_http_data_structure()
-                        .into_http_data_type_array(),
-                },
-                crate::http::docs::rejects::op_with_table_is_failed(),
-            ],
-        }
-        .into()
-    }
-}
-
-}
- */
 
 async fn handle_request(
     action: &GetRowsAction,

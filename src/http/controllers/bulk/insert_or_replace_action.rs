@@ -22,18 +22,18 @@ use super::models::BulkInsertOrReplaceInputContract;
         {status_code: 404, description: "Table not found"},
     ]
 )]
-pub struct BlukInsertOrReplaceControllerAction {
+pub struct BulkInsertOrReplaceAction {
     app: Arc<AppContext>,
 }
 
-impl BlukInsertOrReplaceControllerAction {
+impl BulkInsertOrReplaceAction {
     pub fn new(app: Arc<AppContext>) -> Self {
         Self { app }
     }
 }
 
 async fn handle_request(
-    action: &BlukInsertOrReplaceControllerAction,
+    action: &BulkInsertOrReplaceAction,
     input_data: BulkInsertOrReplaceInputContract,
     _ctx: &mut HttpContext,
 ) -> Result<HttpOkResult, HttpFailResult> {
@@ -62,28 +62,3 @@ async fn handle_request(
 
     HttpOutput::Empty.into_ok_result(true).into()
 }
-
-/*
-#[async_trait::async_trait]
-impl PostAction for BlukInsertOrReplaceControllerAction {
-    fn get_route(&self) -> &str {
-        "/Bulk/InsertOrReplace"
-    }
-
-    fn get_description(&self) -> Option<HttpActionDescription> {
-        HttpActionDescription {
-            controller_name: super::consts::CONTROLLER_NAME,
-            description: "Bulk insert or replace operation",
-
-            input_params: BulkInsertOrReplaceInputContract::get_input_params().into(),
-            results: vec![HttpResult {
-                http_code: 202,
-                nullable: true,
-                description: "Successful operation".to_string(),
-                data_type: HttpDataType::None,
-            }],
-        }
-        .into()
-    }
-}
- */
