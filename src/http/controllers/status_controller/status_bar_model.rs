@@ -22,6 +22,8 @@ pub struct StatusBarModel {
     pub http_connections: usize,
     #[serde(rename = "masterNode")]
     pub master_node: Option<String>,
+    #[serde(rename = "usedHttpConnections")]
+    pub used_http_connections: i64,
 }
 
 impl StatusBarModel {
@@ -30,6 +32,7 @@ impl StatusBarModel {
         tcp_connections: usize,
         http_connections: usize,
         tables_amount: usize,
+        used_http_connections: i64,
     ) -> Self {
         Self {
             master_node: None,
@@ -41,6 +44,7 @@ impl StatusBarModel {
             tcp_connections,
             http_connections,
             tables_amount,
+            used_http_connections,
         }
     }
 }

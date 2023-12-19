@@ -1,16 +1,21 @@
 use std::sync::Arc;
 
+use my_http_server::HttpConnectionsCounter;
 use rust_extensions::MyTimerTick;
 
 use crate::app::AppContext;
 
 pub struct MetricsUpdater {
     app: Arc<AppContext>,
+    http_connections_count: HttpConnectionsCounter,
 }
 
 impl MetricsUpdater {
-    pub fn new(app: Arc<AppContext>) -> Self {
-        Self { app }
+    pub fn new(app: Arc<AppContext>, http_connections_count: HttpConnectionsCounter) -> Self {
+        Self {
+            app,
+            http_connections_count,
+        }
     }
 }
 
@@ -44,9 +49,13 @@ impl MyTimerTick for MetricsUpdater {
                 0
             };
 
-            self.app
-                .metrics
-                .update_table_metrics(db_table.name.as_str(), &table_metrics);
+            let http_connections_amount = self.http_connections_count.get_connections_amount();
+
+            self.app.metrics.update_table_metrics(
+                db_table.name.as_str(),
+                &table_metrics,
+                http_connections_amount,
+            );
 
             self.app
                 .metrics

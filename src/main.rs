@@ -54,6 +54,8 @@ async fn main() {
         app.clone(),
     ));
 
+    let http_connections_counter = crate::http::start_up::setup_server(&app);
+
     app.sync
         .register_event_loop(Arc::new(SyncEventLoop::new(app.clone())))
         .await;
@@ -63,7 +65,10 @@ async fn main() {
     let mut persist_timer = MyTimer::new(Duration::from_secs(1));
 
     persist_timer.register_timer("Persist", Arc::new(PersistTimer::new(app.clone())));
-    timer_1s.register_timer("MetricsUpdated", Arc::new(MetricsUpdater::new(app.clone())));
+    timer_1s.register_timer(
+        "MetricsUpdated",
+        Arc::new(MetricsUpdater::new(app.clone(), http_connections_counter)),
+    );
 
     let mut timer_10s = MyTimer::new(Duration::from_secs(10));
     timer_10s.register_timer(
@@ -87,8 +92,6 @@ async fn main() {
     backup_timer.start(app.states.clone(), app.clone());
 
     app.sync.start(app.states.clone(), app.clone()).await;
-
-    crate::http::start_up::setup_server(&app);
 
     let tcp_server = TcpServer::new(
         "MyNoSqlReader".to_string(),

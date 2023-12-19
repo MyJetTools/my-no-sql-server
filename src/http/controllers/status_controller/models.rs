@@ -91,18 +91,26 @@ impl StatusModel {
             tables_model.push(table_model);
         }
 
+        let used_http_connections = app.metrics.get_http_connections_amount();
+
         if app.states.is_initialized() {
             return Self {
                 not_initialized: None,
                 initialized: Some(InitializedModel::new(readers, tables_model)),
-                status_bar: StatusBarModel::new(app, tcp, http, tables.len()),
+                status_bar: StatusBarModel::new(
+                    app,
+                    tcp,
+                    http,
+                    tables.len(),
+                    used_http_connections,
+                ),
             };
         }
 
         return Self {
             not_initialized: Some(NonInitializedModel::new(app).await),
             initialized: None,
-            status_bar: StatusBarModel::new(app, tcp, http, tables.len()),
+            status_bar: StatusBarModel::new(app, tcp, http, tables.len(), used_http_connections),
         };
     }
 }

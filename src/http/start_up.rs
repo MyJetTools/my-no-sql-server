@@ -1,11 +1,11 @@
 use std::{net::SocketAddr, sync::Arc};
 
 use my_http_server::controllers::swagger::SwaggerMiddleware;
-use my_http_server::MyHttpServer;
+use my_http_server::{HttpConnectionsCounter, MyHttpServer};
 
 use crate::app::AppContext;
 
-pub fn setup_server(app: &Arc<AppContext>) {
+pub fn setup_server(app: &Arc<AppContext>) -> HttpConnectionsCounter {
     let mut http_server = MyHttpServer::new(SocketAddr::from(([0, 0, 0, 0], 5123)));
 
     let controllers = Arc::new(crate::http::controllers::builder::build(app));
@@ -23,4 +23,6 @@ pub fn setup_server(app: &Arc<AppContext>) {
         None, None,
     )));
     http_server.start(app.states.clone(), app.clone());
+
+    http_server.get_http_connections_counter()
 }

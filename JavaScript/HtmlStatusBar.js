@@ -45,9 +45,10 @@ var HtmlStatusBar = /** @class */ (function () {
             this.tcpConnections = data.tcpConnections;
             document.getElementById('tcp-connections').innerHTML = this.tcpConnections.toString();
         }
-        if (this.httpConnections != data.httpConnections) {
+        if (this.httpConnections != data.httpConnections || this.usedHttpConnections != data.usedHttpConnections) {
             this.httpConnections = data.httpConnections;
-            document.getElementById('http-connections').innerHTML = this.httpConnections.toString();
+            this.usedHttpConnections = data.usedHttpConnections;
+            document.getElementById('http-connections').innerHTML = this.httpConnections.toString() + '/' + this.usedHttpConnections;
         }
         if (this.persistAmount != data.persistAmount) {
             this.persistAmount = data.persistAmount;

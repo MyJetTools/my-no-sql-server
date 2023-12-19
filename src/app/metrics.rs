@@ -16,6 +16,7 @@ pub struct PrometheusMetrics {
     tcp_connections_count: IntGauge,
     tcp_connections_changes: IntGaugeVec,
     fatal_errors_count: IntGauge,
+    http_connections_count: IntGauge,
     persist_delay_in_seconds: IntGaugeVec,
     pending_to_sync: IntGaugeVec,
 }
@@ -36,6 +37,12 @@ impl PrometheusMetrics {
         let pending_to_sync = create_pending_to_sync();
 
         let persist_delay_in_seconds = create_persist_delay_in_seconds();
+
+        let http_connections_count = create_http_connections_count();
+
+        registry
+            .register(Box::new(http_connections_count.clone()))
+            .unwrap();
 
         registry
             .register(Box::new(partitions_amount.clone()))
@@ -73,10 +80,16 @@ impl PrometheusMetrics {
             fatal_errors_count,
             persist_delay_in_seconds,
             pending_to_sync,
+            http_connections_count,
         };
     }
 
-    pub fn update_table_metrics(&self, table_name: &str, table_metrics: &DbTableMetrics) {
+    pub fn update_table_metrics(
+        &self,
+        table_name: &str,
+        table_metrics: &DbTableMetrics,
+        http_connections_count: i64,
+    ) {
         let partitions_amount_value = table_metrics.partitions_amount as i64;
         self.partitions_amount
             .with_label_values(&[table_name])
@@ -91,12 +104,18 @@ impl PrometheusMetrics {
         self.persist_amount
             .with_label_values(&[table_name])
             .set(persist_amount_value);
+
+        self.http_connections_count.set(http_connections_count);
     }
 
     pub fn update_persist_delay(&self, table_name: &str, persist_delay: i64) {
         self.persist_delay_in_seconds
             .with_label_values(&[table_name])
             .set(persist_delay);
+    }
+
+    pub fn get_http_connections_amount(&self) -> i64 {
+        self.http_connections_count.get()
     }
 
     pub async fn update_pending_to_sync<TUpdatePendingToSyncModel: UpdatePendingToSyncModel>(
@@ -201,6 +220,10 @@ fn create_pending_to_sync() -> IntGaugeVec {
 
 fn create_fatal_errors_count() -> IntGauge {
     IntGauge::new("fatal_erros_count", "Fatal errors count").unwrap()
+}
+
+fn create_http_connections_count() -> IntGauge {
+    IntGauge::new("http_connections_count", "Http connections count").unwrap()
 }
 fn create_tcp_connections_count() -> IntGauge {
     IntGauge::new("tcp_connections_count", "TCP Connections count").unwrap()

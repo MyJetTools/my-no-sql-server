@@ -13,6 +13,9 @@ class HtmlStatusBar {
     private static tcpConnections: number;
     private static httpConnections: number;
 
+    private static usedHttpConnections: number;
+
+
 
 
     public static layout(): string {
@@ -83,16 +86,16 @@ class HtmlStatusBar {
             document.getElementById('tcp-connections').innerHTML = this.tcpConnections.toString()
         }
 
-        if (this.httpConnections != data.httpConnections) {
+        if (this.httpConnections != data.httpConnections || this.usedHttpConnections != data.usedHttpConnections) {
             this.httpConnections = data.httpConnections;
-            document.getElementById('http-connections').innerHTML = this.httpConnections.toString()
+            this.usedHttpConnections = data.usedHttpConnections;
+            document.getElementById('http-connections').innerHTML = this.httpConnections.toString() + '/' + this.usedHttpConnections;
         }
 
         if (this.persistAmount != data.persistAmount) {
             this.persistAmount = data.persistAmount;
             document.getElementById('persist-queue').innerHTML = this.persistAmount.toString()
         }
-
 
     }
 
