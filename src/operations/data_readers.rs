@@ -18,6 +18,12 @@ pub async fn subscribe(
 
     if table.is_none() {
         if app.settings.auto_create_table_on_reader_subscribe {
+            println!(
+                "Table {} does not exist. Creating it now on reader {:?} subscribe",
+                table_name,
+                data_reader.get_name().await
+            );
+
             table = crate::db_operations::write::table::create_if_not_exist(
                 app,
                 table_name,
