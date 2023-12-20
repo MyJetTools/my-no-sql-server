@@ -51,6 +51,7 @@ pub struct ClientRequestsSourceData {
 pub enum EventSource {
     ClientRequest(ClientRequestsSourceData),
     GarbageCollector,
+    Subscriber,
 }
 
 impl EventSource {

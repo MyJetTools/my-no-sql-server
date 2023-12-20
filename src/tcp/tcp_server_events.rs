@@ -72,7 +72,7 @@ impl TcpServerEvents {
                 if let Some(data_reader) = self.app.data_readers.get_tcp(connection.as_ref()).await
                 {
                     let result = crate::operations::data_readers::subscribe(
-                        self.app.as_ref(),
+                        &self.app,
                         data_reader,
                         &table_name,
                     )
@@ -124,7 +124,7 @@ impl TcpServerEvents {
                     }
 
                     let result = crate::operations::data_readers::subscribe(
-                        self.app.as_ref(),
+                        &self.app,
                         data_reader.clone(),
                         &table_name,
                     )

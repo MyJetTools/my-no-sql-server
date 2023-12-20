@@ -38,6 +38,9 @@ pub struct SettingsModel {
 
     #[serde(rename = "MaxBackupsToKeep")]
     pub max_backups_to_keep: usize,
+
+    #[serde(rename = "AutoCreateTableOnReaderSubscribe")]
+    pub auto_create_table_on_reader_subscribe: bool,
 }
 
 impl SettingsModel {

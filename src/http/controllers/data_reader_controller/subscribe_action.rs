@@ -38,7 +38,7 @@ async fn handle_request(
         .await?;
 
     crate::operations::data_readers::subscribe(
-        action.app.as_ref(),
+        &action.app,
         data_reader,
         input_data.table_name.as_str(),
     )
