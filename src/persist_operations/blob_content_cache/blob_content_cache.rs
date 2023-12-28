@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use my_no_sql_sdk::core::db::{DbTable, DbTableAttributes};
 use my_no_sql_server_core::db_snapshots::DbPartitionSnapshot;
@@ -14,13 +14,13 @@ pub enum BlobPartitionUpdateTimeResult {
 }
 
 pub struct BlobContentCache {
-    pub data_by_table: RwLock<HashMap<String, PersistedTableData>>,
+    pub data_by_table: RwLock<BTreeMap<String, PersistedTableData>>,
 }
 
 impl BlobContentCache {
     pub fn new() -> Self {
         Self {
-            data_by_table: RwLock::new(HashMap::new()),
+            data_by_table: RwLock::new(BTreeMap::new()),
         }
     }
 
@@ -89,11 +89,11 @@ impl BlobContentCache {
     pub async fn get_snapshot(
         &self,
         table_name: &str,
-    ) -> Option<HashMap<String, DateTimeAsMicroseconds>> {
+    ) -> Option<BTreeMap<String, DateTimeAsMicroseconds>> {
         let read_access = self.data_by_table.read().await;
         let table = read_access.get(table_name)?;
 
-        let mut result = HashMap::new();
+        let mut result = BTreeMap::new();
 
         for (partition, value) in &table.partitions {
             result.insert(partition.to_string(), *value);

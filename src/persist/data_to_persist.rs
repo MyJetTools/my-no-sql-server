@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
@@ -21,7 +21,7 @@ impl PersistResult {
 
 pub struct DataToPersist {
     pub persisit_whole_table: Option<DateTimeAsMicroseconds>,
-    pub partitions: HashMap<String, DateTimeAsMicroseconds>,
+    pub partitions: BTreeMap<String, DateTimeAsMicroseconds>,
     pub persist_attrs: bool,
 }
 
@@ -40,7 +40,7 @@ impl DataToPersist {
     pub fn new() -> Self {
         Self {
             persisit_whole_table: None,
-            partitions: HashMap::new(),
+            partitions: BTreeMap::new(),
             persist_attrs: false,
         }
     }

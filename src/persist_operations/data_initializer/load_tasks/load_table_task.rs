@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use my_no_sql_sdk::core::db::{DbPartition, DbTable, DbTableAttributes};
 
@@ -22,7 +22,7 @@ impl FileStatus {
 
 pub struct LoadTableTask {
     files_list_is_loaded: bool,
-    files: HashMap<String, FileStatus>,
+    files: BTreeMap<String, FileStatus>,
     attr: Option<DbTableAttributes>,
 }
 
@@ -30,7 +30,7 @@ impl LoadTableTask {
     pub fn new() -> Self {
         Self {
             files_list_is_loaded: false,
-            files: HashMap::new(),
+            files: BTreeMap::new(),
             attr: None,
         }
     }

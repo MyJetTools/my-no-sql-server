@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use my_no_sql_server_core::{db_snapshots::DbTableSnapshot, DbTableWrapper};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
@@ -40,7 +40,7 @@ async fn init_new_table(app: &AppContext, table_name: &str, snapshot: &DbTableSn
 async fn sync_with_blob(
     app: &AppContext,
     table_name: &str,
-    mut in_blob: HashMap<String, DateTimeAsMicroseconds>,
+    mut in_blob: BTreeMap<String, DateTimeAsMicroseconds>,
     snapshot: &DbTableSnapshot,
 ) {
     for (partition_key, partition_snapshot) in &snapshot.by_partition {

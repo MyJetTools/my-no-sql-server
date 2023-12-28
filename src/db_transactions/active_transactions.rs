@@ -1,17 +1,17 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use tokio::sync::Mutex;
 
 use super::{steps::TransactionalOperationStep, TransactionalOperations};
 
 pub struct ActiveTransactions {
-    items: Mutex<HashMap<String, TransactionalOperations>>,
+    items: Mutex<BTreeMap<String, TransactionalOperations>>,
 }
 
 impl ActiveTransactions {
     pub fn new() -> Self {
         Self {
-            items: Mutex::new(HashMap::new()),
+            items: Mutex::new(BTreeMap::new()),
         }
     }
 
@@ -47,7 +47,7 @@ impl ActiveTransactions {
     }
 }
 
-fn generate_id(items: &HashMap<String, TransactionalOperations>) -> String {
+fn generate_id(items: &BTreeMap<String, TransactionalOperations>) -> String {
     loop {
         let id = uuid::Uuid::new_v4().to_string();
 

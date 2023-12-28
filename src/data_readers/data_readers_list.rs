@@ -79,7 +79,7 @@ impl DataReadersList {
 
     pub async fn get_subscribed_to_table(&self, table_name: &str) -> Option<Vec<Arc<DataReader>>> {
         let read_access = self.data.read().await;
-        read_access.get_subscribred_to_table(table_name).await
+        read_access.get_subscribed_to_table(table_name).await
     }
 
     pub async fn gc_http_sessions(

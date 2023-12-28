@@ -1,22 +1,22 @@
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::{collections::BTreeMap, sync::Arc, time::Duration};
 
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use super::{DataReader, DataReaderConnection};
 
 pub struct DataReadersData {
-    tcp: HashMap<i32, Arc<DataReader>>,
-    http: HashMap<String, Arc<DataReader>>,
-    all: HashMap<String, Arc<DataReader>>,
+    tcp: BTreeMap<i32, Arc<DataReader>>,
+    http: BTreeMap<String, Arc<DataReader>>,
+    all: BTreeMap<String, Arc<DataReader>>,
     id: usize,
 }
 
 impl DataReadersData {
     pub fn new() -> Self {
         Self {
-            tcp: HashMap::new(),
-            all: HashMap::new(),
-            http: HashMap::new(),
+            tcp: BTreeMap::new(),
+            all: BTreeMap::new(),
+            http: BTreeMap::new(),
             id: 0,
         }
     }
@@ -111,7 +111,7 @@ impl DataReadersData {
         None
     }
 
-    pub async fn get_subscribred_to_table(&self, table_name: &str) -> Option<Vec<Arc<DataReader>>> {
+    pub async fn get_subscribed_to_table(&self, table_name: &str) -> Option<Vec<Arc<DataReader>>> {
         let mut result = None;
 
         for data_reader in self.all.values() {

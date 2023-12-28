@@ -1,15 +1,15 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::BTreeMap, sync::Arc};
 
 use my_no_sql_server_core::DbTableWrapper;
 
 pub struct DataReaderUpdatableData {
-    tables: HashMap<String, Arc<DbTableWrapper>>,
+    tables: BTreeMap<String, Arc<DbTableWrapper>>,
 }
 
 impl DataReaderUpdatableData {
     pub fn new() -> Self {
         Self {
-            tables: HashMap::new(),
+            tables: BTreeMap::new(),
         }
     }
 

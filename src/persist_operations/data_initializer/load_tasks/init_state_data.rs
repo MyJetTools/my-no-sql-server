@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use crate::{db_operations::validation, persist_operations::data_initializer::LoadedTableItem};
 
@@ -16,13 +16,13 @@ pub enum NextFileToLoadResult {
 }
 
 pub struct InitStateData {
-    tables: HashMap<String, LoadTableTask>,
+    tables: BTreeMap<String, LoadTableTask>,
 }
 
 impl InitStateData {
     pub fn new() -> Self {
         Self {
-            tables: HashMap::new(),
+            tables: BTreeMap::new(),
         }
     }
 

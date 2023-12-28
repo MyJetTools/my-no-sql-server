@@ -23,7 +23,7 @@ pub async fn commit(
         });
     }
 
-    let mut transaction = transaction.unwrap();
+    let transaction = transaction.unwrap();
 
     let mut tables = HashMap::new();
 
@@ -32,7 +32,7 @@ pub async fn commit(
         tables.insert(table_name.to_string(), db_table);
     }
 
-    for (_, mut events) in transaction.operations.drain() {
+    for (_, mut events) in transaction.operations {
         for event in events.drain(..) {
             match event {
                 TransactionalOperationStep::CleanTable { table_name } => {

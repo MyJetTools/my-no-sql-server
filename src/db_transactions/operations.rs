@@ -1,15 +1,15 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use super::steps::TransactionalOperationStep;
 
 pub struct TransactionalOperations {
-    pub operations: HashMap<String, Vec<TransactionalOperationStep>>,
+    pub operations: BTreeMap<String, Vec<TransactionalOperationStep>>,
 }
 
 impl TransactionalOperations {
     pub fn new() -> Self {
         Self {
-            operations: HashMap::new(),
+            operations: BTreeMap::new(),
         }
     }
 

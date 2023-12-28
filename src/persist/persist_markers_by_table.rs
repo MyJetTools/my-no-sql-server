@@ -1,4 +1,4 @@
-use std::{collections::HashMap, time::Duration};
+use std::{collections::BTreeMap, time::Duration};
 
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 use tokio::sync::Mutex;
@@ -39,13 +39,13 @@ pub struct PersistMetrics {
 }
 
 pub struct PersistMarkersByTable {
-    persist_by_table: Mutex<HashMap<String, PersistMarkersByTableInner>>,
+    persist_by_table: Mutex<BTreeMap<String, PersistMarkersByTableInner>>,
 }
 
 impl PersistMarkersByTable {
     pub fn new() -> Self {
         Self {
-            persist_by_table: Mutex::new(HashMap::new()),
+            persist_by_table: Mutex::new(BTreeMap::new()),
         }
     }
 

@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, VecDeque},
+    collections::{BTreeMap, VecDeque},
     sync::Arc,
     time::Duration,
 };
@@ -12,13 +12,13 @@ use tokio::sync::Mutex;
 use super::Multipart;
 
 pub struct MultipartList {
-    items: Mutex<HashMap<i64, Multipart>>,
+    items: Mutex<BTreeMap<i64, Multipart>>,
 }
 
 impl MultipartList {
     pub fn new() -> Self {
         Self {
-            items: Mutex::new(HashMap::new()),
+            items: Mutex::new(BTreeMap::new()),
         }
     }
 
