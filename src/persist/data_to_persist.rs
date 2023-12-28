@@ -20,7 +20,7 @@ impl PersistResult {
 }
 
 pub struct DataToPersist {
-    pub persisit_whole_table: Option<DateTimeAsMicroseconds>,
+    pub persist_whole_table: Option<DateTimeAsMicroseconds>,
     pub partitions: BTreeMap<String, DateTimeAsMicroseconds>,
     pub persist_attrs: bool,
 }
@@ -30,7 +30,7 @@ impl DataToPersist {
         let mut result = if self.persist_attrs { 1 } else { 0 };
         result += self.partitions.len();
 
-        if self.persisit_whole_table.is_some() {
+        if self.persist_whole_table.is_some() {
             result += 1;
         };
 
@@ -39,22 +39,22 @@ impl DataToPersist {
 
     pub fn new() -> Self {
         Self {
-            persisit_whole_table: None,
+            persist_whole_table: None,
             partitions: BTreeMap::new(),
             persist_attrs: false,
         }
     }
 
     pub fn mark_table_to_persist(&mut self, moment: DateTimeAsMicroseconds) {
-        if self.persisit_whole_table.is_none() {
-            self.persisit_whole_table = Some(moment);
+        if self.persist_whole_table.is_none() {
+            self.persist_whole_table = Some(moment);
             return;
         }
 
-        let persist_whole_table = self.persisit_whole_table.unwrap();
+        let persist_whole_table = self.persist_whole_table.unwrap();
 
         if persist_whole_table.unix_microseconds > moment.unix_microseconds {
-            self.persisit_whole_table = Some(moment)
+            self.persist_whole_table = Some(moment)
         }
     }
 
@@ -96,7 +96,7 @@ impl DataToPersist {
     }
 
     pub fn get_next_persist_time(&self) -> Option<DateTimeAsMicroseconds> {
-        if let Some(persisit_whole_table) = self.persisit_whole_table {
+        if let Some(persisit_whole_table) = self.persist_whole_table {
             return Some(persisit_whole_table);
         }
 
@@ -123,9 +123,9 @@ impl DataToPersist {
         now: DateTimeAsMicroseconds,
         is_shutting_down: bool,
     ) -> Option<PersistResult> {
-        if let Some(persisit_whole_table) = self.persisit_whole_table {
+        if let Some(persisit_whole_table) = self.persist_whole_table {
             if persisit_whole_table.unix_microseconds <= now.unix_microseconds || is_shutting_down {
-                self.persisit_whole_table = None;
+                self.persist_whole_table = None;
                 self.partitions.clear();
                 return Some(PersistResult::PersistTable);
             }

@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 
 use rust_extensions::{date_time::DateTimeAsMicroseconds, MyTimerTick};
 
@@ -80,7 +80,7 @@ async fn gc_it(app: &AppContext) {
                 )
                 .await
                 {
-                    let mut ctx = BTreeMap::new();
+                    let mut ctx = HashMap::new();
 
                     ctx.insert("TableName".to_string(), table.name.to_string());
 
