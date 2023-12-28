@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use my_no_sql_server_core::DbTableWrapper;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
@@ -37,7 +37,7 @@ pub async fn execute(
         db_rows.into_iter().map(|r| r.row_key.to_string()).collect()
     };
 
-    let mut row_to_delete = HashMap::new();
+    let mut row_to_delete = BTreeMap::new();
     row_to_delete.insert(partition_key.to_string(), rows_to_gc);
 
     super::super::write::bulk_delete(

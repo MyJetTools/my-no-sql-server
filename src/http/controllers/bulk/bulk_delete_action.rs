@@ -1,7 +1,8 @@
 use my_http_server::macros::*;
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
-use std::{collections::HashMap, sync::Arc};
+use std::collections::BTreeMap;
+use std::sync::Arc;
 
 use crate::app::AppContext;
 use crate::db_sync::EventSource;
@@ -42,7 +43,7 @@ async fn handle_request(
 
     let event_src = EventSource::as_client_request(action.app.as_ref());
 
-    let rows_to_delete: HashMap<String, Vec<String>> =
+    let rows_to_delete: BTreeMap<String, Vec<String>> =
         serde_json::from_slice(input_data.body.as_slice()).unwrap();
 
     let now = DateTimeAsMicroseconds::now();

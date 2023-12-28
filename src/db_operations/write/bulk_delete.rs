@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use my_no_sql_server_core::DbTableWrapper;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
@@ -12,7 +12,7 @@ use crate::{
 pub async fn bulk_delete(
     app: &AppContext,
     db_table: &DbTableWrapper,
-    rows_to_delete: HashMap<String, Vec<String>>,
+    rows_to_delete: BTreeMap<String, Vec<String>>,
     event_src: EventSource,
     persist_moment: DateTimeAsMicroseconds,
     now: DateTimeAsMicroseconds,
