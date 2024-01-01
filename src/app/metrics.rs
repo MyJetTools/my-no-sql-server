@@ -2,9 +2,8 @@ use prometheus::{Encoder, IntGauge, IntGaugeVec, Opts, Registry, TextEncoder};
 
 use crate::operations::DbTableMetrics;
 
-#[async_trait::async_trait]
 pub trait UpdatePendingToSyncModel {
-    async fn get_name(&self) -> Option<String>;
+    fn get_name(&self) -> &str;
     fn get_pending_to_sync(&self) -> usize;
 }
 
@@ -118,17 +117,11 @@ impl PrometheusMetrics {
         self.http_connections_count.get()
     }
 
-    pub async fn update_pending_to_sync<TUpdatePendingToSyncModel: UpdatePendingToSyncModel>(
+    pub fn update_pending_to_sync<TUpdatePendingToSyncModel: UpdatePendingToSyncModel>(
         &self,
         data_reader_connection: &TUpdatePendingToSyncModel,
     ) {
-        let name = data_reader_connection.get_name().await;
-
-        if name.is_none() {
-            return;
-        }
-
-        let name = name.unwrap();
+        let name = data_reader_connection.get_name();
 
         let pending_to_sync = data_reader_connection.get_pending_to_sync();
 
@@ -137,16 +130,12 @@ impl PrometheusMetrics {
             .set(pending_to_sync as i64);
     }
 
-    pub async fn remove_pending_to_sync<TUpdatePendingToSyncModel: UpdatePendingToSyncModel>(
+    pub fn remove_pending_to_sync<TUpdatePendingToSyncModel: UpdatePendingToSyncModel>(
         &self,
         data_reader_connection: &TUpdatePendingToSyncModel,
     ) {
-        let name = data_reader_connection.get_name().await;
-        if name.is_none() {
-            return;
-        }
+        let name = data_reader_connection.get_name();
 
-        let name = name.unwrap();
         let result = self.pending_to_sync.remove_label_values(&[&name]);
 
         if let Err(err) = result {

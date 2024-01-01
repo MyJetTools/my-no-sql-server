@@ -36,11 +36,11 @@ async fn handle_request(
     let result = action
         .app
         .data_readers
-        .add_http(ctx.request.get_ip().get_real_ip().to_string())
-        .await;
-
-    result
-        .set_name_as_reader(format!("{}:{}", http_input.name, http_input.version))
+        .add_http(
+            http_input.name,
+            http_input.version,
+            ctx.request.get_ip().get_real_ip().to_string(),
+        )
         .await;
 
     let response = DataReaderGreetingResult {

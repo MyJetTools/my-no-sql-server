@@ -22,12 +22,11 @@ impl MyTimerTick for GcHttpSessionsTimer {
         for data_reader in self.app.data_readers.get_all().await {
             data_reader.ping_http_servers(now).await;
         }
-        if let Some(gced) = self.app.data_readers.gc_http_sessions(now).await {
-            for data_reader in gced {
+        if let Some(data_readers) = self.app.data_readers.gc_http_sessions(now).await {
+            for data_reader in data_readers {
                 self.app
                     .metrics
-                    .remove_pending_to_sync(&data_reader.connection)
-                    .await;
+                    .remove_pending_to_sync(&data_reader.connection);
             }
         }
     }

@@ -141,23 +141,21 @@ async fn get_readers(app: &AppContext) -> (Vec<ReaderModel>, usize, usize) {
 
         let metrics = data_reader.get_metrics().await;
 
-        if let Some(name) = metrics.name {
-            result.push(ReaderModel {
-                connected_time: metrics.connected.to_rfc3339(),
-                last_incoming_time: format!(
-                    "{:?}",
-                    now.duration_since(metrics.last_incoming_moment)
-                        .as_positive_or_zero()
-                ),
-                id: metrics.session_id,
-                ip: metrics.ip,
-                name,
-                tables: metrics.tables,
-                pending_to_send: metrics.pending_to_send,
-                sent_per_second: data_reader.get_sent_per_second().await,
-                is_node: data_reader.is_node(),
-            });
-        }
+        result.push(ReaderModel {
+            connected_time: metrics.connected.to_rfc3339(),
+            last_incoming_time: format!(
+                "{:?}",
+                now.duration_since(metrics.last_incoming_moment)
+                    .as_positive_or_zero()
+            ),
+            id: metrics.session_id,
+            ip: metrics.ip,
+            name: metrics.name,
+            tables: metrics.tables,
+            pending_to_send: metrics.pending_to_send,
+            sent_per_second: data_reader.get_sent_per_second().await,
+            is_node: data_reader.is_node(),
+        });
     }
 
     (result, tcp_count, http_count)

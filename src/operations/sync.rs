@@ -26,8 +26,7 @@ pub async fn sync(app: &AppContext, sync_event: &SyncEvent) {
         }
 
         app.metrics
-            .update_pending_to_sync(&data.data_reader.connection)
-            .await;
+            .update_pending_to_sync(&data.data_reader.connection);
     } else {
         let data_readers = app
             .data_readers
@@ -39,7 +38,7 @@ pub async fn sync(app: &AppContext, sync_event: &SyncEvent) {
         }
         let data_readers = data_readers.unwrap();
 
-        let mut tcp_contracts_non_compresed: Option<Vec<u8>> = None;
+        let mut tcp_contracts_non_compressed: Option<Vec<u8>> = None;
         let mut tcp_contracts_compressed: Option<Vec<u8>> = None;
 
         for data_reader in &data_readers {
@@ -64,7 +63,7 @@ pub async fn sync(app: &AppContext, sync_event: &SyncEvent) {
                             }
                         }
                     } else {
-                        if let Some(to_send) = &tcp_contracts_non_compresed {
+                        if let Some(to_send) = &tcp_contracts_non_compressed {
                             info.send(to_send).await;
                         } else {
                             if let Some(to_send) =
@@ -74,7 +73,7 @@ pub async fn sync(app: &AppContext, sync_event: &SyncEvent) {
                                 .await
                             {
                                 info.send(&to_send).await;
-                                tcp_contracts_non_compresed = Some(to_send);
+                                tcp_contracts_non_compressed = Some(to_send);
                             }
                         }
                     }
@@ -84,9 +83,7 @@ pub async fn sync(app: &AppContext, sync_event: &SyncEvent) {
                 }
             }
 
-            app.metrics
-                .update_pending_to_sync(&data_reader.connection)
-                .await;
+            app.metrics.update_pending_to_sync(&data_reader.connection);
         }
     }
 }

@@ -1,9 +1,4 @@
-use std::sync::{
-    atomic::{AtomicBool, AtomicUsize, Ordering},
-    Arc,
-};
-
-use tokio::sync::Mutex;
+use std::sync::{atomic::AtomicUsize, Arc};
 
 use crate::tcp::MyNoSqlTcpConnection;
 
@@ -12,32 +7,49 @@ use super::SendPerSecond;
 pub enum ReaderName {
     AsReader(String),
     AsNode { location: String, version: String },
-    None,
+}
+
+impl ReaderName {
+    pub fn is_node(&self) -> bool {
+        match self {
+            ReaderName::AsReader(_) => false,
+            ReaderName::AsNode { .. } => true,
+        }
+    }
+
+    pub fn get_name(&self) -> &str {
+        match self {
+            ReaderName::AsReader(name) => name,
+            ReaderName::AsNode { location, .. } => location,
+        }
+    }
 }
 
 pub struct TcpConnectionInfo {
     pub connection: Arc<MyNoSqlTcpConnection>,
-    pub name: Mutex<ReaderName>,
+    pub name: ReaderName,
     sent_per_second_accumulator: AtomicUsize,
     pub sent_per_second: SendPerSecond,
-    pub is_node: AtomicBool,
-    pub compress_data: AtomicBool,
+    pub compress_data: bool,
 }
 
 impl TcpConnectionInfo {
-    pub fn new(connection: Arc<MyNoSqlTcpConnection>) -> Self {
+    pub fn new(
+        connection: Arc<MyNoSqlTcpConnection>,
+        name: ReaderName,
+        compress_data: bool,
+    ) -> Self {
         Self {
             connection,
-            name: Mutex::new(ReaderName::None),
+            name,
             sent_per_second_accumulator: AtomicUsize::new(0),
             sent_per_second: SendPerSecond::new(),
-            is_node: AtomicBool::new(false),
-            compress_data: AtomicBool::new(false),
+            compress_data,
         }
     }
 
     pub fn is_node(&self) -> bool {
-        self.is_node.load(Ordering::Relaxed)
+        self.name.is_node()
     }
 
     pub fn get_id(&self) -> i32 {
@@ -51,24 +63,15 @@ impl TcpConnectionInfo {
         }
     }
 
-    pub fn set_compress_data(&self) {
-        self.compress_data.store(true, Ordering::SeqCst)
-    }
-
     pub fn is_compressed_data(&self) -> bool {
-        self.compress_data.load(Ordering::Relaxed)
+        self.compress_data
     }
 
-    pub async fn get_name(&self) -> Option<String> {
-        let read_access = self.name.lock().await;
-
-        match &*read_access {
-            ReaderName::AsReader(name) => Some(name.clone()),
-            ReaderName::AsNode { location, version } => Some(format!("{}:{}", location, version)),
-            ReaderName::None => None,
-        }
+    pub fn get_name(&self) -> &str {
+        self.name.get_name()
     }
 
+    /*
     pub async fn set_name_as_reader(&self, name: String) {
         let mut write_access = self.name.lock().await;
         *write_access = ReaderName::AsReader(name);
@@ -79,6 +82,7 @@ impl TcpConnectionInfo {
         let mut write_access = self.name.lock().await;
         *write_access = ReaderName::AsNode { location, version };
     }
+     */
 
     pub async fn send(&self, payload_to_send: &[u8]) {
         self.sent_per_second_accumulator

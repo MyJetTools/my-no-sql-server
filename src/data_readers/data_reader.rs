@@ -14,7 +14,7 @@ pub struct DataReadeMetrics {
     pub connected: DateTimeAsMicroseconds,
     pub last_incoming_moment: DateTimeAsMicroseconds,
     pub ip: String,
-    pub name: Option<String>,
+    pub name: String,
     pub tables: Vec<String>,
     pub pending_to_send: usize,
 }
@@ -49,18 +49,19 @@ impl DataReader {
         read_access.has_table(table_name)
     }
 
-    pub async fn set_name_as_reader(&self, name: String) {
-        self.connection.set_name_as_reader(name).await;
-    }
+    /*
+       pub async fn set_name_as_reader(&self, name: String) {
+           self.connection.set_name_as_reader(name).await;
+       }
 
-    pub async fn set_name_as_node(&self, location: String, version: String, compress_data: bool) {
-        self.connection
-            .set_name_as_node(location, version, compress_data)
-            .await;
-    }
-
-    pub async fn get_name(&self) -> Option<String> {
-        self.connection.get_name().await
+       pub async fn set_name_as_node(&self, location: String, version: String, compress_data: bool) {
+           self.connection
+               .set_name_as_node(location, version, compress_data)
+               .await;
+       }
+    */
+    pub fn get_name(&self) -> &str {
+        self.connection.get_name()
     }
 
     pub async fn subscribe(&self, db_table: &Arc<DbTableWrapper>) {
@@ -108,7 +109,7 @@ impl DataReader {
 
         let pending_to_send = self.get_pending_to_send();
 
-        let name = self.connection.get_name().await;
+        let name = self.connection.get_name();
 
         let read_access = self.data.read().await;
 
@@ -117,7 +118,7 @@ impl DataReader {
             connected,
             last_incoming_moment,
             ip,
-            name,
+            name: name.to_string(),
             tables: read_access.get_table_names(),
             pending_to_send,
         }

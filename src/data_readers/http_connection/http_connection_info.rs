@@ -17,11 +17,12 @@ pub struct HttpConnectionInfo {
     pub last_incoming_moment: AtomicDateTimeAsMicroseconds,
     pub delivery_info: Mutex<HttpConnectionDeliveryInfo>,
     pending_to_send: AtomicUsize,
-    name: Mutex<Option<String>>,
+    name: String,
+    version: String,
 }
 
 impl HttpConnectionInfo {
-    pub fn new(id: String, ip: String) -> Self {
+    pub fn new(id: String, name: String, version: String, ip: String) -> Self {
         Self {
             id: id.to_string(),
             ip,
@@ -29,18 +30,13 @@ impl HttpConnectionInfo {
             last_incoming_moment: AtomicDateTimeAsMicroseconds::now(),
             delivery_info: Mutex::new(HttpConnectionDeliveryInfo::new(id)),
             pending_to_send: AtomicUsize::new(0),
-            name: Mutex::new(None),
+            name,
+            version,
         }
     }
 
-    pub async fn get_name(&self) -> Option<String> {
-        let read_access = self.name.lock().await;
-        read_access.clone()
-    }
-
-    pub async fn set_name_as_reader(&self, name: String) {
-        let mut write_access = self.name.lock().await;
-        *write_access = Some(name);
+    pub fn get_name(&self) -> &str {
+        self.name.as_str()
     }
 
     pub async fn ping(&self, now: DateTimeAsMicroseconds) {

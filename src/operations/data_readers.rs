@@ -21,7 +21,7 @@ pub async fn subscribe(
             println!(
                 "Table {} does not exist. Creating it now on reader {:?} subscribe",
                 table_name,
-                data_reader.get_name().await
+                data_reader.get_name()
             );
 
             table = crate::db_operations::write::table::create_if_not_exist(
@@ -38,7 +38,7 @@ pub async fn subscribe(
         } else {
             println!(
                 "{:?} is subscribing to the table {} which does not exist",
-                data_reader.get_name().await,
+                data_reader.get_name(),
                 table_name
             );
 

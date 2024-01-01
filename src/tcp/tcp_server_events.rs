@@ -4,7 +4,7 @@ use my_no_sql_sdk::tcp_contracts::{MyNoSqlReaderTcpSerializer, MyNoSqlTcpContrac
 use my_no_sql_server_core::logs::*;
 use my_tcp_sockets::{tcp_connection::SocketConnection, ConnectionEvent, SocketEventCallback};
 
-use crate::app::AppContext;
+use crate::{app::AppContext, data_readers::tcp_connection::ReaderName};
 
 pub type MyNoSqlTcpConnection = SocketConnection<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer>;
 
@@ -27,17 +27,18 @@ impl TcpServerEvents {
                 connection.send(MyNoSqlTcpContract::Pong).await;
             }
             MyNoSqlTcpContract::Greeting { name } => {
-                if let Some(data_reader) = self.app.data_readers.get_tcp(connection.as_ref()).await
-                {
-                    self.app.logs.add_info(
-                        None,
-                        SystemProcess::TcpSocket,
-                        format!("Connection name update to {}", name),
-                        format!("ID: {}", connection.id),
-                        None,
-                    );
-                    data_reader.set_name_as_reader(name.to_string()).await;
-                }
+                self.app.logs.add_info(
+                    None,
+                    SystemProcess::TcpSocket,
+                    "New tcp connection".to_string(),
+                    format!("ID: {}. Name: {}", connection.id, name),
+                    None,
+                );
+
+                self.app
+                    .data_readers
+                    .add_tcp(connection, ReaderName::AsReader(name), false)
+                    .await;
             }
 
             MyNoSqlTcpContract::GreetingFromNode {
@@ -45,27 +46,14 @@ impl TcpServerEvents {
                 node_version,
                 compress,
             } => {
-                if let Some(data_reader) = self.app.data_readers.get_tcp(connection.as_ref()).await
-                {
-                    println!(
-                        "Connected node: {}:{}. Compress:{}",
-                        node_location, node_version, compress
-                    );
-
-                    self.app.logs.add_info(
-                        None,
-                        SystemProcess::TcpSocket,
-                        format!(
-                            "Connection to node with location {} and version {}",
-                            node_location, node_version
-                        ),
-                        format!("ID: {}", connection.id),
-                        None,
-                    );
-                    data_reader
-                        .set_name_as_node(node_location, node_version, compress)
-                        .await;
-                }
+                let name = ReaderName::AsNode {
+                    location: node_location,
+                    version: node_version,
+                };
+                self.app
+                    .data_readers
+                    .add_tcp(connection, name, compress)
+                    .await;
             }
 
             MyNoSqlTcpContract::Subscribe { table_name } => {
@@ -82,7 +70,7 @@ impl TcpServerEvents {
                         let session = self.app.data_readers.get_tcp(connection.as_ref()).await;
 
                         let session_name = if let Some(session) = session {
-                            session.get_name().await
+                            Some(session.get_name().to_string())
                         } else {
                             None
                         };
@@ -134,7 +122,7 @@ impl TcpServerEvents {
                         let session = self.app.data_readers.get_tcp(connection.as_ref()).await;
 
                         let session_name = if let Some(session) = session {
-                            session.get_name().await
+                            Some(session.get_name().to_string())
                         } else {
                             None
                         };
@@ -267,16 +255,7 @@ impl SocketEventCallback<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer> for Tcp
         connection_event: ConnectionEvent<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer>,
     ) {
         match connection_event {
-            ConnectionEvent::Connected(connection) => {
-                self.app.logs.add_info(
-                    None,
-                    SystemProcess::TcpSocket,
-                    "New tcp connection".to_string(),
-                    format!("ID: {}", connection.id),
-                    None,
-                );
-
-                self.app.data_readers.add_tcp(connection).await;
+            ConnectionEvent::Connected(_connection) => {
                 self.app.metrics.mark_new_tcp_connection();
             }
             ConnectionEvent::Disconnected(connection) => {
@@ -292,8 +271,7 @@ impl SocketEventCallback<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer> for Tcp
                 {
                     self.app
                         .metrics
-                        .remove_pending_to_sync(&data_reader.connection)
-                        .await;
+                        .remove_pending_to_sync(&data_reader.connection);
                 }
                 self.app.metrics.mark_new_tcp_disconnection();
             }

@@ -6,8 +6,9 @@ use tokio::sync::RwLock;
 use crate::tcp::MyNoSqlTcpConnection;
 
 use super::{
-    http_connection::HttpConnectionInfo, tcp_connection::TcpConnectionInfo, DataReader,
-    DataReaderConnection, DataReadersData,
+    http_connection::HttpConnectionInfo,
+    tcp_connection::{ReaderName, TcpConnectionInfo},
+    DataReader, DataReaderConnection, DataReadersData,
 };
 
 pub struct DataReadersList {
@@ -23,11 +24,15 @@ impl DataReadersList {
         }
     }
 
-    pub async fn add_tcp(&self, tcp_connection: Arc<MyNoSqlTcpConnection>) {
+    pub async fn add_tcp(
+        &self,
+        tcp_connection: Arc<MyNoSqlTcpConnection>,
+        name: ReaderName,
+        compress_data: bool,
+    ) {
         let id = format!("Tcp-{}", tcp_connection.id);
-        println!("New tcp reader connnected {}", id);
 
-        let connection_info = TcpConnectionInfo::new(tcp_connection);
+        let connection_info = TcpConnectionInfo::new(tcp_connection, name, compress_data);
 
         let connection_info = Arc::new(connection_info);
 
@@ -37,11 +42,11 @@ impl DataReadersList {
         write_lock.insert(Arc::new(data_reader));
     }
 
-    pub async fn add_http(&self, ip: String) -> Arc<DataReader> {
+    pub async fn add_http(&self, name: String, version: String, ip: String) -> Arc<DataReader> {
         let mut write_lock = self.data.write().await;
         let id = format!("Http-{}", write_lock.get_next_id());
 
-        let http_connection_info = HttpConnectionInfo::new(id.to_string(), ip);
+        let http_connection_info = HttpConnectionInfo::new(id.to_string(), name, version, ip);
 
         let data_reader = Arc::new(DataReader::new(
             id.clone(),
@@ -67,7 +72,7 @@ impl DataReadersList {
         &self,
         tcp_connection: &MyNoSqlTcpConnection,
     ) -> Option<Arc<DataReader>> {
-        println!("Tcp reader is disconnnected {}", tcp_connection.id);
+        println!("Tcp reader is disconnected {}", tcp_connection.id);
         let mut write_lock = self.data.write().await;
         write_lock.remove_tcp(tcp_connection.id)
     }
