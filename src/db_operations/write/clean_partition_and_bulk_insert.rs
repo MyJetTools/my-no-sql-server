@@ -34,7 +34,7 @@ pub async fn execute(
     }
 
     app.persist_markers
-        .persist_partition(table_data.name.as_str(), partition_key, persist_moment)
+        .persist_partition(&table_data, partition_key, persist_moment)
         .await;
 
     let state =

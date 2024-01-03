@@ -28,11 +28,7 @@ pub async fn delete_partitions<TPartitions: Iterator<Item = String>>(
 
         if remove_partition_result.is_some() {
             app.persist_markers
-                .persist_partition(
-                    db_table.name.as_str(),
-                    partition_key.as_str(),
-                    persist_moment,
-                )
+                .persist_partition(&table_write_access, partition_key.as_str(), persist_moment)
                 .await;
 
             sync_data.add(partition_key, None);

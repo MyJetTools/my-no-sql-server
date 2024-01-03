@@ -28,7 +28,7 @@ pub fn update_partition_expiration_time(
         sync_moment.add_minutes(5);
 
         app.persist_markers
-            .persist_partition(&db_table.name, &partition_key, sync_moment)
+            .persist_partition(&table_data, &partition_key, sync_moment)
             .await;
     });
 }

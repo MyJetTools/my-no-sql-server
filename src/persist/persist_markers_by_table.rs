@@ -1,5 +1,6 @@
 use std::{collections::BTreeMap, time::Duration};
 
+use my_no_sql_sdk::core::db::DbTable;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 use tokio::sync::Mutex;
 
@@ -51,18 +52,22 @@ impl PersistMarkersByTable {
 
     pub async fn persist_partition(
         &self,
-        table_name: &str,
+        db_table: &DbTable,
         partition_key: &str,
         sync_moment: DateTimeAsMicroseconds,
     ) {
+        if !db_table.attributes.persist {
+            return;
+        }
+
         let mut write_access = self.persist_by_table.lock().await;
 
-        if !write_access.contains_key(table_name) {
-            write_access.insert(table_name.to_string(), PersistMarkersByTableInner::new());
+        if !write_access.contains_key(db_table.name.as_str()) {
+            write_access.insert(db_table.name.to_string(), PersistMarkersByTableInner::new());
         }
 
         write_access
-            .get_mut(table_name)
+            .get_mut(db_table.name.as_str())
             .unwrap()
             .data_to_persist
             .mark_partition_to_persist(partition_key, sync_moment);

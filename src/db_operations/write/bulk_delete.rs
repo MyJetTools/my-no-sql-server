@@ -29,11 +29,7 @@ pub async fn bulk_delete(
 
         if let Some(removed_rows_result) = removed_rows_result {
             app.persist_markers
-                .persist_partition(
-                    table_data.name.as_str(),
-                    partition_key.as_str(),
-                    persist_moment,
-                )
+                .persist_partition(&table_data, partition_key.as_str(), persist_moment)
                 .await;
 
             if removed_rows_result.1 {

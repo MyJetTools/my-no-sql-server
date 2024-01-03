@@ -35,11 +35,7 @@ pub async fn execute(
             .add_rows(partition_key.as_str(), db_rows);
 
         app.persist_markers
-            .persist_partition(
-                table_data.name.as_str(),
-                partition_key.as_str(),
-                persist_moment,
-            )
+            .persist_partition(&table_data, partition_key.as_str(), persist_moment)
             .await;
     }
 
