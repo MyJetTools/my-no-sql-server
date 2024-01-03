@@ -138,7 +138,7 @@ pub async fn create_if_not_exist(
     )
     .await?;
 
-    set_table_attrubutes(
+    set_table_attributes(
         app,
         db_table.clone(),
         persist_table,
@@ -160,7 +160,7 @@ pub async fn update_persist_state(
     super::super::check_app_states(app)?;
     let attrs = db_table.get_attributes().await;
 
-    set_table_attrubutes(
+    set_table_attributes(
         app,
         db_table,
         persist,
@@ -172,7 +172,7 @@ pub async fn update_persist_state(
     Ok(())
 }
 
-pub async fn set_table_attrubutes(
+pub async fn set_table_attributes(
     app: &Arc<AppContext>,
     db_table: Arc<DbTableWrapper>,
     persist: bool,

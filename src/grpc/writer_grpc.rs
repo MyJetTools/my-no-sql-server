@@ -89,7 +89,7 @@ impl Writer for MyNoSqlServerWriterGrpcSerice {
             };
 
         let persist = db_table.get_persist_table().await;
-        crate::db_operations::write::table::set_table_attrubutes(
+        crate::db_operations::write::table::set_table_attributes(
             &self.app,
             db_table,
             persist,
