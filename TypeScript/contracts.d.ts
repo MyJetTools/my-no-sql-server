@@ -50,6 +50,9 @@ interface IStatusBarModel {
 
 interface ITableModel {
     name: number;
+    persist: boolean;
+    maxPartitionsAmount?: number;
+    maxRowsPerPartition?: number;
     partitionsCount: number;
     dataSize: number;
     recordsAmount: number;

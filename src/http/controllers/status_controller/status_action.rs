@@ -24,32 +24,6 @@ impl StatusAction {
     }
 }
 
-/*
-
-#[async_trait::async_trait]
-impl GetAction for StatusController {
-    fn get_route(&self) -> &str {
-        "/Api/Status"
-    }
-
-    fn get_description(&self) -> Option<HttpActionDescription> {
-        HttpActionDescription {
-            controller_name: "Monitoring",
-            description: "Monitoring API",
-
-            input_params: None,
-            results: vec![
-                StatusModel::get_http_data_structure().into_http_result_object(
-                    200,
-                    false,
-                    "Monitoring result",
-                ),
-            ],
-        }
-        .into()
-    }
-}
- */
 async fn handle_request(
     action: &StatusAction,
     _ctx: &mut HttpContext,

@@ -79,7 +79,10 @@ var HtmlSubscribersGenerator = /** @class */ (function () {
                 var as_time = new Date(table.nextPersistTime / 1000);
                 nextPersistTime = as_time.toISOString();
             }
-            html += '<tr><td>' + table.name + '</td><td>' + table.persistAmount + '</td><td>' + table.dataSize + '</td><td>' + table.partitionsCount + '</td><td>' + table.recordsAmount + '</td><td>' + table.expirationIndex + '</td>' +
+            var persist_badge = table.persist ? '<span class="badge badge-success">Persist</span>' : '<span class="badge badge-primary">Not persisted</span>';
+            var max_partitions_amount = table.maxPartitionsAmount ? '<span class="badge badge-success">Max partitions: ' + table.maxPartitionsAmount + '</span>' : '<span class="badge badge-primary">Max partitions: Unlimited</span>';
+            var max_rows_per_partition = table.maxPartitionsAmount ? '<span class="badge badge-success">Max rows per partition: ' + table.maxRowsPerPartition + '</span>' : '<span class="badge badge-primary">Max rows per partition: Unlimited</span>';
+            html += '<tr><td>' + table.name + '<div>' + persist_badge + '</div><div>' + max_partitions_amount + '</div><div>' + max_rows_per_partition + '</div></td><td>' + table.persistAmount + '</td><td>' + table.dataSize + '</td><td>' + table.partitionsCount + '</td><td>' + table.recordsAmount + '</td><td>' + table.expirationIndex + '</td>' +
                 '<td' + style + '><div>UpdateTime: ' + lastUpdateTime.toISOString() + '</div><div>PersistTime: ' + lastPersistTime + '</div>' +
                 '<div>NextPersist: ' + nextPersistTime + '</div>' + HtmlGraph.renderGraph(table.lastPersistDuration, function (v) { return Utils.format_duration(v); }, function (v) { return v; }, function (v) { return false; }) + '</td></tr>';
             total_size += table.dataSize;

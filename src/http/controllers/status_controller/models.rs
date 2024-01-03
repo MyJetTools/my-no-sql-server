@@ -8,6 +8,11 @@ use super::{non_initialized::NonInitializedModel, status_bar_model::StatusBarMod
 #[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
 pub struct TableModel {
     pub name: String,
+    pub persist: bool,
+    #[serde(rename = "maxPartitionsAmount")]
+    pub max_partitions_amount: Option<usize>,
+    #[serde(rename = "maxRowsPerPartition")]
+    pub max_rows_per_partition: Option<usize>,
     #[serde(rename = "partitionsCount")]
     pub partitions_count: usize,
     #[serde(rename = "dataSize")]
@@ -63,6 +68,7 @@ impl StatusModel {
         let mut tables_model = Vec::new();
 
         for table in &tables {
+            let attr = table.get_attributes().await;
             let metrics = crate::operations::get_table_metrics(app, table.as_ref()).await;
 
             let last_persist_time = if let Some(last_persist_time) = metrics.last_persist_time {
@@ -73,6 +79,9 @@ impl StatusModel {
 
             let table_model = TableModel {
                 name: table.name.clone(),
+                persist: attr.persist,
+                max_partitions_amount: attr.max_partitions_amount,
+                max_rows_per_partition: attr.max_rows_per_partition_amount,
                 partitions_count: metrics.partitions_amount,
                 data_size: metrics.table_size,
                 expiration_index_records_amount: metrics.expiration_index_records_amount,
