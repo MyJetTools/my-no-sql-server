@@ -14,7 +14,6 @@ pub struct PrometheusMetrics {
     persist_amount: IntGaugeVec,
     tcp_connections_count: IntGauge,
     tcp_connections_changes: IntGaugeVec,
-    fatal_errors_count: IntGauge,
     http_connections_count: IntGauge,
     persist_delay_in_seconds: IntGaugeVec,
     pending_to_sync: IntGaugeVec,
@@ -26,7 +25,7 @@ const TCP_METRIC: &str = "tcp_metric";
 impl PrometheusMetrics {
     pub fn new() -> Self {
         let registry = Registry::new();
-        let partitions_amount = create_partititions_amount_gauge();
+        let partitions_amount = create_partitions_amount_gauge();
         let table_size = create_table_size_gauge();
         let persist_amount = create_persist_amount_gauge();
         let tcp_connections_count = create_tcp_connections_count();
@@ -76,7 +75,6 @@ impl PrometheusMetrics {
             persist_amount,
             tcp_connections_count,
             tcp_connections_changes,
-            fatal_errors_count,
             persist_delay_in_seconds,
             pending_to_sync,
             http_connections_count,
@@ -159,10 +157,6 @@ impl PrometheusMetrics {
             .inc();
     }
 
-    pub fn update_fatal_errors_count(&self, value: i64) {
-        self.fatal_errors_count.set(value);
-    }
-
     pub fn build(&self) -> String {
         let mut buffer = vec![];
         let encoder = TextEncoder::new();
@@ -173,28 +167,28 @@ impl PrometheusMetrics {
     }
 }
 
-fn create_partititions_amount_gauge() -> IntGaugeVec {
+fn create_partitions_amount_gauge() -> IntGaugeVec {
     let gauge_opts = Opts::new(
         format!("table_partitions_amount"),
         format!("table partitions amount"),
     );
 
-    let lables = &[TABLE_NAME];
-    IntGaugeVec::new(gauge_opts, lables).unwrap()
+    let labels = &[TABLE_NAME];
+    IntGaugeVec::new(gauge_opts, labels).unwrap()
 }
 
 fn create_table_size_gauge() -> IntGaugeVec {
     let gauge_opts = Opts::new(format!("table_size"), format!("table size"));
 
-    let lables = &[TABLE_NAME];
-    IntGaugeVec::new(gauge_opts, lables).unwrap()
+    let labels = &[TABLE_NAME];
+    IntGaugeVec::new(gauge_opts, labels).unwrap()
 }
 
 fn create_persist_amount_gauge() -> IntGaugeVec {
     let gauge_opts = Opts::new(format!("persist_amount"), format!("persist amount"));
 
-    let lables = &[TABLE_NAME];
-    IntGaugeVec::new(gauge_opts, lables).unwrap()
+    let labels = &[TABLE_NAME];
+    IntGaugeVec::new(gauge_opts, labels).unwrap()
 }
 
 fn create_pending_to_sync() -> IntGaugeVec {
@@ -203,12 +197,12 @@ fn create_pending_to_sync() -> IntGaugeVec {
         format!("pending bytes to send to reader"),
     );
 
-    let lables = &[TABLE_NAME];
-    IntGaugeVec::new(gauge_opts, lables).unwrap()
+    let labels = &[TABLE_NAME];
+    IntGaugeVec::new(gauge_opts, labels).unwrap()
 }
 
 fn create_fatal_errors_count() -> IntGauge {
-    IntGauge::new("fatal_erros_count", "Fatal errors count").unwrap()
+    IntGauge::new("fatal_errors_count", "Fatal errors count").unwrap()
 }
 
 fn create_http_connections_count() -> IntGauge {
@@ -224,13 +218,13 @@ fn create_persist_delay_in_seconds() -> IntGaugeVec {
         format!("Current delay of persistence operation in seconds"),
     );
 
-    let lables = &[TABLE_NAME];
-    IntGaugeVec::new(gauge_opts, lables).unwrap()
+    let labels = &[TABLE_NAME];
+    IntGaugeVec::new(gauge_opts, labels).unwrap()
 }
 
 fn create_tcp_connections_changes() -> IntGaugeVec {
     let gauge_opts = Opts::new(format!("tcp_changes_count"), format!("Tcp Changes Count"));
 
-    let lables = &[TCP_METRIC];
-    IntGaugeVec::new(gauge_opts, lables).unwrap()
+    let labels = &[TCP_METRIC];
+    IntGaugeVec::new(gauge_opts, labels).unwrap()
 }

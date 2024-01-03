@@ -27,15 +27,15 @@ pub async fn bulk_delete(
         let removed_rows_result =
             table_data.bulk_remove_rows(&partition_key, row_keys.iter(), true, Some(now));
 
-        if let Some(removed_rows_result) = removed_rows_result {
+        if let Some((removed_rows, partition_is_empty)) = removed_rows_result {
             app.persist_markers
                 .persist_partition(&table_data, partition_key.as_str(), persist_moment)
                 .await;
 
-            if removed_rows_result.1 {
+            if partition_is_empty {
                 sync_data.new_deleted_partition(partition_key);
             } else {
-                sync_data.add_deleted_rows(partition_key.as_str(), &removed_rows_result.0);
+                sync_data.add_deleted_rows(partition_key.as_str(), &removed_rows);
             }
         }
     }

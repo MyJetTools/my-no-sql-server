@@ -5,7 +5,6 @@ use background::{
 };
 
 use my_no_sql_sdk::tcp_contracts::MyNoSqlReaderTcpSerializer;
-use my_no_sql_server_core::logs::Logs;
 use my_tcp_sockets::TcpServer;
 use rust_extensions::MyTimer;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
@@ -42,11 +41,9 @@ async fn main() {
 
     let settings = Arc::new(settings);
 
-    let logs = Arc::new(Logs::new());
+    let persist_io = settings.get_persist_io();
 
-    let persist_io = settings.get_persist_io(logs.clone());
-
-    let app = AppContext::new(logs.clone(), settings, persist_io);
+    let app = AppContext::new(settings, persist_io);
 
     let app = Arc::new(app);
 
@@ -80,18 +77,20 @@ async fn main() {
     timer_30s.register_timer("GcDbRows", Arc::new(GcDbRows::new(app.clone())));
     timer_30s.register_timer("GcMultipart", Arc::new(GcMultipart::new(app.clone())));
 
-    timer_1s.start(app.states.clone(), app.clone());
-    timer_10s.start(app.states.clone(), app.clone());
-    timer_30s.start(app.states.clone(), app.clone());
-    persist_timer.start(app.states.clone(), app.clone());
+    timer_1s.start(app.states.clone(), my_logger::LOGGER.clone());
+    timer_10s.start(app.states.clone(), my_logger::LOGGER.clone());
+    timer_30s.start(app.states.clone(), my_logger::LOGGER.clone());
+    persist_timer.start(app.states.clone(), my_logger::LOGGER.clone());
 
     let mut backup_timer = MyTimer::new(Duration::from_secs(60));
 
     backup_timer.register_timer("BackupDb", Arc::new(BackupTimer::new(app.clone())));
 
-    backup_timer.start(app.states.clone(), app.clone());
+    backup_timer.start(app.states.clone(), my_logger::LOGGER.clone());
 
-    app.sync.start(app.states.clone(), app.clone()).await;
+    app.sync
+        .start(app.states.clone(), my_logger::LOGGER.clone())
+        .await;
 
     let tcp_server = TcpServer::new(
         "MyNoSqlReader".to_string(),
@@ -103,7 +102,7 @@ async fn main() {
             Arc::new(MyNoSqlReaderTcpSerializer::new),
             Arc::new(TcpServerEvents::new(app.clone())),
             app.states.clone(),
-            app.clone(),
+            my_logger::LOGGER.clone(),
         )
         .await;
 

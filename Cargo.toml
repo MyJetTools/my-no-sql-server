@@ -21,6 +21,7 @@ my-no-sql-sdk = { tag = "0.2.0", git = "https://github.com/MyJetTools/my-no-sql-
 
 my-no-sql-server-core = { tag = "0.3.0", git = "https://github.com/MyJetTools/my-no-sql-server-core.git", features = [
     "master-node",
+
 ] }
 
 
@@ -29,6 +30,7 @@ flurl = { tag = "0.5.0", git = "https://github.com/MyJetTools/fl-url" }
 
 rust-extensions = { tag = "0.1.4", git = "https://github.com/MyJetTools/rust-extensions.git", features = [
     "with-tokio",
+    "base64",
 ] }
 
 my-logger = { tag = "1.1.0", git = "https://github.com/MyJetTools/my-logger.git" }

@@ -1,5 +1,4 @@
 use my_azure_storage_sdk::AzureStorageConnection;
-use my_no_sql_server_core::logs::Logs;
 use rust_extensions::StrOrString;
 use serde::{Deserialize, Serialize};
 use std::{env, sync::Arc};
@@ -44,9 +43,9 @@ pub struct SettingsModel {
 }
 
 impl SettingsModel {
-    pub fn get_persist_io(&self, logs: Arc<Logs>) -> PersistIoOperations {
+    pub fn get_persist_io(&self) -> PersistIoOperations {
         let conn_string = AzureStorageConnection::from_conn_string(self.persistence_dest.as_str());
-        PersistIoOperations::new(Arc::new(conn_string), logs)
+        PersistIoOperations::new(Arc::new(conn_string))
     }
 
     pub fn get_backup_folder<'s>(&'s self) -> StrOrString<'s> {

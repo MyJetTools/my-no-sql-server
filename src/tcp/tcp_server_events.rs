@@ -1,7 +1,7 @@
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
+use my_logger::LogEventCtx;
 use my_no_sql_sdk::tcp_contracts::{MyNoSqlReaderTcpSerializer, MyNoSqlTcpContract};
-use my_no_sql_server_core::logs::*;
 use my_tcp_sockets::{tcp_connection::SocketConnection, ConnectionEvent, SocketEventCallback};
 
 use crate::{app::AppContext, data_readers::tcp_connection::ReaderName};
@@ -27,12 +27,12 @@ impl TcpServerEvents {
                 connection.send(MyNoSqlTcpContract::Pong).await;
             }
             MyNoSqlTcpContract::Greeting { name } => {
-                self.app.logs.add_info(
-                    None,
-                    SystemProcess::TcpSocket,
-                    "New tcp connection".to_string(),
-                    format!("ID: {}. Name: {}", connection.id, name),
-                    None,
+                my_logger::LOGGER.write_info(
+                    "GreetingTcpMessage",
+                    "New tcp connection",
+                    LogEventCtx::new()
+                        .add("Id", connection.id.to_string())
+                        .add("Name", name.as_str()),
                 );
 
                 self.app
@@ -70,27 +70,20 @@ impl TcpServerEvents {
                         let session = self.app.data_readers.get_tcp(connection.as_ref()).await;
 
                         let session_name = if let Some(session) = session {
-                            Some(session.get_name().to_string())
+                            session.get_name().to_string()
                         } else {
-                            None
+                            "".to_string()
                         };
 
-                        let message =
-                            format!("Subscribe to table {} error. Err: {:?}", table_name, err);
+                        let message = format!("Subscribe to table error. Err: {:?}", err);
 
-                        let mut ctx = HashMap::new();
-
-                        ctx.insert("sessionId".to_string(), connection.id.to_string());
-                        if let Some(session_name) = session_name {
-                            ctx.insert("sessionName".to_string(), session_name);
-                        }
-
-                        self.app.logs.add_error(
-                            Some(table_name.to_string()),
-                            SystemProcess::TcpSocket,
-                            "Subscribe to table".to_string(),
-                            message.to_string(),
-                            Some(ctx),
+                        my_logger::LOGGER.write_info(
+                            "GreetingTcpMessage",
+                            message.as_str(),
+                            LogEventCtx::new()
+                                .add("sessionId", connection.id.to_string())
+                                .add("Name", session_name)
+                                .add("TableName", table_name),
                         );
 
                         connection.send(MyNoSqlTcpContract::Error { message }).await;
@@ -122,27 +115,21 @@ impl TcpServerEvents {
                         let session = self.app.data_readers.get_tcp(connection.as_ref()).await;
 
                         let session_name = if let Some(session) = session {
-                            Some(session.get_name().to_string())
+                            session.get_name().to_string()
                         } else {
-                            None
+                            "".to_string()
                         };
 
                         let message =
                             format!("Subscribe to table {} error. Err: {:?}", table_name, err);
 
-                        let mut ctx = HashMap::new();
-
-                        ctx.insert("sessionId".to_string(), connection.id.to_string());
-                        if let Some(session_name) = session_name {
-                            ctx.insert("sessionName".to_string(), session_name);
-                        }
-
-                        self.app.logs.add_error(
-                            Some(table_name.to_string()),
-                            SystemProcess::TcpSocket,
-                            "Subscribe to table".to_string(),
-                            message.to_string(),
-                            Some(ctx),
+                        my_logger::LOGGER.write_info(
+                            "SubscribeToTableAsNode",
+                            message,
+                            LogEventCtx::new()
+                                .add("sessionId", connection.id.to_string())
+                                .add("name", session_name)
+                                .add("tableName", table_name),
                         );
                     }
                 }
@@ -259,12 +246,20 @@ impl SocketEventCallback<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer> for Tcp
                 self.app.metrics.mark_new_tcp_connection();
             }
             ConnectionEvent::Disconnected(connection) => {
-                self.app.logs.add_info(
-                    None,
-                    SystemProcess::TcpSocket,
-                    "Disconnect".to_string(),
-                    format!("ID: {}", connection.id),
-                    None,
+                let name = if let Some(data_reader) =
+                    self.app.data_readers.get_tcp(connection.as_ref()).await
+                {
+                    data_reader.get_name().to_string()
+                } else {
+                    "".to_string()
+                };
+
+                my_logger::LOGGER.write_info(
+                    "TcpConnection",
+                    "Disconnected",
+                    LogEventCtx::new()
+                        .add("id", connection.id.to_string())
+                        .add("Name", name),
                 );
                 if let Some(data_reader) =
                     self.app.data_readers.remove_tcp(connection.as_ref()).await

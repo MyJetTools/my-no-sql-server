@@ -50,6 +50,9 @@ class HtmlStatusBar {
             '<td>Sync queue: <b id="sync-queue-size" style="text-shadow: 0 0 2px white;"></b></td>' +
             '<td><div class="statusbar-separator"></div></td>' +
 
+            '<td>Data size: <b id="total-data-size" style="text-shadow: 0 0 2px white;"></b></td>' +
+            '<td><div class="statusbar-separator"></div></td>' +
+
 
             '</tr></table></div>';
     }

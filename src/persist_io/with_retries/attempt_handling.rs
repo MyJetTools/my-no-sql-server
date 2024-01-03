@@ -1,10 +1,9 @@
-use std::{collections::HashMap, time::Duration};
+use std::time::Duration;
 
-use my_no_sql_server_core::logs::*;
+use my_logger::LogEventCtx;
 
 pub async fn execute(
-    logs: &Logs,
-    table_name: Option<String>,
+    table_name: Option<&str>,
     process_name: &str,
     message: String,
     attempt_no: u8,
@@ -13,17 +12,15 @@ pub async fn execute(
         panic!("{}", message.as_str());
     }
 
-    let mut ctx = HashMap::new();
+    let ctx = if let Some(table_name) = table_name {
+        LogEventCtx::new()
+            .add("tableName", table_name)
+            .add("attempt", attempt_no.to_string())
+    } else {
+        LogEventCtx::new().add("attempt", attempt_no.to_string())
+    };
 
-    ctx.insert("attempt".to_string(), attempt_no.to_string());
-
-    logs.add_error(
-        table_name,
-        SystemProcess::Init,
-        process_name.to_string(),
-        message,
-        Some(ctx),
-    );
+    my_logger::LOGGER.write_error(process_name.to_string(), message, ctx);
 
     tokio::time::sleep(Duration::from_secs(1)).await;
 }

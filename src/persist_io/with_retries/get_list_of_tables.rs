@@ -4,15 +4,10 @@ use my_azure_storage_sdk::AzureStorageConnectionData;
 use my_azure_storage_sdk::sdk_azure::containers::AzureContainersListReader;
 use my_azure_storage_sdk::AzureStorageConnection;
 
-use my_no_sql_server_core::logs::*;
-
-pub async fn get_list_of_tables(
-    logs: &Logs,
-    azure_connection: &AzureStorageConnection,
-) -> Vec<String> {
+pub async fn get_list_of_tables(azure_connection: &AzureStorageConnection) -> Vec<String> {
     match azure_connection {
         AzureStorageConnection::AzureStorage(connection_data) => {
-            return get_list_of_tables_from_azure_blob_container(logs, connection_data).await
+            return get_list_of_tables_from_azure_blob_container(connection_data).await
         }
         _ => azure_connection
             .get_list_of_blob_containers()
@@ -22,7 +17,6 @@ pub async fn get_list_of_tables(
 }
 
 async fn get_list_of_tables_from_azure_blob_container(
-    logs: &Logs,
     connection: &AzureStorageConnectionData,
 ) -> Vec<String> {
     let mut result = Vec::new();
@@ -40,7 +34,6 @@ async fn get_list_of_tables_from_azure_blob_container(
             }
             Err(err) => {
                 super::attempt_handling::execute(
-                    logs,
                     None,
                     "get_list_of_tables_from_azure_blob_container",
                     format!("Can not get list of tables. Err: {:?}", err),

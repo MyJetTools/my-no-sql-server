@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::{db_operations::validation, persist_operations::data_initializer::LoadedTableItem};
 
-use my_no_sql_server_core::logs::*;
+use my_logger::LogEventCtx;
 
 use super::LoadTableTask;
 
@@ -26,18 +26,16 @@ impl InitStateData {
         }
     }
 
-    pub fn init_table_names(&mut self, tables_names: Vec<String>, logs: &Logs) {
+    pub fn init_table_names(&mut self, tables_names: Vec<String>) {
         for table_name in tables_names {
             if let Err(err) = validation::validate_table_name(table_name.as_str()) {
-                logs.add_error(
-                    Some(table_name),
-                    SystemProcess::Init,
+                my_logger::LOGGER.write_error(
                     "init_tables".to_string(),
                     format!(
                         "Table name does not fit validation. Skipping loading it... Reason:{:?}",
                         err
                     ),
-                    None,
+                    LogEventCtx::new().add("tableName", table_name),
                 );
             } else {
                 self.tables.insert(table_name, LoadTableTask::new());

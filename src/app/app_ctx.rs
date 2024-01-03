@@ -1,13 +1,10 @@
 use std::{
-    collections::HashMap,
     sync::{atomic::AtomicUsize, Arc},
     time::Duration,
 };
 
-use my_no_sql_server_core::{logs::*, DbInstance};
-use rust_extensions::{
-    date_time::DateTimeAsMicroseconds, events_loop::EventsLoop, AppStates, Logger,
-};
+use my_no_sql_server_core::DbInstance;
+use rust_extensions::{date_time::DateTimeAsMicroseconds, events_loop::EventsLoop, AppStates};
 
 use crate::{
     data_readers::DataReadersList,
@@ -32,7 +29,6 @@ pub const DEFAULT_PERSIST_PERIOD: crate::db_sync::DataSynchronizationPeriod =
 pub struct AppContext {
     pub created: DateTimeAsMicroseconds,
     pub db: DbInstance,
-    pub logs: Arc<Logs>,
 
     pub metrics: PrometheusMetrics,
 
@@ -53,17 +49,12 @@ pub struct AppContext {
 }
 
 impl AppContext {
-    pub fn new(
-        logs: Arc<Logs>,
-        settings: Arc<SettingsModel>,
-        persist_io: PersistIoOperations,
-    ) -> Self {
+    pub fn new(settings: Arc<SettingsModel>, persist_io: PersistIoOperations) -> Self {
         AppContext {
             persist_markers: PersistMarkersByTable::new(),
             created: DateTimeAsMicroseconds::now(),
             init_state: InitState::new(),
             db: DbInstance::new(),
-            logs,
             metrics: PrometheusMetrics::new(),
             active_transactions: ActiveTransactions::new(),
             process_id: uuid::Uuid::new_v4().to_string(),
@@ -87,57 +78,5 @@ impl AppContext {
     pub fn get_persist_amount(&self) -> usize {
         self.persist_amount
             .load(std::sync::atomic::Ordering::Relaxed)
-    }
-}
-
-impl Logger for AppContext {
-    fn write_info(
-        &self,
-        process_name: String,
-        message: String,
-        context: Option<HashMap<String, String>>,
-    ) {
-        self.logs
-            .add_info(None, SystemProcess::System, process_name, message, context);
-    }
-
-    fn write_error(
-        &self,
-        process_name: String,
-        message: String,
-        context: Option<HashMap<String, String>>,
-    ) {
-        self.logs
-            .add_fatal_error(None, SystemProcess::System, process_name, message, context);
-    }
-
-    fn write_warning(
-        &self,
-        process_name: String,
-        message: String,
-        ctx: Option<HashMap<String, String>>,
-    ) {
-        self.logs
-            .add_error(None, SystemProcess::System, process_name, message, ctx);
-    }
-
-    fn write_fatal_error(
-        &self,
-        process_name: String,
-        message: String,
-        ctx: Option<HashMap<String, String>>,
-    ) {
-        self.logs
-            .add_error(None, SystemProcess::System, process_name, message, ctx);
-    }
-
-    fn write_debug_info(
-        &self,
-        process_name: String,
-        message: String,
-        ctx: Option<HashMap<String, String>>,
-    ) {
-        self.logs
-            .add_error(None, SystemProcess::Debug, process_name, message, ctx);
     }
 }

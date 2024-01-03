@@ -141,17 +141,19 @@ pub fn build(app: &Arc<AppContext>) -> ControllersMiddleware {
         super::rows_controller::DeletePartitionsAction::new(app.clone()),
     ));
 
-    result.register_get_action(Arc::new(super::logs_controller::GetFatalErrorsAction::new(
-        app.clone(),
-    )));
+    /*
+       result.register_get_action(Arc::new(super::logs_controller::GetFatalErrorsAction::new(
+           app.clone(),
+       )));
 
-    result.register_get_action(Arc::new(super::logs_controller::GetLogsByTableAction::new(
-        app.clone(),
-    )));
+       result.register_get_action(Arc::new(super::logs_controller::GetLogsByTableAction::new(
+           app.clone(),
+       )));
 
-    result.register_get_action(Arc::new(super::logs_controller::SelectTableAction::new(
-        app.clone(),
-    )));
+       result.register_get_action(Arc::new(super::logs_controller::SelectTableAction::new(
+           app.clone(),
+       )));
+
 
     result.register_get_action(Arc::new(
         super::logs_controller::GetLogsByProcessAction::new(app.clone()),
@@ -162,6 +164,7 @@ pub fn build(app: &Arc<AppContext>) -> ControllersMiddleware {
     result.register_get_action(Arc::new(super::logs_controller::HomeAction::new(
         app.clone(),
     )));
+    */
 
     result.register_get_action(Arc::new(super::home_controller::IndexAction::new(
         app.clone(),

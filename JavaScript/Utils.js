@@ -33,7 +33,7 @@ var Utils = /** @class */ (function () {
         return result;
     };
     Utils.formatNumber = function (n) {
-        return n.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,');
+        return n.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1 ');
     };
     Utils.format_bytes = function (n) {
         if (n < 1024) {

@@ -6,6 +6,8 @@ use tokio::sync::Mutex;
 
 use super::data_to_persist::{DataToPersist, PersistResult};
 
+const DURATION_MONITORING_DATA_SIZE: usize = 120;
+
 pub struct PersistMarkersByTableInner {
     pub data_to_persist: DataToPersist,
     pub persist_duration: Vec<usize>,
@@ -16,17 +18,17 @@ impl PersistMarkersByTableInner {
     pub fn new() -> Self {
         Self {
             data_to_persist: DataToPersist::new(),
-            persist_duration: Vec::new(),
+            persist_duration: Vec::with_capacity(DURATION_MONITORING_DATA_SIZE),
             last_persist_time: None,
         }
     }
 
     pub fn add_persist_duration(&mut self, dur: Duration) {
-        self.persist_duration.push(dur.as_micros() as usize);
-
-        while self.persist_duration.len() > 120 {
+        while self.persist_duration.len() == DURATION_MONITORING_DATA_SIZE {
             self.persist_duration.remove(0);
         }
+
+        self.persist_duration.push(dur.as_micros() as usize);
 
         self.last_persist_time = DateTimeAsMicroseconds::now().into();
     }

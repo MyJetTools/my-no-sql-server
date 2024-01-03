@@ -3,7 +3,7 @@ use std::{sync::Arc, time::Duration};
 use crate::{app::AppContext, persist_io::TableFile};
 
 use super::{load_tasks::NextFileToLoadResult, LoadedTableItem};
-use my_no_sql_server_core::logs::*;
+use my_logger::LogEventCtx;
 
 pub async fn spawn(app: Arc<AppContext>) {
     loop {
@@ -17,12 +17,12 @@ pub async fn spawn(app: Arc<AppContext>) {
                 let table_file = TableFile::from_file_name(file_name.as_str());
 
                 if let Err(err) = table_file {
-                    app.logs.add_error(
-                        Some(file_name.to_string()),
-                        SystemProcess::Init,
+                    my_logger::LOGGER.write_error(
                         "init_tables".to_string(),
                         format!("Error loading table file {}: {}", file_name, err),
-                        None,
+                        LogEventCtx::new()
+                            .add("tableName", table_name)
+                            .add("fileName", file_name),
                     );
                     continue;
                 }
@@ -42,15 +42,12 @@ pub async fn spawn(app: Arc<AppContext>) {
                                 .await;
                         }
                         Err(err) => {
-                            app.logs.add_error(
-                                Some(file_name.to_string()),
-                                SystemProcess::Init,
+                            my_logger::LOGGER.write_error(
                                 "init_tables".to_string(),
-                                format!(
-                                    "Error parsing table file {}/{}: {}",
-                                    table_name, file_name, err
-                                ),
-                                None,
+                                format!("Error parsing table. Err: {}", err),
+                                LogEventCtx::new()
+                                    .add("tableName", table_name)
+                                    .add("fileName", file_name),
                             );
                         }
                     }

@@ -1,16 +1,14 @@
 use std::sync::Arc;
 
+use my_logger::LogEventCtx;
 use rust_extensions::StopWatch;
 
 use crate::app::AppContext;
-use my_no_sql_server_core::logs::*;
 
 pub async fn load_tables(app: Arc<AppContext>) {
     let table_names = app.persist_io.get_list_of_tables().await;
 
-    app.init_state
-        .init_table_names(table_names.clone(), app.logs.as_ref())
-        .await;
+    app.init_state.init_table_names(table_names.clone()).await;
 
     tokio::spawn(super::table_list_of_files_loader(app.clone(), table_names));
 
@@ -32,13 +30,13 @@ pub async fn load_tables(app: Arc<AppContext>) {
 
     app.states.set_initialized();
 
+    app.init_state.dispose().await;
+
     sw.pause();
 
-    app.logs.add_info(
-        None,
-        SystemProcess::Init,
+    my_logger::LOGGER.write_info(
         "init_tables".to_string(),
         format!("All tables initialized in {:?}", sw.duration()),
-        None,
+        LogEventCtx::new(),
     );
 }

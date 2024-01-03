@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
-use my_no_sql_server_core::{logs::*, DbTableWrapper};
+use my_logger::LogEventCtx;
+use my_no_sql_server_core::DbTableWrapper;
 use rust_extensions::{date_time::DateTimeAsMicroseconds, StopWatch};
 
 use crate::{app::AppContext, persist::data_to_persist::PersistResult};
@@ -42,12 +43,10 @@ pub async fn persist(app: &Arc<AppContext>) {
                 }
 
                 if let Err(err) = result {
-                    app.logs.add_fatal_error(
-                        Some(db_table.name.to_string()),
-                        SystemProcess::PersistOperation,
+                    my_logger::LOGGER.write_fatal_error(
                         "PersistTimer".to_string(),
                         format!("Can not persist messages {:?}", err),
-                        None,
+                        LogEventCtx::new().add("table_name", db_table.name.as_str()),
                     )
                 }
             }

@@ -1,5 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
+use my_logger::LogEventCtx;
 use rust_extensions::{date_time::DateTimeAsMicroseconds, MyTimerTick};
 
 use crate::{app::AppContext, db_sync::EventSource};
@@ -30,7 +31,6 @@ impl MyTimerTick for GcDbRows {
 }
 
 async fn gc_it(app: &AppContext) {
-    use my_no_sql_server_core::logs::SystemProcess;
     let tables = app.db.get_tables().await;
 
     let now = DateTimeAsMicroseconds::now();
@@ -58,13 +58,11 @@ async fn gc_it(app: &AppContext) {
                 )
                 .await
                 {
-                    app.logs.add_error(
-                        table.name.to_string().into(),
-                        SystemProcess::Timer,
-                        "GcPartitions".to_string().into(),
+                    my_logger::LOGGER.write_error(
+                        "GcPartitions",
                         format!("{:?}", err),
-                        None,
-                    )
+                        LogEventCtx::new().add("tableName", table.name.as_str()),
+                    );
                 }
             }
 
@@ -84,12 +82,10 @@ async fn gc_it(app: &AppContext) {
 
                     ctx.insert("TableName".to_string(), table.name.to_string());
 
-                    app.logs.add_error(
-                        table.name.to_string().into(),
-                        SystemProcess::Timer,
-                        "GcRows".to_string().into(),
+                    my_logger::LOGGER.write_error(
+                        "GcRows",
                         format!("{:?}", err),
-                        Some(ctx),
+                        LogEventCtx::new().add("tableName", table.name.as_str()),
                     )
                 }
             }
