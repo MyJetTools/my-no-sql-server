@@ -64,6 +64,7 @@ prometheus = "*"
 async-trait = "*"
 tokio-stream = "*"
 zip = "*"
+jemallocator = "*"
 
 [build-dependencies]
 tonic-build = { version = "*", features = ["prost"] }

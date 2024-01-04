@@ -35,6 +35,9 @@ pub mod mynosqlserver_grpc {
     tonic::include_proto!("mynosqlserver");
 }
 
+#[global_allocator]
+static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+
 #[tokio::main]
 async fn main() {
     let settings = settings_reader::read_settings().await;
