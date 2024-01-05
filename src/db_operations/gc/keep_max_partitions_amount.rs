@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use my_no_sql_sdk::core::db::PartitionKey;
 use my_no_sql_server_core::DbTableWrapper;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
@@ -14,7 +15,7 @@ pub async fn keep_max_partitions_amount(
 ) -> Result<(), DbOperationError> {
     super::super::check_app_states(app)?;
 
-    let partitions_to_gc: Option<Vec<String>> = {
+    let partitions_to_gc: Option<Vec<PartitionKey>> = {
         let read_access = db_table.data.read().await;
 
         let result = read_access
@@ -32,7 +33,7 @@ pub async fn keep_max_partitions_amount(
         super::super::write::delete_partitions(
             app,
             db_table,
-            partitions_to_gc.into_iter(),
+            partitions_to_gc.iter().map(|itm| itm.as_str()),
             event_src,
             persist_moment,
             DateTimeAsMicroseconds::now(),

@@ -51,17 +51,16 @@ pub async fn validate_before(
 pub async fn execute(
     app: &AppContext,
     db_table: &Arc<DbTableWrapper>,
-    partition_key: &String,
     db_row: Arc<DbRow>,
     event_src: EventSource,
-    entity_timestamp: &str,
+
     persist_moment: DateTimeAsMicroseconds,
     now: &JsonTimeStamp,
 ) -> Result<WriteOperationResult, DbOperationError> {
     let mut table_data = db_table.data.write().await;
 
     let remove_result = {
-        let db_partition = table_data.get_partition_mut(partition_key);
+        let db_partition = table_data.get_partition_mut(db_row.get_partition_key());
 
         if db_partition.is_none() {
             return Err(DbOperationError::RecordNotFound);
@@ -69,11 +68,13 @@ pub async fn execute(
 
         let db_partition = db_partition.unwrap();
 
-        let current_db_row = db_partition.get_row(db_row.row_key.as_str());
+        let partition_key = db_partition.partition_key.clone();
+
+        let current_db_row = db_partition.get_row(db_row.get_row_key());
 
         match current_db_row {
             Some(current_db_row) => {
-                if current_db_row.time_stamp != entity_timestamp {
+                if current_db_row.time_stamp != db_row.time_stamp.as_str() {
                     return Err(DbOperationError::OptimisticConcurrencyUpdateFails);
                 }
             }
@@ -81,7 +82,12 @@ pub async fn execute(
                 return Err(DbOperationError::RecordNotFound);
             }
         }
-        let removed_result = table_data.remove_row(partition_key, &db_row.row_key, false, None);
+        let removed_result = table_data.remove_row(
+            partition_key.as_ref_of_string(),
+            db_row.get_row_key(),
+            false,
+            None,
+        );
 
         if removed_result.is_none() {
             None
@@ -93,7 +99,7 @@ pub async fn execute(
     table_data.insert_row(&db_row, Some(now.date_time));
 
     app.persist_markers
-        .persist_partition(&table_data, db_row.partition_key.as_ref(), persist_moment)
+        .persist_partition(&table_data, db_row.get_partition_key(), persist_moment)
         .await;
 
     let mut update_rows_state = UpdateRowsSyncData::new(&table_data, event_src);

@@ -174,7 +174,7 @@ impl TcpServerEvents {
                     crate::db_operations::update_row_keys_last_read_access_time(
                         &db_table,
                         &partition_key,
-                        row_keys.iter(),
+                        row_keys.iter().map(|x| x.as_str()),
                     )
                     .await;
                 }
@@ -220,7 +220,7 @@ impl TcpServerEvents {
                         &self.app,
                         db_table,
                         &partition_key,
-                        row_keys.iter(),
+                        row_keys.iter().map(|x| x.as_str()),
                         expiration_time,
                     )
                 }

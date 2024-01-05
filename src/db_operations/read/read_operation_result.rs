@@ -31,7 +31,7 @@ impl ReadOperationResult {
             for (partition_key, db_rows) in &db_rows {
                 update_statistics
                     .update_statistics(app, db_table, partition_key, || {
-                        db_rows.iter().map(|db_row| &db_row.row_key)
+                        db_rows.iter().map(|db_row| db_row.get_row_key())
                     })
                     .await;
             }
@@ -39,7 +39,7 @@ impl ReadOperationResult {
 
         for (_, db_rows) in db_rows {
             for db_row in db_rows {
-                json_array_writer.write_raw_element(&db_row.data);
+                db_row.compile_json(json_array_writer.get_mut_to_write_raw_element());
             }
         }
 
@@ -63,12 +63,12 @@ impl ReadOperationResult {
 
         update_statistics
             .update_statistics(app, db_table, partition_key, || {
-                db_rows.iter().map(|db_row| &db_row.row_key)
+                db_rows.iter().map(|db_row| db_row.get_row_key())
             })
             .await;
 
         for db_row in db_rows {
-            json_array_writer.write_raw_element(&db_row.data);
+            db_row.compile_json(json_array_writer.get_mut_to_write_raw_element());
         }
 
         return ReadOperationResult::RowsArray(json_array_writer.build());

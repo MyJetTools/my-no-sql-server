@@ -30,11 +30,12 @@ impl InsertOrReplaceEntitiesTransactionActionGrpcModel {
             let db_rows = entity.to_db_rows(&now)?;
 
             for db_row in db_rows {
-                if !result.contains_key(&db_row.partition_key) {
-                    result.insert(db_row.partition_key.to_string(), Vec::new());
+                let partition_key = db_row.get_partition_key();
+                if !result.contains_key(partition_key) {
+                    result.insert(partition_key.to_string(), Vec::new());
                 }
 
-                result.get_mut(&db_row.partition_key).unwrap().push(db_row);
+                result.get_mut(partition_key).unwrap().push(db_row);
             }
         }
 

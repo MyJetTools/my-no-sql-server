@@ -5,10 +5,7 @@ use my_no_sql_sdk::core::db::{DbPartition, DbTable, DbTableAttributes};
 pub enum FileStatus {
     Waiting,
     Loading,
-    DbPartition {
-        partition_key: String,
-        db_partition: DbPartition,
-    },
+    DbPartition(DbPartition),
 }
 
 impl FileStatus {
@@ -60,19 +57,9 @@ impl LoadTableTask {
         None
     }
 
-    pub fn add_db_partition(
-        &mut self,
-        file_name: String,
-        partition_key: String,
-        db_partition: DbPartition,
-    ) {
-        self.files.insert(
-            file_name,
-            FileStatus::DbPartition {
-                partition_key,
-                db_partition,
-            },
-        );
+    pub fn add_db_partition(&mut self, file_name: String, db_partition: DbPartition) {
+        self.files
+            .insert(file_name, FileStatus::DbPartition(db_partition));
     }
 
     pub fn add_attribute(&mut self, file_name: String, attr: DbTableAttributes) {
@@ -105,11 +92,8 @@ impl LoadTableTask {
                 FileStatus::Loading => {
                     panic!("Somehow we started getting result having Loading File")
                 }
-                FileStatus::DbPartition {
-                    partition_key,
-                    db_partition,
-                } => {
-                    db_table.partitions.insert(&partition_key, db_partition);
+                FileStatus::DbPartition(db_partition) => {
+                    db_table.partitions.insert(db_partition);
                 }
             }
         }
@@ -124,10 +108,7 @@ impl LoadTableTask {
                 FileStatus::Loading => {
                     return false;
                 }
-                FileStatus::DbPartition {
-                    partition_key: _,
-                    db_partition: _,
-                } => {}
+                FileStatus::DbPartition(_) => {}
             }
         }
 

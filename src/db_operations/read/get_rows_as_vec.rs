@@ -69,7 +69,7 @@ pub async fn get_as_partition_key_and_row_key(
 
     if update_statistics.has_statistics_to_update() {
         update_statistics
-            .update_statistics(app, table, partition_key, || [row_key].into_iter())
+            .update_statistics(app, table, partition_key, || [row_key.as_str()].into_iter())
             .await;
     }
 
@@ -130,20 +130,19 @@ async fn get_as_row_key_only(
             let mut by_partition = HashMap::new();
 
             for db_row in result {
-                if !by_partition.contains_key(&db_row.partition_key) {
-                    by_partition.insert(db_row.partition_key.to_string(), Vec::new());
+                let partition_key = db_row.get_partition_key();
+
+                if !by_partition.contains_key(partition_key) {
+                    by_partition.insert(partition_key.to_string(), Vec::new());
                 }
 
-                by_partition
-                    .get_mut(&db_row.partition_key)
-                    .unwrap()
-                    .push(db_row);
+                by_partition.get_mut(partition_key).unwrap().push(db_row);
             }
 
             for (partition_key, row_keys) in by_partition {
                 update_statistics
                     .update_statistics(app, table, &partition_key, || {
-                        row_keys.iter().map(|itm| &itm.row_key)
+                        row_keys.iter().map(|itm| itm.get_row_key())
                     })
                     .await;
             }

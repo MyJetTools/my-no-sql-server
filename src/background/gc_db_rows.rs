@@ -47,11 +47,10 @@ async fn gc_it(app: &AppContext) {
             persist_moment.add_seconds(5);
 
             if data_to_gc.partitions.len() > 0 {
-                println!("GcPartitions: {}", data_to_gc.partitions.len());
                 if let Err(err) = crate::db_operations::write::delete_partitions(
                     app,
                     &table,
-                    data_to_gc.partitions.into_iter().map(|x| x.0),
+                    data_to_gc.partitions.iter().map(|x| x.0.as_str()),
                     EventSource::GarbageCollector,
                     persist_moment,
                     now,

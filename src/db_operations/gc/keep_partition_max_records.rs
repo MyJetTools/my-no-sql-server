@@ -34,7 +34,10 @@ pub async fn execute(
 
         let db_rows = db_rows.unwrap();
 
-        db_rows.into_iter().map(|r| r.row_key.to_string()).collect()
+        db_rows
+            .into_iter()
+            .map(|r| r.get_row_key().to_string())
+            .collect()
     };
 
     let mut row_to_delete = BTreeMap::new();

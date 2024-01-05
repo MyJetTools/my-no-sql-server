@@ -44,10 +44,12 @@ async fn handle_request(
 
     let now = JsonTimeStamp::now();
 
-    let db_json_entity =
-        crate::db_operations::parse_json_entity::as_single_entity(input_data.body.as_slice())?;
+    let body: Vec<u8> = input_data.body.into();
 
-    let db_row = Arc::new(db_json_entity.new_db_row(&now));
+    let db_json_entity =
+        crate::db_operations::parse_json_entity::as_single_entity(body.as_slice())?;
+
+    let db_row = Arc::new(db_json_entity.into_db_row(body, &now));
 
     crate::db_operations::write::insert_or_replace::execute(
         action.app.as_ref(),

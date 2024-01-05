@@ -51,7 +51,7 @@ impl DeleteRowsEventSyncData {
         deleted_rows_btree_map
             .get_mut(partition_key)
             .unwrap()
-            .insert(deleted_row.row_key.to_string(), deleted_row.clone());
+            .insert(deleted_row.get_row_key().to_string(), deleted_row.clone());
     }
 
     pub fn add_deleted_rows(&mut self, partition_key: &str, deleted_rows: &[Arc<DbRow>]) {
@@ -64,7 +64,7 @@ impl DeleteRowsEventSyncData {
         let by_partition = deleted_rows_btree_map.get_mut(partition_key).unwrap();
 
         for deleted_row in deleted_rows {
-            by_partition.insert(deleted_row.row_key.to_string(), deleted_row.clone());
+            by_partition.insert(deleted_row.get_row_key().to_string(), deleted_row.clone());
         }
     }
 
@@ -97,7 +97,7 @@ impl DeleteRowsEventSyncData {
                 for (partition_key, deleted_rows) in deleted_rows {
                     let mut deleted_rows_json_array = JsonArrayWriter::new();
                     for deleted_row in deleted_rows.values() {
-                        deleted_rows_json_array.write_string_element(deleted_row.row_key.as_str());
+                        deleted_rows_json_array.write_string_element(deleted_row.get_row_key());
                     }
                     json_object_writer.write_object(partition_key, deleted_rows_json_array);
                 }

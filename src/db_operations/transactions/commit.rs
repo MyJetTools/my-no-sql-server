@@ -53,7 +53,7 @@ pub async fn commit(
                     crate::db_operations::write::delete_partitions(
                         app,
                         &db_table,
-                        partition_keys.into_iter(),
+                        partition_keys.iter().map(|x| x.as_str()),
                         event_src.clone(),
                         persist_moment,
                         now,

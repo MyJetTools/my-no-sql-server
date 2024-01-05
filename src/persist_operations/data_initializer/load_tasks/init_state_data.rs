@@ -95,11 +95,8 @@ impl InitStateData {
 
                     table.add_attribute(file_name, attrs);
                 }
-                LoadedTableItem::DbPartition {
-                    partition_key,
-                    db_partition,
-                } => {
-                    table.add_db_partition(file_name, partition_key, db_partition);
+                LoadedTableItem::DbPartition(db_partition) => {
+                    table.add_db_partition(file_name, db_partition);
                 }
             }
 

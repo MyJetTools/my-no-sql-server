@@ -21,7 +21,7 @@ impl UpdateStatistics {
             || self.update_rows_expiration_time.is_some()
     }
 
-    pub async fn update_statistics<'s, TRowKeys: Iterator<Item = &'s String>>(
+    pub async fn update_statistics<'s, TRowKeys: Iterator<Item = &'s str>>(
         &self,
         app: &Arc<AppContext>,
         db_table: &Arc<DbTableWrapper>,

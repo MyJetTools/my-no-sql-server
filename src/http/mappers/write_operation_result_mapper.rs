@@ -6,10 +6,12 @@ impl Into<Result<HttpOkResult, HttpFailResult>> for WriteOperationResult {
     fn into(self) -> Result<HttpOkResult, HttpFailResult> {
         match self {
             WriteOperationResult::SingleRow(db_row) => {
+                let mut content = Vec::new();
+                db_row.compile_json(&mut content);
                 let output = HttpOutput::Content {
                     headers: None,
                     content_type: Some(WebContentType::Json),
-                    content: db_row.data.to_vec(),
+                    content,
                 };
 
                 Ok(HttpOkResult {

@@ -5,7 +5,7 @@ use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::app::AppContext;
 
-pub fn update_rows_expiration_time<'s, TRowKeys: Iterator<Item = &'s String>>(
+pub fn update_rows_expiration_time<'s, TRowKeys: Iterator<Item = &'s str>>(
     app: &Arc<AppContext>,
     db_table: &Arc<DbTableWrapper>,
     partition_key: &str,

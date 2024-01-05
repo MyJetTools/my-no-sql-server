@@ -78,16 +78,18 @@ impl InsertOrUpdateTransactionJsonModel {
 
         let now = JsonTimeStamp::now();
 
-        for entity in &self.entities {
-            let db_entity = DbJsonEntity::parse(entity)?;
-            let db_row = Arc::new(db_entity.new_db_row(&now));
+        for entity in self.entities {
+            let db_entity = DbJsonEntity::parse(&entity)?;
+            let db_row = Arc::new(db_entity.into_db_row(entity, &now));
 
-            if !rows_by_partition.contains_key(db_entity.partition_key) {
-                rows_by_partition.insert(db_entity.partition_key.to_string(), Vec::new());
+            let partition_key = db_row.get_partition_key();
+
+            if !rows_by_partition.contains_key(partition_key) {
+                rows_by_partition.insert(partition_key.to_string(), Vec::new());
             }
 
             rows_by_partition
-                .get_mut(db_entity.partition_key)
+                .get_mut(partition_key)
                 .unwrap()
                 .push(db_row);
         }

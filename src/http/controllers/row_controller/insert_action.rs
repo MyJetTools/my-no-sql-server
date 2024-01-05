@@ -39,14 +39,16 @@ async fn handle_request(
         crate::db_operations::read::table::get(action.app.as_ref(), input_data.table_name.as_str())
             .await?;
 
+    let body: Vec<u8> = input_data.body.into();
+
     let db_json_entity =
-        crate::db_operations::parse_json_entity::as_single_entity(input_data.body.as_slice())?;
+        crate::db_operations::parse_json_entity::as_single_entity(body.as_slice())?;
 
     crate::db_operations::write::insert::validate_before(
         action.app.as_ref(),
         &db_table,
-        db_json_entity.partition_key,
-        db_json_entity.row_key,
+        db_json_entity.get_partition_key(&body),
+        db_json_entity.get_row_key(&body),
     )
     .await?;
 
@@ -54,7 +56,7 @@ async fn handle_request(
 
     let now = JsonTimeStamp::now();
 
-    let db_row = Arc::new(db_json_entity.new_db_row(&now));
+    let db_row = Arc::new(db_json_entity.into_db_row(body, &now));
 
     crate::db_operations::write::insert::execute(
         &action.app,

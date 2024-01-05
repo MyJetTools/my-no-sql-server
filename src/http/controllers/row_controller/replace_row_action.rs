@@ -42,29 +42,29 @@ async fn handle_request(
 
     let now = JsonTimeStamp::now();
 
+    let body: Vec<u8> = input_data.body.into();
+
     let db_json_entity =
-        crate::db_operations::parse_json_entity::as_single_entity(input_data.body.as_slice())?;
+        crate::db_operations::parse_json_entity::as_single_entity(body.as_slice())?;
 
     crate::db_operations::write::replace::validate_before(
         action.app.as_ref(),
         &db_table,
-        db_json_entity.partition_key,
-        db_json_entity.row_key,
-        db_json_entity.time_stamp,
+        db_json_entity.get_partition_key(body.as_slice()),
+        db_json_entity.get_row_key(body.as_slice()),
+        db_json_entity.get_time_stamp(body.as_slice()),
     )
     .await?;
 
-    let db_row = Arc::new(db_json_entity.new_db_row(&now));
+    let db_row = Arc::new(db_json_entity.into_db_row(body, &now));
 
     let event_src = EventSource::as_client_request(action.app.as_ref());
 
     crate::db_operations::write::replace::execute(
         action.app.as_ref(),
         &db_table,
-        &db_json_entity.partition_key.to_string(),
         db_row,
         event_src,
-        db_json_entity.time_stamp.unwrap(),
         input_data.sync_period.get_sync_moment(),
         &now,
     )

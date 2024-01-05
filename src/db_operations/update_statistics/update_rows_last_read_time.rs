@@ -3,7 +3,7 @@ use std::sync::Arc;
 use my_no_sql_server_core::DbTableWrapper;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-pub async fn update_row_keys_last_read_access_time<'s, TRowKeys: Iterator<Item = &'s String>>(
+pub async fn update_row_keys_last_read_access_time<'s, TRowKeys: Iterator<Item = &'s str>>(
     db_table: &Arc<DbTableWrapper>,
     partition_key: &str,
     row_keys: TRowKeys,

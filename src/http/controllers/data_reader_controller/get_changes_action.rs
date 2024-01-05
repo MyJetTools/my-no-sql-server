@@ -109,7 +109,7 @@ async fn update_expiration_time(
                 app,
                 &db_table,
                 &item.partition_key,
-                item.row_keys.iter(),
+                item.row_keys.iter().map(|x| x.as_str()),
                 set_expiration_time,
             );
         }

@@ -43,7 +43,7 @@ pub async fn get_all_by_row_key(
     let db_rows = if let Some(db_rows) = db_rows {
         let mut result = HashMap::new();
         for db_row in db_rows {
-            result.insert(db_row.partition_key.to_string(), vec![db_row]);
+            result.insert(db_row.get_partition_key().to_string(), vec![db_row]);
         }
 
         Some(result)

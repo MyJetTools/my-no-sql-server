@@ -38,9 +38,15 @@ pub async fn get_single(
 
     if update_statistics.has_statistics_to_update() {
         update_statistics
-            .update_statistics(app, db_table, partition_key, || [row_key].into_iter())
+            .update_statistics(app, db_table, partition_key, || {
+                [row_key.as_str()].into_iter()
+            })
             .await;
     }
 
-    return Ok(ReadOperationResult::SingleRow(db_row.data.clone()));
+    let mut content = Vec::new();
+
+    db_row.compile_json(&mut content);
+
+    return Ok(ReadOperationResult::SingleRow(content));
 }

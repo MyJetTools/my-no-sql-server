@@ -9,7 +9,7 @@ use crate::{
     db_sync::{states::InitPartitionsSyncData, EventSource, SyncEvent},
 };
 
-pub async fn delete_partitions<TPartitions: Iterator<Item = String>>(
+pub async fn delete_partitions<'s, TPartitions: Iterator<Item = &'s str>>(
     app: &AppContext,
     db_table: &Arc<DbTableWrapper>,
     partition_keys: TPartitions,
@@ -28,10 +28,10 @@ pub async fn delete_partitions<TPartitions: Iterator<Item = String>>(
 
         if remove_partition_result.is_some() {
             app.persist_markers
-                .persist_partition(&table_write_access, partition_key.as_str(), persist_moment)
+                .persist_partition(&table_write_access, partition_key, persist_moment)
                 .await;
 
-            sync_data.add(partition_key, None);
+            sync_data.add(partition_key.to_string(), None);
         }
     }
 
