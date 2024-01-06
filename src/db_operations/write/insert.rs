@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use my_no_sql_sdk::core::db::DbRow;
+use my_no_sql_sdk::core::{db::DbRow, db_json_entity::DbJsonEntityWithContent};
 use my_no_sql_server_core::DbTableWrapper;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
@@ -13,25 +13,24 @@ use crate::{
 pub async fn validate_before(
     app: &AppContext,
     db_table: &Arc<DbTableWrapper>,
-    partition_key: &str,
-    row_key: &str,
-) -> Result<(), DbOperationError> {
+    db_entity: DbJsonEntityWithContent<'_>,
+) -> Result<DbRow, DbOperationError> {
     super::super::check_app_states(app)?;
     let read_access = db_table.data.read().await;
 
-    let partition = read_access.get_partition(partition_key);
+    let partition = read_access.get_partition(db_entity.get_partition_key());
 
     if partition.is_none() {
-        return Ok(());
+        return Ok(db_entity.into_db_row()?);
     }
 
     let partition = partition.unwrap();
 
-    if partition.get_row(row_key).is_some() {
+    if partition.get_row(db_entity.get_row_key()).is_some() {
         return Err(DbOperationError::RecordAlreadyExists);
     }
 
-    Ok(())
+    Ok(db_entity.into_db_row()?)
 }
 
 pub async fn execute(

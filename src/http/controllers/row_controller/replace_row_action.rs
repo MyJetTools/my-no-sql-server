@@ -6,6 +6,7 @@ use my_no_sql_sdk::core::db_json_entity::JsonTimeStamp;
 
 use crate::app::AppContext;
 use crate::db_sync::EventSource;
+use crate::operations::parse_db_json_entity_to_validate;
 
 use super::models::{BaseDbRowContract, ReplaceInputContract};
 
@@ -41,22 +42,16 @@ async fn handle_request(
             .await?;
 
     let now = JsonTimeStamp::now();
+    let db_entity = parse_db_json_entity_to_validate(input_data.body.as_slice(), &now)?;
 
-    let body: Vec<u8> = input_data.body.into();
-
-    let db_json_entity =
-        crate::db_operations::parse_json_entity::as_single_entity(body.as_slice())?;
-
-    crate::db_operations::write::replace::validate_before(
+    let db_row = crate::db_operations::write::replace::validate_before(
         action.app.as_ref(),
         &db_table,
-        db_json_entity.get_partition_key(body.as_slice()),
-        db_json_entity.get_row_key(body.as_slice()),
-        db_json_entity.get_time_stamp(body.as_slice()),
+        db_entity,
     )
     .await?;
 
-    let db_row = Arc::new(db_json_entity.into_db_row(body, &now));
+    let db_row = Arc::new(db_row);
 
     let event_src = EventSource::as_client_request(action.app.as_ref());
 

@@ -6,7 +6,10 @@ use crate::{
     db_sync::{states::UpdateRowsSyncData, EventSource, SyncEvent},
 };
 
-use my_no_sql_sdk::core::{db::DbRow, db_json_entity::JsonTimeStamp};
+use my_no_sql_sdk::core::{
+    db::DbRow,
+    db_json_entity::{DbJsonEntityWithContent, JsonTimeStamp},
+};
 use my_no_sql_server_core::DbTableWrapper;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 use serde::{Deserialize, Serialize};
@@ -17,35 +20,33 @@ use super::WriteOperationResult;
 pub async fn validate_before(
     app: &AppContext,
     db_table: &Arc<DbTableWrapper>,
-    partition_key: &str,
-    row_key: &str,
-    entity_timestamp: Option<&str>,
-) -> Result<(), DbOperationError> {
+    db_entity: DbJsonEntityWithContent<'_>,
+) -> Result<DbRow, DbOperationError> {
     super::super::check_app_states(app)?;
 
-    if entity_timestamp.is_none() {
+    if db_entity.get_time_stamp().is_none() {
         return Err(DbOperationError::TimeStampFieldRequires);
     }
 
     let read_access = db_table.data.read().await;
 
-    let db_partition = read_access.get_partition(partition_key);
+    let db_partition = read_access.get_partition(db_entity.get_partition_key());
 
     if db_partition.is_none() {
         return Err(DbOperationError::RecordNotFound);
     }
 
-    let db_row = db_partition.unwrap().get_row(row_key);
+    let db_row = db_partition.unwrap().get_row(db_entity.get_row_key());
 
     if db_row.is_none() {
         return Err(DbOperationError::RecordNotFound);
     }
 
-    if db_row.unwrap().time_stamp != entity_timestamp.unwrap() {
+    if db_row.unwrap().get_time_stamp() != db_entity.get_time_stamp().unwrap() {
         return Err(DbOperationError::OptimisticConcurrencyUpdateFails);
     }
 
-    Ok(())
+    Ok(db_entity.into_db_row()?)
 }
 
 pub async fn execute(
@@ -74,7 +75,7 @@ pub async fn execute(
 
         match current_db_row {
             Some(current_db_row) => {
-                if current_db_row.time_stamp != db_row.time_stamp.as_str() {
+                if current_db_row.get_time_stamp() != db_row.get_time_stamp() {
                     return Err(DbOperationError::OptimisticConcurrencyUpdateFails);
                 }
             }

@@ -64,7 +64,7 @@ async fn handle_request(
             partition_read_time: db_partition.last_read_moment.to_rfc3339(),
             partition_write_time: db_partition.last_write_moment.to_rfc3339(),
             row_read_time: db_row.last_read_access.to_rfc3339(),
-            row_write_time: db_row.time_stamp.clone(),
+            row_write_time: db_row.get_time_stamp().to_string(),
         }
     };
 

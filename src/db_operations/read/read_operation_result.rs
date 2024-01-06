@@ -39,7 +39,7 @@ impl ReadOperationResult {
 
         for (_, db_rows) in db_rows {
             for db_row in db_rows {
-                db_row.compile_json(json_array_writer.get_mut_to_write_raw_element());
+                json_array_writer.write(db_row.as_ref());
             }
         }
 
@@ -68,7 +68,7 @@ impl ReadOperationResult {
             .await;
 
         for db_row in db_rows {
-            db_row.compile_json(json_array_writer.get_mut_to_write_raw_element());
+            json_array_writer.write(db_row.as_ref());
         }
 
         return ReadOperationResult::RowsArray(json_array_writer.build());

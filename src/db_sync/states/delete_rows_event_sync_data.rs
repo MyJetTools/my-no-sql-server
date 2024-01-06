@@ -89,7 +89,7 @@ impl DeleteRowsEventSyncData {
         {
             if let Some(deleted_partitions) = &self.deleted_partitions {
                 for partition_key in deleted_partitions.keys() {
-                    json_object_writer.write_value(partition_key, JsonNullValue);
+                    json_object_writer.write(partition_key, JsonNullValue);
                 }
             }
 
@@ -97,9 +97,9 @@ impl DeleteRowsEventSyncData {
                 for (partition_key, deleted_rows) in deleted_rows {
                     let mut deleted_rows_json_array = JsonArrayWriter::new();
                     for deleted_row in deleted_rows.values() {
-                        deleted_rows_json_array.write_string_element(deleted_row.get_row_key());
+                        deleted_rows_json_array.write(deleted_row.get_row_key());
                     }
-                    json_object_writer.write_object(partition_key, deleted_rows_json_array);
+                    json_object_writer.write(partition_key, deleted_rows_json_array);
                 }
             }
         }

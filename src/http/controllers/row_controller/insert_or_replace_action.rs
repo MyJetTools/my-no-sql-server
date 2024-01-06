@@ -6,6 +6,7 @@ use my_no_sql_sdk::core::db_json_entity::JsonTimeStamp;
 
 use crate::app::AppContext;
 use crate::db_sync::EventSource;
+use crate::operations::parse_db_json_entity;
 
 use super::models::InsertOrReplaceInputContract;
 
@@ -44,17 +45,12 @@ async fn handle_request(
 
     let now = JsonTimeStamp::now();
 
-    let body: Vec<u8> = input_data.body.into();
-
-    let db_json_entity =
-        crate::db_operations::parse_json_entity::as_single_entity(body.as_slice())?;
-
-    let db_row = Arc::new(db_json_entity.into_db_row(body, &now));
+    let db_row = parse_db_json_entity(input_data.body.as_slice(), &now)?;
 
     crate::db_operations::write::insert_or_replace::execute(
         action.app.as_ref(),
         db_table,
-        db_row,
+        Arc::new(db_row),
         event_src,
         input_data.sync_period.get_sync_moment(),
         now.date_time,

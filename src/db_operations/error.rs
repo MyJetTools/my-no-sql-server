@@ -21,3 +21,9 @@ impl DbOperationError {
         }
     }
 }
+
+impl From<DbEntityParseFail> for DbOperationError {
+    fn from(value: DbEntityParseFail) -> Self {
+        Self::DbEntityParseFail(value)
+    }
+}

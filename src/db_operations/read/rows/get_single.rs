@@ -44,9 +44,5 @@ pub async fn get_single(
             .await;
     }
 
-    let mut content = Vec::new();
-
-    db_row.compile_json(&mut content);
-
-    return Ok(ReadOperationResult::SingleRow(content));
+    return Ok(ReadOperationResult::SingleRow(db_row.to_vec()));
 }

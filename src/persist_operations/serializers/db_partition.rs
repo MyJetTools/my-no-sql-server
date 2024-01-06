@@ -13,10 +13,8 @@ pub fn deserialize(partition_key: &str, raw: &[u8]) -> Result<DbPartition, Strin
 
         let db_entity_json = db_entity_json_result.unwrap();
 
-        match DbJsonEntity::parse(db_entity_json) {
-            Ok(db_entity) => {
-                let db_row = db_entity.restore_db_row(db_entity_json.to_vec());
-
+        match DbJsonEntity::restore_into_db_row(db_entity_json) {
+            Ok(db_row) => {
                 db_partition.insert_row(Arc::new(db_row));
             }
             Err(err) => {

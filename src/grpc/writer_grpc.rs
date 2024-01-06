@@ -170,13 +170,9 @@ impl Writer for MyNoSqlServerWriterGrpcSerice {
         tokio::spawn(async move {
             if let Some(db_rows) = db_rows {
                 for db_row in db_rows {
-                    let mut content = Vec::new();
-
-                    db_row.compile_json(&mut content);
-
                     let grpc = TableEntityTransportGrpcContract {
                         content_type: 0,
-                        content,
+                        content: db_row.to_vec(),
                     };
 
                     tx.send(Ok(grpc)).await.unwrap();
@@ -250,13 +246,9 @@ impl Writer for MyNoSqlServerWriterGrpcSerice {
             return Ok(tonic::Response::new(result));
         }
 
-        let mut content = Vec::new();
-
-        db_row.unwrap().compile_json(&mut content);
-
         let entity = TableEntityTransportGrpcContract {
             content_type: 0,
-            content,
+            content: db_row.unwrap().to_vec(),
         };
 
         let result = GetDbRowGrpcResponse {

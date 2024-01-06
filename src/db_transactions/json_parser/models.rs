@@ -79,8 +79,8 @@ impl InsertOrUpdateTransactionJsonModel {
         let now = JsonTimeStamp::now();
 
         for entity in self.entities {
-            let db_entity = DbJsonEntity::parse(&entity)?;
-            let db_row = Arc::new(db_entity.into_db_row(entity, &now));
+            let db_row = DbJsonEntity::parse_into_db_row(&entity, &now)?;
+            let db_row = Arc::new(db_row);
 
             let partition_key = db_row.get_partition_key();
 
