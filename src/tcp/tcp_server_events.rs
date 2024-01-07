@@ -2,11 +2,11 @@ use std::sync::Arc;
 
 use my_logger::LogEventCtx;
 use my_no_sql_sdk::tcp_contracts::{MyNoSqlReaderTcpSerializer, MyNoSqlTcpContract};
-use my_tcp_sockets::{tcp_connection::SocketConnection, ConnectionEvent, SocketEventCallback};
+use my_tcp_sockets::{tcp_connection::TcpSocketConnection, ConnectionEvent, SocketEventCallback};
 
 use crate::{app::AppContext, data_readers::tcp_connection::ReaderName};
 
-pub type MyNoSqlTcpConnection = SocketConnection<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer>;
+pub type MyNoSqlTcpConnection = TcpSocketConnection<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer>;
 
 pub struct TcpServerEvents {
     app: Arc<AppContext>,
@@ -24,7 +24,7 @@ impl TcpServerEvents {
     ) {
         match tcp_contract {
             MyNoSqlTcpContract::Ping => {
-                connection.send(MyNoSqlTcpContract::Pong).await;
+                connection.send(&MyNoSqlTcpContract::Pong).await;
             }
             MyNoSqlTcpContract::Greeting { name } => {
                 my_logger::LOGGER.write_info(
@@ -86,7 +86,9 @@ impl TcpServerEvents {
                                 .add("TableName", table_name),
                         );
 
-                        connection.send(MyNoSqlTcpContract::Error { message }).await;
+                        connection
+                            .send(&MyNoSqlTcpContract::Error { message })
+                            .await;
                     }
                 }
             }
@@ -98,7 +100,7 @@ impl TcpServerEvents {
 
                     if table.is_none() {
                         connection
-                            .send(MyNoSqlTcpContract::TableNotFound(table_name))
+                            .send(&MyNoSqlTcpContract::TableNotFound(table_name))
                             .await;
 
                         return;
@@ -158,7 +160,7 @@ impl TcpServerEvents {
                 }
 
                 connection
-                    .send(MyNoSqlTcpContract::Confirmation { confirmation_id })
+                    .send(&MyNoSqlTcpContract::Confirmation { confirmation_id })
                     .await;
             }
 
@@ -180,7 +182,7 @@ impl TcpServerEvents {
                 }
 
                 connection
-                    .send(MyNoSqlTcpContract::Confirmation { confirmation_id })
+                    .send(&MyNoSqlTcpContract::Confirmation { confirmation_id })
                     .await;
             }
 
@@ -203,7 +205,7 @@ impl TcpServerEvents {
                 }
 
                 connection
-                    .send(MyNoSqlTcpContract::Confirmation { confirmation_id })
+                    .send(&MyNoSqlTcpContract::Confirmation { confirmation_id })
                     .await;
             }
             MyNoSqlTcpContract::UpdateRowsExpirationTime {
@@ -226,7 +228,7 @@ impl TcpServerEvents {
                 }
 
                 connection
-                    .send(MyNoSqlTcpContract::Confirmation { confirmation_id })
+                    .send(&MyNoSqlTcpContract::Confirmation { confirmation_id })
                     .await;
             }
 

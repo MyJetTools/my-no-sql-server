@@ -66,7 +66,7 @@ impl AppContext {
             persist_io,
             settings,
             persist_amount: AtomicUsize::new(0),
-            sync: EventsLoop::new("SyncEventsLoop".to_string()),
+            sync: EventsLoop::new("SyncEventsLoop".to_string(), my_logger::LOGGER.clone()),
         }
     }
 

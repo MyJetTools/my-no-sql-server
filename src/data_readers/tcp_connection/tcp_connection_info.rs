@@ -99,7 +99,7 @@ impl TcpConnectionInfo {
 
     pub fn get_pending_to_send(&self) -> usize {
         self.connection
-            .statistics
+            .statistics()
             .pending_to_send_buffer_size
             .load(std::sync::atomic::Ordering::Relaxed)
     }

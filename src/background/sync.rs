@@ -14,7 +14,10 @@ impl SyncEventLoop {
 
 #[async_trait::async_trait]
 impl EventsLoopTick<SyncEvent> for SyncEventLoop {
+    async fn started(&self) {}
     async fn tick(&self, model: SyncEvent) {
         crate::operations::sync::sync(&self.app, &model).await;
     }
+
+    async fn finished(&self) {}
 }
