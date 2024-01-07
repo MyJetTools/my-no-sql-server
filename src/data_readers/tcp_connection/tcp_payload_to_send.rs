@@ -16,10 +16,14 @@ pub async fn serialize(sync_event: &SyncEvent, compress: bool) -> Option<Vec<u8>
             };
 
             if compress {
-                return tcp_contract.compress_if_make_sence_and_serialize().into();
+                return tcp_contract
+                    .compress_if_make_since()
+                    .serialize()
+                    .into_vec()
+                    .into();
             }
 
-            return tcp_contract.serialize().into();
+            return tcp_contract.serialize().into_vec().into();
         }
         SyncEvent::UpdateTableAttributes(_) => None,
         SyncEvent::InitTable(sync_data) => {
@@ -31,10 +35,14 @@ pub async fn serialize(sync_event: &SyncEvent, compress: bool) -> Option<Vec<u8>
             };
 
             if compress {
-                return tcp_contract.compress_if_make_sence_and_serialize().into();
+                return tcp_contract
+                    .compress_if_make_since()
+                    .serialize()
+                    .into_vec()
+                    .into();
             }
 
-            return tcp_contract.serialize().into();
+            return tcp_contract.serialize().into_vec().into();
         }
         SyncEvent::InitPartitions(data) => {
             let mut result = Vec::new();
@@ -54,8 +62,9 @@ pub async fn serialize(sync_event: &SyncEvent, compress: bool) -> Option<Vec<u8>
                 };
 
                 if compress {
-                    let payload = tcp_contract.compress_if_make_sence_and_serialize();
-                    result.extend_from_slice(&payload);
+                    let payload = tcp_contract.compress_if_make_since();
+                    let payload = payload.serialize();
+                    result.extend_from_slice(payload.as_slice());
                 } else {
                     tcp_contract.serialize_into(&mut result);
                 }
@@ -70,10 +79,14 @@ pub async fn serialize(sync_event: &SyncEvent, compress: bool) -> Option<Vec<u8>
             };
 
             if compress {
-                return tcp_contract.compress_if_make_sence_and_serialize().into();
+                return tcp_contract
+                    .compress_if_make_since()
+                    .serialize()
+                    .into_vec()
+                    .into();
             }
 
-            return tcp_contract.serialize().into();
+            return tcp_contract.serialize().into_vec().into();
         }
         SyncEvent::DeleteRows(data) => {
             let mut result = Vec::new();
@@ -119,7 +132,7 @@ pub async fn serialize(sync_event: &SyncEvent, compress: bool) -> Option<Vec<u8>
                 data: EMPTY_ARRAY.to_vec(),
             };
 
-            contract.serialize().into()
+            contract.serialize().into_vec().into()
         }
     }
 }
