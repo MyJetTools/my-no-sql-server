@@ -13,7 +13,7 @@ my-http-server = { tag = "0.7.0", git = "https://github.com/MyJetTools/my-http-s
     "static-files",
 ] }
 
-my-no-sql-sdk = { tag = "0.3.1", git = "https://github.com/MyJetTools/my-no-sql-sdk.git", features = [
+my-no-sql-sdk = { tag = "0.3.0", git = "https://github.com/MyJetTools/my-no-sql-sdk.git", features = [
     "master-node",
     "tcp-contracts",
 ] }
