@@ -60,6 +60,11 @@ async fn main() {
         .register_event_loop(Arc::new(SyncEventLoop::new(app.clone())))
         .await;
 
+    let tcp_server = TcpServer::new(
+        "MyNoSqlReader".to_string(),
+        SocketAddr::from(([0, 0, 0, 0], 5125)),
+    );
+
     let mut timer_1s = MyTimer::new(Duration::from_secs(1));
 
     let mut persist_timer = MyTimer::new(Duration::from_secs(1));
@@ -67,7 +72,11 @@ async fn main() {
     persist_timer.register_timer("Persist", Arc::new(PersistTimer::new(app.clone())));
     timer_1s.register_timer(
         "MetricsUpdated",
-        Arc::new(MetricsUpdater::new(app.clone(), http_connections_counter)),
+        Arc::new(MetricsUpdater::new(
+            app.clone(),
+            http_connections_counter,
+            tcp_server.threads_statistics.clone(),
+        )),
     );
 
     let mut timer_10s = MyTimer::new(Duration::from_secs(10));
@@ -92,11 +101,6 @@ async fn main() {
     backup_timer.start(app.states.clone(), my_logger::LOGGER.clone());
 
     app.sync.start(app.states.clone()).await;
-
-    let tcp_server = TcpServer::new(
-        "MyNoSqlReader".to_string(),
-        SocketAddr::from(([0, 0, 0, 0], 5125)),
-    );
 
     tcp_server
         .start(

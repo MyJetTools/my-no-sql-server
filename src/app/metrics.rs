@@ -1,3 +1,4 @@
+use my_tcp_sockets::ThreadsStatistics;
 use prometheus::{Encoder, IntGauge, IntGaugeVec, Opts, Registry, TextEncoder};
 
 use crate::operations::DbTableMetrics;
@@ -12,7 +13,7 @@ pub struct PrometheusMetrics {
     partitions_amount: IntGaugeVec,
     table_size: IntGaugeVec,
     persist_amount: IntGaugeVec,
-    tcp_connections_count: IntGauge,
+    tcp_connections: IntGaugeVec,
     tcp_connections_changes: IntGaugeVec,
     http_connections_count: IntGauge,
     persist_delay_in_seconds: IntGaugeVec,
@@ -28,7 +29,7 @@ impl PrometheusMetrics {
         let partitions_amount = create_partitions_amount_gauge();
         let table_size = create_table_size_gauge();
         let persist_amount = create_persist_amount_gauge();
-        let tcp_connections_count = create_tcp_connections_count();
+        let tcp_connections = create_tcp_connections();
         let tcp_connections_changes = create_tcp_connections_changes();
         let fatal_errors_count = create_fatal_errors_count();
 
@@ -53,7 +54,7 @@ impl PrometheusMetrics {
             .unwrap();
 
         registry
-            .register(Box::new(tcp_connections_count.clone()))
+            .register(Box::new(tcp_connections.clone()))
             .unwrap();
 
         registry
@@ -73,7 +74,7 @@ impl PrometheusMetrics {
             partitions_amount,
             table_size,
             persist_amount,
-            tcp_connections_count,
+            tcp_connections,
             tcp_connections_changes,
             persist_delay_in_seconds,
             pending_to_sync,
@@ -144,14 +145,28 @@ impl PrometheusMetrics {
         }
     }
     pub fn mark_new_tcp_connection(&self) {
-        self.tcp_connections_count.inc();
+        self.tcp_connections.with_label_values(&["count"]).inc();
         self.tcp_connections_changes
             .with_label_values(&["connected"])
             .inc();
     }
 
+    pub fn update_tcp_threads(&self, threads_statistics: &ThreadsStatistics) {
+        self.tcp_connections
+            .with_label_values(&["ping_threads"])
+            .set(threads_statistics.get_ping_threads() as i64);
+
+        self.tcp_connections
+            .with_label_values(&["read_threads"])
+            .set(threads_statistics.get_read_threads() as i64);
+
+        self.tcp_connections
+            .with_label_values(&["write_threads"])
+            .set(threads_statistics.get_read_threads() as i64);
+    }
+
     pub fn mark_new_tcp_disconnection(&self) {
-        self.tcp_connections_count.dec();
+        self.tcp_connections.with_label_values(&["count"]).dec();
         self.tcp_connections_changes
             .with_label_values(&["disconnected"])
             .inc();
@@ -208,9 +223,6 @@ fn create_fatal_errors_count() -> IntGauge {
 fn create_http_connections_count() -> IntGauge {
     IntGauge::new("http_connections_count", "Http connections count").unwrap()
 }
-fn create_tcp_connections_count() -> IntGauge {
-    IntGauge::new("tcp_connections_count", "TCP Connections count").unwrap()
-}
 
 fn create_persist_delay_in_seconds() -> IntGaugeVec {
     let gauge_opts = Opts::new(
@@ -225,6 +237,12 @@ fn create_persist_delay_in_seconds() -> IntGaugeVec {
 fn create_tcp_connections_changes() -> IntGaugeVec {
     let gauge_opts = Opts::new(format!("tcp_changes_count"), format!("Tcp Changes Count"));
 
+    let labels = &[TCP_METRIC];
+    IntGaugeVec::new(gauge_opts, labels).unwrap()
+}
+
+fn create_tcp_connections() -> IntGaugeVec {
+    let gauge_opts = Opts::new(format!("tcp_connections"), format!("Tcp Connections"));
     let labels = &[TCP_METRIC];
     IntGaugeVec::new(gauge_opts, labels).unwrap()
 }
