@@ -91,7 +91,7 @@ async fn main() {
 
     backup_timer.start(app.states.clone(), my_logger::LOGGER.clone());
 
-    app.sync.start(app.states.clone());
+    app.sync.start(app.states.clone()).await;
 
     let tcp_server = TcpServer::new(
         "MyNoSqlReader".to_string(),

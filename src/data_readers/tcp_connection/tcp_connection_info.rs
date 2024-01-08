@@ -1,5 +1,8 @@
 use std::sync::{atomic::AtomicUsize, Arc};
 
+use my_no_sql_sdk::tcp_contracts::MyNoSqlTcpContract;
+use my_tcp_sockets::tcp_connection::ConnectionStatistics;
+
 use crate::tcp::MyNoSqlTcpConnection;
 
 use super::SendPerSecond;
@@ -26,7 +29,7 @@ impl ReaderName {
 }
 
 pub struct TcpConnectionInfo {
-    pub connection: Arc<MyNoSqlTcpConnection>,
+    connection: Arc<MyNoSqlTcpConnection>,
     pub name: ReaderName,
     sent_per_second_accumulator: AtomicUsize,
     pub sent_per_second: SendPerSecond,
@@ -46,6 +49,10 @@ impl TcpConnectionInfo {
             sent_per_second: SendPerSecond::new(),
             compress_data,
         }
+    }
+
+    pub fn connection_statistics(&self) -> &ConnectionStatistics {
+        self.connection.statistics()
     }
 
     pub fn is_node(&self) -> bool {
@@ -84,10 +91,10 @@ impl TcpConnectionInfo {
     }
      */
 
-    pub async fn send(&self, payload_to_send: &[u8]) {
+    pub async fn send(&self, tcp_contract: &[MyNoSqlTcpContract]) {
+        let sent_amount = self.connection.send_many(tcp_contract).await;
         self.sent_per_second_accumulator
-            .fetch_add(payload_to_send.len(), std::sync::atomic::Ordering::SeqCst);
-        self.connection.send_bytes(payload_to_send).await;
+            .fetch_add(sent_amount, std::sync::atomic::Ordering::SeqCst);
     }
 
     pub async fn timer_1sec_tick(&self) {

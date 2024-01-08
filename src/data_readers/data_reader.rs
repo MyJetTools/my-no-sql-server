@@ -83,7 +83,7 @@ impl DataReader {
 
     fn get_connected_moment(&self) -> DateTimeAsMicroseconds {
         match &self.connection {
-            DataReaderConnection::Tcp(connection) => connection.connection.statistics().connected,
+            DataReaderConnection::Tcp(connection) => connection.connection_statistics().connected,
             DataReaderConnection::Http(connection) => connection.connected,
         }
     }
@@ -91,8 +91,7 @@ impl DataReader {
     pub fn get_last_incoming_moment(&self) -> DateTimeAsMicroseconds {
         match &self.connection {
             DataReaderConnection::Tcp(connection) => connection
-                .connection
-                .statistics()
+                .connection_statistics()
                 .last_receive_moment
                 .as_date_time(),
             DataReaderConnection::Http(connection) => {

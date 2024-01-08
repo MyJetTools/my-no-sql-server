@@ -1,3 +1,5 @@
+use my_no_sql_sdk::tcp_contracts::MyNoSqlTcpContract;
+
 use crate::{app::AppContext, data_readers::DataReaderConnection, db_sync::SyncEvent};
 
 pub fn dispatch(app: &AppContext, sync_event: SyncEvent) {
@@ -11,13 +13,13 @@ pub async fn sync(app: &AppContext, sync_event: &SyncEvent) {
         match &data.data_reader.connection {
             DataReaderConnection::Tcp(tcp_info) => {
                 let compressed = tcp_info.is_compressed_data();
-                if let Some(payload_to_send) =
-                    crate::data_readers::tcp_connection::tcp_payload_to_send::serialize(
-                        sync_event, compressed,
-                    )
-                    .await
-                {
-                    tcp_info.send(&payload_to_send).await;
+                let payloads = crate::data_readers::tcp_connection::tcp_payload_to_send::serialize(
+                    sync_event, compressed,
+                )
+                .await;
+
+                if payloads.len() > 0 {
+                    tcp_info.send(payloads.as_slice()).await;
                 }
             }
             DataReaderConnection::Http(http_info) => {
@@ -38,8 +40,8 @@ pub async fn sync(app: &AppContext, sync_event: &SyncEvent) {
         }
         let data_readers = data_readers.unwrap();
 
-        let mut tcp_contracts_non_compressed: Option<Vec<u8>> = None;
-        let mut tcp_contracts_compressed: Option<Vec<u8>> = None;
+        let mut tcp_contracts_non_compressed: Option<Vec<MyNoSqlTcpContract>> = None;
+        let mut tcp_contracts_compressed: Option<Vec<MyNoSqlTcpContract>> = None;
 
         for data_reader in &data_readers {
             if !data_reader.has_first_init() {
@@ -47,33 +49,35 @@ pub async fn sync(app: &AppContext, sync_event: &SyncEvent) {
             }
 
             match &data_reader.connection {
-                DataReaderConnection::Tcp(info) => {
-                    if info.is_compressed_data() {
-                        if let Some(to_send) = &tcp_contracts_compressed {
-                            info.send(to_send).await;
+                DataReaderConnection::Tcp(connection_info) => {
+                    if connection_info.is_compressed_data() {
+                        if let Some(payloads) = &tcp_contracts_compressed {
+                            connection_info.send(payloads).await;
                         } else {
-                            if let Some(to_send) =
+                            let payloads =
                                 crate::data_readers::tcp_connection::tcp_payload_to_send::serialize(
                                     sync_event, true,
                                 )
-                                .await
-                            {
-                                info.send(&to_send).await;
-                                tcp_contracts_compressed = Some(to_send);
+                                .await;
+
+                            if payloads.len() > 0 {
+                                connection_info.send(payloads.as_slice()).await;
+                                tcp_contracts_compressed = Some(payloads);
                             }
                         }
                     } else {
                         if let Some(to_send) = &tcp_contracts_non_compressed {
-                            info.send(to_send).await;
+                            connection_info.send(to_send).await;
                         } else {
-                            if let Some(to_send) =
+                            let payloads =
                                 crate::data_readers::tcp_connection::tcp_payload_to_send::serialize(
                                     sync_event, false,
                                 )
-                                .await
-                            {
-                                info.send(&to_send).await;
-                                tcp_contracts_non_compressed = Some(to_send);
+                                .await;
+
+                            if payloads.len() > 0 {
+                                connection_info.send(&payloads).await;
+                                tcp_contracts_non_compressed = Some(payloads);
                             }
                         }
                     }
