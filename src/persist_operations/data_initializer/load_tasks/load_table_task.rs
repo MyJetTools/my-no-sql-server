@@ -93,6 +93,9 @@ impl LoadTableTask {
                     panic!("Somehow we started getting result having Loading File")
                 }
                 FileStatus::DbPartition(db_partition) => {
+                    for db_row in db_partition.get_all_rows() {
+                        db_table.avg_size.add(db_row);
+                    }
                     db_table.partitions.insert(db_partition);
                 }
             }

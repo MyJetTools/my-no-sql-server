@@ -76,7 +76,7 @@ class HtmlSubscribersGenerator {
 
 
     private static generateTablesHtml(tables: ITableModel[]): string {
-        let html = `<table class="table table-striped"><tr><th>Table</th><th>Persist</th><th>DataSize</th><th>Partitions</th><th>Records</th><th>Indexed Records</th><th>Last update</th></tr>`;
+        let html = `<table class="table table-striped"><tr><th>Table</th><th>Persist</th><th>DataSize</th><th>Avg entity size</th><th>Partitions</th><th>Records</th><th>Indexed Records</th><th>Last update</th></tr>`;
 
         let total_size = 0;
         let total_partitions = 0;
@@ -119,7 +119,7 @@ class HtmlSubscribersGenerator {
             let max_rows_per_partition = table.maxPartitionsAmount ? '<span class="badge badge-success">Max rows per partition: ' + table.maxRowsPerPartition + '</span>' : '<span class="badge badge-primary">Max rows per partition: Unlimited</span>';
 
 
-            html += '<tr><td>' + table.name + '<div>' + persist_badge + '</div><div>' + max_partitions_amount + '</div><div>' + max_rows_per_partition + '</div></td><td>' + table.persistAmount + '</td><td>' + Utils.formatNumber(table.dataSize) + '</td><td>' + Utils.formatNumber(table.partitionsCount) + '</td><td>' + Utils.formatNumber(table.recordsAmount) + '</td><td>' + Utils.formatNumber(table.expirationIndex) + '</td>' +
+            html += '<tr><td>' + table.name + '<div>' + persist_badge + '</div><div>' + max_partitions_amount + '</div><div>' + max_rows_per_partition + '</div></td><td>' + table.persistAmount + '</td><td>' + Utils.formatNumber(table.dataSize) + '</td><td>' + Utils.formatNumber(table.avgEntitySize) + '</td><td>' + Utils.formatNumber(table.partitionsCount) + '</td><td>' + Utils.formatNumber(table.recordsAmount) + '</td><td>' + Utils.formatNumber(table.expirationIndex) + '</td>' +
                 '<td' + style + '><div>UpdateTime: ' + lastUpdateTime.toISOString() + '</div><div>PersistTime: ' + lastPersistTime + '</div>' +
                 '<div>NextPersist: ' + nextPersistTime + '</div>' + HtmlGraph.renderGraph(table.lastPersistDuration, v => Utils.format_duration(v), v => v, v => false) + '</td></tr>';
 
@@ -132,7 +132,7 @@ class HtmlSubscribersGenerator {
 
         $('#total-data-size').html(Utils.formatNumber(total_size));
 
-        html += '<tr style="font-weight: bold; background-color:black; color:white;"><td>Total</td><td></td><td>DataSize: ' + Utils.formatNumber(total_size) + '</td><td>Partitions: ' + Utils.formatNumber(total_partitions) + '</td><td>Records: ' + Utils.formatNumber(total_records) + '</td><td>Indexed records: ' + Utils.formatNumber(total_indexed_records) + '</td>'
+        html += '<tr style="font-weight: bold; background-color:black; color:white;"><td>Total</td><td></td><td>DataSize: ' + Utils.formatNumber(total_size) + '</td><td></td><td>Partitions: ' + Utils.formatNumber(total_partitions) + '</td><td>Records: ' + Utils.formatNumber(total_records) + '</td><td>Indexed records: ' + Utils.formatNumber(total_indexed_records) + '</td>'
             + '<td></td></tr>';
 
         html += '</table>';

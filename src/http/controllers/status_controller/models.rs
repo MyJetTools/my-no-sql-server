@@ -31,6 +31,8 @@ pub struct TableModel {
     pub next_persist_time: Option<i64>,
     #[serde(rename = "persistAmount")]
     pub persist_amount: usize,
+    #[serde(rename = "avgEntitySize")]
+    pub avg_entity_size: usize,
 }
 
 #[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
@@ -79,6 +81,7 @@ impl StatusModel {
 
             let table_model = TableModel {
                 name: table.name.clone(),
+                avg_entity_size: metrics.avg_entity_size,
                 persist: attr.persist,
                 max_partitions_amount: attr.max_partitions_amount,
                 max_rows_per_partition: attr.max_rows_per_partition_amount,

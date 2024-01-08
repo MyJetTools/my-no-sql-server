@@ -62,4 +62,5 @@ interface ITableModel {
     nextPersistTime: number;
     lastPersistDuration: number[];
     persistAmount: number;
+    avgEntitySize: number
 }

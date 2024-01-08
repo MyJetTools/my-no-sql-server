@@ -13,6 +13,7 @@ pub struct DbTableMetrics {
     pub next_persist_time: Option<DateTimeAsMicroseconds>,
     pub persist_amount: usize,
     pub last_persist_duration: Vec<usize>,
+    pub avg_entity_size: usize,
 }
 
 pub async fn get_table_metrics(app: &AppContext, db_table: &DbTableWrapper) -> DbTableMetrics {
@@ -33,5 +34,6 @@ pub async fn get_table_metrics(app: &AppContext, db_table: &DbTableWrapper) -> D
         next_persist_time: persist_metrics.next_persist_time,
         persist_amount: persist_metrics.persist_amount,
         last_persist_duration: persist_metrics.last_persist_duration,
+        avg_entity_size: table_read_access.avg_size.get(),
     }
 }
