@@ -4,12 +4,11 @@ use std::{
 };
 
 use my_no_sql_server_core::DbInstance;
-use rust_extensions::{date_time::DateTimeAsMicroseconds, events_loop::EventsLoop, AppStates};
+use rust_extensions::{date_time::DateTimeAsMicroseconds, AppStates};
 
 use crate::{
     data_readers::DataReadersList,
     db_operations::multipart::MultipartList,
-    db_sync::SyncEvent,
     db_transactions::ActiveTransactions,
     persist::PersistMarkersByTable,
     persist_io::PersistIoOperations,
@@ -19,7 +18,7 @@ use crate::{
     settings_reader::SettingsModel,
 };
 
-use super::PrometheusMetrics;
+use super::{EventsSync, PrometheusMetrics};
 
 pub const APP_VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
@@ -42,7 +41,7 @@ pub struct AppContext {
     pub persist_io: PersistIoOperations,
     pub init_state: InitState,
     pub settings: Arc<SettingsModel>,
-    pub sync: EventsLoop<SyncEvent>,
+    pub sync: EventsSync,
     pub states: Arc<AppStates>,
     pub persist_markers: PersistMarkersByTable,
     persist_amount: AtomicUsize,
@@ -66,7 +65,7 @@ impl AppContext {
             persist_io,
             settings,
             persist_amount: AtomicUsize::new(0),
-            sync: EventsLoop::new("SyncEventsLoop".to_string(), my_logger::LOGGER.clone()),
+            sync: EventsSync::new(),
         }
     }
 
