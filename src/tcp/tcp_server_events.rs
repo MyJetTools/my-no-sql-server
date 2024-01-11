@@ -6,7 +6,8 @@ use my_tcp_sockets::{tcp_connection::TcpSocketConnection, ConnectionEvent, Socke
 
 use crate::{app::AppContext, data_readers::tcp_connection::ReaderName};
 
-pub type MyNoSqlTcpConnection = TcpSocketConnection<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer>;
+pub type MyNoSqlTcpConnection =
+    TcpSocketConnection<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()>;
 
 pub struct TcpServerEvents {
     app: Arc<AppContext>,
@@ -238,10 +239,10 @@ impl TcpServerEvents {
 }
 
 #[async_trait::async_trait]
-impl SocketEventCallback<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer> for TcpServerEvents {
+impl SocketEventCallback<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()> for TcpServerEvents {
     async fn handle(
         &self,
-        connection_event: ConnectionEvent<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer>,
+        connection_event: ConnectionEvent<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()>,
     ) {
         match connection_event {
             ConnectionEvent::Connected(_connection) => {
