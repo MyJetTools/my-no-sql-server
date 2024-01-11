@@ -45,12 +45,12 @@ pub async fn execute(
     }
 
     if let Some(row_key) = row_key {
-        return Ok(
-            get_as_row_key_only(app, table, row_key, limit, skip, now, update_statistics).await,
-        );
+        let result =
+            get_as_row_key_only(app, table, row_key, limit, skip, now, update_statistics).await;
+        return Ok(Some(result));
     }
 
-    return Ok(get_all(table, limit, skip, now).await);
+    return Ok(Some(get_all(table, limit, skip, now).await));
 }
 
 pub async fn get_as_partition_key_and_row_key(
@@ -89,12 +89,14 @@ async fn get_as_partition_key_only(
 
     let db_partition = read_access.get_partition(partition_key)?;
 
-    super::read_filter::filter_it_and_clone(
+    let result = super::read_filter::filter_it_and_clone(
         db_partition.get_all_rows().into_iter(),
         limit,
         skip,
         now.date_time,
-    )
+    );
+
+    Some(result)
 }
 
 async fn get_as_row_key_only(
@@ -105,7 +107,7 @@ async fn get_as_row_key_only(
     skip: Option<usize>,
     now: &JsonTimeStamp,
     update_statistics: UpdateStatistics,
-) -> Option<Vec<Arc<DbRow>>> {
+) -> Vec<Arc<DbRow>> {
     let read_access = table.data.read().await;
 
     let mut data_by_row = Vec::new();
@@ -125,11 +127,11 @@ async fn get_as_row_key_only(
         now.date_time,
     );
 
-    if let Some(result) = &result {
+    if result.len() > 0 {
         if update_statistics.has_statistics_to_update() {
             let mut by_partition = HashMap::new();
 
-            for db_row in result {
+            for db_row in &result {
                 let partition_key = db_row.get_partition_key();
 
                 if !by_partition.contains_key(partition_key) {
@@ -157,7 +159,7 @@ async fn get_all(
     limit: Option<usize>,
     skip: Option<usize>,
     now: &JsonTimeStamp,
-) -> Option<Vec<Arc<DbRow>>> {
+) -> Vec<Arc<DbRow>> {
     let read_access = table.data.read().await;
 
     super::read_filter::filter_it_and_clone(

@@ -25,7 +25,7 @@ pub async fn get_all(
     let db_rows =
         crate::db_operations::read::read_filter::filter_it(result_items.into_iter(), limit, skip);
 
-    let db_rows = if let Some(db_rows) = db_rows {
+    let db_rows = if db_rows.len() > 0 {
         let mut result = HashMap::new();
 
         for db_row in db_rows {

@@ -1,7 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
 use my_no_sql_server_core::DbTableWrapper;
-use rust_extensions::lazy::LazyVec;
 
 use crate::{
     app::AppContext,
@@ -22,25 +21,23 @@ pub async fn get_all_by_row_key(
 
     let table_data = db_table.data.read().await;
 
-    let mut db_rows = LazyVec::new();
+    let mut db_rows = Vec::new();
 
     for partition in table_data.partitions.get_partitions() {
         let get_row_result = partition.get_row(row_key);
 
         if let Some(db_row) = get_row_result {
-            db_rows.add(db_row);
+            db_rows.push(db_row);
         }
     }
 
-    let db_rows = db_rows.get_result();
-
-    if db_rows.is_none() {
+    if db_rows.len() == 0 {
         return Ok(ReadOperationResult::EmptyArray);
     }
 
-    let db_rows = super::super::read_filter::filter_it(db_rows.unwrap().into_iter(), limit, skip);
+    let db_rows = super::super::read_filter::filter_it(db_rows.into_iter(), limit, skip);
 
-    let db_rows = if let Some(db_rows) = db_rows {
+    let db_rows = if db_rows.len() > 0 {
         let mut result = HashMap::new();
         for db_row in db_rows {
             result.insert(db_row.get_partition_key().to_string(), vec![db_row]);

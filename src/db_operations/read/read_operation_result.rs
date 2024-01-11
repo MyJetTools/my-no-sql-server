@@ -50,16 +50,14 @@ impl ReadOperationResult {
         app: &Arc<AppContext>,
         db_table: &Arc<DbTableWrapper>,
         partition_key: &String,
-        db_rows: Option<Vec<&Arc<DbRow>>>,
+        db_rows: Vec<&Arc<DbRow>>,
         update_statistics: UpdateStatistics,
     ) -> Self {
-        if db_rows.is_none() {
+        if db_rows.len() == 0 {
             return Self::EmptyArray;
         }
 
         let mut json_array_writer = JsonArrayWriter::new();
-
-        let db_rows = db_rows.unwrap();
 
         update_statistics
             .update_statistics(app, db_table, partition_key, || {

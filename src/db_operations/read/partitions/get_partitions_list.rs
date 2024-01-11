@@ -19,9 +19,5 @@ pub async fn get_partitions(
     let items = table_data.partitions.get_all().iter().map(|itm| itm.0);
 
     let result = crate::db_operations::read::read_filter::filter_it(items, limit, skip);
-
-    match result {
-        Some(items) => Ok((count, items.iter().map(|itm| itm.to_string()).collect())),
-        None => Ok((count, vec![])),
-    }
+    Ok((count, result.iter().map(|itm| itm.to_string()).collect()))
 }

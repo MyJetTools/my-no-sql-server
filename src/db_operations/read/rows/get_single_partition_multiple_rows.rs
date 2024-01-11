@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use my_no_sql_server_core::DbTableWrapper;
-use rust_extensions::lazy::LazyVec;
 
 use crate::{
     app::AppContext,
@@ -28,13 +27,13 @@ pub async fn get_single_partition_multiple_rows(
 
     let db_partition = db_partition.unwrap();
 
-    let mut db_rows = LazyVec::with_capacity(row_keys.len());
+    let mut db_rows = Vec::with_capacity(row_keys.len());
 
     for row_key in &row_keys {
         let db_row = db_partition.get_row(row_key);
 
         if let Some(db_row) = db_row {
-            db_rows.add(db_row);
+            db_rows.push(db_row);
         }
     }
 
@@ -42,7 +41,7 @@ pub async fn get_single_partition_multiple_rows(
         app,
         db_table_wrapper,
         partition_key,
-        db_rows.get_result(),
+        db_rows,
         update_statistics,
     )
     .await);

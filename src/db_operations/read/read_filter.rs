@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use my_no_sql_sdk::core::db::DbRow;
-use rust_extensions::{date_time::DateTimeAsMicroseconds, lazy::LazyVec};
+use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 /*
 pub struct DbRowsFilter<'s, TIter: Iterator<Item = &'s Arc<DbRow>>> {
@@ -56,11 +56,11 @@ pub fn filter_it<'s, TItem>(
     iterator: impl Iterator<Item = &'s TItem>,
     limit: Option<usize>,
     skip: Option<usize>,
-) -> Option<Vec<&'s TItem>> {
+) -> Vec<&'s TItem> {
     let mut result = if let Some(limit) = limit {
-        LazyVec::with_capacity(limit)
+        Vec::with_capacity(limit)
     } else {
-        LazyVec::new()
+        Vec::new()
     };
 
     let mut no = 0;
@@ -74,7 +74,7 @@ pub fn filter_it<'s, TItem>(
             }
         }
 
-        result.add(item);
+        result.push(item);
         added += 1;
 
         if let Some(limit) = limit {
@@ -88,7 +88,7 @@ pub fn filter_it<'s, TItem>(
         //crate::db_operations::sync_to_main::update_row_last_read_access_time(app, db_row);
     }
 
-    result.get_result()
+    result
     //json_array_writer.build()
 }
 
@@ -97,11 +97,11 @@ pub fn filter_it_and_clone<'s, TIter: Iterator<Item = &'s Arc<DbRow>>>(
     limit: Option<usize>,
     skip: Option<usize>,
     now: DateTimeAsMicroseconds,
-) -> Option<Vec<Arc<DbRow>>> {
+) -> Vec<Arc<DbRow>> {
     let mut result = if let Some(limit) = limit {
-        LazyVec::with_capacity(limit)
+        Vec::with_capacity(limit)
     } else {
-        LazyVec::new()
+        Vec::new()
     };
 
     let mut no = 0;
@@ -115,7 +115,7 @@ pub fn filter_it_and_clone<'s, TIter: Iterator<Item = &'s Arc<DbRow>>>(
             }
         }
         db_row.last_read_access.update(now);
-        result.add(db_row.clone());
+        result.push(db_row.clone());
         added += 1;
 
         if let Some(limit) = limit {
@@ -129,6 +129,6 @@ pub fn filter_it_and_clone<'s, TIter: Iterator<Item = &'s Arc<DbRow>>>(
         //crate::db_operations::sync_to_main::update_row_last_read_access_time(app, db_row);
     }
 
-    result.get_result()
+    result
     //json_array_writer.build()
 }
