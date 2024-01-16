@@ -246,6 +246,7 @@ impl SocketEventCallback<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()> for
     ) {
         match connection_event {
             ConnectionEvent::Connected(_connection) => {
+                println!("New connection");
                 self.app.metrics.mark_new_tcp_connection();
             }
             ConnectionEvent::Disconnected(connection) => {

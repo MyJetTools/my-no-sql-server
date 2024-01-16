@@ -39,7 +39,6 @@ hyper-tls = "*"
 tonic = { version = "*", features = ["tls", "tls-roots", "prost"] }
 anyhow = "*"
 tokio = { version = "*", features = ["full"] }
-hyper = { version = "*", features = ["full"] }
 prost = "*"
 serde = { version = "*", features = ["derive"] }
 tokio-util = "*"
