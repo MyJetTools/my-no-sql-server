@@ -4,6 +4,7 @@ use background::{
     metrics_updater::MetricsUpdater, persist::PersistTimer, sync::SyncEventLoop, BackupTimer,
 };
 
+use my_no_sql_sdk::tcp_contracts::MyNoSqlTcpSerializerFactory;
 use my_tcp_sockets::TcpServer;
 use rust_extensions::MyTimer;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
@@ -103,6 +104,7 @@ async fn main() {
 
     tcp_server
         .start(
+            Arc::new(MyNoSqlTcpSerializerFactory),
             Arc::new(TcpServerEvents::new(app.clone())),
             app.states.clone(),
             my_logger::LOGGER.clone(),

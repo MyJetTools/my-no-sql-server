@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use my_logger::LogEventCtx;
 use my_no_sql_sdk::tcp_contracts::{MyNoSqlReaderTcpSerializer, MyNoSqlTcpContract};
-use my_tcp_sockets::{tcp_connection::TcpSocketConnection, ConnectionEvent, SocketEventCallback};
+use my_tcp_sockets::{tcp_connection::TcpSocketConnection, SocketEventCallback};
 
 use crate::{app::AppContext, data_readers::tcp_connection::ReaderName};
 
@@ -17,13 +17,50 @@ impl TcpServerEvents {
     pub fn new(app: Arc<AppContext>) -> Self {
         Self { app }
     }
+}
 
-    pub async fn handle_incoming_packet(
+#[async_trait::async_trait]
+impl SocketEventCallback<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()> for TcpServerEvents {
+    async fn connected(
         &self,
-        tcp_contract: MyNoSqlTcpContract,
-        connection: Arc<MyNoSqlTcpConnection>,
+        _connection: Arc<TcpSocketConnection<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()>>,
     ) {
-        match tcp_contract {
+        //println!("New connection");
+        self.app.metrics.mark_new_tcp_connection();
+    }
+
+    async fn disconnected(
+        &self,
+        connection: Arc<TcpSocketConnection<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()>>,
+    ) {
+        let name =
+            if let Some(data_reader) = self.app.data_readers.get_tcp(connection.as_ref()).await {
+                data_reader.get_name().to_string()
+            } else {
+                "".to_string()
+            };
+
+        my_logger::LOGGER.write_info(
+            "TcpConnection",
+            "Disconnected",
+            LogEventCtx::new()
+                .add("id", connection.id.to_string())
+                .add("Name", name),
+        );
+        if let Some(data_reader) = self.app.data_readers.remove_tcp(connection.as_ref()).await {
+            self.app
+                .metrics
+                .remove_pending_to_sync(&data_reader.connection);
+        }
+        self.app.metrics.mark_new_tcp_disconnection();
+    }
+
+    async fn payload(
+        &self,
+        connection: &Arc<TcpSocketConnection<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()>>,
+        contract: MyNoSqlTcpContract,
+    ) {
+        match contract {
             MyNoSqlTcpContract::Ping => {
                 connection.send(&MyNoSqlTcpContract::Pong).await;
             }
@@ -38,7 +75,7 @@ impl TcpServerEvents {
 
                 self.app
                     .data_readers
-                    .add_tcp(connection, ReaderName::AsReader(name), false)
+                    .add_tcp(connection.clone(), ReaderName::AsReader(name), false)
                     .await;
             }
 
@@ -53,7 +90,7 @@ impl TcpServerEvents {
                 };
                 self.app
                     .data_readers
-                    .add_tcp(connection, name, compress)
+                    .add_tcp(connection.clone(), name, compress)
                     .await;
             }
 
@@ -236,43 +273,17 @@ impl TcpServerEvents {
             _ => {}
         }
     }
-}
-
-#[async_trait::async_trait]
-impl SocketEventCallback<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()> for TcpServerEvents {
+    /*
     async fn handle(
         &self,
         connection_event: ConnectionEvent<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()>,
     ) {
         match connection_event {
             ConnectionEvent::Connected(_connection) => {
-                println!("New connection");
-                self.app.metrics.mark_new_tcp_connection();
+
             }
             ConnectionEvent::Disconnected(connection) => {
-                let name = if let Some(data_reader) =
-                    self.app.data_readers.get_tcp(connection.as_ref()).await
-                {
-                    data_reader.get_name().to_string()
-                } else {
-                    "".to_string()
-                };
 
-                my_logger::LOGGER.write_info(
-                    "TcpConnection",
-                    "Disconnected",
-                    LogEventCtx::new()
-                        .add("id", connection.id.to_string())
-                        .add("Name", name),
-                );
-                if let Some(data_reader) =
-                    self.app.data_readers.remove_tcp(connection.as_ref()).await
-                {
-                    self.app
-                        .metrics
-                        .remove_pending_to_sync(&data_reader.connection);
-                }
-                self.app.metrics.mark_new_tcp_disconnection();
             }
             ConnectionEvent::Payload {
                 connection,
@@ -280,4 +291,5 @@ impl SocketEventCallback<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()> for
             } => self.handle_incoming_packet(payload, connection).await,
         }
     }
+     */
 }
