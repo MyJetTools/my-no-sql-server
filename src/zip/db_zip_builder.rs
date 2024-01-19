@@ -34,15 +34,15 @@ impl DbZipBuilder {
         let payload = crate::persist_operations::serializers::table_attrs::serialize(&content.attr);
         write_to_zip_file(&mut self.zip_writer, &payload)?;
 
-        for (partition_key, content) in &content.by_partition {
+        for itm in &content.by_partition {
             use base64::Engine;
-            let encoded_file_name =
-                base64::engine::general_purpose::STANDARD.encode(partition_key.as_bytes());
+            let encoded_file_name = base64::engine::general_purpose::STANDARD
+                .encode(itm.partition_key.as_str().as_bytes());
             let file_name = format!("{}/{}", table_name, encoded_file_name);
 
             self.zip_writer.start_file(file_name, self.options)?;
 
-            let json = content.db_rows_snapshot.as_json_array();
+            let json = itm.db_rows_snapshot.as_json_array();
 
             let payload = json.build();
 

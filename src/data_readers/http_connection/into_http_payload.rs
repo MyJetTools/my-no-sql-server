@@ -1,7 +1,7 @@
 use my_json::json_writer::{JsonArrayWriter, JsonObjectWriter};
 
 use crate::db_sync::{
-    states::{DeleteRowsEventSyncData, InitPartitionsSyncData, UpdateRowsSyncData},
+    states::{DeleteRowsEventSyncData, InitPartitionsSyncEventData, UpdateRowsSyncData},
     SyncEvent,
 };
 
@@ -45,7 +45,7 @@ fn write_init_table_result(table_name: &str, content: JsonArrayWriter) -> Vec<u8
     result
 }
 
-fn write_init_partitions_result(sync_data: &InitPartitionsSyncData) -> Vec<u8> {
+fn write_init_partitions_result(sync_data: &InitPartitionsSyncEventData) -> Vec<u8> {
     let mut result = Vec::new();
 
     let mut header_json = JsonObjectWriter::new();

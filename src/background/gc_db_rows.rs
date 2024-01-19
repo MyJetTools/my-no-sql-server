@@ -41,52 +41,62 @@ async fn gc_it(app: &AppContext) {
             table_data.get_data_to_gc(now)
         };
 
-        if let Some(data_to_gc) = data_to_gc.get_data_to_gc() {
-            let now = DateTimeAsMicroseconds::now();
-            let mut persist_moment = now.clone();
-            persist_moment.add_seconds(5);
+        if !data_to_gc.has_data_to_gc() {
+            continue;
+        }
 
-            if data_to_gc.partitions.len() > 0 {
-                if let Err(err) = crate::db_operations::write::delete_partitions(
-                    app,
-                    &table,
-                    data_to_gc.partitions.iter().map(|x| x.0.as_str()),
-                    EventSource::GarbageCollector,
-                    persist_moment,
-                    now,
-                )
-                .await
-                {
-                    my_logger::LOGGER.write_error(
-                        "GcPartitions",
-                        format!("{:?}", err),
-                        LogEventCtx::new().add("tableName", table.name.as_str()),
-                    );
-                }
+        let now = DateTimeAsMicroseconds::now();
+        let mut persist_moment = now.clone();
+        persist_moment.add_seconds(5);
+
+        if data_to_gc.partitions.len() > 0 {
+            if let Err(err) = crate::db_operations::write::delete_partitions(
+                app,
+                &table,
+                data_to_gc.partitions.into_vec().into_iter(),
+                EventSource::GarbageCollector,
+                persist_moment,
+                now,
+            )
+            .await
+            {
+                my_logger::LOGGER.write_error(
+                    "GcPartitions",
+                    format!("{:?}", err),
+                    LogEventCtx::new().add("tableName", table.name.as_str()),
+                );
             }
+        }
 
-            if data_to_gc.db_rows.len() > 0 {
-                println!("GcRows: {}", data_to_gc.db_rows.len());
-                if let Err(err) = crate::db_operations::write::bulk_delete(
-                    app,
-                    &table,
-                    data_to_gc.db_rows,
-                    EventSource::GarbageCollector,
-                    persist_moment,
-                    now,
+        if data_to_gc.db_rows.len() > 0 {
+            println!("GcRows: {}", data_to_gc.db_rows.len());
+            if let Err(err) = crate::db_operations::write::bulk_delete(
+                app,
+                &table,
+                data_to_gc.db_rows.into_vec().into_iter().map(|itm| {
+                    let db_rows: Vec<_> = itm
+                        .rows
+                        .iter()
+                        .map(|itm| itm.get_row_key().to_string())
+                        .collect();
+
+                    (itm.partition_key.to_string(), db_rows)
+                }),
+                EventSource::GarbageCollector,
+                persist_moment,
+                now,
+            )
+            .await
+            {
+                let mut ctx = HashMap::new();
+
+                ctx.insert("TableName".to_string(), table.name.to_string());
+
+                my_logger::LOGGER.write_error(
+                    "GcRows",
+                    format!("{:?}", err),
+                    LogEventCtx::new().add("tableName", table.name.as_str()),
                 )
-                .await
-                {
-                    let mut ctx = HashMap::new();
-
-                    ctx.insert("TableName".to_string(), table.name.to_string());
-
-                    my_logger::LOGGER.write_error(
-                        "GcRows",
-                        format!("{:?}", err),
-                        LogEventCtx::new().add("tableName", table.name.as_str()),
-                    )
-                }
             }
         }
     }

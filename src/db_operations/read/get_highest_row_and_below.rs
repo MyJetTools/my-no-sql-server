@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
+use my_json::json_writer::JsonArrayWriter;
 use my_no_sql_server_core::DbTableWrapper;
+use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
     app::AppContext,
@@ -16,6 +18,7 @@ pub async fn get_highest_row_and_below(
     row_key: &String,
     limit: Option<usize>,
     update_statistics: UpdateStatistics,
+    now: DateTimeAsMicroseconds,
 ) -> Result<ReadOperationResult, DbOperationError> {
     super::super::check_app_states(app)?;
 
@@ -29,17 +32,21 @@ pub async fn get_highest_row_and_below(
 
     let db_partition = db_partition.unwrap();
 
-    let db_rows = db_partition.get_highest_row_and_below(row_key, limit);
+    let mut json_array_writer = JsonArrayWriter::new();
+    let mut count = 0;
+    for db_row in db_partition.get_highest_row_and_below(row_key) {
+        if let Some(limit) = limit {
+            if count >= limit {
+                break;
+            }
+        }
+        update_statistics.update(db_partition, Some(db_row), now);
+        json_array_writer.write(db_row.as_ref());
 
-    return Ok(ReadOperationResult::compile_array_or_empty_from_partition(
-        app,
-        db_table_wrapper,
-        partition_key,
-        db_rows,
-        update_statistics,
-    )
-    .await);
+        count += 1;
+    }
 
+    return Ok(ReadOperationResult::RowsArray(json_array_writer.build()));
     /*
     let mut json_array_writer = JsonArrayWriter::new();
 

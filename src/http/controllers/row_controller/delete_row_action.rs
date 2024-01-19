@@ -48,8 +48,8 @@ async fn handle_request(
     db_operations::write::delete_row::execute(
         action.app.as_ref(),
         &db_table,
-        &http_input.partition_key,
-        http_input.row_key.as_str(),
+        http_input.partition_key,
+        http_input.row_key,
         event_src,
         http_input.sync_period.get_sync_moment(),
         now,

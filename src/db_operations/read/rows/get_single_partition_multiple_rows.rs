@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
+use my_json::json_writer::JsonArrayWriter;
 use my_no_sql_server_core::DbTableWrapper;
+use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
     app::AppContext,
@@ -15,6 +17,7 @@ pub async fn get_single_partition_multiple_rows(
     partition_key: &String,
     row_keys: Vec<String>,
     update_statistics: UpdateStatistics,
+    now: DateTimeAsMicroseconds,
 ) -> Result<ReadOperationResult, DbOperationError> {
     super::super::super::check_app_states(app)?;
     let write_access = db_table_wrapper.data.read().await;
@@ -27,24 +30,16 @@ pub async fn get_single_partition_multiple_rows(
 
     let db_partition = db_partition.unwrap();
 
-    let mut db_rows = Vec::with_capacity(row_keys.len());
-
+    let mut json_array_writer = JsonArrayWriter::new();
     for row_key in &row_keys {
         let db_row = db_partition.get_row(row_key);
 
         if let Some(db_row) = db_row {
-            db_rows.push(db_row);
+            update_statistics.update(db_partition, Some(db_row), now);
+            json_array_writer.write(db_row.as_ref());
         }
     }
-
-    return Ok(ReadOperationResult::compile_array_or_empty_from_partition(
-        app,
-        db_table_wrapper,
-        partition_key,
-        db_rows,
-        update_statistics,
-    )
-    .await);
+    return Ok(ReadOperationResult::RowsArray(json_array_writer.build()));
 }
 
 /*

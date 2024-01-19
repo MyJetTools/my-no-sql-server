@@ -1,18 +1,19 @@
 use std::sync::Arc;
 
+use my_no_sql_sdk::core::db::PartitionKeyParameter;
 use my_no_sql_server_core::DbTableWrapper;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
     app::AppContext,
     db_operations::DbOperationError,
-    db_sync::{states::InitPartitionsSyncData, EventSource, SyncEvent},
+    db_sync::{states::InitPartitionsSyncEventData, EventSource, SyncEvent},
 };
 
-pub async fn delete_partitions<'s, TPartitions: Iterator<Item = &'s str>>(
+pub async fn delete_partitions(
     app: &AppContext,
     db_table: &Arc<DbTableWrapper>,
-    partition_keys: TPartitions,
+    partition_keys: impl Iterator<Item = impl PartitionKeyParameter>,
     event_src: EventSource,
     persist_moment: DateTimeAsMicroseconds,
     now: DateTimeAsMicroseconds,
@@ -20,7 +21,7 @@ pub async fn delete_partitions<'s, TPartitions: Iterator<Item = &'s str>>(
     super::super::check_app_states(app)?;
     let mut table_write_access = db_table.data.write().await;
 
-    let mut sync_data = InitPartitionsSyncData::new(&table_write_access, event_src);
+    let mut sync_data = InitPartitionsSyncEventData::new(&table_write_access, event_src);
 
     for partition_key in partition_keys {
         let remove_partition_result =
@@ -28,10 +29,10 @@ pub async fn delete_partitions<'s, TPartitions: Iterator<Item = &'s str>>(
 
         if remove_partition_result.is_some() {
             app.persist_markers
-                .persist_partition(&table_write_access, partition_key, persist_moment)
+                .persist_partition(&table_write_access, &partition_key, persist_moment)
                 .await;
 
-            sync_data.add(partition_key.to_string(), None);
+            sync_data.add(partition_key.into_partition_key(), None);
         }
     }
 

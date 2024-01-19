@@ -26,7 +26,7 @@ pub async fn execute(
         crate::operations::sync::dispatch(app, SyncEvent::InitTable(sync_data));
 
         app.persist_markers
-            .persist_table(table_data.name.as_str(), persist_moment)
+            .persist_table(&table_data, persist_moment)
             .await;
     }
 

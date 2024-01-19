@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, sync::Arc};
+use std::sync::Arc;
 
 use my_no_sql_sdk::core::db::DbRow;
 use my_no_sql_server_core::DbTableWrapper;
@@ -13,7 +13,7 @@ use crate::{
 pub async fn execute(
     app: &AppContext,
     db_table: Arc<DbTableWrapper>,
-    entities: BTreeMap<String, Vec<Arc<DbRow>>>,
+    entities: Vec<(String, Vec<Arc<DbRow>>)>,
     event_src: Option<EventSource>,
     persist_moment: DateTimeAsMicroseconds,
     now: DateTimeAsMicroseconds,
@@ -28,7 +28,7 @@ pub async fn execute(
     }
 
     app.persist_markers
-        .persist_table(table_data.name.as_str(), persist_moment)
+        .persist_table(&table_data, persist_moment)
         .await;
 
     if let Some(event_src) = event_src {

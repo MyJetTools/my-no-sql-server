@@ -55,7 +55,10 @@ async fn handle_request(
     let now = JsonTimeStamp::now();
 
     let rows_by_partition =
-        crate::db_operations::parse_json_entity::parse_as_btree_map(body.as_slice(), &now)?;
+        crate::db_operations::parse_json_entity::parse_grouped_by_partition_key(
+            body.as_slice(),
+            &now,
+        )?;
 
     let partitions_count = rows_by_partition.len();
 

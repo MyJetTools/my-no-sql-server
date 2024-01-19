@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
@@ -53,7 +53,7 @@ pub async fn commit(
                     crate::db_operations::write::delete_partitions(
                         app,
                         &db_table,
-                        partition_keys.iter().map(|x| x.as_str()),
+                        partition_keys.into_iter(),
                         event_src.clone(),
                         persist_moment,
                         now,
@@ -66,12 +66,10 @@ pub async fn commit(
                     row_keys,
                 } => {
                     let db_table = tables.get(table_name.as_str()).unwrap();
-                    let mut rows_to_delete = BTreeMap::new();
-                    rows_to_delete.insert(partition_key, row_keys);
                     crate::db_operations::write::bulk_delete(
                         app,
                         db_table.as_ref(),
-                        rows_to_delete,
+                        [(partition_key, row_keys)].into_iter(),
                         event_src.clone(),
                         persist_moment,
                         now,

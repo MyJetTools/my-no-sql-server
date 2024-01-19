@@ -24,22 +24,18 @@ pub async fn execute(
 
     let mut table_data = db_table.data.write().await;
 
-    let result = table_data.insert_or_replace_row(&db_row, Some(now));
-
-    let mut update_rows_state = UpdateRowsSyncData::new(&table_data, event_src);
+    let (partition_key, _) = table_data.insert_or_replace_row(&db_row, Some(now));
 
     app.persist_markers
-        .persist_partition(&table_data, db_row.get_partition_key(), persist_moment)
+        .persist_partition(&table_data, &partition_key, persist_moment)
         .await;
 
-    update_rows_state.rows_by_partition.add_row(db_row);
+    let mut update_rows_state = UpdateRowsSyncData::new(&table_data, event_src);
+    update_rows_state
+        .rows_by_partition
+        .add_row(partition_key, db_row.clone());
 
     crate::operations::sync::dispatch(app, SyncEvent::UpdateRows(update_rows_state));
 
-    let result = match result {
-        Some(db_row) => WriteOperationResult::SingleRow(db_row),
-        None => WriteOperationResult::Empty,
-    };
-
-    Ok(result)
+    Ok(WriteOperationResult::SingleRow(db_row))
 }

@@ -60,7 +60,7 @@ pub async fn execute(
 ) -> Result<WriteOperationResult, DbOperationError> {
     let mut table_data = db_table.data.write().await;
 
-    let remove_result = {
+    let partition_key = {
         let db_partition = table_data.get_partition_mut(db_row.get_partition_key());
 
         if db_partition.is_none() {
@@ -68,8 +68,6 @@ pub async fn execute(
         }
 
         let db_partition = db_partition.unwrap();
-
-        let partition_key = db_partition.partition_key.clone();
 
         let current_db_row = db_partition.get_row(db_row.get_row_key());
 
@@ -83,36 +81,26 @@ pub async fn execute(
                 return Err(DbOperationError::RecordNotFound);
             }
         }
-        let removed_result = table_data.remove_row(
-            partition_key.as_ref_of_string(),
-            db_row.get_row_key(),
-            false,
-            None,
-        );
 
-        if removed_result.is_none() {
-            None
-        } else {
-            Some(removed_result.unwrap().0)
-        }
+        db_partition.partition_key.clone()
     };
+
+    table_data.remove_row(&partition_key, &db_row, false, None);
 
     table_data.insert_row(&db_row, Some(now.date_time));
 
     app.persist_markers
-        .persist_partition(&table_data, db_row.get_partition_key(), persist_moment)
+        .persist_partition(&table_data, &db_row, persist_moment)
         .await;
 
     let mut update_rows_state = UpdateRowsSyncData::new(&table_data, event_src);
-
-    update_rows_state.rows_by_partition.add_row(db_row);
+    update_rows_state
+        .rows_by_partition
+        .add_row(partition_key, db_row.clone());
 
     crate::operations::sync::dispatch(app, SyncEvent::UpdateRows(update_rows_state));
 
-    match remove_result {
-        Some(db_row) => Ok(WriteOperationResult::SingleRow(db_row)),
-        None => Ok(WriteOperationResult::Empty),
-    }
+    Ok(WriteOperationResult::SingleRow(db_row))
 }
 
 #[derive(Deserialize, Serialize)]

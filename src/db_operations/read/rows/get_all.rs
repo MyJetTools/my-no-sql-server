@@ -1,6 +1,8 @@
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
+use my_json::json_writer::JsonArrayWriter;
 use my_no_sql_server_core::DbTableWrapper;
+use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
     app::AppContext,
@@ -15,40 +17,19 @@ pub async fn get_all(
     limit: Option<usize>,
     skip: Option<usize>,
     update_statistics: UpdateStatistics,
+    now: DateTimeAsMicroseconds,
 ) -> Result<ReadOperationResult, DbOperationError> {
     super::super::super::check_app_states(app)?;
 
     let table_data = db_table_wrapper.data.read().await;
 
-    let result_items = table_data.get_all_rows();
+    let mut json_array_writer = JsonArrayWriter::new();
+    for (db_partition, db_row) in table_data.get_all_rows(skip, limit) {
+        update_statistics.update(db_partition, Some(db_row), now);
+        json_array_writer.write(db_row.as_ref());
+    }
 
-    let db_rows =
-        crate::db_operations::read::read_filter::filter_it(result_items.into_iter(), limit, skip);
-
-    let db_rows = if db_rows.len() > 0 {
-        let mut result = HashMap::new();
-
-        for db_row in db_rows {
-            let partition_key = db_row.get_partition_key();
-
-            if !result.contains_key(partition_key) {
-                result.insert(partition_key.to_string(), Vec::new());
-            }
-            result.get_mut(partition_key).unwrap().push(db_row);
-        }
-
-        Some(result)
-    } else {
-        None
-    };
-
-    return Ok(ReadOperationResult::compile_array_or_empty(
-        app,
-        db_table_wrapper,
-        db_rows,
-        update_statistics,
-    )
-    .await);
+    return Ok(ReadOperationResult::RowsArray(json_array_writer.build()));
 }
 
 /*

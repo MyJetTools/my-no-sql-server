@@ -18,7 +18,7 @@ impl LoadedTableItem {
             TableFile::DbPartition(partition_key) => {
                 let db_partition =
                     crate::persist_operations::serializers::db_partition::deserialize(
-                        partition_key,
+                        partition_key.as_str(),
                         content,
                     )?;
 

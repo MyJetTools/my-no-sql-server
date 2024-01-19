@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use my_no_sql_server_core::DbTableWrapper;
+use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
     app::AppContext,
@@ -16,32 +17,28 @@ pub async fn get_all_by_partition_key(
     limit: Option<usize>,
     skip: Option<usize>,
     update_statistics: UpdateStatistics,
+    now: DateTimeAsMicroseconds,
 ) -> Result<ReadOperationResult, DbOperationError> {
     super::super::super::check_app_states(app)?;
 
     let table_data = db_table.data.read().await;
 
-    let get_partition_result = table_data.get_partition(partition_key);
+    let db_partition = table_data.get_partition(partition_key);
 
-    let result = match get_partition_result {
-        Some(partition) => {
-            let db_rows = super::super::read_filter::filter_it(
-                partition.get_all_rows().into_iter(),
-                limit,
-                skip,
-            );
+    if db_partition.is_none() {
+        return Ok(ReadOperationResult::EmptyArray);
+    }
 
-            ReadOperationResult::compile_array_or_empty_from_partition(
-                app,
-                db_table,
-                partition_key,
-                db_rows,
-                update_statistics,
-            )
-            .await
-        }
-        None => ReadOperationResult::EmptyArray,
-    };
+    let db_partition = db_partition.unwrap();
 
-    Ok(result)
+    let json_array_writer = super::super::read_filter::filter_and_compile_json(
+        db_partition.get_all_rows().into_iter(),
+        limit,
+        skip,
+        |db_row| {
+            update_statistics.update(db_partition, Some(db_row), now);
+        },
+    );
+
+    return Ok(ReadOperationResult::RowsArray(json_array_writer.build()));
 }

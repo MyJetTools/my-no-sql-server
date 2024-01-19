@@ -1,23 +1,32 @@
-use std::collections::BTreeMap;
-
-use my_no_sql_sdk::core::db::{DbTable, DbTableAttributes};
-use rust_extensions::date_time::DateTimeAsMicroseconds;
+use my_no_sql_sdk::core::db::{
+    db_table_master_node::PartitionLastWriteMoment, DbTable, DbTableAttributes,
+};
+use rust_extensions::sorted_vec::{EntityWithStrKey, SortedVecWithStrKey};
 
 pub struct PersistedTableData {
+    pub table_name: String,
     pub attr: DbTableAttributes,
-    pub partitions: BTreeMap<String, DateTimeAsMicroseconds>,
+    pub partitions: SortedVecWithStrKey<PartitionLastWriteMoment>,
+}
+
+impl EntityWithStrKey for PersistedTableData {
+    fn get_key(&self) -> &str {
+        self.table_name.as_str()
+    }
 }
 
 impl PersistedTableData {
-    pub fn new(attr: DbTableAttributes) -> Self {
+    pub fn new(table_name: String, attr: DbTableAttributes) -> Self {
         Self {
+            table_name,
             attr,
-            partitions: BTreeMap::new(),
+            partitions: SortedVecWithStrKey::new(),
         }
     }
 
     pub fn init(db_table: &DbTable) -> Self {
         Self {
+            table_name: db_table.name.clone(),
             attr: db_table.attributes.clone(),
             partitions: db_table.get_partitions_last_write_moment(),
         }

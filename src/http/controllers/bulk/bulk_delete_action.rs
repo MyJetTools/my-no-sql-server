@@ -51,7 +51,7 @@ async fn handle_request(
     crate::db_operations::write::bulk_delete(
         action.app.as_ref(),
         db_table.as_ref(),
-        rows_to_delete,
+        rows_to_delete.into_iter(),
         event_src,
         input_data.sync_period.get_sync_moment(),
         now,

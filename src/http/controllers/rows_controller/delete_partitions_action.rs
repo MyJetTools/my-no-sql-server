@@ -45,7 +45,7 @@ async fn handle_request(
     crate::db_operations::write::delete_partitions(
         action.app.as_ref(),
         &db_table,
-        input_data.partition_keys.iter().map(|itm| itm.as_str()),
+        input_data.partition_keys.into_iter(),
         event_src,
         input_data.sync_period.get_sync_moment(),
         now,

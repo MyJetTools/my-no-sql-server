@@ -45,10 +45,11 @@ async fn handle_request(
 
     let now = JsonTimeStamp::now();
 
-    let rows_by_partition = crate::db_operations::parse_json_entity::parse_as_btree_map(
-        input_data.body.as_slice(),
-        &now,
-    )?;
+    let rows_by_partition =
+        crate::db_operations::parse_json_entity::parse_grouped_by_partition_key(
+            input_data.body.as_slice(),
+            &now,
+        )?;
 
     crate::db_operations::write::bulk_insert_or_update::execute(
         action.app.as_ref(),

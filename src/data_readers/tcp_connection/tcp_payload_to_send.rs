@@ -38,11 +38,11 @@ pub async fn serialize(sync_event: &SyncEvent, compress: bool) -> Vec<MyNoSqlTcp
         }
         SyncEvent::InitPartitions(data) => {
             let mut result = Vec::with_capacity(data.partitions_to_update.len());
-            for (partition_key, snapshot) in &data.partitions_to_update {
+            for partition in data.partitions_to_update.iter() {
                 let tcp_contract = MyNoSqlTcpContract::InitPartition {
-                    partition_key: partition_key.to_string(),
+                    partition_key: partition.partition_key.to_string(),
                     table_name: data.table_data.table_name.to_string(),
-                    data: if let Some(db_partition_snapshot) = snapshot {
+                    data: if let Some(db_partition_snapshot) = &partition.snapshot {
                         db_partition_snapshot
                             .db_rows_snapshot
                             .as_json_array()
@@ -77,7 +77,7 @@ pub async fn serialize(sync_event: &SyncEvent, compress: bool) -> Vec<MyNoSqlTcp
             let mut result = Vec::new();
 
             if let Some(deleted_partitions) = &data.deleted_partitions {
-                for (partition_key, _) in deleted_partitions {
+                for partition_key in deleted_partitions.iter() {
                     let contract = MyNoSqlTcpContract::InitPartition {
                         table_name: data.table_data.table_name.to_string(),
                         partition_key: partition_key.to_string(),
@@ -89,13 +89,13 @@ pub async fn serialize(sync_event: &SyncEvent, compress: bool) -> Vec<MyNoSqlTcp
             }
 
             if let Some(deleted_rows) = &data.deleted_rows {
-                for (partition_key, rows) in deleted_rows {
+                for deleted_row in deleted_rows.iter() {
                     let mut deleted_rows = Vec::new();
 
-                    for row_key in rows.keys() {
+                    for db_row in deleted_row.db_rows.iter() {
                         let contract = DeleteRowTcpContract {
-                            partition_key: partition_key.to_string(),
-                            row_key: row_key.to_string(),
+                            partition_key: deleted_row.partition_key.to_string(),
+                            row_key: db_row.get_row_key().to_string(),
                         };
 
                         deleted_rows.push(contract);

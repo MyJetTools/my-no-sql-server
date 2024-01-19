@@ -192,7 +192,7 @@ impl SocketEventCallback<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()> for
                 if let Some(db_table) = db_table {
                     crate::db_operations::update_partitions_last_read_time(
                         &db_table,
-                        partitions.iter(),
+                        partitions.iter().map(|x| x.as_str()),
                     )
                     .await;
                 }

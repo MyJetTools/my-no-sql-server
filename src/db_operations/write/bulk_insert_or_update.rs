@@ -1,6 +1,6 @@
-use std::{collections::BTreeMap, sync::Arc};
+use std::sync::Arc;
 
-use my_no_sql_sdk::core::db::DbRow;
+use my_no_sql_sdk::core::db::{DbRow, PartitionKeyParameter};
 use my_no_sql_server_core::DbTableWrapper;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
@@ -13,7 +13,7 @@ use crate::{
 pub async fn execute(
     app: &AppContext,
     db_table: &Arc<DbTableWrapper>,
-    rows_by_partition: BTreeMap<String, Vec<Arc<DbRow>>>,
+    rows_by_partition: Vec<(impl PartitionKeyParameter, Vec<Arc<DbRow>>)>,
     event_src: EventSource,
     persist_moment: DateTimeAsMicroseconds,
     now: DateTimeAsMicroseconds,
@@ -27,16 +27,18 @@ pub async fn execute(
     let mut has_insert_or_replace = false;
 
     for (partition_key, db_rows) in rows_by_partition {
-        table_data.bulk_insert_or_replace(&partition_key, &db_rows, Some(now));
+        let (partition_key, _) =
+            table_data.bulk_insert_or_replace(&partition_key, &db_rows, Some(now));
+
         has_insert_or_replace = true;
+
+        app.persist_markers
+            .persist_partition(&table_data, &partition_key, persist_moment)
+            .await;
 
         update_rows_state
             .rows_by_partition
-            .add_rows(partition_key.as_str(), db_rows);
-
-        app.persist_markers
-            .persist_partition(&table_data, partition_key.as_str(), persist_moment)
-            .await;
+            .add_rows(partition_key, db_rows);
     }
 
     if has_insert_or_replace {

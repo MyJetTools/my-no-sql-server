@@ -4,7 +4,7 @@ use my_logger::LogEventCtx;
 use my_no_sql_server_core::DbTableWrapper;
 use rust_extensions::{date_time::DateTimeAsMicroseconds, StopWatch};
 
-use crate::{app::AppContext, persist::data_to_persist::PersistResult};
+use crate::{app::AppContext, persist::partition_persist_marker::PersistResult};
 
 pub async fn persist(app: &Arc<AppContext>) {
     let is_shutting_down = app.states.is_shutting_down();
@@ -77,12 +77,8 @@ async fn persist_to_blob(
             crate::persist_operations::sync::save_table(app.as_ref(), db_table.as_ref()).await;
         }
         PersistResult::PersistPartition(partition_key) => {
-            crate::persist_operations::sync::save_partition(
-                app.as_ref(),
-                &db_table,
-                partition_key.as_str(),
-            )
-            .await;
+            crate::persist_operations::sync::save_partition(app.as_ref(), &db_table, partition_key)
+                .await;
         }
     }
 }

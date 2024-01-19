@@ -1,6 +1,8 @@
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
+use my_json::json_writer::JsonArrayWriter;
 use my_no_sql_server_core::DbTableWrapper;
+use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
     app::AppContext,
@@ -16,89 +18,17 @@ pub async fn get_all_by_row_key(
     limit: Option<usize>,
     skip: Option<usize>,
     update_statistics: UpdateStatistics,
+    now: DateTimeAsMicroseconds,
 ) -> Result<ReadOperationResult, DbOperationError> {
     super::super::super::check_app_states(app)?;
 
     let table_data = db_table.data.read().await;
 
-    let mut db_rows = Vec::new();
-
-    for partition in table_data.partitions.get_partitions() {
-        let get_row_result = partition.get_row(row_key);
-
-        if let Some(db_row) = get_row_result {
-            db_rows.push(db_row);
-        }
+    let mut json_array_writer = JsonArrayWriter::new();
+    for (db_partition, db_row) in table_data.get_by_row_key(row_key, skip, limit) {
+        update_statistics.update(db_partition, Some(db_row), now);
+        json_array_writer.write(db_row.as_ref());
     }
 
-    if db_rows.len() == 0 {
-        return Ok(ReadOperationResult::EmptyArray);
-    }
-
-    let db_rows = super::super::read_filter::filter_it(db_rows.into_iter(), limit, skip);
-
-    let db_rows = if db_rows.len() > 0 {
-        let mut result = HashMap::new();
-        for db_row in db_rows {
-            result.insert(db_row.get_partition_key().to_string(), vec![db_row]);
-        }
-
-        Some(result)
-    } else {
-        None
-    };
-
-    return Ok(ReadOperationResult::compile_array_or_empty(
-        app,
-        db_table,
-        db_rows,
-        update_statistics,
-    )
-    .await);
+    return Ok(ReadOperationResult::RowsArray(json_array_writer.build()));
 }
-
-/*
-async fn get_all_by_row_key_and_update_no_expiration_time(
-    table: &DbTable,
-    row_key: &str,
-    limit: Option<usize>,
-    skip: Option<usize>,
-) -> ReadOperationResult {
-    let now = DateTimeAsMicroseconds::now();
-
-    let table_data = table.data.read().await;
-
-    table_data.last_read_time.update(now);
-
-    let mut result = Vec::new();
-
-    let now = DateTimeAsMicroseconds::now();
-
-    for partition in table_data.get_partitions() {
-        let get_row_result = partition.get_row(
-            row_key,
-            UpdatePartitionReadMoment::UpdateIfElementIsFound(now),
-        );
-
-        if let Some(db_row) = get_row_result {
-            result.push(db_row);
-        }
-    }
-
-    return ReadOperationResult::RowsArray(read_filter::filter_it(
-        result.into_iter(),
-        limit,
-        skip,
-        now,
-    ));
-}
-
-async fn get_all_by_row_key_and_update_expiration_time(
-    table: &DbTable,
-    row_key: &str,
-    limit: Option<usize>,
-    skip: Option<usize>,
-    update_statistics: UpdateStatistics,
-) -> ReadOperationResult {
-}
- */

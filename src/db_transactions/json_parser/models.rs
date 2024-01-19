@@ -1,6 +1,9 @@
-use std::{collections::BTreeMap, sync::Arc};
+use std::sync::Arc;
 
-use my_no_sql_sdk::core::db_json_entity::{DbEntityParseFail, DbJsonEntity, JsonTimeStamp};
+use my_no_sql_sdk::core::{
+    db::DbRow,
+    db_json_entity::{DbEntityParseFail, DbJsonEntity, JsonTimeStamp},
+};
 use serde::{Deserialize, Serialize};
 
 use crate::db_transactions::steps::{TransactionalOperationStep, UpdateRowsStepState};
@@ -74,7 +77,7 @@ pub struct InsertOrUpdateTransactionJsonModel {
 
 impl InsertOrUpdateTransactionJsonModel {
     pub fn into(self) -> Result<TransactionalOperationStep, DbEntityParseFail> {
-        let mut rows_by_partition = BTreeMap::new();
+        let mut rows_by_partition = Vec::new();
 
         let now = JsonTimeStamp::now();
 
@@ -84,14 +87,16 @@ impl InsertOrUpdateTransactionJsonModel {
 
             let partition_key = db_row.get_partition_key();
 
-            if !rows_by_partition.contains_key(partition_key) {
-                rows_by_partition.insert(partition_key.to_string(), Vec::new());
+            match rows_by_partition.binary_search_by(|probe: &(String, Vec<Arc<DbRow>>)| {
+                probe.0.as_str().cmp(partition_key)
+            }) {
+                Ok(index) => {
+                    rows_by_partition[index].1.push(db_row);
+                }
+                Err(index) => {
+                    rows_by_partition.insert(index, (partition_key.to_string(), vec![db_row]));
+                }
             }
-
-            rows_by_partition
-                .get_mut(partition_key)
-                .unwrap()
-                .push(db_row);
         }
 
         let state = UpdateRowsStepState {

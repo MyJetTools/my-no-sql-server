@@ -1,5 +1,4 @@
-use std::collections::BTreeMap;
-
+use my_no_sql_sdk::core::db::{PartitionKeyParameter, RowKeyParameter};
 use my_no_sql_server_core::DbTableWrapper;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
@@ -12,7 +11,7 @@ use crate::{
 pub async fn bulk_delete(
     app: &AppContext,
     db_table: &DbTableWrapper,
-    rows_to_delete: BTreeMap<String, Vec<String>>,
+    rows_to_delete: impl Iterator<Item = (impl PartitionKeyParameter, Vec<impl RowKeyParameter>)>,
     event_src: EventSource,
     persist_moment: DateTimeAsMicroseconds,
     now: DateTimeAsMicroseconds,
@@ -25,17 +24,17 @@ pub async fn bulk_delete(
 
     for (partition_key, row_keys) in rows_to_delete {
         let removed_rows_result =
-            table_data.bulk_remove_rows(&partition_key, row_keys.iter(), true, Some(now));
+            table_data.bulk_remove_rows(&partition_key, row_keys.into_iter(), true, Some(now));
 
-        if let Some((removed_rows, partition_is_empty)) = removed_rows_result {
+        if let Some((partition_key, removed_rows, partition_is_empty)) = removed_rows_result {
             app.persist_markers
-                .persist_partition(&table_data, partition_key.as_str(), persist_moment)
+                .persist_partition(&table_data, &partition_key, persist_moment)
                 .await;
 
             if partition_is_empty {
-                sync_data.new_deleted_partition(partition_key);
+                sync_data.new_deleted_partition(&partition_key);
             } else {
-                sync_data.add_deleted_rows(partition_key.as_str(), &removed_rows);
+                sync_data.add_deleted_rows(&partition_key, &removed_rows);
             }
         }
     }

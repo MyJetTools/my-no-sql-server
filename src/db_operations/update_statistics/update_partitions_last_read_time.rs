@@ -1,11 +1,7 @@
 use my_no_sql_server_core::DbTableWrapper;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-pub async fn update_partition_last_read_time(table: &DbTableWrapper, partition: &String) {
-    update_partitions_last_read_time(table, [partition].into_iter()).await
-}
-
-pub async fn update_partitions_last_read_time<'s, TPartitions: Iterator<Item = &'s String>>(
+pub async fn update_partitions_last_read_time<'s, TPartitions: Iterator<Item = &'s str>>(
     table: &DbTableWrapper,
     partitions: TPartitions,
 ) {

@@ -1,5 +1,6 @@
 use my_http_server::macros::*;
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
+use rust_extensions::date_time::DateTimeAsMicroseconds;
 use std::sync::Arc;
 
 use super::models::*;
@@ -36,6 +37,7 @@ async fn handle_request(
         crate::db_operations::read::table::get(action.app.as_ref(), input_data.table_name.as_ref())
             .await?;
 
+    let now = DateTimeAsMicroseconds::now();
     if let Some(partition_key) = input_data.partition_key.as_ref() {
         if let Some(row_key) = input_data.row_key.as_ref() {
             let result = crate::db_operations::read::rows::get_single(
@@ -44,6 +46,7 @@ async fn handle_request(
                 partition_key,
                 row_key,
                 input_data.get_update_statistics(),
+                now,
             )
             .await?;
 
@@ -56,6 +59,7 @@ async fn handle_request(
                 input_data.limit,
                 input_data.skip,
                 input_data.get_update_statistics(),
+                now,
             )
             .await?;
 
@@ -70,6 +74,7 @@ async fn handle_request(
                 input_data.limit,
                 input_data.skip,
                 input_data.get_update_statistics(),
+                now,
             )
             .await?;
 
@@ -81,6 +86,7 @@ async fn handle_request(
                 input_data.limit,
                 input_data.skip,
                 input_data.get_update_statistics(),
+                now,
             )
             .await?;
 

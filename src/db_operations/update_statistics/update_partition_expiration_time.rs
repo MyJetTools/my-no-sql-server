@@ -8,7 +8,7 @@ use crate::app::AppContext;
 pub fn update_partition_expiration_time(
     app: &Arc<AppContext>,
     db_table: &Arc<DbTableWrapper>,
-    partition_key: &String,
+    partition_key: &str,
     set_expiration_time: Option<DateTimeAsMicroseconds>,
 ) {
     let partition_key = partition_key.to_string();

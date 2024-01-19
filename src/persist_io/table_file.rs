@@ -1,10 +1,11 @@
+use my_no_sql_sdk::core::db::PartitionKey;
 use rust_extensions::base64::FromBase64;
 
 use crate::persist_io::TABLE_METADATA_FILE_NAME;
 
 pub enum TableFile {
     TableAttributes,
-    DbPartition(String),
+    DbPartition(PartitionKey),
 }
 
 pub struct TableFileName<'s> {
@@ -36,7 +37,7 @@ impl<'s> TableFileName<'s> {
             return as_string;
         }
 
-        panic!("TableFileName is not initialized propertly");
+        panic!("TableFileName is not initialized properly");
     }
 }
 
@@ -59,7 +60,7 @@ impl TableFile {
         let partition_key = partition_key.unwrap();
 
         match String::from_utf8(partition_key) {
-            Ok(result) => Ok(Self::DbPartition(result)),
+            Ok(result) => Ok(Self::DbPartition(result.into())),
             Err(err) => Err(format!(
                 "Can not decode filename: {}. Err:{:?}",
                 file_name, err
@@ -71,8 +72,8 @@ impl TableFile {
             TableFile::TableAttributes => TableFileName::new(TABLE_METADATA_FILE_NAME),
             TableFile::DbPartition(partition_key) => {
                 use base64::Engine;
-                let encoded =
-                    base64::engine::general_purpose::STANDARD.encode(partition_key.as_bytes());
+                let encoded = base64::engine::general_purpose::STANDARD
+                    .encode(partition_key.as_str().as_bytes());
                 TableFileName::new_as_string(encoded)
             }
         }

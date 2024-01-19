@@ -48,11 +48,11 @@ pub async fn create(
                 let table_data = db_table.data.write().await;
 
                 app.persist_markers
-                    .persist_table(db_table.name.as_str(), persist_moment)
+                    .persist_table(&table_data, persist_moment)
                     .await;
 
                 app.persist_markers
-                    .persist_table(db_table.name.as_str(), persist_moment)
+                    .persist_table(&table_data, persist_moment)
                     .await;
 
                 let state = InitTableEventSyncData::new(&table_data, event_src);
@@ -99,12 +99,10 @@ async fn get_or_create(
                 crate::operations::sync::dispatch(app, SyncEvent::InitTable(state));
 
                 app.persist_markers
-                    .persist_table(db_table.name.as_str(), persist_moment)
+                    .persist_table(&table_data, persist_moment)
                     .await;
 
-                app.persist_markers
-                    .persist_table_attrs(db_table.name.as_str())
-                    .await;
+                app.persist_markers.persist_table_attrs(&table_data).await;
             }
 
             return Ok(db_table);
@@ -182,14 +180,12 @@ pub async fn set_table_attributes(
 ) -> Result<(), DbOperationError> {
     super::super::check_app_states(app)?;
 
-    let result = {
-        let mut write_access = db_table.data.write().await;
-        write_access.attributes.update(
-            persist,
-            max_partitions_amount,
-            max_rows_per_partition_amount,
-        )
-    };
+    let mut write_access = db_table.data.write().await;
+    let result = write_access.attributes.update(
+        persist,
+        max_partitions_amount,
+        max_rows_per_partition_amount,
+    );
 
     if !result {
         return Ok(());
@@ -206,9 +202,7 @@ pub async fn set_table_attributes(
         }),
     );
 
-    app.persist_markers
-        .persist_table_attrs(db_table.name.as_str())
-        .await;
+    app.persist_markers.persist_table_attrs(&write_access).await;
 
     Ok(())
 }
@@ -232,7 +226,7 @@ pub async fn delete(
         let table_data = db_table.data.read().await;
 
         app.persist_markers
-            .persist_table(db_table.name.as_str(), persist_moment)
+            .persist_table(&table_data, persist_moment)
             .await;
 
         crate::operations::sync::dispatch(

@@ -1,11 +1,13 @@
-use std::collections::BTreeMap;
-
-use rust_extensions::date_time::DateTimeAsMicroseconds;
+use my_no_sql_sdk::core::db::{PartitionKey, PartitionKeyParameter};
+use rust_extensions::{
+    date_time::DateTimeAsMicroseconds,
+    sorted_vec::{EntityWithStrKey, SortedVecWithStrKey},
+};
 
 pub enum PersistResult {
     PersistAttrs,
     PersistTable,
-    PersistPartition(String),
+    PersistPartition(PartitionKey),
 }
 
 impl PersistResult {
@@ -19,13 +21,24 @@ impl PersistResult {
     }
 }
 
-pub struct DataToPersist {
+pub struct PartitionPersistMoment {
+    pub partition_key: PartitionKey,
+    pub persist_moment: DateTimeAsMicroseconds,
+}
+
+impl EntityWithStrKey for PartitionPersistMoment {
+    fn get_key(&self) -> &str {
+        self.partition_key.as_str()
+    }
+}
+
+pub struct PartitionPersistMarker {
     pub persist_whole_table: Option<DateTimeAsMicroseconds>,
-    pub partitions: BTreeMap<String, DateTimeAsMicroseconds>,
+    pub partitions: SortedVecWithStrKey<PartitionPersistMoment>,
     pub persist_attrs: bool,
 }
 
-impl DataToPersist {
+impl PartitionPersistMarker {
     pub fn get_persist_amount(&self) -> usize {
         let mut result = if self.persist_attrs { 1 } else { 0 };
         result += self.partitions.len();
@@ -40,7 +53,7 @@ impl DataToPersist {
     pub fn new() -> Self {
         Self {
             persist_whole_table: None,
-            partitions: BTreeMap::new(),
+            partitions: SortedVecWithStrKey::new(),
             persist_attrs: false,
         }
     }
@@ -60,20 +73,23 @@ impl DataToPersist {
 
     pub fn mark_partition_to_persist(
         &mut self,
-        partition_key: &str,
+        partition_key: &impl PartitionKeyParameter,
         persist_moment: DateTimeAsMicroseconds,
     ) {
-        if !self.partitions.contains_key(partition_key) {
-            self.partitions
-                .insert(partition_key.to_string(), persist_moment);
-            return;
-        }
+        match self.partitions.insert_or_update(partition_key.as_str()) {
+            rust_extensions::sorted_vec::InsertOrUpdateEntry::Insert(entry) => {
+                let entity = PartitionPersistMoment {
+                    partition_key: partition_key.to_partition_key(),
+                    persist_moment,
+                };
 
-        let moment = self.partitions.get(partition_key).unwrap().clone();
-
-        if moment.unix_microseconds > persist_moment.unix_microseconds {
-            self.partitions
-                .insert(partition_key.to_string(), persist_moment);
+                entry.insert(entity);
+            }
+            rust_extensions::sorted_vec::InsertOrUpdateEntry::Update(entry) => {
+                if persist_moment.unix_microseconds > entry.item.persist_moment.unix_microseconds {
+                    entry.item.persist_moment = persist_moment;
+                }
+            }
         }
     }
 
@@ -85,32 +101,33 @@ impl DataToPersist {
         &mut self,
         now: DateTimeAsMicroseconds,
         is_shutting_down: bool,
-    ) -> Option<String> {
-        for (key, value) in &self.partitions {
-            if is_shutting_down || value.unix_microseconds <= now.unix_microseconds {
-                return Some(key.to_string());
+    ) -> Option<PartitionKey> {
+        for item in self.partitions.iter() {
+            if is_shutting_down || item.persist_moment.unix_microseconds <= now.unix_microseconds {
+                return Some(item.partition_key.clone());
             }
         }
-
         None
     }
 
     pub fn get_next_persist_time(&self) -> Option<DateTimeAsMicroseconds> {
-        if let Some(persisit_whole_table) = self.persist_whole_table {
-            return Some(persisit_whole_table);
+        if let Some(persist_whole_table) = self.persist_whole_table {
+            return Some(persist_whole_table);
         }
 
         let mut result: Option<DateTimeAsMicroseconds> = None;
 
-        for partition_dt in self.partitions.values() {
+        for partition_dt in self.partitions.iter() {
             match result.clone() {
                 Some(current_result) => {
-                    if current_result.unix_microseconds > partition_dt.unix_microseconds {
-                        result = Some(*partition_dt)
+                    if current_result.unix_microseconds
+                        > partition_dt.persist_moment.unix_microseconds
+                    {
+                        result = Some(partition_dt.persist_moment)
                     }
                 }
                 None => {
-                    result = Some(*partition_dt);
+                    result = Some(partition_dt.persist_moment);
                 }
             }
         }
@@ -123,10 +140,10 @@ impl DataToPersist {
         now: DateTimeAsMicroseconds,
         is_shutting_down: bool,
     ) -> Option<PersistResult> {
-        if let Some(persisit_whole_table) = self.persist_whole_table {
-            if persisit_whole_table.unix_microseconds <= now.unix_microseconds || is_shutting_down {
+        if let Some(persist_whole_table) = self.persist_whole_table {
+            if persist_whole_table.unix_microseconds <= now.unix_microseconds || is_shutting_down {
                 self.persist_whole_table = None;
-                self.partitions.clear();
+                self.partitions.clear(Some(16));
                 return Some(PersistResult::PersistTable);
             }
         }
@@ -150,18 +167,20 @@ mod test {
 
     #[test]
     fn test_add_partition_with_later_date() {
-        let mut data_to_persist = DataToPersist::new();
+        let mut data_to_persist = PartitionPersistMarker::new();
 
-        data_to_persist.mark_partition_to_persist("test", DateTimeAsMicroseconds::new(5));
+        data_to_persist
+            .mark_partition_to_persist(&"test".to_string(), DateTimeAsMicroseconds::new(5));
 
-        data_to_persist.mark_partition_to_persist("test", DateTimeAsMicroseconds::new(6));
+        data_to_persist
+            .mark_partition_to_persist(&"test".to_string(), DateTimeAsMicroseconds::new(6));
 
         let result = data_to_persist
             .get_what_to_persist(DateTimeAsMicroseconds::new(5), false)
             .unwrap();
 
-        if let PersistResult::PersistPartition(table_name) = result {
-            assert_eq!("test", table_name);
+        if let PersistResult::PersistPartition(partition_key) = result {
+            assert_eq!("test", partition_key.as_str());
         } else {
             panic!("Should not be here");
         }
@@ -169,9 +188,10 @@ mod test {
 
     #[test]
     fn test_add_partition_with_table_later() {
-        let mut data_to_persist = DataToPersist::new();
+        let mut data_to_persist = PartitionPersistMarker::new();
 
-        data_to_persist.mark_partition_to_persist("test", DateTimeAsMicroseconds::new(5));
+        data_to_persist
+            .mark_partition_to_persist(&"test".to_string(), DateTimeAsMicroseconds::new(5));
 
         data_to_persist.mark_table_to_persist(DateTimeAsMicroseconds::new(6));
 
@@ -179,8 +199,8 @@ mod test {
             .get_what_to_persist(DateTimeAsMicroseconds::new(5), false)
             .unwrap();
 
-        if let PersistResult::PersistPartition(table_name) = result {
-            assert_eq!("test", table_name);
+        if let PersistResult::PersistPartition(partition_key) = result {
+            assert_eq!("test", partition_key.as_str());
         } else {
             panic!("Should not be here");
         }

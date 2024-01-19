@@ -168,15 +168,13 @@ impl Writer for MyNoSqlServerWriterGrpcSerice {
         .unwrap();
 
         tokio::spawn(async move {
-            if let Some(db_rows) = db_rows {
-                for db_row in db_rows {
-                    let grpc = TableEntityTransportGrpcContract {
-                        content_type: 0,
-                        content: db_row.to_vec(),
-                    };
+            for db_row in db_rows {
+                let grpc = TableEntityTransportGrpcContract {
+                    content_type: 0,
+                    content: db_row.to_vec(),
+                };
 
-                    tx.send(Ok(grpc)).await.unwrap();
-                }
+                tx.send(Ok(grpc)).await.unwrap();
             }
         });
 
@@ -229,7 +227,6 @@ impl Writer for MyNoSqlServerWriterGrpcSerice {
         };
 
         let db_row = crate::db_operations::read::get_rows_as_vec::get_as_partition_key_and_row_key(
-            &self.app,
             &db_table,
             &request.partition_key,
             &request.row_key,

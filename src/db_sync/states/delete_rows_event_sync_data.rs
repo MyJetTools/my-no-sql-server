@@ -1,17 +1,29 @@
-use std::{collections::BTreeMap, sync::Arc};
+use std::sync::Arc;
 
 use my_json::json_writer::{JsonArrayWriter, JsonNullValue, JsonObjectWriter};
-use my_no_sql_sdk::core::db::{DbRow, DbTable};
+use my_no_sql_sdk::core::db::{DbRow, DbTable, PartitionKey, PartitionKeyParameter};
+use rust_extensions::sorted_vec::{EntityWithStrKey, SortedVecWithStrKey};
 
 use crate::db_sync::EventSource;
 
 use super::SyncTableData;
 
+pub struct DeletedRowData {
+    pub partition_key: PartitionKey,
+    pub db_rows: Vec<Arc<DbRow>>,
+}
+
+impl EntityWithStrKey for DeletedRowData {
+    fn get_key(&self) -> &str {
+        self.partition_key.as_str()
+    }
+}
+
 pub struct DeleteRowsEventSyncData {
     pub table_data: SyncTableData,
     pub event_src: EventSource,
-    pub deleted_partitions: Option<BTreeMap<String, ()>>,
-    pub deleted_rows: Option<BTreeMap<String, BTreeMap<String, Arc<DbRow>>>>,
+    pub deleted_partitions: Option<SortedVecWithStrKey<PartitionKey>>,
+    pub deleted_rows: Option<SortedVecWithStrKey<DeletedRowData>>,
 }
 
 impl DeleteRowsEventSyncData {
@@ -26,61 +38,77 @@ impl DeleteRowsEventSyncData {
 
     fn check_that_we_are_in_partition_mode(
         &mut self,
-        partition_key: &str,
-    ) -> &mut BTreeMap<String, BTreeMap<String, Arc<DbRow>>> {
+        partition_key: &impl PartitionKeyParameter,
+    ) -> &mut SortedVecWithStrKey<DeletedRowData> {
         if let Some(deleted_partitions) = &self.deleted_partitions {
-            if deleted_partitions.contains_key(partition_key) {
-                panic!("Can not add deleted rows from partition {}", partition_key);
+            if deleted_partitions.contains(partition_key.as_str()) {
+                panic!(
+                    "Can not add deleted rows from partition {}",
+                    partition_key.as_str()
+                );
             }
         }
 
         if self.deleted_rows.is_none() {
-            self.deleted_rows = Some(BTreeMap::new())
+            self.deleted_rows = Some(SortedVecWithStrKey::new())
         }
 
         return self.deleted_rows.as_mut().unwrap();
     }
 
-    pub fn add_deleted_row(&mut self, partition_key: &str, deleted_row: Arc<DbRow>) {
-        let deleted_rows_btree_map = self.check_that_we_are_in_partition_mode(partition_key);
+    pub fn add_deleted_row(
+        &mut self,
+        partition_key: &impl PartitionKeyParameter,
+        deleted_row: Arc<DbRow>,
+    ) {
+        let deleted_rows = self.check_that_we_are_in_partition_mode(partition_key);
 
-        if !deleted_rows_btree_map.contains_key(partition_key) {
-            deleted_rows_btree_map.insert(partition_key.to_string(), BTreeMap::new());
-        }
-
-        deleted_rows_btree_map
-            .get_mut(partition_key)
-            .unwrap()
-            .insert(deleted_row.get_row_key().to_string(), deleted_row.clone());
-    }
-
-    pub fn add_deleted_rows(&mut self, partition_key: &str, deleted_rows: &[Arc<DbRow>]) {
-        let deleted_rows_btree_map = self.check_that_we_are_in_partition_mode(partition_key);
-
-        if !deleted_rows_btree_map.contains_key(partition_key) {
-            deleted_rows_btree_map.insert(partition_key.to_string(), BTreeMap::new());
-        }
-
-        let by_partition = deleted_rows_btree_map.get_mut(partition_key).unwrap();
-
-        for deleted_row in deleted_rows {
-            by_partition.insert(deleted_row.get_row_key().to_string(), deleted_row.clone());
+        match deleted_rows.insert_or_update(partition_key.as_str()) {
+            rust_extensions::sorted_vec::InsertOrUpdateEntry::Insert(entry) => {
+                entry.insert(DeletedRowData {
+                    partition_key: partition_key.to_partition_key(),
+                    db_rows: vec![deleted_row],
+                });
+            }
+            rust_extensions::sorted_vec::InsertOrUpdateEntry::Update(entry) => {
+                entry.item.db_rows.push(deleted_row)
+            }
         }
     }
 
-    pub fn new_deleted_partition(&mut self, partition_key: String) {
+    pub fn add_deleted_rows(
+        &mut self,
+        partition_key: &impl PartitionKeyParameter,
+        deleted_rows_to_add: &[Arc<DbRow>],
+    ) {
+        let deleted_rows = self.check_that_we_are_in_partition_mode(partition_key);
+
+        match deleted_rows.insert_or_update(partition_key.as_str()) {
+            rust_extensions::sorted_vec::InsertOrUpdateEntry::Insert(entry) => {
+                entry.insert(DeletedRowData {
+                    partition_key: partition_key.to_partition_key(),
+                    db_rows: deleted_rows_to_add.to_vec(),
+                });
+            }
+            rust_extensions::sorted_vec::InsertOrUpdateEntry::Update(entry) => {
+                entry.item.db_rows.extend_from_slice(deleted_rows_to_add)
+            }
+        }
+    }
+
+    pub fn new_deleted_partition(&mut self, partition_key: &impl PartitionKeyParameter) {
         if let Some(deleted_rows) = &mut self.deleted_rows {
             deleted_rows.remove(partition_key.as_str());
         }
 
         if self.deleted_partitions.is_none() {
-            self.deleted_partitions = Some(BTreeMap::new());
+            self.deleted_partitions = Some(SortedVecWithStrKey::new());
         }
 
         self.deleted_partitions
             .as_mut()
             .unwrap()
-            .insert(partition_key, ());
+            .insert_or_replace(partition_key.to_partition_key());
     }
 
     pub fn as_vec(&self) -> Vec<u8> {
@@ -88,18 +116,21 @@ impl DeleteRowsEventSyncData {
 
         {
             if let Some(deleted_partitions) = &self.deleted_partitions {
-                for partition_key in deleted_partitions.keys() {
-                    json_object_writer.write(partition_key, JsonNullValue);
+                for partition_key in deleted_partitions.iter() {
+                    json_object_writer.write(partition_key.as_str(), JsonNullValue);
                 }
             }
 
             if let Some(deleted_rows) = &self.deleted_rows {
-                for (partition_key, deleted_rows) in deleted_rows {
+                for deleted_rows_data in deleted_rows.iter() {
                     let mut deleted_rows_json_array = JsonArrayWriter::new();
-                    for deleted_row in deleted_rows.values() {
+                    for deleted_row in deleted_rows_data.db_rows.iter() {
                         deleted_rows_json_array.write(deleted_row.get_row_key());
                     }
-                    json_object_writer.write(partition_key, deleted_rows_json_array);
+                    json_object_writer.write(
+                        deleted_rows_data.partition_key.as_str(),
+                        deleted_rows_json_array,
+                    );
                 }
             }
         }

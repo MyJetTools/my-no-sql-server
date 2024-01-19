@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use my_no_sql_server_core::DbTableWrapper;
+use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
     app::AppContext,
@@ -15,20 +16,21 @@ pub async fn get_single(
     partition_key: &String,
     row_key: &String,
     update_statistics: UpdateStatistics,
+    now: DateTimeAsMicroseconds,
 ) -> Result<ReadOperationResult, DbOperationError> {
     super::super::super::check_app_states(app)?;
 
     let table_data = db_table.data.read().await;
 
-    let partition = table_data.get_partition(partition_key);
+    let db_partition = table_data.get_partition(partition_key);
 
-    if partition.is_none() {
+    if db_partition.is_none() {
         return Err(DbOperationError::RecordNotFound);
     }
 
-    let partition = partition.unwrap();
+    let db_partition = db_partition.unwrap();
 
-    let db_row = partition.get_row(row_key);
+    let db_row = db_partition.get_row(row_key);
 
     if db_row.is_none() {
         return Err(DbOperationError::RecordNotFound);
@@ -36,13 +38,7 @@ pub async fn get_single(
 
     let db_row = db_row.unwrap();
 
-    if update_statistics.has_statistics_to_update() {
-        update_statistics
-            .update_statistics(app, db_table, partition_key, || {
-                [row_key.as_str()].into_iter()
-            })
-            .await;
-    }
+    update_statistics.update(db_partition, Some(db_row), now);
 
     return Ok(ReadOperationResult::SingleRow(db_row.to_vec()));
 }

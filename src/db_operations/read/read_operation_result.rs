@@ -1,22 +1,14 @@
-use std::{collections::HashMap, sync::Arc};
-
-use my_json::json_writer::JsonArrayWriter;
-use my_no_sql_sdk::core::db::DbRow;
-use my_no_sql_server_core::DbTableWrapper;
-
-use crate::{app::AppContext, db_operations::UpdateStatistics};
-
 pub enum ReadOperationResult {
     SingleRow(Vec<u8>),
     RowsArray(Vec<u8>),
     EmptyArray,
 }
-
+/*
 impl ReadOperationResult {
     pub async fn compile_array_or_empty(
         app: &Arc<AppContext>,
         db_table: &Arc<DbTableWrapper>,
-        db_rows: Option<HashMap<String, Vec<&Arc<DbRow>>>>,
+        db_rows: Option<Vec<(String, Vec<&Arc<DbRow>>)>>,
         update_statistics: UpdateStatistics,
     ) -> Self {
         if db_rows.is_none() {
@@ -72,3 +64,4 @@ impl ReadOperationResult {
         return ReadOperationResult::RowsArray(json_array_writer.build());
     }
 }
+ */

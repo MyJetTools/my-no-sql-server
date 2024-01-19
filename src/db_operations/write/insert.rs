@@ -43,19 +43,23 @@ pub async fn execute(
 ) -> Result<(), DbOperationError> {
     let mut table_data = db_table.data.write().await;
 
-    let inserted = table_data.insert_row(&db_row, Some(now));
+    let partition_key = table_data.insert_row(&db_row, Some(now));
 
-    if !inserted {
+    if partition_key.is_none() {
         return Err(DbOperationError::RecordAlreadyExists);
     }
 
+    let partition_key = partition_key.unwrap();
+
     app.persist_markers
-        .persist_partition(&table_data, db_row.get_partition_key(), persist_moment)
+        .persist_partition(&table_data, &partition_key, persist_moment)
         .await;
 
     let mut update_rows_state = UpdateRowsSyncData::new(&table_data, event_src);
 
-    update_rows_state.rows_by_partition.add_row(db_row);
+    update_rows_state
+        .rows_by_partition
+        .add_row(partition_key, db_row);
 
     crate::operations::sync::dispatch(app, SyncEvent::UpdateRows(update_rows_state));
 

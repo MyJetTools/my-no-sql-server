@@ -1,9 +1,7 @@
 use std::sync::Arc;
 
-use my_no_sql_server_core::DbTableWrapper;
+use my_no_sql_sdk::core::db::{DbPartition, DbRow};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
-
-use crate::app::AppContext;
 
 #[derive(Clone, Debug)]
 pub struct UpdateStatistics {
@@ -14,6 +12,34 @@ pub struct UpdateStatistics {
 }
 
 impl UpdateStatistics {
+    pub fn update(
+        &self,
+        db_partition: &DbPartition,
+        db_row: Option<&Arc<DbRow>>,
+        now: DateTimeAsMicroseconds,
+    ) {
+        if self.update_partition_last_read_access_time {
+            db_partition.update_last_read_moment(now);
+        }
+
+        /*
+        todo!("Not Implemented yet");
+        if let Some(update_partition_expiration_time) = self.update_partition_expiration_time {
+            db_partition.update_expires(update_partition_expiration_time);
+        }
+        */
+
+        if let Some(db_row) = db_row {
+            if self.update_rows_last_read_access_time {
+                db_row.update_last_read_access(now);
+            }
+
+            if let Some(update_rows_expiration_time) = self.update_rows_expiration_time {
+                db_row.update_expires(update_rows_expiration_time);
+            }
+        }
+    }
+    /*
     pub fn has_statistics_to_update(&self) -> bool {
         self.update_partition_last_read_access_time
             || self.update_rows_last_read_access_time
@@ -25,7 +51,7 @@ impl UpdateStatistics {
         &self,
         app: &Arc<AppContext>,
         db_table: &Arc<DbTableWrapper>,
-        partition_key: &String,
+        partition_key: &str,
         get_db_rows: impl Fn() -> TRowKeys,
     ) {
         if self.update_partition_last_read_access_time {
@@ -63,5 +89,7 @@ impl UpdateStatistics {
                 update_rows_expiration_time,
             );
         }
+
     }
+    */
 }

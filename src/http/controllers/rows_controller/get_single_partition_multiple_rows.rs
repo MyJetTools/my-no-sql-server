@@ -1,5 +1,6 @@
 use my_http_server::macros::*;
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
+use rust_extensions::date_time::DateTimeAsMicroseconds;
 use std::sync::Arc;
 
 use crate::{app::AppContext, http::controllers::row_controller::models::BaseDbRowContract};
@@ -45,6 +46,7 @@ async fn handle_request(
         &input_data.partition_key,
         row_keys,
         input_data.get_update_statistics(),
+        DateTimeAsMicroseconds::now(),
     )
     .await?;
 

@@ -1,6 +1,7 @@
 use super::states::{
-    DeleteRowsEventSyncData, DeleteTableSyncData, InitPartitionsSyncData, InitTableEventSyncData,
-    TableFirstInitSyncData, UpdateRowsSyncData, UpdateTableAttributesSyncData,
+    DeleteRowsEventSyncData, DeleteTableSyncData, InitPartitionsSyncEventData,
+    InitTableEventSyncData, TableFirstInitSyncData, UpdateRowsSyncData,
+    UpdateTableAttributesSyncData,
 };
 
 pub enum SyncEvent {
@@ -8,7 +9,7 @@ pub enum SyncEvent {
 
     InitTable(InitTableEventSyncData),
 
-    InitPartitions(InitPartitionsSyncData),
+    InitPartitions(InitPartitionsSyncEventData),
 
     UpdateRows(UpdateRowsSyncData),
 
