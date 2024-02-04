@@ -90,7 +90,7 @@ impl PartitionPersistMarker {
             my_no_sql_sdk::core::rust_extensions::sorted_vec::InsertOrUpdateEntry::Update(
                 entry,
             ) => {
-                if persist_moment.unix_microseconds > entry.item.persist_moment.unix_microseconds {
+                if persist_moment < entry.item.persist_moment {
                     entry.item.persist_moment = persist_moment;
                 }
             }
