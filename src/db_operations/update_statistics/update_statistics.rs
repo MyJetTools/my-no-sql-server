@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use my_no_sql_sdk::core::db::{DbPartition, DbRow};
-use rust_extensions::date_time::DateTimeAsMicroseconds;
+use my_no_sql_sdk::core::rust_extensions::date_time::DateTimeAsMicroseconds;
 
 #[derive(Clone, Debug)]
 pub struct UpdateStatistics {

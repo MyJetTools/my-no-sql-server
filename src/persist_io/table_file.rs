@@ -1,5 +1,5 @@
 use my_no_sql_sdk::core::db::PartitionKey;
-use rust_extensions::base64::FromBase64;
+use my_no_sql_sdk::core::rust_extensions::base64::FromBase64;
 
 use crate::persist_io::TABLE_METADATA_FILE_NAME;
 

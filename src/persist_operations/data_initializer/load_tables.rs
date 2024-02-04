@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use my_logger::LogEventCtx;
-use rust_extensions::StopWatch;
+use my_no_sql_sdk::core::rust_extensions::StopWatch;
 
 use crate::app::AppContext;
 

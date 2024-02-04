@@ -1,4 +1,4 @@
-use my_json::json_writer::{JsonArrayWriter, JsonObjectWriter};
+use my_no_sql_sdk::core::my_json::json_writer::{JsonArrayWriter, JsonObjectWriter};
 
 use crate::db_sync::{
     states::{DeleteRowsEventSyncData, InitPartitionsSyncEventData, UpdateRowsSyncData},

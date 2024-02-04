@@ -1,5 +1,5 @@
 use crate::{app::AppContext, db_sync::SyncEvent};
-use rust_extensions::events_loop::EventsLoopTick;
+use my_no_sql_sdk::core::rust_extensions::events_loop::EventsLoopTick;
 use std::sync::Arc;
 
 pub struct SyncEventLoop {

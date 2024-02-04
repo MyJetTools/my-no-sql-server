@@ -6,7 +6,7 @@ use my_no_sql_sdk::core::{
 use crate::db_operations::DbOperationError;
 
 pub fn parse_db_json_entity(src: &[u8], now: &JsonTimeStamp) -> Result<DbRow, DbOperationError> {
-    match DbJsonEntity::parse_into_db_row(src, now) {
+    match DbJsonEntity::parse_into_db_row(src.into(), now) {
         Ok(result) => Ok(result),
         Err(err) => {
             let result = DbOperationError::DbEntityParseFail(err);

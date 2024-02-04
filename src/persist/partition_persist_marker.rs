@@ -1,5 +1,5 @@
 use my_no_sql_sdk::core::db::{PartitionKey, PartitionKeyParameter};
-use rust_extensions::{
+use my_no_sql_sdk::core::rust_extensions::{
     date_time::DateTimeAsMicroseconds,
     sorted_vec::{EntityWithStrKey, SortedVecWithStrKey},
 };
@@ -77,7 +77,9 @@ impl PartitionPersistMarker {
         persist_moment: DateTimeAsMicroseconds,
     ) {
         match self.partitions.insert_or_update(partition_key.as_str()) {
-            rust_extensions::sorted_vec::InsertOrUpdateEntry::Insert(entry) => {
+            my_no_sql_sdk::core::rust_extensions::sorted_vec::InsertOrUpdateEntry::Insert(
+                entry,
+            ) => {
                 let entity = PartitionPersistMoment {
                     partition_key: partition_key.to_partition_key(),
                     persist_moment,
@@ -85,7 +87,9 @@ impl PartitionPersistMarker {
 
                 entry.insert(entity);
             }
-            rust_extensions::sorted_vec::InsertOrUpdateEntry::Update(entry) => {
+            my_no_sql_sdk::core::rust_extensions::sorted_vec::InsertOrUpdateEntry::Update(
+                entry,
+            ) => {
                 if persist_moment.unix_microseconds > entry.item.persist_moment.unix_microseconds {
                     entry.item.persist_moment = persist_moment;
                 }

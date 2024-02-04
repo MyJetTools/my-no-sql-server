@@ -4,9 +4,9 @@ use background::{
     metrics_updater::MetricsUpdater, persist::PersistTimer, sync::SyncEventLoop, BackupTimer,
 };
 
+use my_no_sql_sdk::core::rust_extensions::MyTimer;
 use my_no_sql_sdk::tcp_contracts::MyNoSqlTcpSerializerFactory;
 use my_tcp_sockets::TcpServer;
-use rust_extensions::MyTimer;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tcp::TcpServerEvents;
 mod zip;

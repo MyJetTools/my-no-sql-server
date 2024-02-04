@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use rust_extensions::MyTimerTick;
+use my_no_sql_sdk::core::rust_extensions::MyTimerTick;
 
 use crate::app::AppContext;
 

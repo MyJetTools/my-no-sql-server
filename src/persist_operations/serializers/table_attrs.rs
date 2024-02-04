@@ -1,5 +1,5 @@
 use my_no_sql_sdk::core::db::DbTableAttributes;
-use rust_extensions::date_time::DateTimeAsMicroseconds;
+use my_no_sql_sdk::core::rust_extensions::date_time::DateTimeAsMicroseconds;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]

@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use rust_extensions::date_time::DateTimeAsMicroseconds;
+use my_no_sql_sdk::core::rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use super::partition_persist_marker::PartitionPersistMarker;
 const DURATION_MONITORING_DATA_SIZE: usize = 120;

@@ -1,5 +1,5 @@
 use my_azure_storage_sdk::AzureStorageConnection;
-use rust_extensions::StrOrString;
+use my_no_sql_sdk::core::rust_extensions::StrOrString;
 use serde::{Deserialize, Serialize};
 use std::{env, sync::Arc};
 use tokio::{fs::File, io::AsyncReadExt};
@@ -49,7 +49,7 @@ impl SettingsModel {
     }
 
     pub fn get_backup_folder<'s>(&'s self) -> StrOrString<'s> {
-        rust_extensions::file_utils::format_path(self.backup_folder.as_str())
+        my_no_sql_sdk::core::rust_extensions::file_utils::format_path(self.backup_folder.as_str())
     }
 }
 

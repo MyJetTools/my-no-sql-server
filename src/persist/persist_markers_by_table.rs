@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use my_no_sql_sdk::core::db::{DbTable, PartitionKeyParameter};
-use rust_extensions::{
+use my_no_sql_sdk::core::rust_extensions::{
     date_time::DateTimeAsMicroseconds,
     sorted_vec::{EntityWithStrKey, SortedVecWithStrKey},
 };
@@ -51,7 +51,9 @@ impl PersistMarkersByTable {
         let mut write_access = self.by_table.lock().await;
 
         match write_access.insert_or_update(db_table.name.as_str()) {
-            rust_extensions::sorted_vec::InsertOrUpdateEntry::Insert(entry) => {
+            my_no_sql_sdk::core::rust_extensions::sorted_vec::InsertOrUpdateEntry::Insert(
+                entry,
+            ) => {
                 let mut item = PersistByTableItem {
                     table_name: db_table.name.clone(),
                     data: TablePersistData::new(),
@@ -63,7 +65,9 @@ impl PersistMarkersByTable {
 
                 entry.insert(item);
             }
-            rust_extensions::sorted_vec::InsertOrUpdateEntry::Update(entry) => {
+            my_no_sql_sdk::core::rust_extensions::sorted_vec::InsertOrUpdateEntry::Update(
+                entry,
+            ) => {
                 entry
                     .item
                     .data
@@ -81,7 +85,9 @@ impl PersistMarkersByTable {
         let mut write_access = self.by_table.lock().await;
 
         match write_access.insert_or_update(&db_table.name) {
-            rust_extensions::sorted_vec::InsertOrUpdateEntry::Insert(entry) => {
+            my_no_sql_sdk::core::rust_extensions::sorted_vec::InsertOrUpdateEntry::Insert(
+                entry,
+            ) => {
                 let mut item = PersistByTableItem {
                     table_name: db_table.name.to_string(),
                     data: TablePersistData::new(),
@@ -91,7 +97,9 @@ impl PersistMarkersByTable {
 
                 entry.insert(item);
             }
-            rust_extensions::sorted_vec::InsertOrUpdateEntry::Update(entry) => {
+            my_no_sql_sdk::core::rust_extensions::sorted_vec::InsertOrUpdateEntry::Update(
+                entry,
+            ) => {
                 entry
                     .item
                     .data
@@ -109,7 +117,9 @@ impl PersistMarkersByTable {
         let mut write_access = self.by_table.lock().await;
 
         match write_access.insert_or_update(&db_table.name) {
-            rust_extensions::sorted_vec::InsertOrUpdateEntry::Insert(entry) => {
+            my_no_sql_sdk::core::rust_extensions::sorted_vec::InsertOrUpdateEntry::Insert(
+                entry,
+            ) => {
                 let mut item = PersistByTableItem {
                     table_name: db_table.name.to_string(),
                     data: TablePersistData::new(),
@@ -119,7 +129,9 @@ impl PersistMarkersByTable {
 
                 entry.insert(item);
             }
-            rust_extensions::sorted_vec::InsertOrUpdateEntry::Update(entry) => {
+            my_no_sql_sdk::core::rust_extensions::sorted_vec::InsertOrUpdateEntry::Update(
+                entry,
+            ) => {
                 entry.item.data.data_to_persist.mark_persist_attrs();
             }
         }

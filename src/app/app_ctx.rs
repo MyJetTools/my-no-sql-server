@@ -3,8 +3,8 @@ use std::{
     time::Duration,
 };
 
+use my_no_sql_sdk::core::rust_extensions::{date_time::DateTimeAsMicroseconds, AppStates};
 use my_no_sql_server_core::DbInstance;
-use rust_extensions::{date_time::DateTimeAsMicroseconds, AppStates};
 
 use crate::{
     data_readers::DataReadersList,

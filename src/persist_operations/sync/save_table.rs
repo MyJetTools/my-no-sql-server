@@ -1,6 +1,6 @@
 use my_no_sql_sdk::core::db::db_table_master_node::PartitionLastWriteMoment;
+use my_no_sql_sdk::core::rust_extensions::sorted_vec::SortedVecWithStrKey;
 use my_no_sql_server_core::{db_snapshots::DbTableSnapshot, DbTableWrapper};
-use rust_extensions::sorted_vec::SortedVecWithStrKey;
 
 use crate::app::AppContext;
 

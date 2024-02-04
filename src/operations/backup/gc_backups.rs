@@ -1,4 +1,4 @@
-use rust_extensions::ShortString;
+use my_no_sql_sdk::core::rust_extensions::ShortString;
 
 use crate::app::AppContext;
 

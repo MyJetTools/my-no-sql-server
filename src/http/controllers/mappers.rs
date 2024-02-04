@@ -1,4 +1,4 @@
-use rust_extensions::date_time::DateTimeAsMicroseconds;
+use my_no_sql_sdk::core::rust_extensions::date_time::DateTimeAsMicroseconds;
 
 pub trait ToSetExpirationTime {
     fn to_set_expiration_time(&self) -> Option<Option<DateTimeAsMicroseconds>>;

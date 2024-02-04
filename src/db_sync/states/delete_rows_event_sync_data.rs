@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use my_json::json_writer::{JsonArrayWriter, JsonNullValue, JsonObjectWriter};
 use my_no_sql_sdk::core::db::{DbRow, DbTable, PartitionKey, PartitionKeyParameter};
-use rust_extensions::sorted_vec::{EntityWithStrKey, SortedVecWithStrKey};
+use my_no_sql_sdk::core::my_json::json_writer::{JsonArrayWriter, JsonNullValue, JsonObjectWriter};
+use my_no_sql_sdk::core::rust_extensions::sorted_vec::{EntityWithStrKey, SortedVecWithStrKey};
 
 use crate::db_sync::EventSource;
 
@@ -64,15 +64,17 @@ impl DeleteRowsEventSyncData {
         let deleted_rows = self.check_that_we_are_in_partition_mode(partition_key);
 
         match deleted_rows.insert_or_update(partition_key.as_str()) {
-            rust_extensions::sorted_vec::InsertOrUpdateEntry::Insert(entry) => {
+            my_no_sql_sdk::core::rust_extensions::sorted_vec::InsertOrUpdateEntry::Insert(
+                entry,
+            ) => {
                 entry.insert(DeletedRowData {
                     partition_key: partition_key.to_partition_key(),
                     db_rows: vec![deleted_row],
                 });
             }
-            rust_extensions::sorted_vec::InsertOrUpdateEntry::Update(entry) => {
-                entry.item.db_rows.push(deleted_row)
-            }
+            my_no_sql_sdk::core::rust_extensions::sorted_vec::InsertOrUpdateEntry::Update(
+                entry,
+            ) => entry.item.db_rows.push(deleted_row),
         }
     }
 
@@ -84,15 +86,17 @@ impl DeleteRowsEventSyncData {
         let deleted_rows = self.check_that_we_are_in_partition_mode(partition_key);
 
         match deleted_rows.insert_or_update(partition_key.as_str()) {
-            rust_extensions::sorted_vec::InsertOrUpdateEntry::Insert(entry) => {
+            my_no_sql_sdk::core::rust_extensions::sorted_vec::InsertOrUpdateEntry::Insert(
+                entry,
+            ) => {
                 entry.insert(DeletedRowData {
                     partition_key: partition_key.to_partition_key(),
                     db_rows: deleted_rows_to_add.to_vec(),
                 });
             }
-            rust_extensions::sorted_vec::InsertOrUpdateEntry::Update(entry) => {
-                entry.item.db_rows.extend_from_slice(deleted_rows_to_add)
-            }
+            my_no_sql_sdk::core::rust_extensions::sorted_vec::InsertOrUpdateEntry::Update(
+                entry,
+            ) => entry.item.db_rows.extend_from_slice(deleted_rows_to_add),
         }
     }
 

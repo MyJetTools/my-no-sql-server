@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use my_logger::LogEventCtx;
-use rust_extensions::{date_time::DateTimeAsMicroseconds, MyTimerTick};
+use my_no_sql_sdk::core::rust_extensions::{date_time::DateTimeAsMicroseconds, MyTimerTick};
 
 use crate::{app::AppContext, db_sync::EventSource};
 

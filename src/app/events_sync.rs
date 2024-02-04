@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use rust_extensions::{
+use my_no_sql_sdk::core::rust_extensions::{
     events_loop::{EventsLoop, EventsLoopPublisher, EventsLoopTick},
     ApplicationStates,
 };

@@ -1,7 +1,7 @@
 use std::{collections::VecDeque, sync::Arc};
 
 use my_no_sql_sdk::core::db::DbRow;
-use rust_extensions::date_time::DateTimeAsMicroseconds;
+use my_no_sql_sdk::core::rust_extensions::date_time::DateTimeAsMicroseconds;
 
 pub struct Multipart {
     pub created: DateTimeAsMicroseconds,

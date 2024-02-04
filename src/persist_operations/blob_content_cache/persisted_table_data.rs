@@ -1,7 +1,7 @@
 use my_no_sql_sdk::core::db::{
     db_table_master_node::PartitionLastWriteMoment, DbTable, DbTableAttributes,
 };
-use rust_extensions::sorted_vec::{EntityWithStrKey, SortedVecWithStrKey};
+use my_no_sql_sdk::core::rust_extensions::sorted_vec::{EntityWithStrKey, SortedVecWithStrKey};
 
 pub struct PersistedTableData {
     pub table_name: String,

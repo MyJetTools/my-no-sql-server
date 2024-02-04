@@ -1,8 +1,10 @@
 use my_no_sql_sdk::core::db::{
     db_table_master_node::PartitionLastWriteMoment, DbTable, DbTableAttributes,
 };
+use my_no_sql_sdk::core::rust_extensions::{
+    date_time::DateTimeAsMicroseconds, sorted_vec::SortedVecWithStrKey,
+};
 use my_no_sql_server_core::db_snapshots::DbPartitionSnapshot;
-use rust_extensions::{date_time::DateTimeAsMicroseconds, sorted_vec::SortedVecWithStrKey};
 use tokio::sync::RwLock;
 
 use super::PersistedTableData;
@@ -45,11 +47,15 @@ impl BlobContentCache {
         let mut write_access = self.data_by_table.write().await;
 
         match write_access.insert_or_update(table_name) {
-            rust_extensions::sorted_vec::InsertOrUpdateEntry::Insert(entry) => {
+            my_no_sql_sdk::core::rust_extensions::sorted_vec::InsertOrUpdateEntry::Insert(
+                entry,
+            ) => {
                 let table_data = PersistedTableData::new(table_name.to_string(), attr);
                 entry.insert(table_data);
             }
-            rust_extensions::sorted_vec::InsertOrUpdateEntry::Update(entry) => {
+            my_no_sql_sdk::core::rust_extensions::sorted_vec::InsertOrUpdateEntry::Update(
+                entry,
+            ) => {
                 entry.item.attr = attr;
             }
         }

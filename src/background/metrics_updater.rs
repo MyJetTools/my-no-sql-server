@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use my_http_server::HttpConnectionsCounter;
+use my_no_sql_sdk::core::rust_extensions::MyTimerTick;
 use my_tcp_sockets::ThreadsStatistics;
-use rust_extensions::MyTimerTick;
 
 use crate::app::AppContext;
 
