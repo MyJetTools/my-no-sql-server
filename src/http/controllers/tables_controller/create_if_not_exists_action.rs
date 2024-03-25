@@ -10,12 +10,12 @@ use super::models::{CreateTableContract, TableContract};
     method: "POST",
     route: "/api/Tables/CreateIfNotExists",
     deprecated_routes: ["/Tables/CreateIfNotExists"],
-    input_data: "CreateTableContract",
+    input_data: CreateTableContract,
     description: "Create table if not exists",
     summary: "Creates table if not exists",
     controller: "Tables",
     result:[
-        {status_code: 200, description: "Table is created", model: "TableContract"},
+        {status_code: 200, description: "Table is created", model: TableContract},
     ]
 )]
 pub struct CreateIfNotExistsAction {

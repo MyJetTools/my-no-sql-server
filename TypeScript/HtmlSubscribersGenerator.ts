@@ -116,7 +116,7 @@ class HtmlSubscribersGenerator {
 
             let max_partitions_amount = table.maxPartitionsAmount ? '<span class="badge badge-success">Max partitions: ' + table.maxPartitionsAmount + '</span>' : '<span class="badge badge-primary">Max partitions: Unlimited</span>';
 
-            let max_rows_per_partition = table.maxPartitionsAmount ? '<span class="badge badge-success">Max rows per partition: ' + table.maxRowsPerPartition + '</span>' : '<span class="badge badge-primary">Max rows per partition: Unlimited</span>';
+            let max_rows_per_partition = table.maxRowsPerPartition ? '<span class="badge badge-success">Max rows per partition: ' + table.maxRowsPerPartition + '</span>' : '<span class="badge badge-primary">Max rows per partition: Unlimited</span>';
 
 
             html += '<tr><td>' + table.name + '<div>' + persist_badge + '</div><div>' + max_partitions_amount + '</div><div>' + max_rows_per_partition + '</div></td><td>' + table.persistAmount + '</td><td>' + Utils.formatNumber(table.dataSize) + '</td><td>' + Utils.formatNumber(table.avgEntitySize) + '</td><td>' + Utils.formatNumber(table.partitionsCount) + '</td><td>' + Utils.formatNumber(table.recordsAmount) + '</td><td>' + Utils.formatNumber(table.expirationIndex) + '</td>' +
