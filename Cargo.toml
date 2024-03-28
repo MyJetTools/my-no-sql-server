@@ -29,7 +29,7 @@ my-logger = { tag = "1.1.0", git = "https://github.com/MyJetTools/my-logger.git"
 
 my-tcp-sockets = { tag = "0.1.9", git = "https://github.com/MyJetTools/my-tcp-sockets.git" }
 
-hyper-tls = "*"
+
 tonic = { version = "*", features = ["tls", "tls-roots", "prost"] }
 anyhow = "*"
 tokio = { version = "*", features = ["full"] }
