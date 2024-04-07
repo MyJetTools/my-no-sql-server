@@ -29,7 +29,9 @@ pub async fn get_all(
         json_array_writer.write(db_row.as_ref());
     }
 
-    return Ok(ReadOperationResult::RowsArray(json_array_writer.build()));
+    return Ok(ReadOperationResult::RowsArray(
+        json_array_writer.build().into_bytes(),
+    ));
 }
 
 /*

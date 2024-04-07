@@ -9,7 +9,7 @@ pub async fn upload_partition(app: &AppContext, table_name: &str, snapshot: DbPa
         .save_table_file(
             table_name,
             &TableFile::DbPartition(snapshot.partition_key.clone()),
-            content.build(),
+            content.build().into_bytes(),
         )
         .await;
 

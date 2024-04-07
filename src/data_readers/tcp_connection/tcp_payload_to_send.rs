@@ -1,7 +1,7 @@
 use my_no_sql_sdk::tcp_contracts::{DeleteRowTcpContract, MyNoSqlTcpContract};
 
 use crate::db_sync::SyncEvent;
-use my_no_sql_sdk::core::my_json::json_reader::consts::EMPTY_ARRAY;
+use my_no_sql_sdk::core::my_json::consts::EMPTY_ARRAY;
 
 pub async fn serialize(sync_event: &SyncEvent, compress: bool) -> Vec<MyNoSqlTcpContract> {
     match sync_event {
@@ -12,7 +12,7 @@ pub async fn serialize(sync_event: &SyncEvent, compress: bool) -> Vec<MyNoSqlTcp
 
             let tcp_contract = MyNoSqlTcpContract::InitTable {
                 table_name: sync_data.db_table.name.to_string(),
-                data,
+                data: data.into_bytes(),
             };
 
             if compress {
@@ -27,7 +27,7 @@ pub async fn serialize(sync_event: &SyncEvent, compress: bool) -> Vec<MyNoSqlTcp
 
             let tcp_contract = MyNoSqlTcpContract::InitTable {
                 table_name: sync_data.table_data.table_name.to_string(),
-                data,
+                data: data.into_bytes(),
             };
 
             if compress {
@@ -47,6 +47,7 @@ pub async fn serialize(sync_event: &SyncEvent, compress: bool) -> Vec<MyNoSqlTcp
                             .db_rows_snapshot
                             .as_json_array()
                             .build()
+                            .into_bytes()
                     } else {
                         EMPTY_ARRAY.to_vec()
                     },
@@ -64,7 +65,7 @@ pub async fn serialize(sync_event: &SyncEvent, compress: bool) -> Vec<MyNoSqlTcp
         SyncEvent::UpdateRows(data) => {
             let tcp_contract = MyNoSqlTcpContract::UpdateRows {
                 table_name: data.table_data.table_name.to_string(),
-                data: data.rows_by_partition.as_json_array().build(),
+                data: data.rows_by_partition.as_json_array().build().into_bytes(),
             };
 
             if compress {

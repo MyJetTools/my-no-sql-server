@@ -25,5 +25,5 @@ pub async fn get_next(
 ) -> Option<ReadOperationResult> {
     let db_rows = app.multipart_list.get(multipart_id, amount).await?;
 
-    ReadOperationResult::RowsArray(db_rows.as_json_array().build()).into()
+    ReadOperationResult::RowsArray(db_rows.as_json_array().build().into_bytes()).into()
 }

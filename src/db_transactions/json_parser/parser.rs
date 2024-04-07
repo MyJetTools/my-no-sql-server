@@ -27,32 +27,32 @@ pub fn parse_transactions(
     while let Some(json_object) = json_array_iterator.get_next() {
         let json_object = json_object.unwrap();
         let type_model: JsonBaseTransaction =
-            serde_json::from_slice(json_object.as_bytes().unwrap())?;
+            serde_json::from_slice(json_object.as_bytes(&json_array_iterator))?;
 
         if type_model.transaction_type == JSON_TRANSACTION_CLEAN_TABLE {
             let model: CleanTableTransactionJsonModel =
-                serde_json::from_slice(json_object.as_bytes().unwrap())?;
+                serde_json::from_slice(json_object.as_bytes(&json_array_iterator))?;
 
             result.push(model.into())
         }
 
         if type_model.transaction_type == JSON_TRANSACTION_DELETE_PARTITIONS {
             let model: DeletePartitionsTransactionJsonModel =
-                serde_json::from_slice(json_object.as_bytes().unwrap())?;
+                serde_json::from_slice(json_object.as_bytes(&json_array_iterator))?;
 
             result.push(model.into())
         }
 
         if type_model.transaction_type == JSON_TRANSACTION_DELETE_ROWS {
             let model: DeleteRowsTransactionJsonModel =
-                serde_json::from_slice(json_object.as_bytes().unwrap())?;
+                serde_json::from_slice(json_object.as_bytes(&json_array_iterator))?;
 
             result.push(model.into())
         }
 
         if type_model.transaction_type == JSON_TRANSACTION_INSERT_OR_UPDATE {
             let model: InsertOrUpdateTransactionJsonModel =
-                serde_json::from_slice(json_object.as_bytes().unwrap())?;
+                serde_json::from_slice(json_object.as_bytes(&json_array_iterator))?;
 
             result.push(model.into()?)
         }

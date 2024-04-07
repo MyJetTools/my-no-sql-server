@@ -139,6 +139,6 @@ impl DeleteRowsEventSyncData {
             }
         }
 
-        json_object_writer.build()
+        json_object_writer.build().into_bytes()
     }
 }
