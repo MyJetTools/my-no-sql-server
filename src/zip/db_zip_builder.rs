@@ -44,7 +44,7 @@ impl DbZipBuilder {
 
             let json = itm.db_rows_snapshot.as_json_array();
 
-            let payload = json.build().into_bytes();
+            let payload = json.build();
 
             write_to_zip_file(&mut self.zip_writer, &payload)?;
         }

@@ -33,12 +33,17 @@ fn write_init_table_result(table_name: &str, content: JsonArrayWriter) -> Vec<u8
     let mut header_json = JsonObjectWriter::new();
     header_json.write("tableName", table_name);
 
-    let header = format!("initTable:{}", header_json.build());
+    let header = unsafe {
+        format!(
+            "initTable:{}",
+            std::str::from_utf8_unchecked(header_json.build().as_slice())
+        )
+    };
 
     write_pascal_string(header.as_str(), &mut result);
 
     let content = content.build();
-    write_byte_array(content.as_bytes(), &mut result);
+    write_byte_array(content.as_slice(), &mut result);
     result
 }
 
@@ -48,12 +53,17 @@ fn write_init_partitions_result(sync_data: &InitPartitionsSyncEventData) -> Vec<
     let mut header_json = JsonObjectWriter::new();
     header_json.write("tableName", sync_data.table_data.table_name.as_str());
 
-    let header = format!("initPartitions:{}", header_json.build());
+    let header = unsafe {
+        format!(
+            "initPartitions:{}",
+            std::str::from_utf8_unchecked(header_json.build().as_slice())
+        )
+    };
 
     write_pascal_string(header.as_str(), &mut result);
 
     let content = sync_data.as_json().build();
-    write_byte_array(content.as_bytes(), &mut result);
+    write_byte_array(content.as_slice(), &mut result);
     result
 }
 
@@ -62,12 +72,17 @@ pub fn compile_update_rows_result(sync_data: &UpdateRowsSyncData) -> Vec<u8> {
     let mut header_json = JsonObjectWriter::new();
     header_json.write("tableName", sync_data.table_data.table_name.as_str());
 
-    let header = format!("updateRows:{}", header_json.build());
+    let header = unsafe {
+        format!(
+            "updateRows:{}",
+            std::str::from_utf8_unchecked(header_json.build().as_slice())
+        )
+    };
 
     write_pascal_string(header.as_str(), &mut result);
 
     let content = sync_data.rows_by_partition.as_json_array().build();
-    write_byte_array(content.as_bytes(), &mut result);
+    write_byte_array(content.as_slice(), &mut result);
     result
 }
 
@@ -77,7 +92,12 @@ pub fn compile_delete_rows_result(sync_data: &DeleteRowsEventSyncData) -> Vec<u8
 
     header_json.write("tableName", sync_data.table_data.table_name.as_str());
 
-    let header = format!("deleteRows:{}", header_json.build());
+    let header = unsafe {
+        format!(
+            "deleteRows:{}",
+            std::str::from_utf8_unchecked(header_json.build().as_slice())
+        )
+    };
 
     write_pascal_string(header.as_str(), &mut result);
 
