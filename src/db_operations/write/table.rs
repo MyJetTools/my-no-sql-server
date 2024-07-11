@@ -196,7 +196,6 @@ pub async fn set_table_attributes(
         SyncEvent::UpdateTableAttributes(UpdateTableAttributesSyncData {
             table_data: SyncTableData {
                 table_name: db_table.name.to_string(),
-                persist,
             },
             event_src,
         }),

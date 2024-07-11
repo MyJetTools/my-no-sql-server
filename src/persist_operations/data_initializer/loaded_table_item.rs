@@ -21,7 +21,6 @@ impl LoadedTableItem {
                         partition_key.as_str(),
                         content,
                     )?;
-
                 return Ok(LoadedTableItem::DbPartition(db_partition));
             }
         }

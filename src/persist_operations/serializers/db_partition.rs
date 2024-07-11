@@ -22,12 +22,29 @@ pub fn deserialize(partition_key: &str, raw: &[u8]) -> Result<DbPartition, Strin
                 .unwrap(),
         ) {
             Ok(db_row) => {
-                db_partition.insert_row(Arc::new(db_row));
+                if db_row.get_partition_key() == partition_key {
+                    db_partition.insert_row(Arc::new(db_row));
+                } else {
+                    println!(
+                        "File if partition_key: {} has row with partition_key:{}  and row_key:{}. Skipping Loading Partition",
+                        partition_key,
+                        db_row.get_partition_key(),
+                        db_row.get_row_key()
+                    )
+                }
             }
             Err(err) => {
                 println!("Skipping entity. Reason {:?}", err);
             }
         }
     }
+
+    if db_partition.rows_count() == 0 {
+        return Err(format!(
+            "No Rows loaded for partition {}. Skipping loading the partition...",
+            partition_key
+        ));
+    }
+
     Ok(db_partition)
 }

@@ -7,23 +7,23 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-my-http-server = { tag = "0.7.0", git = "https://github.com/MyJetTools/my-http-server.git", features = [
+my-http-server = { tag = "0.7.1", git = "https://github.com/MyJetTools/my-http-server.git", features = [
     "macros",
     "controllers",
     "static-files",
 ] }
 
-my-no-sql-sdk = { tag = "0.3.1", git = "https://github.com/MyJetTools/my-no-sql-sdk.git", features = [
+my-no-sql-sdk = { tag = "0.3.2", git = "https://github.com/MyJetTools/my-no-sql-sdk.git", features = [
     "master-node",
     "tcp-contracts",
 ] }
 
-my-no-sql-server-core = { tag = "0.3.2", git = "https://github.com/MyJetTools/my-no-sql-server-core.git", features = [
+my-no-sql-server-core = { tag = "0.3.3", git = "https://github.com/MyJetTools/my-no-sql-server-core.git", features = [
     "master-node",
 ] }
 
 my-azure-storage-sdk = { tag = "0.5.0", git = "https://github.com/MyJetTools/my-azure-storage.git" }
-flurl = { tag = "0.5.1", git = "https://github.com/MyJetTools/fl-url" }
+flurl = { tag = "0.5.2", git = "https://github.com/MyJetTools/fl-url" }
 
 my-logger = { tag = "1.1.0", git = "https://github.com/MyJetTools/my-logger.git" }
 
@@ -53,7 +53,7 @@ uuid = { version = "*", features = ["serde", "v4"] }
 prometheus = "*"
 async-trait = "*"
 tokio-stream = "*"
-zip = "*"
+zip = "0"
 
 tikv-jemalloc-ctl = { version = "*", features = ['use_std'] }
 tikv-jemallocator = { version = "*", features = [
