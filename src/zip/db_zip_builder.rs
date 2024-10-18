@@ -6,15 +6,12 @@ use super::VecWriter;
 
 pub struct DbZipBuilder {
     zip_writer: zip::ZipWriter<VecWriter>,
-    options: zip::write::FileOptions,
 }
 
 impl DbZipBuilder {
     pub fn new() -> Self {
         let result = Self {
             zip_writer: zip::ZipWriter::new(VecWriter::new()),
-            options: zip::write::FileOptions::default()
-                .compression_method(zip::CompressionMethod::Deflated),
         };
 
         result
@@ -30,7 +27,11 @@ impl DbZipBuilder {
             table_name,
             crate::persist_io::TABLE_METADATA_FILE_NAME
         );
-        self.zip_writer.start_file(file_name, self.options)?;
+
+        let options = zip::write::SimpleFileOptions::default()
+            .compression_method(zip::CompressionMethod::Deflated);
+        self.zip_writer.start_file(file_name, options)?;
+
         let payload = crate::persist_operations::serializers::table_attrs::serialize(&content.attr);
         write_to_zip_file(&mut self.zip_writer, &payload)?;
 
@@ -40,7 +41,7 @@ impl DbZipBuilder {
                 .encode(itm.partition_key.as_str().as_bytes());
             let file_name = format!("{}/{}", table_name, encoded_file_name);
 
-            self.zip_writer.start_file(file_name, self.options)?;
+            self.zip_writer.start_file(file_name, options)?;
 
             let json = itm.db_rows_snapshot.as_json_array();
 
@@ -52,7 +53,7 @@ impl DbZipBuilder {
         Ok(())
     }
 
-    pub fn get_payload(&mut self) -> Result<Vec<u8>, zip::result::ZipError> {
+    pub fn get_payload(self) -> Result<Vec<u8>, zip::result::ZipError> {
         let result = self.zip_writer.finish()?;
         Ok(result.buf)
     }

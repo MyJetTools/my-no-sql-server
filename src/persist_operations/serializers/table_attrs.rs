@@ -29,6 +29,10 @@ impl TableMetadataFileContract {
             },
         }
     }
+
+    pub fn to_vec(&self) -> Vec<u8> {
+        serde_json::to_vec(self).unwrap()
+    }
 }
 
 fn default_persist() -> bool {
@@ -75,5 +79,5 @@ pub fn serialize(attrs: &DbTableAttributes) -> Vec<u8> {
         created: Some(attrs.created.to_rfc3339()),
     };
 
-    serde_json::to_vec(&contract).unwrap()
+    contract.to_vec()
 }

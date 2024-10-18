@@ -20,6 +20,7 @@ impl EntityWithStrKey for InitPartitionsSyncData {
 
 pub struct InitPartitionsSyncEventData {
     pub table_data: SyncTableData,
+    #[allow(dead_code)]
     pub event_src: EventSource,
     pub partitions_to_update: SortedVecWithStrKey<InitPartitionsSyncData>,
 }

@@ -7,3 +7,4 @@ mod table_list_of_files_loader;
 pub use load_tables::load_tables;
 pub use loaded_table_item::LoadedTableItem;
 pub use table_list_of_files_loader::table_list_of_files_loader;
+pub mod from_other_instance;

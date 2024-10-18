@@ -31,3 +31,13 @@ MaxBackupsToKeep: 5
 * BackupIntervalHours - interval between backups;
 * MaxBackupsToKeep - max amount of backups to keep in BackupFolder;
 
+
+
+### Persistence Types
+If PersistenceDest is a MicrosoftAzure connection string - content is going to be persisted to Azure Table Storage.
+If PersistenceDest ends with ".sqlite" - content is going to be persisted to SQLite format.
+If PersistenceDest is a folder path - content is going to be persisted to files in that folder in format:
+* Folder = TableName
+* Each File inside each table folder - is a partition of the table
+
+

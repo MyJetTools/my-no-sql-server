@@ -21,6 +21,7 @@ impl EntityWithStrKey for DeletedRowData {
 
 pub struct DeleteRowsEventSyncData {
     pub table_data: SyncTableData,
+    #[allow(dead_code)]
     pub event_src: EventSource,
     pub deleted_partitions: Option<SortedVecWithStrKey<PartitionKey>>,
     pub deleted_rows: Option<SortedVecWithStrKey<DeletedRowData>>,

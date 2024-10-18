@@ -2,7 +2,9 @@ use my_no_sql_sdk::core::db_json_entity::DbEntityParseFail;
 
 #[derive(Debug)]
 pub enum GrpcContractConvertError {
+    #[allow(dead_code)]
     DbEntityParseFail(DbEntityParseFail),
+    #[allow(dead_code)]
     ProstDecodeError(prost::DecodeError),
 }
 

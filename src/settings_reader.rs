@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::{env, sync::Arc};
 use tokio::{fs::File, io::AsyncReadExt};
 
-use crate::persist_io::PersistIoOperations;
+use crate::{persist_io::PersistIoOperations, sqlite_repo::SqlLiteRepo};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SettingsModel {
@@ -40,16 +40,34 @@ pub struct SettingsModel {
 
     #[serde(rename = "AutoCreateTableOnReaderSubscribe")]
     pub auto_create_table_on_reader_subscribe: bool,
+
+    #[serde(rename = "InitFromOtherServerUrl")]
+    pub init_from_other_server_url: Option<String>,
 }
 
 impl SettingsModel {
-    pub fn get_persist_io(&self) -> PersistIoOperations {
+    pub async fn get_persist_io(&self) -> PersistIoOperations {
+        if self.persistence_dest.as_str().ends_with(".sqlite") {
+            let file = my_no_sql_server_core::rust_extensions::file_utils::format_path(
+                self.persistence_dest.as_str(),
+            );
+            let sqlite_repo = SqlLiteRepo::new(file.to_string()).await;
+            return PersistIoOperations::as_sqlite(sqlite_repo);
+        }
         let conn_string = AzureStorageConnection::from_conn_string(self.persistence_dest.as_str());
-        PersistIoOperations::new(Arc::new(conn_string))
+        PersistIoOperations::as_azure_connection(Arc::new(conn_string))
     }
 
     pub fn get_backup_folder<'s>(&'s self) -> StrOrString<'s> {
         my_no_sql_sdk::core::rust_extensions::file_utils::format_path(self.backup_folder.as_str())
+    }
+
+    pub fn get_init_from_other_server_url<'s>(&'s self) -> Option<&str> {
+        if let Some(url) = &self.init_from_other_server_url {
+            return Some(url.as_str());
+        }
+
+        None
     }
 }
 

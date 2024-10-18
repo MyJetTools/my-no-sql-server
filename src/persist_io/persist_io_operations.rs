@@ -1,11 +1,18 @@
 use std::sync::Arc;
 
 use my_azure_storage_sdk::AzureStorageConnection;
+use tokio::sync::Mutex;
 
-use crate::persist_io::TableFile;
+use crate::{persist_io::TableFile, sqlite_repo::SqlLiteRepo};
 
-pub struct PersistIoOperations {
-    azure_connection: Arc<AzureStorageConnection>,
+use super::{sqlite::InitContainer, TABLE_METADATA_FILE_NAME};
+
+pub enum PersistIoOperations {
+    AzureConnection(Arc<AzureStorageConnection>),
+    SqLite {
+        repo: SqlLiteRepo,
+        init_container: Mutex<InitContainer>,
+    },
 }
 
 #[async_trait::async_trait]
@@ -15,12 +22,32 @@ pub trait TableListOfFilesUploader {
 }
 
 impl PersistIoOperations {
-    pub fn new(azure_connection: Arc<AzureStorageConnection>) -> Self {
-        Self { azure_connection }
+    pub fn as_azure_connection(azure_connection: Arc<AzureStorageConnection>) -> Self {
+        Self::AzureConnection(azure_connection)
+    }
+
+    pub fn as_sqlite(repo: SqlLiteRepo) -> Self {
+        Self::SqLite {
+            repo,
+            init_container: Mutex::new(InitContainer::new()),
+        }
     }
 
     pub async fn get_list_of_tables(&self) -> Vec<String> {
-        super::with_retries::get_list_of_tables(self.azure_connection.as_ref()).await
+        match self {
+            Self::SqLite {
+                repo,
+                init_container,
+            } => {
+                let tables = repo.get_files().await;
+                let mut read_access = init_container.lock().await;
+                read_access.init(tables);
+                read_access.get_list_of_tables()
+            }
+            Self::AzureConnection(azure_connection) => {
+                super::azure::get_list_of_tables(azure_connection.as_ref()).await
+            }
+        }
     }
 
     pub async fn get_table_files<TTableListOfFilesUploader: TableListOfFilesUploader>(
@@ -28,16 +55,33 @@ impl PersistIoOperations {
         table_name: &str,
         uploader: &TTableListOfFilesUploader,
     ) {
-        super::with_retries::get_list_of_files(
-            self.azure_connection.as_ref(),
-            table_name,
-            uploader,
-        )
-        .await;
+        match self {
+            Self::SqLite {
+                repo: _,
+                init_container,
+            } => {
+                let init_container = init_container.lock().await;
+                let files = init_container.get_file_names(table_name);
+                uploader.add_files(table_name, files).await;
+                uploader.set_files_list_is_loaded(table_name).await;
+            }
+            Self::AzureConnection(azure_connection) => {
+                super::azure::get_list_of_files(azure_connection.as_ref(), table_name, uploader)
+                    .await;
+            }
+        }
     }
 
     pub async fn create_table_folder(&self, table_name: &str) {
-        super::with_retries::create_table(self.azure_connection.as_ref(), table_name).await;
+        match self {
+            Self::SqLite {
+                repo: _,
+                init_container: _,
+            } => {}
+            Self::AzureConnection(azure_connection) => {
+                super::azure::create_table(azure_connection.as_ref(), table_name).await;
+            }
+        }
     }
 
     pub async fn save_table_file(
@@ -46,26 +90,74 @@ impl PersistIoOperations {
         table_file: &TableFile,
         content: Vec<u8>,
     ) {
-        super::with_retries::save_table_file(
-            self.azure_connection.as_ref(),
-            table_name,
-            table_file.get_file_name().as_str(),
-            content,
-        )
-        .await;
+        match self {
+            Self::SqLite {
+                repo,
+                init_container: _,
+            } => {
+                repo.save_file(
+                    table_name,
+                    table_file.get_file_name().as_str(),
+                    String::from_utf8(content).unwrap(),
+                )
+                .await;
+                //super::sqlite::save_table_file(repo, table_name, table_file, content).await;
+            }
+            Self::AzureConnection(azure_connection) => {
+                super::azure::save_table_file(
+                    azure_connection.as_ref(),
+                    table_name,
+                    table_file.get_file_name().as_str(),
+                    content,
+                )
+                .await;
+            }
+        }
+        /*
+           super::with_retries::save_table_file(
+               self.azure_connection.as_ref(),
+               table_name,
+               table_file.get_file_name().as_str(),
+               content,
+           )
+           .await;
+        */
     }
 
     pub async fn delete_table_file(&self, table_name: &str, table_file: &TableFile) {
-        super::with_retries::delete_table_file(
-            self.azure_connection.as_ref(),
-            table_name,
-            table_file.get_file_name().as_str(),
-        )
-        .await;
+        match self {
+            PersistIoOperations::AzureConnection(azure_connection) => {
+                super::azure::delete_table_file(
+                    azure_connection.as_ref(),
+                    table_name,
+                    table_file.get_file_name().as_str(),
+                )
+                .await;
+            }
+            PersistIoOperations::SqLite {
+                repo,
+                init_container: _,
+            } => match table_file {
+                TableFile::TableAttributes => {
+                    repo.delete_file(table_name, TABLE_METADATA_FILE_NAME).await;
+                }
+                TableFile::DbPartition(partition_key) => {
+                    repo.delete_file(table_name, partition_key.as_str()).await;
+                }
+            },
+        }
     }
 
     pub async fn delete_table_folder(&self, table_name: &str) {
-        super::with_retries::delete_table_folder(self.azure_connection.as_ref(), table_name).await;
+        match self {
+            PersistIoOperations::AzureConnection(azure_connection) => {
+                super::azure::delete_table_folder(azure_connection.as_ref(), table_name).await;
+            }
+            PersistIoOperations::SqLite {
+                repo: _,
+                init_container: _,
+            } => {}
+        }
     }
 
     pub async fn load_table_file(
@@ -73,11 +165,22 @@ impl PersistIoOperations {
         table_name: &str,
         table_file: &TableFile,
     ) -> Option<Vec<u8>> {
-        super::with_retries::load_table_file(
-            self.azure_connection.as_ref(),
-            table_name,
-            table_file.get_file_name().as_str(),
-        )
-        .await
+        match self {
+            PersistIoOperations::AzureConnection(azure_connection) => {
+                super::azure::load_table_file(
+                    azure_connection,
+                    table_name,
+                    table_file.get_file_name().as_str(),
+                )
+                .await
+            }
+            PersistIoOperations::SqLite {
+                repo: _,
+                init_container,
+            } => {
+                let mut read_access = init_container.lock().await;
+                return read_access.get_file(table_name, table_file.get_file_name().as_str());
+            }
+        }
     }
 }

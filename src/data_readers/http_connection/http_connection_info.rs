@@ -20,6 +20,7 @@ pub struct HttpConnectionInfo {
     pub delivery_info: Mutex<HttpConnectionDeliveryInfo>,
     pending_to_send: AtomicUsize,
     name: String,
+    #[allow(dead_code)]
     version: String,
 }
 

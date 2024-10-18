@@ -6,6 +6,7 @@ use super::SyncTableData;
 
 pub struct DeleteTableSyncData {
     pub table_data: SyncTableData,
+    #[allow(dead_code)]
     pub event_src: EventSource,
 }
 

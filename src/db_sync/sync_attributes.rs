@@ -42,6 +42,7 @@ impl DataSynchronizationPeriod {
 }
 
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct ClientRequestsSourceData {
     pub locations: Vec<String>,
     pub headers: Option<HashMap<String, String>>,
@@ -49,6 +50,7 @@ pub struct ClientRequestsSourceData {
 
 #[derive(Clone)]
 pub enum EventSource {
+    #[allow(dead_code)]
     ClientRequest(ClientRequestsSourceData),
     GarbageCollector,
     Subscriber,

@@ -7,6 +7,7 @@ use super::SyncTableData;
 
 pub struct UpdateRowsSyncData {
     pub table_data: SyncTableData,
+    #[allow(dead_code)]
     pub event_src: EventSource,
     pub rows_by_partition: DbRowsByPartitionsSnapshot,
 }

@@ -7,6 +7,7 @@ use super::SyncTableData;
 
 pub struct InitTableEventSyncData {
     pub table_data: SyncTableData,
+    #[allow(dead_code)]
     pub event_src: EventSource,
     pub table_snapshot: DbTableSnapshot,
 }

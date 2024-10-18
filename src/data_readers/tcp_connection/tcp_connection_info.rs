@@ -9,7 +9,11 @@ use super::SendPerSecond;
 
 pub enum ReaderName {
     AsReader(String),
-    AsNode { location: String, version: String },
+    AsNode {
+        location: String,
+        #[allow(dead_code)]
+        version: String,
+    },
 }
 
 impl ReaderName {

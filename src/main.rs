@@ -13,6 +13,7 @@ mod zip;
 
 mod app;
 mod grpc;
+mod sqlite_repo;
 
 mod persist;
 
@@ -44,7 +45,7 @@ async fn main() {
 
     let settings = Arc::new(settings);
 
-    let persist_io = settings.get_persist_io();
+    let persist_io = settings.get_persist_io().await;
 
     let app = AppContext::new(settings, persist_io);
 
