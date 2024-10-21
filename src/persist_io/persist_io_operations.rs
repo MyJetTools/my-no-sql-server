@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::BTreeMap, sync::Arc};
 
 use my_azure_storage_sdk::AzureStorageConnection;
 
@@ -33,6 +33,10 @@ impl PersistIoOperations {
             repo,
             init_container: Mutex::new(InitContainer::new()),
         }
+    }
+
+    pub fn is_sqlite(&self) -> bool {
+        matches!(self, Self::SqLite { .. })
     }
 
     pub async fn get_list_of_tables(&self) -> Vec<String> {
@@ -70,6 +74,25 @@ impl PersistIoOperations {
             Self::AzureConnection(azure_connection) => {
                 super::azure::get_list_of_files(azure_connection.as_ref(), table_name, uploader)
                     .await;
+            }
+        }
+    }
+
+    pub async fn get_table_files_as_list(
+        &self,
+        table_name: &str,
+    ) -> Option<BTreeMap<String, Vec<u8>>> {
+        match self {
+            Self::SqLite {
+                repo: _,
+                init_container,
+            } => {
+                let mut write_access = init_container.lock().await;
+
+                write_access.get_files_by_table(table_name)
+            }
+            Self::AzureConnection(_) => {
+                panic!("Files or Microsoft Azure Init is not supported");
             }
         }
     }

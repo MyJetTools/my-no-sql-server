@@ -67,4 +67,8 @@ impl InitContainer {
 
         result
     }
+
+    pub fn get_files_by_table(&mut self, table_name: &str) -> Option<BTreeMap<String, Vec<u8>>> {
+        self.by_table.remove(table_name).map(|itm| itm.files)
+    }
 }
