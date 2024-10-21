@@ -33,6 +33,13 @@ impl SqlLiteRepo {
             .unwrap();
     }
 
+    pub async fn save_files(&self, dto: &[MyNoSqlFileDto]) {
+        self.sqlite
+            .bulk_insert_or_update(dto, FILES_TABLE)
+            .await
+            .unwrap();
+    }
+
     pub async fn get_files(&self) -> Vec<MyNoSqlFileDto> {
         self.sqlite
             .query_rows(FILES_TABLE, NoneWhereModel::new())

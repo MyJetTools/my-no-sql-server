@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
 use my_azure_storage_sdk::AzureStorageConnection;
+
+use my_no_sql_server_core::db_snapshots::DbTableSnapshot;
 use tokio::sync::Mutex;
 
 use crate::{persist_io::TableFile, sqlite_repo::SqlLiteRepo};
@@ -180,6 +182,24 @@ impl PersistIoOperations {
             } => {
                 let mut read_access = init_container.lock().await;
                 return read_access.get_file(table_name, table_file.get_file_name().as_str());
+            }
+        }
+    }
+
+    pub async fn init_table_from_other_source(
+        &self,
+        table_name: &str,
+        db_table_snapshot: DbTableSnapshot,
+    ) {
+        match self {
+            PersistIoOperations::AzureConnection(_) => {
+                panic!("Files or Microsoft Azure Init is not supported");
+            }
+            PersistIoOperations::SqLite {
+                repo,
+                init_container: _,
+            } => {
+                super::sqlite::init_new_instance_table(repo, table_name, db_table_snapshot).await;
             }
         }
     }

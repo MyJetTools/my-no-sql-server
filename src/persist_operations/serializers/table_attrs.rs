@@ -39,6 +39,17 @@ fn default_persist() -> bool {
     true
 }
 
+impl Into<TableMetadataFileContract> for &'_ DbTableAttributes {
+    fn into(self) -> TableMetadataFileContract {
+        TableMetadataFileContract {
+            persist: self.persist,
+            max_partitions_amount: self.max_partitions_amount,
+            max_rows_per_partition_amount: self.max_rows_per_partition_amount,
+            created: self.created.to_rfc3339().into(),
+        }
+    }
+}
+
 impl Into<DbTableAttributes> for TableMetadataFileContract {
     fn into(self) -> DbTableAttributes {
         let mut result = DbTableAttributes {

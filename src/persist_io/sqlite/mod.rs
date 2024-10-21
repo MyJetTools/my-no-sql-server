@@ -5,3 +5,5 @@
 //pub use get_list_of_files::*;
 mod init_container;
 pub use init_container::*;
+mod init_new_instance_table;
+pub use init_new_instance_table::*;

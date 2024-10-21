@@ -57,19 +57,9 @@ pub async fn init_from_another_instance(app: &Arc<AppContext>, url: &str) {
 
         let table_snapshot = db_table.get_table_snapshot().await;
 
-        for partition_snapshot in table_snapshot.by_partition {
-            let content = partition_snapshot.db_rows_snapshot.as_json_array();
-
-            let table_file = TableFile::DbPartition(partition_snapshot.partition_key.clone());
-            println!(
-                "Persisting table {} file {}",
-                table.name,
-                table_file.get_file_name().as_str()
-            );
-            app.persist_io
-                .save_table_file(&table.name, &table_file, content.build())
-                .await;
-        }
+        app.persist_io
+            .init_table_from_other_source(&table.name, table_snapshot)
+            .await;
 
         let mut table_access = app.db.tables.write().await;
         table_access.insert(db_table.name.to_string(), db_table);
