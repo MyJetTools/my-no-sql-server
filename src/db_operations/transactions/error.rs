@@ -1,4 +1,6 @@
-use my_no_sql_sdk::core::db_json_entity::DbEntityParseFail;
+use my_no_sql_sdk::core::{
+    db_json_entity::DbEntityParseFail, my_json::json_reader::JsonParseError,
+};
 
 use crate::db_operations::DbOperationError;
 
@@ -8,6 +10,13 @@ pub enum TransactionOperationError {
     DbEntityParseFail(DbEntityParseFail),
     DbOperationError(DbOperationError),
     SerdeJsonError(serde_json::Error),
+    JsonParseError(JsonParseError),
+}
+
+impl From<JsonParseError> for TransactionOperationError {
+    fn from(src: JsonParseError) -> Self {
+        Self::JsonParseError(src)
+    }
 }
 
 impl From<DbEntityParseFail> for TransactionOperationError {

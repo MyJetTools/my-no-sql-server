@@ -7,7 +7,16 @@ use my_no_sql_server_core::rust_extensions::array_of_bytes_iterator::SliceIterat
 pub fn deserialize(partition_key: &str, raw: &[u8]) -> Result<DbPartition, String> {
     let mut db_partition = DbPartition::new(partition_key.to_string());
 
-    let mut json_array_iterator: JsonArrayIterator<SliceIterator> = raw.into();
+    let json_array_iterator: Result<JsonArrayIterator<SliceIterator>, _> = raw.try_into();
+
+    if let Err(err) = json_array_iterator {
+        return Err(format!(
+            "Can not split to array of json objects for partition key: {}. Err: {:?}",
+            partition_key, err
+        ));
+    }
+
+    let mut json_array_iterator = json_array_iterator.unwrap();
 
     while let Some(db_entity_json_result) = json_array_iterator.get_next() {
         if let Err(err) = db_entity_json_result {

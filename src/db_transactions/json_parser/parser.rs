@@ -20,7 +20,7 @@ const JSON_TRANSACTION_INSERT_OR_UPDATE: &str = "InsertOrUpdate";
 pub fn parse_transactions(
     payload: &[u8],
 ) -> Result<Vec<TransactionalOperationStep>, TransactionOperationError> {
-    let mut json_array_iterator: JsonArrayIterator<SliceIterator> = payload.into();
+    let mut json_array_iterator: JsonArrayIterator<SliceIterator> = payload.try_into()?;
 
     let mut result = Vec::new();
 

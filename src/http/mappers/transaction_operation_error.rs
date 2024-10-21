@@ -23,6 +23,14 @@ impl From<TransactionOperationError> for HttpFailResult {
                 write_telemetry: true,
                 write_to_log: true,
             },
+
+            TransactionOperationError::JsonParseError(err) => HttpFailResult {
+                content: format!("{:?}", err).into_bytes(),
+                content_type: WebContentType::Text,
+                status_code: 500,
+                write_telemetry: true,
+                write_to_log: true,
+            },
         }
     }
 }
