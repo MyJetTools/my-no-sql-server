@@ -13,13 +13,7 @@ use super::models::IsAliveResponse;
         {status_code: 200, description: "Monitoring result", model: "IsAliveResponse"},
     ]
 )]
-pub struct IsAliveAction {}
-
-impl IsAliveAction {
-    pub fn new() -> Self {
-        Self {}
-    }
-}
+pub struct IsAliveAction;
 
 async fn handle_request(
     _: &IsAliveAction,

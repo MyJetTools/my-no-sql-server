@@ -7,8 +7,8 @@ use crate::app::AppContext;
 pub fn build(app: &Arc<AppContext>) -> ControllersMiddleware {
     let mut result = ControllersMiddleware::new(None, None);
 
-    let api_controller = super::api::IsAliveAction::new();
-    result.register_get_action(Arc::new(api_controller));
+    result.register_get_action(Arc::new(super::api::IsAliveAction));
+    result.register_get_action(Arc::new(super::api::PingAction));
 
     result.register_get_action(Arc::new(super::tables_controller::GetListAction::new(
         app.clone(),
