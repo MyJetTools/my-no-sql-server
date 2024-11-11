@@ -13,16 +13,16 @@ use super::models::IsAliveResponse;
         {status_code: 200, description: "Monitoring result", model: "IsAliveResponse"},
     ]
 )]
-pub struct ApiController {}
+pub struct IsAliveAction {}
 
-impl ApiController {
+impl IsAliveAction {
     pub fn new() -> Self {
         Self {}
     }
 }
 
 async fn handle_request(
-    _: &ApiController,
+    _: &IsAliveAction,
     _ctx: &mut HttpContext,
 ) -> Result<HttpOkResult, HttpFailResult> {
     let version = env!("CARGO_PKG_VERSION");
@@ -41,5 +41,5 @@ async fn handle_request(
         env_info,
     };
 
-    HttpOutput::as_json(response).into_ok_result(true).into()
+    HttpOutput::as_json(response).into_ok_result(false).into()
 }
