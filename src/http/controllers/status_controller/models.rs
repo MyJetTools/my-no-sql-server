@@ -189,6 +189,7 @@ pub struct WriterApiModel {
     pub name: String,
     pub version: String,
     pub last_update: String,
+    pub tables: Vec<String>,
 }
 
 impl WriterApiModel {
@@ -198,6 +199,7 @@ impl WriterApiModel {
                 name: name.to_string(),
                 version: itm.version.to_string(),
                 last_update: itm.last_ping.to_rfc3339(),
+                tables: itm.tables.clone(),
             })
             .await
     }

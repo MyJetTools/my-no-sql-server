@@ -7,6 +7,7 @@ use tokio::sync::Mutex;
 pub struct WriterInfo {
     pub version: String,
     pub last_ping: DateTimeAsMicroseconds,
+    pub tables: Vec<String>,
 }
 
 pub struct HttpWriters {
@@ -20,7 +21,13 @@ impl HttpWriters {
         }
     }
 
-    pub async fn update(&self, name: &str, version: &str, now: DateTimeAsMicroseconds) {
+    pub async fn update(
+        &self,
+        name: &str,
+        version: &str,
+        tables: impl Iterator<Item = &str>,
+        now: DateTimeAsMicroseconds,
+    ) {
         let mut data = self.data.lock().await;
         match data.get_mut(name) {
             Some(writer_info) => {
@@ -28,6 +35,8 @@ impl HttpWriters {
                 if writer_info.version != version {
                     writer_info.version = version.to_string();
                 }
+
+                writer_info.tables = tables.map(|x| x.to_string()).collect();
             }
             None => {
                 data.insert(
@@ -35,6 +44,7 @@ impl HttpWriters {
                     WriterInfo {
                         version: version.to_string(),
                         last_ping: now,
+                        tables: tables.map(|x| x.to_string()).collect(),
                     },
                 );
             }

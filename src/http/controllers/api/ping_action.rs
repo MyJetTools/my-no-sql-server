@@ -35,10 +35,16 @@ async fn handle_request(
     _ctx: &mut HttpContext,
 ) -> Result<HttpOkResult, HttpFailResult> {
     let now = DateTimeAsMicroseconds::now();
+
     action
         .app
         .http_writers
-        .update(&input_data.name, &input_data.version, now)
+        .update(
+            &input_data.name,
+            &input_data.version,
+            input_data.tables.split(';'),
+            now,
+        )
         .await;
     HttpOutput::Empty.into_ok_result(false).into()
 }
@@ -49,4 +55,7 @@ pub struct PingHttpInputModel {
     pub name: String,
     #[http_query(name = "clientVersion", description = "Client Version")]
     pub version: String,
+
+    #[http_query(name = "tables", description = "List of tables with ; separator")]
+    pub tables: String,
 }
