@@ -105,10 +105,12 @@ impl StatusModel {
 
         let used_http_connections = app.metrics.get_http_connections_amount();
 
+        let writers = WriterApiModel::new(app).await;
+
         if app.states.is_initialized() {
             return Self {
                 not_initialized: None,
-                initialized: Some(InitializedModel::new(readers, tables_model)),
+                initialized: Some(InitializedModel::new(readers, tables_model, writers)),
                 status_bar: StatusBarModel::new(
                     app,
                     tcp,
@@ -129,12 +131,21 @@ impl StatusModel {
 #[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
 pub struct InitializedModel {
     pub readers: Vec<ReaderModel>,
+    pub writers: Vec<WriterApiModel>,
     pub tables: Vec<TableModel>,
 }
 
 impl InitializedModel {
-    pub fn new(readers: Vec<ReaderModel>, tables: Vec<TableModel>) -> Self {
-        Self { readers, tables }
+    pub fn new(
+        readers: Vec<ReaderModel>,
+        tables: Vec<TableModel>,
+        writers: Vec<WriterApiModel>,
+    ) -> Self {
+        Self {
+            readers,
+            tables,
+            writers,
+        }
     }
 }
 
@@ -171,4 +182,23 @@ async fn get_readers(app: &AppContext) -> (Vec<ReaderModel>, usize, usize) {
     }
 
     (result, tcp_count, http_count)
+}
+
+#[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
+pub struct WriterApiModel {
+    pub name: String,
+    pub version: String,
+    pub last_update: String,
+}
+
+impl WriterApiModel {
+    pub async fn new(app: &AppContext) -> Vec<Self> {
+        app.http_writers
+            .get(|name, itm| Self {
+                name: name.to_string(),
+                version: itm.version.to_string(),
+                last_update: itm.last_ping.to_rfc3339(),
+            })
+            .await
+    }
 }

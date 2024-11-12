@@ -29,5 +29,7 @@ impl MyTimerTick for GcHttpSessionsTimer {
                     .remove_pending_to_sync(&data_reader.connection);
             }
         }
+
+        self.app.http_writers.gc(now).await;
     }
 }

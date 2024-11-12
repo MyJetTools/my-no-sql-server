@@ -18,7 +18,7 @@ use crate::{
     settings_reader::SettingsModel,
 };
 
-use super::{EventsSync, PrometheusMetrics};
+use super::{EventsSync, HttpWriters, PrometheusMetrics};
 
 pub const APP_VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
@@ -44,6 +44,7 @@ pub struct AppContext {
     pub sync: EventsSync,
     pub states: Arc<AppStates>,
     pub persist_markers: PersistMarkersByTable,
+    pub http_writers: HttpWriters,
     persist_amount: AtomicUsize,
 }
 
@@ -66,6 +67,7 @@ impl AppContext {
             settings,
             persist_amount: AtomicUsize::new(0),
             sync: EventsSync::new(),
+            http_writers: HttpWriters::new(),
         }
     }
 

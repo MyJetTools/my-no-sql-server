@@ -11,7 +11,7 @@ use super::models::StatusModel;
     description: "Monitoring API",
     summary: "Returns monitoring metrics",
     result:[
-        {status_code: 200, description: "Monitoring snapshot", model: "Vec<StatusModel>"},
+        {status_code: 200, description: "Monitoring snapshot", model: "StatusModel"},
     ]
 )]
 pub struct StatusAction {

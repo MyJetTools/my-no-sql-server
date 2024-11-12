@@ -7,3 +7,5 @@ pub use metrics::PrometheusMetrics;
 pub use metrics::UpdatePendingToSyncModel;
 mod events_sync;
 pub use events_sync::*;
+mod http_writers;
+pub use http_writers::*;
