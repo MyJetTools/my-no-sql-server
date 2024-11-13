@@ -8,7 +8,7 @@ pub fn build(app: &Arc<AppContext>) -> ControllersMiddleware {
     let mut result = ControllersMiddleware::new(None, None);
 
     result.register_get_action(Arc::new(super::api::IsAliveAction));
-    result.register_get_action(Arc::new(super::api::PingAction::new(app.clone())));
+    result.register_post_action(Arc::new(super::api::PingAction::new(app.clone())));
 
     result.register_get_action(Arc::new(super::tables_controller::GetListAction::new(
         app.clone(),
