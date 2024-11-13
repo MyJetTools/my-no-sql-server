@@ -15,16 +15,31 @@ var HtmlSubscribersGenerator = /** @class */ (function () {
         }
         return '<h3>Connected Nodes</h3>'
             + this.generateReadersHtml(nodes)
+            + '<h3>Writers</h3>'
+            + this.generateWriters(data.writers)
             + '<h3>Readers</h3>'
             + this.generateTotalSend(data.readers)
             + this.generateReadersHtml(readers)
             + '<h3>Tables</h3>'
             + this.generateTablesHtml(data.tables);
     };
+    HtmlSubscribersGenerator.generateWriters = function (data) {
+        var result = "<table class=\"table table-striped\"><thead><tr><th>App</th><th>Tables</th><th>Last Ping</th></tr></thead>";
+        for (var _i = 0, data_1 = data; _i < data_1.length; _i++) {
+            var writer = data_1[_i];
+            var tables = "";
+            for (var _a = 0, _b = writer.tables; _a < _b.length; _a++) {
+                var table = _b[_a];
+                tables += "<span class=\"badge badge-success\">".concat(table, "</span>");
+            }
+            result += "<tr><td>".concat(writer.name, ":").concat(writer.version, "</td><td>").concat(tables, "</td><td>").concat(writer.last_update, "</td></tr>");
+        }
+        return result + "</table>";
+    };
     HtmlSubscribersGenerator.generateTotalSend = function (data) {
         var total = [];
-        for (var _i = 0, data_1 = data; _i < data_1.length; _i++) {
-            var reader = data_1[_i];
+        for (var _i = 0, data_2 = data; _i < data_2.length; _i++) {
+            var reader = data_2[_i];
             var i = 0;
             for (var _a = 0, _b = reader.sentPerSecond; _a < _b.length; _a++) {
                 var b = _b[_a];
@@ -107,8 +122,8 @@ var HtmlSubscribersGenerator = /** @class */ (function () {
     };
     HtmlSubscribersGenerator.renderTables = function (data) {
         var result = "";
-        for (var _i = 0, data_2 = data; _i < data_2.length; _i++) {
-            var itm = data_2[_i];
+        for (var _i = 0, data_3 = data; _i < data_3.length; _i++) {
+            var itm = data_3[_i];
             result += '<span class="badge badge-info" style="margin-left: 5px">' + itm + '</span>';
         }
         return result;

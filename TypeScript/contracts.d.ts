@@ -34,6 +34,7 @@ interface IStatus {
 
 interface IInitializedStatus {
     readers: IReaderStatus[],
+    writers: IWriterStatus[],
     tables: ITableModel[]
 }
 
@@ -63,4 +64,11 @@ interface ITableModel {
     lastPersistDuration: number[];
     persistAmount: number;
     avgEntitySize: number
+}
+
+interface IWriterStatus {
+    name: string;
+    version: string;
+    last_update: string;
+    tables: string[];
 }

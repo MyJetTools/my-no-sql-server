@@ -21,11 +21,37 @@ class HtmlSubscribersGenerator {
 
         return '<h3>Connected Nodes</h3>'
             + this.generateReadersHtml(nodes)
+            + '<h3>Writers</h3>'
+            + this.generateWriters(data.writers)
             + '<h3>Readers</h3>'
             + this.generateTotalSend(data.readers)
             + this.generateReadersHtml(readers)
             + '<h3>Tables</h3>'
             + this.generateTablesHtml(data.tables);
+    }
+
+    private static generateWriters(data: IWriterStatus[]): string {
+        let result = `<table class="table table-striped"><thead><tr><th>App</th><th>Tables</th><th>Last Ping</th></tr></thead>`;
+
+
+        for (let writer of data) {
+
+            let tables = "";
+            for (let table of writer.tables) {
+
+                tables += `<span class="badge badge-success">${table}</span>`;
+            }
+
+            result += `<tr><td>${writer.name}:${writer.version}</td><td>${tables}</td><td>${writer.last_update}</td></tr>`;
+        }
+
+
+
+
+        return result + `</table>`;
+
+
+
     }
 
     private static generateTotalSend(data: IReaderStatus[]): string {
