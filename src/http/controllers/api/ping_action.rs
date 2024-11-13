@@ -9,7 +9,7 @@ use my_no_sql_server_core::rust_extensions::date_time::DateTimeAsMicroseconds;
 use crate::app::AppContext;
 
 #[http_route(
-    method: "GET",
+    method: "POST",
     route: "/api/Ping",
     controller: "Monitoring",
     description: "Endpoint to ping the service",
@@ -42,7 +42,7 @@ async fn handle_request(
         .update(
             &input_data.name,
             &input_data.version,
-            input_data.tables.split(';'),
+            input_data.tables.iter().map(|itm| itm.as_str()),
             now,
         )
         .await;
@@ -51,11 +51,11 @@ async fn handle_request(
 
 #[derive(Debug, MyHttpInput)]
 pub struct PingHttpInputModel {
-    #[http_query(name = "clientName", description = "Client Name")]
+    #[http_body(name = "name", description = "Client Name")]
     pub name: String,
-    #[http_query(name = "clientVersion", description = "Client Version")]
+    #[http_body(name = "version", description = "Client Version")]
     pub version: String,
 
-    #[http_query(name = "tables", description = "List of tables with ; separator")]
-    pub tables: String,
+    #[http_body(name = "tables", description = "List of tables with")]
+    pub tables: Vec<String>,
 }
