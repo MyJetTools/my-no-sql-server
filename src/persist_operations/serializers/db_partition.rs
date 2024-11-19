@@ -1,13 +1,12 @@
 use std::sync::Arc;
 
-use my_no_sql_sdk::core::my_json::json_reader::array_iterator::JsonArrayIterator;
+use my_no_sql_sdk::core::my_json::json_reader::JsonArrayIterator;
 use my_no_sql_sdk::core::{db::DbPartition, db_json_entity::DbJsonEntity};
-use my_no_sql_server_core::rust_extensions::array_of_bytes_iterator::SliceIterator;
 
 pub fn deserialize(partition_key: &str, raw: &[u8]) -> Result<DbPartition, String> {
     let mut db_partition = DbPartition::new(partition_key.to_string());
 
-    let json_array_iterator: Result<JsonArrayIterator<SliceIterator>, _> = raw.try_into();
+    let json_array_iterator = JsonArrayIterator::new(raw);
 
     if let Err(err) = json_array_iterator {
         return Err(format!(
@@ -16,7 +15,7 @@ pub fn deserialize(partition_key: &str, raw: &[u8]) -> Result<DbPartition, Strin
         ));
     }
 
-    let mut json_array_iterator = json_array_iterator.unwrap();
+    let json_array_iterator = json_array_iterator.unwrap();
 
     while let Some(db_entity_json_result) = json_array_iterator.get_next() {
         if let Err(err) = db_entity_json_result {
@@ -25,11 +24,7 @@ pub fn deserialize(partition_key: &str, raw: &[u8]) -> Result<DbPartition, Strin
 
         let db_entity_json = db_entity_json_result.unwrap();
 
-        match DbJsonEntity::restore_into_db_row(
-            db_entity_json
-                .unwrap_as_object(&json_array_iterator)
-                .unwrap(),
-        ) {
+        match DbJsonEntity::restore_into_db_row(db_entity_json.unwrap_as_object().unwrap()) {
             Ok(db_row) => {
                 if db_row.get_partition_key() == partition_key {
                     db_partition.insert_row(Arc::new(db_row));

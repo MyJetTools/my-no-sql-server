@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 
 use my_http_server::macros::*;
 use my_http_server::types::RawDataTyped;
@@ -45,8 +45,6 @@ pub struct BulkInsertOrReplaceInputContract {
     #[http_query(name = "syncPeriod"; description = "Synchronization period"; default)]
     pub sync_period: DataSynchronizationPeriod,
 
-    #[http_body_raw(
-        description = "PartitionToDelete1:[RowToDelete1, RowToDelete2, RowToDelete3],[PartitionToDelete1]:[RowToDelete1, RowToDelete2, RowToDelete3]"
-    )]
-    pub body: RawDataTyped<BTreeMap<String, Vec<BaseDbRowContract>>>,
+    #[http_body_raw(description = "Rows")]
+    pub body: RawDataTyped<Vec<BaseDbRowContract>>,
 }
