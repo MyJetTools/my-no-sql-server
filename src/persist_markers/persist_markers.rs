@@ -128,4 +128,9 @@ impl PersistMarkers {
             None => PersistMetrics::default(),
         }
     }
+
+    pub async fn has_something_to_persist(&self) -> bool {
+        let inner = self.inner.lock().await;
+        inner.has_something_to_persist()
+    }
 }

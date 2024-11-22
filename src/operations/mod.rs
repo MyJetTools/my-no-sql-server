@@ -1,7 +1,8 @@
 pub mod data_readers;
 mod get_metrics;
 pub mod persist;
-pub mod shutdown;
+mod shutdown;
+pub use shutdown::*;
 pub mod sync;
 pub use get_metrics::*;
 pub use persist::*;

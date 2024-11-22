@@ -110,18 +110,5 @@ async fn main() {
 
     app.states.wait_until_shutdown().await;
 
-    shut_down_task(app).await;
-}
-
-async fn shut_down_task(app: Arc<AppContext>) {
-    let duration = Duration::from_secs(1);
-
-    while !app.states.is_shutting_down() {
-        tokio::time::sleep(duration).await;
-    }
-
-    println!("Shut down detected. Waiting for 1 second to deliver all messages");
-    tokio::time::sleep(duration).await;
-
-    crate::operations::shutdown::execute(app.as_ref()).await;
+    crate::operations::shutdown(&app).await;
 }

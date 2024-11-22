@@ -197,6 +197,28 @@ impl PersistByTableItem {
 
         result
     }
+
+    pub fn has_something_to_persist(&self) -> bool {
+        if self.persist_whole_table_content.is_some() {
+            return true;
+        }
+
+        if self.persist_table_attributes.is_some() {
+            return true;
+        }
+
+        for partition in self.persist_partitions.iter() {
+            if partition.persist_whole_partition.is_some() {
+                return true;
+            }
+
+            if partition.rows_to_persist.len() > 0 {
+                return true;
+            }
+        }
+
+        false
+    }
 }
 
 impl EntityWithStrKey for PersistByTableItem {
