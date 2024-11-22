@@ -17,6 +17,7 @@ pub struct SqlLiteRepo {
 
 impl SqlLiteRepo {
     pub async fn new(file_name: String) -> Self {
+        println!("Connecting to SQLite: {}", file_name);
         Self {
             sqlite: SqlLiteConnectionBuilder::new(file_name)
                 // .create_table_if_no_exists::<MyNoSqlFileDto>(FILES_TABLE)

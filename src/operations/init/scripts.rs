@@ -38,6 +38,7 @@ pub async fn init_tables(
         if save_to_db {
             let table_snapshot = db_table.get_table_snapshot().await;
 
+            println!("Migrating table: {}", db_table.name.as_str());
             app.repo
                 .save_table_metadata(&db_table.name, &table_snapshot.attr)
                 .await;

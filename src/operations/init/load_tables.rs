@@ -20,11 +20,8 @@ pub async fn load_tables(app: Arc<AppContext>) {
 
         super::scripts::init_tables(&app, tables, entities_reader, true).await;
 
-        println!(
-            "Tables loaded: {} in {:?} seconds",
-            tables_amount,
-            sw.duration()
-        );
+        sw.pause();
+        println!("Tables loaded: {} in {:?}", tables_amount, sw.duration());
     } else {
         let tables = app.repo.get_tables().await;
         let tables_amount = tables.len();
@@ -33,11 +30,7 @@ pub async fn load_tables(app: Arc<AppContext>) {
             EntitiesFromSqliteReader::new(entities, app.settings.skip_broken_partitions);
         super::scripts::init_tables(&app, tables, entities_reader, false).await;
         sw.pause();
-        println!(
-            "Tables loaded: {} in {:?} seconds",
-            tables_amount,
-            sw.duration()
-        );
+        println!("Tables loaded: {} in {:?}", tables_amount, sw.duration());
     }
 
     app.states.set_initialized();
