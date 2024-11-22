@@ -8,10 +8,9 @@ use crate::app::AppContext;
 #[http_route(
     method: "GET",
     route: "/api/Backup/Download",
-    deprecated_routes: ["/Backup/Download"],
     description: "Download all tables as Zip Archive",
     summary: "Download all tables as Zip Archive",
-    controller: "Tables",
+    controller: "Backup",
     result:[
         {status_code: 200, description: "Snapshot of all tables"},
     ]
