@@ -161,6 +161,42 @@ impl PersistByTableItem {
             .unwrap()
             .clean_when_syncing_rows(rows);
     }
+
+    pub fn get_metrics(&self) -> PersistMetrics {
+        let mut result = self.metrics.clone();
+
+        if let Some(value) = self.persist_whole_table_content {
+            result.next_persist_time = Some(value);
+            return result;
+        }
+
+        if let Some(value) = self.persist_table_attributes {
+            result.next_persist_time = Some(value);
+            return result;
+        }
+
+        for partition in self.persist_partitions.iter() {
+            if let Some(value) = partition.persist_whole_partition {
+                result.next_persist_time = Some(value);
+                return result;
+            }
+
+            for row in partition.rows_to_persist.iter() {
+                match result.next_persist_time {
+                    Some(current) => {
+                        if row.persist_moment < current {
+                            result.next_persist_time = Some(row.persist_moment);
+                        }
+                    }
+                    None => {
+                        result.next_persist_time = Some(row.persist_moment);
+                    }
+                }
+            }
+        }
+
+        result
+    }
 }
 
 impl EntityWithStrKey for PersistByTableItem {
