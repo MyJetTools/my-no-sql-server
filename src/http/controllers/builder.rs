@@ -214,5 +214,9 @@ pub fn build(app: &Arc<AppContext>) -> ControllersMiddleware {
         app.clone(),
     )));
 
+    result.register_post_action(Arc::new(
+        super::backup_controller::RestoreFromBackupAction::new(app.clone()),
+    ));
+
     result
 }

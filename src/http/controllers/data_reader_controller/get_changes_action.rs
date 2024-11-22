@@ -96,9 +96,8 @@ async fn update_expiration_time(
             .to_set_expiration_time()
         {
             crate::db_operations::update_partition_expiration_time(
-                app,
                 &db_table,
-                &item.partition_key,
+                item.partition_key.to_string(),
                 set_expiration_time,
             )
         }

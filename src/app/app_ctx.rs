@@ -7,15 +7,9 @@ use my_no_sql_sdk::core::rust_extensions::{date_time::DateTimeAsMicroseconds, Ap
 use my_no_sql_server_core::DbInstance;
 
 use crate::{
-    data_readers::DataReadersList,
-    db_operations::multipart::MultipartList,
-    db_transactions::ActiveTransactions,
-    persist::PersistMarkersByTable,
-    persist_io::PersistIoOperations,
-    persist_operations::{
-        blob_content_cache::BlobContentCache, data_initializer::load_tasks::InitState,
-    },
-    settings_reader::SettingsModel,
+    data_readers::DataReadersList, db_operations::multipart::MultipartList,
+    db_transactions::ActiveTransactions, operations::init::InitState,
+    persist_markers::PersistMarkers, settings_reader::SettingsModel,
 };
 
 use super::{EventsSync, HttpWriters, PrometheusMetrics};
@@ -34,40 +28,40 @@ pub struct AppContext {
     pub active_transactions: ActiveTransactions,
     pub process_id: String,
 
-    pub blob_content_cache: BlobContentCache,
     pub data_readers: DataReadersList,
 
     pub multipart_list: MultipartList,
-    pub persist_io: PersistIoOperations,
+    //pub persist_io: PersistIoOperations,
     pub init_state: InitState,
+    pub repo: crate::sqlite_repo::SqlLiteRepo,
+
     pub settings: Arc<SettingsModel>,
     pub sync: EventsSync,
     pub states: Arc<AppStates>,
-    pub persist_markers: PersistMarkersByTable,
+    pub persist_markers: PersistMarkers,
     pub http_writers: HttpWriters,
     persist_amount: AtomicUsize,
 }
 
 impl AppContext {
-    pub fn new(settings: Arc<SettingsModel>, persist_io: PersistIoOperations) -> Self {
+    pub async fn new(settings: Arc<SettingsModel>) -> Self {
         AppContext {
-            persist_markers: PersistMarkersByTable::new(),
+            persist_markers: PersistMarkers::new(),
             created: DateTimeAsMicroseconds::now(),
-            init_state: InitState::new(),
             db: DbInstance::new(),
             metrics: PrometheusMetrics::new(),
             active_transactions: ActiveTransactions::new(),
             process_id: uuid::Uuid::new_v4().to_string(),
             states: Arc::new(AppStates::create_un_initialized()),
 
-            blob_content_cache: BlobContentCache::new(),
             data_readers: DataReadersList::new(Duration::from_secs(30)),
             multipart_list: MultipartList::new(),
-            persist_io,
+            repo: settings.get_sqlite_repo().await,
             settings,
             persist_amount: AtomicUsize::new(0),
             sync: EventsSync::new(),
             http_writers: HttpWriters::new(),
+            init_state: InitState::new(),
         }
     }
 

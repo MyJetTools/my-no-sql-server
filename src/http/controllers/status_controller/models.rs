@@ -80,7 +80,7 @@ impl StatusModel {
             };
 
             let table_model = TableModel {
-                name: table.name.clone(),
+                name: table.name.to_string(),
                 avg_entity_size: metrics.avg_entity_size,
                 persist: attr.persist,
                 max_partitions_amount: attr.max_partitions_amount,

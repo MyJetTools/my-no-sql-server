@@ -35,7 +35,7 @@ pub async fn execute(
 
     for partition_key in partition_keys {
         app.persist_markers
-            .persist_partition(&table_data, &partition_key, persist_moment)
+            .persist_partition(&table_data.name, &partition_key, persist_moment)
             .await;
 
         let state = InitPartitionsSyncEventData::new_as_update_partition(

@@ -25,7 +25,7 @@ pub async fn get_all(
 
     let mut json_array_writer = JsonArrayWriter::new();
     for (db_partition, db_row) in table_data.get_all_rows(skip, limit) {
-        update_statistics.update(db_partition, Some(db_row), now);
+        update_statistics.update(db_table_wrapper, db_partition, Some(db_row), now);
         json_array_writer.write(db_row.as_ref());
     }
 

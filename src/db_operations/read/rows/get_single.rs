@@ -38,7 +38,7 @@ pub async fn get_single(
 
     let db_row = db_row.unwrap();
 
-    update_statistics.update(db_partition, Some(db_row), now);
+    update_statistics.update(db_table, db_partition, Some(db_row), now);
 
     return Ok(ReadOperationResult::SingleRow(db_row.to_vec()));
 }

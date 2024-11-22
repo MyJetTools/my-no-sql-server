@@ -25,14 +25,14 @@ impl DbZipBuilder {
         let file_name = format!(
             "{}/{}",
             table_name,
-            crate::persist_io::TABLE_METADATA_FILE_NAME
+            crate::scripts::TABLE_METADATA_FILE_NAME
         );
 
         let options = zip::write::SimpleFileOptions::default()
             .compression_method(zip::CompressionMethod::Deflated);
         self.zip_writer.start_file(file_name, options)?;
 
-        let payload = crate::persist_operations::serializers::table_attrs::serialize(&content.attr);
+        let payload = crate::scripts::serializers::table_attrs::serialize(&content.attr);
         write_to_zip_file(&mut self.zip_writer, &payload)?;
 
         for itm in &content.by_partition {

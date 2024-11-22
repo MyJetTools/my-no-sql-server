@@ -52,7 +52,12 @@ pub async fn execute(
     let partition_key = partition_key.unwrap();
 
     app.persist_markers
-        .persist_partition(&table_data, &partition_key, persist_moment)
+        .persist_rows(
+            &table_data.name,
+            &partition_key,
+            persist_moment,
+            [&db_row].into_iter(),
+        )
         .await;
 
     let mut update_rows_state = UpdateRowsSyncData::new(&table_data, event_src);

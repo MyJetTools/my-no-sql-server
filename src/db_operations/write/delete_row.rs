@@ -35,7 +35,12 @@ pub async fn execute(
     let mut sync_data = DeleteRowsEventSyncData::new(&table_data, event_src);
 
     app.persist_markers
-        .persist_partition(&table_data, &partition_key, persist_moment)
+        .persist_rows(
+            &table_data.name,
+            &partition_key,
+            persist_moment,
+            [&removed_row].into_iter(),
+        )
         .await;
 
     if partition_is_empty {

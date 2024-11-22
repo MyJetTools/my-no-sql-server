@@ -9,7 +9,7 @@ pub async fn build_db_snapshot_as_zip_archive(app: &AppContext) -> Vec<u8> {
         let table_snapshot = db_table.get_table_snapshot().await;
 
         zip_builder
-            .add_table(&db_table.name, &table_snapshot)
+            .add_table(&db_table.name.as_str(), &table_snapshot)
             .unwrap();
     }
 

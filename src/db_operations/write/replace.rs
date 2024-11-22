@@ -90,7 +90,12 @@ pub async fn execute(
     table_data.insert_row(&db_row, Some(now.date_time));
 
     app.persist_markers
-        .persist_partition(&table_data, &db_row, persist_moment)
+        .persist_rows(
+            &table_data.name,
+            &partition_key,
+            persist_moment,
+            [&db_row].into_iter(),
+        )
         .await;
 
     let mut update_rows_state = UpdateRowsSyncData::new(&table_data, event_src);

@@ -234,9 +234,8 @@ impl SocketEventCallback<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()> for
                 if let Some(db_table) = &db_table {
                     for (partition_key, set_expiration_time) in partitions {
                         crate::db_operations::update_partition_expiration_time(
-                            &self.app,
                             db_table,
-                            &partition_key,
+                            partition_key,
                             set_expiration_time,
                         )
                     }
