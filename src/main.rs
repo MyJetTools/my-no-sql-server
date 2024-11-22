@@ -13,21 +13,19 @@ mod zip;
 
 mod app;
 mod grpc;
+mod persist_markers;
 mod sqlite_repo;
-
-mod persist;
 
 mod db_operations;
 mod db_sync;
 mod db_transactions;
 mod http;
-mod persist_operations;
+mod scripts;
 mod tcp;
 
 mod background;
 mod data_readers;
 mod operations;
-mod persist_io;
 mod settings_reader;
 
 //TODO - Add Amount of Subscribers to table on UI;
@@ -45,15 +43,11 @@ async fn main() {
 
     let settings = Arc::new(settings);
 
-    let persist_io = settings.get_persist_io().await;
-
-    let app = AppContext::new(settings, persist_io);
+    let app = AppContext::new(settings).await;
 
     let app = Arc::new(app);
 
-    tokio::spawn(crate::persist_operations::data_initializer::load_tables(
-        app.clone(),
-    ));
+    tokio::spawn(crate::operations::init::load_tables(app.clone()));
 
     let http_connections_counter = crate::http::start_up::setup_server(&app);
 

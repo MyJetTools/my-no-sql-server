@@ -35,7 +35,7 @@ pub async fn get_single_partition_multiple_rows(
         let db_row = db_partition.get_row(row_key);
 
         if let Some(db_row) = db_row {
-            update_statistics.update(db_partition, Some(db_row), now);
+            update_statistics.update(db_table_wrapper, db_partition, Some(db_row), now);
             json_array_writer.write(db_row.as_ref());
         }
     }

@@ -33,7 +33,12 @@ pub async fn execute(
         has_insert_or_replace = true;
 
         app.persist_markers
-            .persist_partition(&table_data, &partition_key, persist_moment)
+            .persist_rows(
+                &table_data.name,
+                &partition_key,
+                persist_moment,
+                db_rows.iter(),
+            )
             .await;
 
         update_rows_state

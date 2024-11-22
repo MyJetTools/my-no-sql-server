@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use my_no_sql_sdk::core::db::{DbPartition, DbRow};
 use my_no_sql_sdk::core::rust_extensions::date_time::DateTimeAsMicroseconds;
+use my_no_sql_server_core::DbTableWrapper;
 
 #[derive(Clone, Debug)]
 pub struct UpdateStatistics {
@@ -14,6 +15,7 @@ pub struct UpdateStatistics {
 impl UpdateStatistics {
     pub fn update(
         &self,
+        db_table: &Arc<DbTableWrapper>,
         db_partition: &DbPartition,
         db_row: Option<&Arc<DbRow>>,
         now: DateTimeAsMicroseconds,
@@ -22,12 +24,13 @@ impl UpdateStatistics {
             db_partition.update_last_read_moment(now);
         }
 
-        /*
-        todo!("Not Implemented yet");
         if let Some(update_partition_expiration_time) = self.update_partition_expiration_time {
-            db_partition.update_expires(update_partition_expiration_time);
+            crate::db_operations::update_statistics::update_partition_expiration_time(
+                db_table,
+                db_partition.partition_key.to_string(),
+                update_partition_expiration_time,
+            );
         }
-        */
 
         if let Some(db_row) = db_row {
             if self.update_rows_last_read_access_time {

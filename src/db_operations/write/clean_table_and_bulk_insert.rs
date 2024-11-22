@@ -28,7 +28,7 @@ pub async fn execute(
     }
 
     app.persist_markers
-        .persist_table(&table_data, persist_moment)
+        .persist_table_content(&table_data.name, persist_moment)
         .await;
 
     if let Some(event_src) = event_src {

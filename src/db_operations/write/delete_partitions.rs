@@ -27,9 +27,13 @@ pub async fn delete_partitions(
         let remove_partition_result =
             table_write_access.remove_partition(&partition_key, Some(now));
 
-        if remove_partition_result.is_some() {
+        if let Some(removed_partition) = remove_partition_result {
             app.persist_markers
-                .persist_partition(&table_write_access, &partition_key, persist_moment)
+                .persist_partition(
+                    &db_table.name,
+                    &removed_partition.partition_key,
+                    persist_moment,
+                )
                 .await;
 
             sync_data.add(partition_key.into_partition_key(), None);

@@ -1,10 +1,8 @@
-use my_azure_storage_sdk::AzureStorageConnection;
 use my_no_sql_sdk::core::rust_extensions::StrOrString;
+use my_no_sql_server_core::rust_extensions;
 use serde::{Deserialize, Serialize};
-use std::{env, sync::Arc};
-use tokio::{fs::File, io::AsyncReadExt};
 
-use crate::{persist_io::PersistIoOperations, sqlite_repo::SqlLiteRepo};
+use crate::sqlite_repo::SqlLiteRepo;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SettingsModel {
@@ -46,16 +44,11 @@ pub struct SettingsModel {
 }
 
 impl SettingsModel {
-    pub async fn get_persist_io(&self) -> PersistIoOperations {
-        if self.persistence_dest.as_str().ends_with(".sqlite") {
-            let file = my_no_sql_server_core::rust_extensions::file_utils::format_path(
-                self.persistence_dest.as_str(),
-            );
-            let sqlite_repo = SqlLiteRepo::new(file.to_string()).await;
-            return PersistIoOperations::as_sqlite(sqlite_repo);
-        }
-        let conn_string = AzureStorageConnection::from_conn_string(self.persistence_dest.as_str());
-        PersistIoOperations::as_azure_connection(Arc::new(conn_string))
+    pub async fn get_sqlite_repo(&self) -> SqlLiteRepo {
+        let file = my_no_sql_server_core::rust_extensions::file_utils::format_path(
+            self.persistence_dest.as_str(),
+        );
+        SqlLiteRepo::new(file.to_string()).await
     }
 
     pub fn get_backup_folder<'s>(&'s self) -> StrOrString<'s> {
@@ -72,18 +65,26 @@ impl SettingsModel {
 }
 
 pub async fn read_settings() -> SettingsModel {
-    let file_name = get_settings_filename();
+    let file_name = rust_extensions::file_utils::format_path("~/.mynosqlserver");
 
-    let mut file = File::open(file_name).await.unwrap();
+    let file_content = tokio::fs::read(file_name.as_str()).await;
 
-    let mut file_content: Vec<u8> = vec![];
-    file.read_to_end(&mut file_content).await.unwrap();
+    if let Err(err) = &file_content {
+        panic!(
+            "Can't open settings file [{}]. Err: {}",
+            file_name.as_str(),
+            err
+        );
+    }
+
+    let file_content = file_content.unwrap();
 
     let result: SettingsModel = serde_yaml::from_slice(file_content.as_slice()).unwrap();
 
     result
 }
 
+/*
 fn get_settings_filename() -> String {
     let path = env!("HOME");
 
@@ -93,3 +94,4 @@ fn get_settings_filename() -> String {
 
     return format!("{}{}", path, "/.mynosqlserver");
 }
+ */

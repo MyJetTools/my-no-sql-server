@@ -48,11 +48,11 @@ pub async fn create(
                 let table_data = db_table.data.write().await;
 
                 app.persist_markers
-                    .persist_table(&table_data, persist_moment)
+                    .persist_table_attributes(&table_data.name, persist_moment)
                     .await;
 
                 app.persist_markers
-                    .persist_table(&table_data, persist_moment)
+                    .persist_table_attributes(&table_data.name, persist_moment)
                     .await;
 
                 let state = InitTableEventSyncData::new(&table_data, event_src);
@@ -99,10 +99,8 @@ async fn get_or_create(
                 crate::operations::sync::dispatch(app, SyncEvent::InitTable(state));
 
                 app.persist_markers
-                    .persist_table(&table_data, persist_moment)
+                    .persist_table_attributes(&table_data.name, persist_moment)
                     .await;
-
-                app.persist_markers.persist_table_attrs(&table_data).await;
             }
 
             return Ok(db_table);
@@ -195,13 +193,15 @@ pub async fn set_table_attributes(
         app,
         SyncEvent::UpdateTableAttributes(UpdateTableAttributesSyncData {
             table_data: SyncTableData {
-                table_name: db_table.name.to_string(),
+                table_name: db_table.name.clone(),
             },
             event_src,
         }),
     );
 
-    app.persist_markers.persist_table_attrs(&write_access).await;
+    app.persist_markers
+        .persist_table_attributes(&write_access.name, DateTimeAsMicroseconds::now())
+        .await;
 
     Ok(())
 }
@@ -216,7 +216,7 @@ pub async fn delete(
     let result = app.db.delete_table(table_name.as_str()).await;
 
     if result.is_none() {
-        return Err(DbOperationError::TableNotFound(table_name.to_string()));
+        return Err(DbOperationError::TableNotFound(table_name));
     }
 
     let db_table = result.unwrap();
@@ -225,7 +225,7 @@ pub async fn delete(
         let table_data = db_table.data.read().await;
 
         app.persist_markers
-            .persist_table(&table_data, persist_moment)
+            .persist_table_attributes(&table_data.name, persist_moment)
             .await;
 
         crate::operations::sync::dispatch(
@@ -235,21 +235,21 @@ pub async fn delete(
     }
 
     let app = app.clone();
-    let table_name = table_name.to_string();
-    tokio::spawn(
-        async move { crate::persist_operations::sync::delete_table(app, table_name).await },
-    );
+    let table_name = db_table.name.clone();
+    tokio::spawn(async move {
+        crate::operations::persist::scripts::delete_table(&app, &table_name).await
+    });
 
     Ok(())
 }
 
-pub async fn init(app: &AppContext, db_table: DbTable) {
-    app.blob_content_cache.init(&db_table).await;
-
+pub async fn init(app: &AppContext, db_table: DbTable) -> Arc<DbTableWrapper> {
     let db_table = DbTableWrapper::new(db_table);
     let mut tables_write_access = app.db.tables.write().await;
 
-    tables_write_access.insert(db_table.name.to_string(), db_table);
+    tables_write_access.insert(db_table.name.to_string(), db_table.clone());
+
+    db_table
 }
 
 enum CreateTableResult {
@@ -278,7 +278,7 @@ async fn get_or_create_table(
         max_rows_per_partition_amount,
     };
 
-    let db_table = DbTable::new(table_name.to_string(), table_attributes);
+    let db_table = DbTable::new(table_name.into(), table_attributes);
 
     let db_table_wrapper = DbTableWrapper::new(db_table);
 

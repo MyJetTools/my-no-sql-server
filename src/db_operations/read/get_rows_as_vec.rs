@@ -64,7 +64,7 @@ pub async fn get_as_partition_key_and_row_key(
 
     let db_row = db_partition.get_row_and_clone(row_key)?;
 
-    update_statistics.update(db_partition, Some(&db_row), now.date_time);
+    update_statistics.update(table, db_partition, Some(&db_row), now.date_time);
 
     Some(db_row)
 }
@@ -109,7 +109,7 @@ async fn get_as_row_key_only(
     let mut result = Vec::new();
 
     for (db_partition, db_row) in read_access.get_by_row_key(row_key, skip, limit) {
-        update_statistics.update(db_partition, Some(db_row), now.date_time);
+        update_statistics.update(table, db_partition, Some(db_row), now.date_time);
         result.push(db_row.clone());
     }
 

@@ -36,7 +36,7 @@ pub async fn get_all_by_partition_key(
         limit,
         skip,
         |db_row| {
-            update_statistics.update(db_partition, Some(db_row), now);
+            update_statistics.update(db_table, db_partition, Some(db_row), now);
         },
     );
 

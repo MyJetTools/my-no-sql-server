@@ -25,6 +25,8 @@ pub fn update_rows_expiration_time<'s, TRowKeys: Iterator<Item = &'s str>>(
 
         let mut updated_db_rows = Vec::new();
 
+        let mut db_partition_key = None;
+
         if let Some(db_partition) = table_data.get_partition_mut(&partition_key) {
             for row_key in row_keys {
                 let db_row = db_partition
@@ -33,14 +35,25 @@ pub fn update_rows_expiration_time<'s, TRowKeys: Iterator<Item = &'s str>>(
 
                 if let Some(db_row) = db_row {
                     updated_db_rows.push(db_row);
+
+                    if db_partition_key.is_none() {
+                        db_partition_key = Some(db_partition.partition_key.clone());
+                    }
                 }
             }
+        }
 
+        if let Some(db_partition_key) = db_partition_key {
             let mut sync_moment = DateTimeAsMicroseconds::now();
-            sync_moment.add_minutes(5);
+            sync_moment.add_seconds(10);
 
             app.persist_markers
-                .persist_partition(&table_data, &partition_key, sync_moment)
+                .persist_rows(
+                    &table_data.name,
+                    &db_partition_key,
+                    sync_moment,
+                    updated_db_rows.iter(),
+                )
                 .await;
         }
     });
