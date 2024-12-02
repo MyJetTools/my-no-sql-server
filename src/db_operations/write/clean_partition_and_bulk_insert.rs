@@ -12,7 +12,7 @@ use crate::{
 
 pub async fn clean_partition_and_bulk_insert(
     app: &AppContext,
-    db_table: Arc<DbTableWrapper>,
+    db_table: &Arc<DbTableWrapper>,
     partition_to_clean: String,
     entities: Vec<(String, Vec<Arc<DbRow>>)>,
     event_src: EventSource,

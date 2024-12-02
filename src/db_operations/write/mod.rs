@@ -3,7 +3,8 @@ pub mod bulk_insert_or_update;
 
 mod clean_partition_and_bulk_insert;
 pub use clean_partition_and_bulk_insert::*;
-pub mod clean_table;
+mod clean_table;
+pub use clean_table::*;
 pub mod clean_table_and_bulk_insert;
 mod delete_partitions;
 pub mod delete_row;

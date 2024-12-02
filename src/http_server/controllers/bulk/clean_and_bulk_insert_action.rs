@@ -54,7 +54,7 @@ async fn handle_request(
         Some(partition_key) => {
             crate::db_operations::write::clean_partition_and_bulk_insert(
                 action.app.as_ref(),
-                db_table,
+                &db_table,
                 partition_key,
                 rows_by_partition,
                 event_src,

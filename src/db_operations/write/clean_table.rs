@@ -9,7 +9,7 @@ use crate::{
     db_sync::{states::InitTableEventSyncData, EventSource, SyncEvent},
 };
 
-pub async fn execute(
+pub async fn clean_table(
     app: &AppContext,
     db_table: &Arc<DbTableWrapper>,
     event_src: EventSource,

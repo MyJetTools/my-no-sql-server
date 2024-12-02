@@ -31,6 +31,7 @@ pub async fn restore(
     app: &Arc<AppContext>,
     backup_content: Vec<u8>,
     table_name: Option<&str>,
+    clean_table: bool,
 ) -> Result<(), BackupError> {
     let mut zip_reader = ZipReader::new(backup_content);
 
@@ -61,7 +62,7 @@ pub async fn restore(
     match table_name {
         Some(table_name) => match partitions.remove(table_name) {
             Some(files) => {
-                restore_to_db(&app, table_name, files, &mut zip_reader).await?;
+                restore_to_db(&app, table_name, files, &mut zip_reader, clean_table).await?;
             }
             None => {
                 return Err(BackupError::TableNotFoundInBackupFile);
@@ -69,7 +70,14 @@ pub async fn restore(
         },
         None => {
             for (table_name, files) in partitions {
-                restore_to_db(&app, table_name.as_str(), files, &mut zip_reader).await?;
+                restore_to_db(
+                    &app,
+                    table_name.as_str(),
+                    files,
+                    &mut zip_reader,
+                    clean_table,
+                )
+                .await?;
             }
         }
     }
@@ -81,6 +89,7 @@ async fn restore_to_db(
     table_name: &str,
     mut files: Vec<RestoreFileName>,
     zip: &mut ZipReader,
+    clean_table: bool,
 ) -> Result<(), BackupError> {
     let persist_moment = DateTimeAsMicroseconds::now().add(Duration::from_secs(5));
     let db_table = if files.get(0).unwrap().file_type.is_metadata() {
@@ -116,6 +125,17 @@ async fn restore_to_db(
         db_table.unwrap()
     };
 
+    if clean_table {
+        crate::db_operations::write::clean_table(
+            &app,
+            &db_table,
+            EventSource::Backup,
+            persist_moment,
+        )
+        .await
+        .unwrap();
+    }
+
     for partition_file in files {
         let partition_key = partition_file.file_type.unwrap_as_partition_key();
 
@@ -133,7 +153,7 @@ async fn restore_to_db(
 
         crate::db_operations::write::clean_partition_and_bulk_insert(
             app,
-            db_table.clone(),
+            &db_table,
             partition_key.to_string(),
             vec![(partition_key, db_rows)],
             EventSource::Backup,

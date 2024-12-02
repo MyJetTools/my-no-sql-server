@@ -37,7 +37,7 @@ pub async fn commit(
             match event {
                 TransactionalOperationStep::CleanTable { table_name } => {
                     let db_table = tables.get(table_name.as_str()).unwrap();
-                    crate::db_operations::write::clean_table::execute(
+                    crate::db_operations::write::clean_table(
                         app,
                         &db_table,
                         event_src.clone(),

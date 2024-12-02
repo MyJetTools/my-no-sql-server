@@ -38,7 +38,7 @@ async fn handle_request(
 
     let event_src = EventSource::as_client_request(action.app.as_ref());
 
-    crate::db_operations::write::clean_table::execute(
+    crate::db_operations::write::clean_table(
         action.app.as_ref(),
         &db_table,
         event_src,

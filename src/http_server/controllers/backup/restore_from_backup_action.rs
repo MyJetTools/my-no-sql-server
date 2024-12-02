@@ -45,6 +45,7 @@ async fn handle_request(
                 &action.app,
                 backup_content,
                 input_data.get_table_name(),
+                input_data.clean_table,
             )
             .await
         }
@@ -64,13 +65,17 @@ async fn handle_request(
 
 #[derive(MyHttpInput)]
 pub struct RestoreFromBackupInputData {
-    #[http_form_data(name = "fileName", description = "File in backup folder")]
-    pub file_name: String,
     #[http_form_data(
         name = "tableName",
         description = "Name of the table or '*' for all tables"
     )]
     pub table_name: String,
+
+    #[http_form_data(name = "fileName", description = "File in backup folder")]
+    pub file_name: String,
+
+    #[http_form_data(name = "cleanTable", description = "Clean table before restore")]
+    pub clean_table: bool,
 }
 
 impl RestoreFromBackupInputData {
