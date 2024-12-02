@@ -52,7 +52,7 @@ async fn handle_request(
 
     match input_data.partition_key {
         Some(partition_key) => {
-            crate::db_operations::write::clean_partition_and_bulk_insert::execute(
+            crate::db_operations::write::clean_partition_and_bulk_insert(
                 action.app.as_ref(),
                 db_table,
                 partition_key,

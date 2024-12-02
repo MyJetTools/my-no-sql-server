@@ -54,6 +54,7 @@ pub enum EventSource {
     ClientRequest(ClientRequestsSourceData),
     GarbageCollector,
     Subscriber,
+    Backup,
 }
 
 impl EventSource {

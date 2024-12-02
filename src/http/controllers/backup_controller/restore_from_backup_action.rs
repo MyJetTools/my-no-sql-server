@@ -56,9 +56,10 @@ async fn handle_request(
         }
     };
 
-    HttpOutput::as_text(format!("{:?}", restore_result))
-        .into_ok_result(true)
-        .into()
+    match restore_result {
+        Ok(_) => HttpOutput::Empty.into_ok_result(true).into(),
+        Err(err) => Err(HttpFailResult::as_fatal_error(format!("{:?}", err))),
+    }
 }
 
 #[derive(MyHttpInput)]

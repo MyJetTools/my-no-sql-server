@@ -1,6 +1,8 @@
 mod bulk_delete;
 pub mod bulk_insert_or_update;
-pub mod clean_partition_and_bulk_insert;
+
+mod clean_partition_and_bulk_insert;
+pub use clean_partition_and_bulk_insert::*;
 pub mod clean_table;
 pub mod clean_table_and_bulk_insert;
 mod delete_partitions;

@@ -10,10 +10,10 @@ use crate::{
     db_sync::{states::InitPartitionsSyncEventData, EventSource, SyncEvent},
 };
 
-pub async fn execute(
+pub async fn clean_partition_and_bulk_insert(
     app: &AppContext,
     db_table: Arc<DbTableWrapper>,
-    partition_key: String,
+    partition_to_clean: String,
     entities: Vec<(String, Vec<Arc<DbRow>>)>,
     event_src: EventSource,
     persist_moment: DateTimeAsMicroseconds,
@@ -22,7 +22,7 @@ pub async fn execute(
     super::super::check_app_states(app)?;
     let mut table_data = db_table.data.write().await;
 
-    table_data.remove_partition(&partition_key, None);
+    table_data.remove_partition(&partition_to_clean, None);
 
     let mut partition_keys = Vec::new();
 
