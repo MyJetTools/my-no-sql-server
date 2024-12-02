@@ -39,18 +39,45 @@ async fn handle_request(
 
     let file = tokio::fs::read(backup_file.as_str()).await;
 
-    if let Err(err) = &file {
-        return Err(HttpFailResult::as_not_supported_content_type(format!(
-            "Error loading file {}. Err:{:?}",
-            backup_file, err
-        )));
-    }
+    let restore_result = match file {
+        Ok(backup_content) => {
+            crate::operations::backup::restore(
+                &action.app,
+                backup_content,
+                input_data.get_table_name(),
+            )
+            .await
+        }
+        Err(err) => {
+            return Err(HttpFailResult::as_not_supported_content_type(format!(
+                "Error loading file {}. Err:{:?}",
+                backup_file, err
+            )));
+        }
+    };
 
-    HttpOutput::Empty.into_ok_result(true).into()
+    HttpOutput::as_text(format!("{:?}", restore_result))
+        .into_ok_result(true)
+        .into()
 }
 
 #[derive(MyHttpInput)]
 pub struct RestoreFromBackupInputData {
     #[http_form_data(name = "fileName", description = "File in backup folder")]
     pub file_name: String,
+    #[http_form_data(
+        name = "tableName",
+        description = "Name of the table or '*' for all tables"
+    )]
+    pub table_name: String,
+}
+
+impl RestoreFromBackupInputData {
+    pub fn get_table_name(&self) -> Option<&str> {
+        if self.table_name == "*" {
+            None
+        } else {
+            Some(self.table_name.as_str())
+        }
+    }
 }
