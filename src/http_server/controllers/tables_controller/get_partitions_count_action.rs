@@ -1,4 +1,4 @@
-use crate::{app::AppContext, http::controllers::partitions::GetPartitionsAmountContract};
+use crate::{app::AppContext, http_server::controllers::partitions::GetPartitionsAmountContract};
 use my_http_server::macros::*;
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 use std::{result::Result, sync::Arc};

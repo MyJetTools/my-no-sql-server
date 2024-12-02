@@ -1,48 +1,42 @@
-use crate::{app::AppContext, http::http_sessions::*};
 use my_http_server::macros::*;
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 use std::sync::Arc;
 
-use super::models::SubscribeToTableInputModel;
+use crate::{app::AppContext, http_server::http_sessions::HttpSessionsSupport};
+
+use super::models::PingInputModel;
 
 #[http_route(
     method: "POST",
-    route: "/api/DataReader/Subscribe",
-    deprecated_routes: ["/DataReader/Subscribe"],
+    route: "/api/DataReader/Ping",
+    deprecated_routes: ["/DataReader/Ping"],
     controller: "DataReader",
-    summary: "Subscribes to table",
-    description: "Subscribe to table",
-    input_data: "SubscribeToTableInputModel",
+    summary: "Pings that subscriber is alive",
+    description: "Pings that subscriber is alive",
+    input_data: "PingInputModel",
     result:[
         {status_code: 202, description: "Successful operation"},
     ]
 )]
-pub struct SubscribeAction {
+pub struct PingAction {
     app: Arc<AppContext>,
 }
 
-impl SubscribeAction {
+impl PingAction {
     pub fn new(app: Arc<AppContext>) -> Self {
         Self { app }
     }
 }
 
 async fn handle_request(
-    action: &SubscribeAction,
-    input_data: SubscribeToTableInputModel,
+    action: &PingAction,
+    input_data: PingInputModel,
     _ctx: &mut HttpContext,
 ) -> Result<HttpOkResult, HttpFailResult> {
-    let data_reader = action
+    action
         .app
         .get_http_session(input_data.session_id.as_str())
         .await?;
-
-    crate::operations::data_readers::subscribe(
-        &action.app,
-        data_reader,
-        input_data.table_name.as_str(),
-    )
-    .await?;
 
     HttpOutput::Empty.into_ok_result(true).into()
 }

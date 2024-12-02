@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     db_operations::UpdateStatistics, db_sync::DataSynchronizationPeriod,
-    http::controllers::mappers::ToSetExpirationTime,
+    http_server::controllers::mappers::ToSetExpirationTime,
 };
 
 #[derive(MyHttpInput)]

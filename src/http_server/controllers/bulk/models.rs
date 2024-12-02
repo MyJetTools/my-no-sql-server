@@ -5,7 +5,7 @@ use my_http_server::types::RawDataTyped;
 
 use crate::{
     db_sync::DataSynchronizationPeriod,
-    http::controllers::row_controller::models::BaseDbRowContract,
+    http_server::controllers::row_controller::models::BaseDbRowContract,
 };
 
 #[derive(MyHttpInput)]

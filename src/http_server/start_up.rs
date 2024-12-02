@@ -8,7 +8,7 @@ use crate::app::AppContext;
 pub fn setup_server(app: &Arc<AppContext>) -> HttpConnectionsCounter {
     let mut http_server = MyHttpServer::new(SocketAddr::from(([0, 0, 0, 0], 5123)));
 
-    let controllers = Arc::new(crate::http::controllers::builder::build(app));
+    let controllers = Arc::new(crate::http_server::controllers::builder::build(app));
 
     let swagger_middleware = SwaggerMiddleware::new(
         controllers.clone(),

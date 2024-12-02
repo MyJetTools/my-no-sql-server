@@ -2,7 +2,7 @@ use my_http_server::macros::*;
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
 use std::sync::Arc;
 
-use crate::{app::AppContext, http::controllers::row_controller::models::BaseDbRowContract};
+use crate::{app::AppContext, http_server::controllers::row_controller::models::BaseDbRowContract};
 
 use super::models::NextMultipartRequestInputContract;
 

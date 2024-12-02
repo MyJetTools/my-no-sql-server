@@ -1,6 +1,6 @@
 use my_http_server::{HttpFailResult, WebContentType};
 
-use crate::http::mappers::db_operation_error::OPERATION_FAIL_HTTP_STATUS_CODE;
+use crate::http_server::mappers::db_operation_error::OPERATION_FAIL_HTTP_STATUS_CODE;
 
 use super::mappers::{OperationFailHttpContract, OperationFailReason};
 

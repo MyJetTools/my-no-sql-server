@@ -3,7 +3,7 @@ use my_no_sql_sdk::core::my_json::json_reader::JsonArrayIterator;
 use crate::{
     db_operations::transactions::TransactionOperationError,
     db_transactions::steps::TransactionalOperationStep,
-    http::controllers::transactions::models::JsonBaseTransaction,
+    http_server::controllers::transactions::models::JsonBaseTransaction,
 };
 
 use super::models::{

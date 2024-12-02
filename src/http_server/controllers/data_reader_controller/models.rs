@@ -2,7 +2,7 @@ use my_http_server::macros::*;
 use my_http_server::types::RawDataTyped;
 use serde::{Deserialize, Serialize};
 
-use crate::http::controllers::row_controller::models::BaseDbRowContract;
+use crate::http_server::controllers::row_controller::models::BaseDbRowContract;
 
 #[derive(MyHttpInput)]
 pub struct DataReaderGreetingInputModel {

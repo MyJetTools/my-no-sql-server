@@ -19,7 +19,7 @@ mod sqlite_repo;
 mod db_operations;
 mod db_sync;
 mod db_transactions;
-mod http;
+mod http_server;
 mod scripts;
 mod tcp;
 
@@ -49,7 +49,7 @@ async fn main() {
 
     tokio::spawn(crate::operations::init::load_tables(app.clone()));
 
-    let http_connections_counter = crate::http::start_up::setup_server(&app);
+    let http_connections_counter = crate::http_server::start_up::setup_server(&app);
 
     app.sync
         .register_event_loop(Arc::new(SyncEventLoop::new(app.clone())))
