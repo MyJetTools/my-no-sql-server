@@ -7,7 +7,7 @@ use crate::app::AppContext;
 
 #[http_route(
     method: "POST",
-    route: "/api/Backup/RestoreFromBackup",
+    route: "/api/Backup/RestoreFromZip",
     description: "Restore database from backup zip file",
     summary: "Restore database from backup zip file",
     controller: "Backup",
