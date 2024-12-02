@@ -123,4 +123,10 @@ impl PersistMarkersInner {
         let item = self.get_item_mut(table_name);
         item.metrics.update(moment, duration);
     }
+
+    pub fn has_something_to_persist(&self) -> bool {
+        self.items
+            .iter()
+            .any(|item| item.has_something_to_persist())
+    }
 }
