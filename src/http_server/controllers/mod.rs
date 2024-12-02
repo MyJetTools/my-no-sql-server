@@ -18,5 +18,5 @@ pub mod status_controller;
 pub mod tables_controller;
 pub mod transactions;
 pub use mappers::*;
-mod backup_controller;
+pub mod backup;
 pub mod partitions;

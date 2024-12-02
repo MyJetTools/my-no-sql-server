@@ -210,13 +210,19 @@ pub fn build(app: &Arc<AppContext>) -> ControllersMiddleware {
 
     // Backup controller
 
-    result.register_get_action(Arc::new(super::backup_controller::DownloadAction::new(
+    result.register_get_action(Arc::new(super::backup::DownloadAction::new(app.clone())));
+
+    result.register_get_action(Arc::new(super::backup::GetListOfBackupFilesAction::new(
         app.clone(),
     )));
 
-    result.register_post_action(Arc::new(
-        super::backup_controller::RestoreFromBackupAction::new(app.clone()),
-    ));
+    result.register_post_action(Arc::new(super::backup::RestoreFromBackupAction::new(
+        app.clone(),
+    )));
+
+    result.register_post_action(Arc::new(super::backup::RestoreFromZipAction::new(
+        app.clone(),
+    )));
 
     result
 }
