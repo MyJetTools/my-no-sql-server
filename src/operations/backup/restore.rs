@@ -38,10 +38,16 @@ pub async fn restore(
 
     let mut partitions: BTreeMap<String, Vec<RestoreFileName>> = BTreeMap::new();
 
-    for file_name in zip_reader.get_file_names() {
+    for file_name_str in zip_reader.get_file_names() {
         let file_name =
-            RestoreFileName::new(file_name).map_err(|err| BackupError::InvalidFileName(err))?;
+            RestoreFileName::new(file_name_str).map_err(|err| BackupError::InvalidFileName(err))?;
 
+        if file_name.is_none() {
+            println!("Skipping  file [{}]", file_name_str);
+            continue;
+        }
+
+        let file_name = file_name.unwrap();
         match partitions.get_mut(&file_name.table_name) {
             Some(by_table) => {
                 if file_name.file_type.is_metadata() {

@@ -27,23 +27,28 @@ pub struct RestoreFileName {
 }
 
 impl RestoreFileName {
-    pub fn new(file_name: &str) -> Result<Self, String> {
+    pub fn new(file_name: &str) -> Result<Option<Self>, String> {
         let table_separator = file_name.find(std::path::MAIN_SEPARATOR);
 
         if table_separator.is_none() {
-            return Err(format!("Invalid table file_name [{}]", file_name));
+            return Ok(None);
         }
 
         let table_separator = table_separator.unwrap();
 
         let partition_key = &file_name[table_separator + 1..];
 
+        if partition_key.is_empty() {
+            return Ok(None);
+        }
+
         if partition_key == TABLE_METADATA_FILE_NAME {
             return Ok(Self {
                 table_name: file_name[..table_separator].to_string(),
                 file_type: ArchiveFileType::Metadata,
                 file_name: file_name.to_string(),
-            });
+            }
+            .into());
         }
 
         let partition_key = partition_key.from_base64();
@@ -73,7 +78,7 @@ impl RestoreFileName {
             file_name: file_name.to_string(),
         };
 
-        Ok(result)
+        Ok(result.into())
     }
 }
 
@@ -82,15 +87,28 @@ mod tests {
 
     #[test]
     fn test_metadata_file() {
-        let result = super::RestoreFileName::new("key-value/.metadata").unwrap();
+        let result = super::RestoreFileName::new("key-value/.metadata")
+            .unwrap()
+            .unwrap();
         assert_eq!(result.table_name, "key-value");
         assert!(result.file_type.is_metadata());
     }
 
     #[test]
     fn test_partition_key() {
-        let result = super::RestoreFileName::new("key-value/Yw==").unwrap();
+        let result = super::RestoreFileName::new("key-value/Yw==")
+            .unwrap()
+            .unwrap();
         assert_eq!(result.table_name, "key-value");
         assert!(result.file_type.unwrap_as_partition_key() == "c");
+    }
+
+    #[test]
+    fn test_empty_folder() {
+        let result = super::RestoreFileName::new("key-value").unwrap();
+        assert!(result.is_none());
+
+        let result = super::RestoreFileName::new("key-value/").unwrap();
+        assert!(result.is_none());
     }
 }

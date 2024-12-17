@@ -28,8 +28,6 @@ mod data_readers;
 mod operations;
 mod settings_reader;
 
-//TODO - Add Amount of Subscribers to table on UI;
-
 pub mod mynosqlserver_grpc {
     tonic::include_proto!("mynosqlserver");
 }
