@@ -1,3 +1,4 @@
+use core::str;
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
 
 use my_no_sql_sdk::core::db_json_entity::DbJsonEntity;
@@ -98,6 +99,8 @@ async fn restore_to_db(
         let content = zip
             .get_content_as_vec(&metadata_file.file_name)
             .map_err(|err| BackupError::ZipArchiveError(format!("{:?}", err)))?;
+
+        println!("Content: '{}'", str::from_utf8(content.as_slice()).unwrap());
 
         let table = TableMetadataFileContract::parse(content.as_slice());
 

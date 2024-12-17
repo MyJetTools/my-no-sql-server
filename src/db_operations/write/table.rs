@@ -118,9 +118,11 @@ pub async fn create_if_not_exist(
     max_partitions_amount: Option<usize>,
     max_rows_per_partition_amount: Option<usize>,
     event_src: EventSource,
+
     persist_moment: DateTimeAsMicroseconds,
 ) -> Result<Arc<DbTableWrapper>, DbOperationError> {
     super::super::check_app_states(app)?;
+
     validation::validate_table_name(table_name)?;
 
     let db_table = get_or_create(
