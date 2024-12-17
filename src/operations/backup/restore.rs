@@ -100,8 +100,6 @@ async fn restore_to_db(
             .get_content_as_vec(&metadata_file.file_name)
             .map_err(|err| BackupError::ZipArchiveError(format!("{:?}", err)))?;
 
-        println!("Content: '{}'", str::from_utf8(content.as_slice()).unwrap());
-
         let table = TableMetadataFileContract::parse(content.as_slice());
 
         let db_table = crate::db_operations::write::table::create_if_not_exist(
