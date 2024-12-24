@@ -1,5 +1,6 @@
 use my_http_server::macros::*;
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
+use std::str;
 use std::sync::Arc;
 
 use my_no_sql_sdk::core::db_json_entity::JsonTimeStamp;
@@ -44,6 +45,11 @@ async fn handle_request(
     let event_src = EventSource::as_client_request(action.app.as_ref());
 
     let now = JsonTimeStamp::now();
+
+    println!(
+        "InsertOrReplaceAction: [{}]",
+        std::str::from_utf8(input_data.body.as_slice()).unwrap()
+    );
 
     let db_row = parse_db_json_entity(input_data.body.as_slice(), &now)?;
 
