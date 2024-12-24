@@ -46,11 +46,6 @@ async fn handle_request(
 
     let now = JsonTimeStamp::now();
 
-    println!(
-        "InsertOrReplaceAction: [{}]",
-        std::str::from_utf8(input_data.body.as_slice()).unwrap()
-    );
-
     let db_row = parse_db_json_entity(input_data.body.as_slice(), &now)?;
 
     crate::db_operations::write::insert_or_replace::execute(
