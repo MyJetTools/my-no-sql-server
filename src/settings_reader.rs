@@ -55,7 +55,7 @@ impl SettingsModel {
         my_no_sql_sdk::core::rust_extensions::file_utils::format_path(self.backup_folder.as_str())
     }
 
-    pub fn get_init_from_other_server_url<'s>(&'s self) -> Option<&str> {
+    pub fn get_init_from_other_server_url(&self) -> Option<&str> {
         if let Some(url) = &self.init_from_other_server_url {
             return Some(url.as_str());
         }

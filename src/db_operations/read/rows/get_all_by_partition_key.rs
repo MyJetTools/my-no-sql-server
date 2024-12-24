@@ -40,5 +40,7 @@ pub async fn get_all_by_partition_key(
         },
     );
 
-    return Ok(ReadOperationResult::RowsArray(json_array_writer.build()));
+    return Ok(ReadOperationResult::RowsArray(
+        json_array_writer.build().into_bytes(),
+    ));
 }

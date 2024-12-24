@@ -47,7 +47,7 @@ impl DbZipBuilder {
 
             let payload = json.build();
 
-            write_to_zip_file(&mut self.zip_writer, &payload)?;
+            write_to_zip_file(&mut self.zip_writer, payload.as_bytes())?;
         }
 
         Ok(())
