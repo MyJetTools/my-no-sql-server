@@ -12,7 +12,7 @@ use super::super::ReadOperationResult;
 
 pub async fn get_single(
     app: &Arc<AppContext>,
-    db_table: &Arc<DbTableWrapper>,
+    db_table_wrapper: &Arc<DbTableWrapper>,
     partition_key: &String,
     row_key: &String,
     update_statistics: UpdateStatistics,
@@ -20,7 +20,7 @@ pub async fn get_single(
 ) -> Result<ReadOperationResult, DbOperationError> {
     super::super::super::check_app_states(app)?;
 
-    let table_data = db_table.data.read().await;
+    let table_data = db_table_wrapper.data.read().await;
 
     let db_partition = table_data.get_partition(partition_key);
 
@@ -38,7 +38,7 @@ pub async fn get_single(
 
     let db_row = db_row.unwrap();
 
-    update_statistics.update(db_table, db_partition, Some(db_row), now);
+    update_statistics.update(db_table_wrapper, db_partition, Some(db_row), now);
 
     return Ok(ReadOperationResult::SingleRow(db_row.to_vec()));
 }

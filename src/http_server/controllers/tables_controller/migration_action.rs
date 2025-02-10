@@ -78,6 +78,7 @@ async fn handle_request(
         headers: None,
         content: format!("Migrated {} partitions", partitions_count).into_bytes(),
         content_type: Some(WebContentType::Text),
+        set_cookies: None,
     }
     .into_ok_result(true)
 }

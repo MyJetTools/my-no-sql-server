@@ -10,6 +10,7 @@ impl Into<HttpOkResult> for ReadOperationResult {
                     headers: None,
                     content,
                     content_type: Some(WebContentType::Json),
+                    set_cookies: None,
                 };
 
                 HttpOkResult {
@@ -22,6 +23,7 @@ impl Into<HttpOkResult> for ReadOperationResult {
                     headers: None,
                     content,
                     content_type: Some(WebContentType::Json),
+                    set_cookies: None,
                 };
 
                 HttpOkResult {
@@ -39,6 +41,7 @@ impl Into<HttpOkResult> for ReadOperationResult {
                     headers: None,
                     content: empty_array,
                     content_type: Some(WebContentType::Json),
+                    set_cookies: None,
                 };
 
                 HttpOkResult {

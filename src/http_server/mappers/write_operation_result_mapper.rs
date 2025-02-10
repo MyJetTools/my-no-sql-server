@@ -10,6 +10,7 @@ impl Into<Result<HttpOkResult, HttpFailResult>> for WriteOperationResult {
                     headers: None,
                     content_type: Some(WebContentType::Json),
                     content: db_row.to_vec(),
+                    set_cookies: None,
                 };
 
                 Ok(HttpOkResult {

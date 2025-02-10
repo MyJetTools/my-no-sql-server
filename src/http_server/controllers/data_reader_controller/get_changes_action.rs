@@ -62,6 +62,7 @@ async fn handle_request(
                     headers: None,
                     content_type: None,
                     content: payload,
+                    set_cookies: None,
                 }
                 .into_ok_result(false)
                 .into();

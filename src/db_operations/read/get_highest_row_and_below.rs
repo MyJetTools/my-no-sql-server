@@ -49,15 +49,6 @@ pub async fn get_highest_row_and_below(
     return Ok(ReadOperationResult::RowsArray(
         json_array_writer.build().into_bytes(),
     ));
-    /*
-    let mut json_array_writer = JsonArrayWriter::new();
-
-    for db_row in db_rows {
-        json_array_writer.write_raw_element(db_row.data.as_ref());
-    }
-
-    return ReadOperationResult::RowsArray(json_array_writer.build());
-     */
 }
 
 /*
