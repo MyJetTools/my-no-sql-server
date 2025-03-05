@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use my_no_sql_sdk::core::rust_extensions::MyTimerTick;
+use my_no_sql_server_core::rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::app::AppContext;
 
@@ -17,6 +18,9 @@ impl PersistTimer {
 #[async_trait::async_trait]
 impl MyTimerTick for PersistTimer {
     async fn tick(&self) {
-        crate::operations::persist(&self.app).await;
+        let started = DateTimeAsMicroseconds::now();
+        while (DateTimeAsMicroseconds::now() - started).get_full_seconds() < 30 {
+            crate::operations::persist(&self.app).await;
+        }
     }
 }
