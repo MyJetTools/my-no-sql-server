@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, sync::Arc};
 
-use my_no_sql_server_core::DbTableWrapper;
+use my_no_sql_sdk::server::DbTableWrapper;
 
 pub struct DataReaderUpdatableData {
     tables: BTreeMap<String, Arc<DbTableWrapper>>,

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use my_no_sql_server_core::rust_extensions::StopWatch;
+use my_no_sql_sdk::server::rust_extensions::StopWatch;
 
 use crate::app::AppContext;
 

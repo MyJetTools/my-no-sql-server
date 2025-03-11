@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use my_no_sql_sdk::core::db::DbRow;
-use my_no_sql_server_core::rust_extensions::{
+use my_no_sql_sdk::server::rust_extensions::{
     date_time::DateTimeAsMicroseconds, sorted_vec::EntityWithStrKey,
 };
 

@@ -81,13 +81,13 @@ impl PersistMarkers {
             match result {
                 PersistTask::SaveTableAttributes(db_table_name) => {
                     inner
-                        .get_by_table_mut(db_table_name)
+                        .get_by_table_mut(&db_table_name)
                         .unwrap()
                         .persist_table_attributes = None;
                 }
                 PersistTask::SyncTable(db_table_name) => {
                     inner
-                        .get_by_table_mut(db_table_name)
+                        .get_by_table_mut(&db_table_name)
                         .unwrap()
                         .clean_when_synching_whole_table();
                 }
@@ -96,11 +96,11 @@ impl PersistMarkers {
                     table_name,
                     partition_key,
                 } => {
-                    let by_table = inner.get_by_table_mut(table_name).unwrap();
-                    by_table.clean_when_synching_whole_partition(partition_key);
+                    let by_table = inner.get_by_table_mut(&table_name).unwrap();
+                    by_table.clean_when_synching_whole_partition(&partition_key);
                 }
                 PersistTask::SyncRows { table_name, jobs } => {
-                    let by_table = inner.get_by_table_mut(table_name).unwrap();
+                    let by_table = inner.get_by_table_mut(&table_name).unwrap();
                     for job in jobs {
                         by_table.clean_when_syncing_rows(&job.partition_key, &job.items);
                     }

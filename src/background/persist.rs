@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use my_no_sql_sdk::core::rust_extensions::MyTimerTick;
-use my_no_sql_server_core::rust_extensions::date_time::DateTimeAsMicroseconds;
+use my_no_sql_sdk::server::rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::app::AppContext;
 

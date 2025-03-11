@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use my_no_sql_sdk::core::db::{DbRow, PartitionKey};
 use my_no_sql_sdk::core::rust_extensions::date_time::DateTimeAsMicroseconds;
-use my_no_sql_server_core::rust_extensions::sorted_vec::{
+use my_no_sql_sdk::server::rust_extensions::sorted_vec::{
     EntityWithStrKey, InsertOrUpdateEntry, SortedVecWithStrKey,
 };
 

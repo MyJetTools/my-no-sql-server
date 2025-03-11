@@ -18,9 +18,6 @@ my-no-sql-sdk = { tag = "0.4.1", git = "https://github.com/MyJetTools/my-no-sql-
     "tcp-contracts",
 ] }
 
-my-no-sql-server-core = { tag = "0.4.0", git = "https://github.com/MyJetTools/my-no-sql-server-core.git", features = [
-    "master-node",
-] }
 
 my-azure-storage-sdk = { tag = "0.5.1", git = "https://github.com/MyJetTools/my-azure-storage.git" }
 flurl = { tag = "0.6.1", git = "https://github.com/MyJetTools/fl-url" }

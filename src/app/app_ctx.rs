@@ -4,7 +4,7 @@ use std::{
 };
 
 use my_no_sql_sdk::core::rust_extensions::{date_time::DateTimeAsMicroseconds, AppStates};
-use my_no_sql_server_core::DbInstance;
+use my_no_sql_sdk::server::DbInstance;
 
 use crate::{
     data_readers::DataReadersList, db_operations::multipart::MultipartList,

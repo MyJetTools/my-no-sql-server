@@ -1,5 +1,5 @@
 use my_no_sql_sdk::core::db::{DbTableAttributes, DbTableName};
-use my_no_sql_server_core::rust_extensions::date_time::DateTimeAsMicroseconds;
+use my_no_sql_sdk::server::rust_extensions::date_time::DateTimeAsMicroseconds;
 use my_sqlite::macros::*;
 
 use crate::operations::init::TableAttributeInitContract;

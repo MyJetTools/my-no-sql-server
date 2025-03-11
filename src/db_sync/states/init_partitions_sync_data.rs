@@ -1,7 +1,7 @@
 use my_no_sql_sdk::core::db::{DbTable, PartitionKey};
 use my_no_sql_sdk::core::my_json::json_writer::{EmptyJsonArray, JsonObjectWriter};
 use my_no_sql_sdk::core::rust_extensions::sorted_vec::{EntityWithStrKey, SortedVecWithStrKey};
-use my_no_sql_server_core::db_snapshots::DbPartitionSnapshot;
+use my_no_sql_sdk::server::db_snapshots::DbPartitionSnapshot;
 
 use crate::db_sync::EventSource;
 

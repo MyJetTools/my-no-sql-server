@@ -1,4 +1,4 @@
-use my_no_sql_server_core::rust_extensions::base64::FromBase64;
+use my_no_sql_sdk::server::rust_extensions::base64::FromBase64;
 
 use crate::scripts::TABLE_METADATA_FILE_NAME;
 

@@ -1,5 +1,5 @@
 use my_no_sql_sdk::core::db::DbTable;
-use my_no_sql_server_core::db_snapshots::DbTableSnapshot;
+use my_no_sql_sdk::server::db_snapshots::DbTableSnapshot;
 
 use crate::db_sync::EventSource;
 

@@ -1,5 +1,5 @@
 use my_http_server::macros::*;
-use my_no_sql_server_core::DbTableWrapper;
+use my_no_sql_sdk::server::DbTableWrapper;
 use serde::{Deserialize, Serialize};
 
 use crate::db_sync::DataSynchronizationPeriod;

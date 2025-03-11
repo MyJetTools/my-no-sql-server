@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use my_no_sql_server_core::DbTableWrapper;
+use my_no_sql_sdk::server::DbTableWrapper;
 
 use crate::{app::AppContext, db_operations::DbOperationError};
 

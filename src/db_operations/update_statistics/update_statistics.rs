@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use my_no_sql_sdk::core::db::{DbPartition, DbRow};
 use my_no_sql_sdk::core::rust_extensions::date_time::DateTimeAsMicroseconds;
-use my_no_sql_server_core::DbTableWrapper;
+use my_no_sql_sdk::server::DbTableWrapper;
 
 #[derive(Clone, Debug)]
 pub struct UpdateStatistics {

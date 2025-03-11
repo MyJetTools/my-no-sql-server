@@ -1,6 +1,6 @@
 use flurl::FlUrl;
 use my_no_sql_sdk::core::db::DbTableAttributes;
-use my_no_sql_server_core::rust_extensions::date_time::DateTimeAsMicroseconds;
+use my_no_sql_sdk::server::rust_extensions::date_time::DateTimeAsMicroseconds;
 use serde::*;
 
 use crate::operations::init::TableAttributeInitContract;

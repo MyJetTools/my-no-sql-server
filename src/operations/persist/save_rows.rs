@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use my_no_sql_sdk::core::db::{DbRow, DbTableName, PartitionKey};
-use my_no_sql_server_core::DbTableWrapper;
+use my_no_sql_sdk::server::DbTableWrapper;
 
 use crate::{app::AppContext, persist_markers::SyncRowJobDescription};
 

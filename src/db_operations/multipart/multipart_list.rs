@@ -6,7 +6,7 @@ use std::{
 
 use my_no_sql_sdk::core::db::DbRow;
 use my_no_sql_sdk::core::rust_extensions::date_time::DateTimeAsMicroseconds;
-use my_no_sql_server_core::db_snapshots::DbRowsSnapshot;
+use my_no_sql_sdk::server::db_snapshots::DbRowsSnapshot;
 use tokio::sync::Mutex;
 
 use super::Multipart;

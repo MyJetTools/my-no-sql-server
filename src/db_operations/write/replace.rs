@@ -11,7 +11,7 @@ use my_no_sql_sdk::core::{
     db::DbRow,
     db_json_entity::{DbJsonEntityWithContent, JsonTimeStamp},
 };
-use my_no_sql_server_core::DbTableWrapper;
+use my_no_sql_sdk::server::DbTableWrapper;
 use serde::{Deserialize, Serialize};
 
 use super::WriteOperationResult;

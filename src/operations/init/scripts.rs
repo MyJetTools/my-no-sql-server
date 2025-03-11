@@ -1,5 +1,5 @@
 use my_no_sql_sdk::core::db::{DbPartition, DbTable};
-use my_no_sql_server_core::rust_extensions;
+use my_no_sql_sdk::server::rust_extensions;
 
 use crate::app::AppContext;
 

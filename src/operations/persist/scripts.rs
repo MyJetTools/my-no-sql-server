@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use my_no_sql_sdk::core::db::{DbRow, DbTableName, PartitionKey};
-use my_no_sql_server_core::db_snapshots::{DbPartitionSnapshot, DbTableSnapshot};
+use my_no_sql_sdk::server::db_snapshots::{DbPartitionSnapshot, DbTableSnapshot};
 
 use crate::{app::AppContext, sqlite_repo::MyNoSqlEntityDto};
 

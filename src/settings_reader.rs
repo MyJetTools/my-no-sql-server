@@ -1,5 +1,5 @@
-use my_no_sql_sdk::core::rust_extensions::StrOrString;
-use my_no_sql_server_core::rust_extensions;
+use my_no_sql_sdk::core::rust_extensions;
+
 use serde::{Deserialize, Serialize};
 
 use crate::sqlite_repo::SqlLiteRepo;
@@ -45,14 +45,14 @@ pub struct SettingsModel {
 
 impl SettingsModel {
     pub async fn get_sqlite_repo(&self) -> SqlLiteRepo {
-        let file = my_no_sql_server_core::rust_extensions::file_utils::format_path(
+        let file = my_no_sql_sdk::server::rust_extensions::file_utils::format_path(
             self.persistence_dest.as_str(),
         );
         SqlLiteRepo::new(file.to_string()).await
     }
 
-    pub fn get_backup_folder<'s>(&'s self) -> StrOrString<'s> {
-        my_no_sql_sdk::core::rust_extensions::file_utils::format_path(self.backup_folder.as_str())
+    pub fn get_backup_folder<'s>(&'s self) -> rust_extensions::StrOrString<'s> {
+        rust_extensions::file_utils::format_path(self.backup_folder.as_str())
     }
 
     pub fn get_init_from_other_server_url(&self) -> Option<&str> {
