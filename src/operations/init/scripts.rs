@@ -1,5 +1,4 @@
-use my_no_sql_sdk::core::db::{DbPartition, DbTable};
-use my_no_sql_sdk::server::rust_extensions;
+use my_no_sql_sdk::core::db::*;
 
 use crate::app::AppContext;
 
@@ -18,18 +17,19 @@ pub async fn init_tables(
         let db_rows = entities_reader.get_entities(db_table.name.as_str()).await;
 
         if let Some(db_rows) = db_rows {
-            let by_partition =
-                rust_extensions::grouped_data::group_to_btree_map(db_rows.into_iter(), |itm| {
-                    itm.get_partition_key().to_string()
-                });
+            //let by_partition =
+            //    rust_extensions::grouped_data::group_to_btree_map(db_rows.into_iter(), |itm| {
+            //        itm.get_partition_key().to_string()
+            //    });
 
-            for (partition_key, entities) in by_partition {
-                let mut db_partition = DbPartition::new(partition_key);
-                for db_row in entities {
-                    db_partition.insert_row(db_row);
-                }
+            for db_row in db_rows {
+                //db_table.insert_or_replace_row(db_row, set_last_write_moment);
+                //let mut db_partition = DbPartition::new(partition_key);
+                //for db_row in entities {
+                //    db_partition.insert_row(db_row);
+                // }
 
-                db_table.restore_partition(db_partition);
+                db_table.insert_or_replace_row(db_row, None);
             }
         }
 

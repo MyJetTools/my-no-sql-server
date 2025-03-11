@@ -24,7 +24,7 @@ pub async fn execute(
 
     let mut table_data = db_table.data.write().await;
 
-    let (partition_key, _) = table_data.insert_or_replace_row(&db_row, Some(now));
+    let (partition_key, _) = table_data.insert_or_replace_row(db_row.clone(), Some(now));
 
     app.persist_markers
         .persist_rows(
