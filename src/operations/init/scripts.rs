@@ -12,7 +12,7 @@ pub async fn init_tables(
 ) {
     for table_init_contract in tables {
         let (table_name, attr) = table_init_contract.into();
-        let mut db_table = DbTable::new(table_name, attr);
+        let mut db_table = DbTableInner::new(table_name, attr);
 
         let db_rows = entities_reader.get_entities(db_table.name.as_str()).await;
 

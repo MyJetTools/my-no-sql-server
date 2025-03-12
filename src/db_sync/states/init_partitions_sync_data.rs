@@ -1,4 +1,4 @@
-use my_no_sql_sdk::core::db::{DbTable, PartitionKey};
+use my_no_sql_sdk::core::db::{DbTableInner, PartitionKey};
 use my_no_sql_sdk::core::my_json::json_writer::{EmptyJsonArray, JsonObjectWriter};
 use my_no_sql_sdk::core::rust_extensions::sorted_vec::{EntityWithStrKey, SortedVecWithStrKey};
 use my_no_sql_sdk::server::db_snapshots::DbPartitionSnapshot;
@@ -26,7 +26,7 @@ pub struct InitPartitionsSyncEventData {
 }
 
 impl InitPartitionsSyncEventData {
-    pub fn new(table_data: &DbTable, event_src: EventSource) -> Self {
+    pub fn new(table_data: &DbTableInner, event_src: EventSource) -> Self {
         Self {
             table_data: SyncTableData::new(table_data),
             event_src,
@@ -35,7 +35,7 @@ impl InitPartitionsSyncEventData {
     }
 
     pub fn new_as_update_partition(
-        db_table: &DbTable,
+        db_table: &DbTableInner,
         partition_key: PartitionKey,
         event_src: EventSource,
     ) -> Self {

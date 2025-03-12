@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use my_no_sql_sdk::core::db::{DbTable, DbTableAttributes};
+use my_no_sql_sdk::core::db::{DbTableAttributes, DbTableInner};
 use my_no_sql_sdk::core::rust_extensions::date_time::DateTimeAsMicroseconds;
 use my_no_sql_sdk::server::DbTableWrapper;
 
@@ -245,7 +245,7 @@ pub async fn delete(
     Ok(())
 }
 
-pub async fn init(app: &AppContext, db_table: DbTable) -> Arc<DbTableWrapper> {
+pub async fn init(app: &AppContext, db_table: DbTableInner) -> Arc<DbTableWrapper> {
     let db_table = DbTableWrapper::new(db_table);
     let mut tables_write_access = app.db.tables.write().await;
 
@@ -280,7 +280,7 @@ async fn get_or_create_table(
         max_rows_per_partition_amount,
     };
 
-    let db_table = DbTable::new(table_name.into(), table_attributes);
+    let db_table = DbTableInner::new(table_name.into(), table_attributes);
 
     let db_table_wrapper = DbTableWrapper::new(db_table);
 

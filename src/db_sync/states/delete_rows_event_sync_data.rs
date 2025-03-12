@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use my_no_sql_sdk::core::db::{DbRow, DbTable, PartitionKey, PartitionKeyParameter};
+use my_no_sql_sdk::core::db::{DbRow, DbTableInner, PartitionKey, PartitionKeyParameter};
 use my_no_sql_sdk::core::my_json::json_writer::{JsonArrayWriter, JsonNullValue, JsonObjectWriter};
 use my_no_sql_sdk::core::rust_extensions::sorted_vec::{EntityWithStrKey, SortedVecWithStrKey};
 
@@ -28,7 +28,7 @@ pub struct DeleteRowsEventSyncData {
 }
 
 impl DeleteRowsEventSyncData {
-    pub fn new(db_table: &DbTable, event_src: EventSource) -> Self {
+    pub fn new(db_table: &DbTableInner, event_src: EventSource) -> Self {
         Self {
             table_data: SyncTableData::new(db_table),
             event_src,
