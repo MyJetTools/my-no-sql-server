@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use my_no_sql_sdk::core::rust_extensions::date_time::DateTimeAsMicroseconds;
-use my_no_sql_sdk::server::DbTableWrapper;
+use my_no_sql_sdk::server::DbTable;
 
 use crate::{
     app::AppContext,
@@ -11,7 +11,7 @@ use crate::{
 
 pub async fn clean_table(
     app: &AppContext,
-    db_table: &Arc<DbTableWrapper>,
+    db_table: &Arc<DbTable>,
     event_src: EventSource,
     persist_moment: DateTimeAsMicroseconds,
 ) -> Result<(), DbOperationError> {

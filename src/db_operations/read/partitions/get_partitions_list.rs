@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
-use my_no_sql_sdk::server::DbTableWrapper;
+use my_no_sql_sdk::server::DbTable;
 
 use crate::{app::AppContext, db_operations::DbOperationError};
 
 pub async fn get_partitions(
     app: &AppContext,
-    db_table: &Arc<DbTableWrapper>,
+    db_table: &Arc<DbTable>,
     limit: Option<usize>,
     skip: Option<usize>,
 ) -> Result<(usize, Vec<String>), DbOperationError> {

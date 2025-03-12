@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use my_no_sql_sdk::core::db::DbRow;
 use my_no_sql_sdk::core::rust_extensions::date_time::DateTimeAsMicroseconds;
-use my_no_sql_sdk::server::DbTableWrapper;
+use my_no_sql_sdk::server::DbTable;
 
 use crate::{
     app::AppContext,
@@ -12,7 +12,7 @@ use crate::{
 
 pub async fn clean_partition_and_bulk_insert(
     app: &AppContext,
-    db_table: &Arc<DbTableWrapper>,
+    db_table: &Arc<DbTable>,
     partition_to_clean: String,
     entities: Vec<(String, Vec<Arc<DbRow>>)>,
     event_src: EventSource,

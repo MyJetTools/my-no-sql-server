@@ -11,7 +11,7 @@ use my_no_sql_sdk::core::{
     db::DbRow,
     db_json_entity::{DbJsonEntityWithContent, JsonTimeStamp},
 };
-use my_no_sql_sdk::server::DbTableWrapper;
+use my_no_sql_sdk::server::DbTable;
 use serde::{Deserialize, Serialize};
 
 use super::WriteOperationResult;
@@ -19,7 +19,7 @@ use super::WriteOperationResult;
 #[inline]
 pub async fn validate_before(
     app: &AppContext,
-    db_table: &Arc<DbTableWrapper>,
+    db_table: &Arc<DbTable>,
     db_entity: DbJsonEntityWithContent<'_>,
 ) -> Result<DbRow, DbOperationError> {
     super::super::check_app_states(app)?;
@@ -51,7 +51,7 @@ pub async fn validate_before(
 
 pub async fn execute(
     app: &AppContext,
-    db_table: &Arc<DbTableWrapper>,
+    db_table: &Arc<DbTable>,
     db_row: Arc<DbRow>,
     event_src: EventSource,
 

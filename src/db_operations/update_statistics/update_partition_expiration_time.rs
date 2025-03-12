@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use my_no_sql_sdk::core::rust_extensions::date_time::DateTimeAsMicroseconds;
-use my_no_sql_sdk::server::DbTableWrapper;
+use my_no_sql_sdk::server::DbTable;
 
 pub fn update_partition_expiration_time(
-    db_table: &Arc<DbTableWrapper>,
+    db_table: &Arc<DbTable>,
     partition_key: String,
     set_expiration_time: Option<DateTimeAsMicroseconds>,
 ) {

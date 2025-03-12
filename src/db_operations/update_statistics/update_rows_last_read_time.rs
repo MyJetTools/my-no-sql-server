@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use my_no_sql_sdk::core::rust_extensions::date_time::DateTimeAsMicroseconds;
-use my_no_sql_sdk::server::DbTableWrapper;
+use my_no_sql_sdk::server::DbTable;
 
 pub async fn update_row_keys_last_read_access_time<'s, TRowKeys: Iterator<Item = &'s str>>(
-    db_table: &Arc<DbTableWrapper>,
+    db_table: &Arc<DbTable>,
     partition_key: &str,
     row_keys: TRowKeys,
 ) {

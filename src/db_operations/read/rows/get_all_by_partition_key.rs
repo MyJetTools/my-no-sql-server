@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use my_no_sql_sdk::core::rust_extensions::date_time::DateTimeAsMicroseconds;
-use my_no_sql_sdk::server::DbTableWrapper;
+use my_no_sql_sdk::server::DbTable;
 
 use crate::{
     app::AppContext,
@@ -12,7 +12,7 @@ use super::super::ReadOperationResult;
 
 pub async fn get_all_by_partition_key(
     app: &Arc<AppContext>,
-    db_table: &Arc<DbTableWrapper>,
+    db_table: &Arc<DbTable>,
     partition_key: &String,
     limit: Option<usize>,
     skip: Option<usize>,

@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
 use my_no_sql_sdk::core::rust_extensions::date_time::DateTimeAsMicroseconds;
-use my_no_sql_sdk::server::DbTableWrapper;
+use my_no_sql_sdk::server::DbTable;
 
 use crate::app::AppContext;
 
 pub fn update_rows_expiration_time<'s, TRowKeys: Iterator<Item = &'s str>>(
     app: &Arc<AppContext>,
-    db_table: &Arc<DbTableWrapper>,
+    db_table: &Arc<DbTable>,
     partition_key: &str,
     row_keys: TRowKeys,
     set_expiration_time: Option<DateTimeAsMicroseconds>,

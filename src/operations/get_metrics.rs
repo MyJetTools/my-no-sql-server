@@ -1,5 +1,5 @@
 use my_no_sql_sdk::core::rust_extensions::date_time::DateTimeAsMicroseconds;
-use my_no_sql_sdk::server::DbTableWrapper;
+use my_no_sql_sdk::server::DbTable;
 
 use crate::app::AppContext;
 
@@ -16,7 +16,7 @@ pub struct DbTableMetrics {
     pub avg_entity_size: usize,
 }
 
-pub async fn get_table_metrics(app: &AppContext, db_table: &DbTableWrapper) -> DbTableMetrics {
+pub async fn get_table_metrics(app: &AppContext, db_table: &DbTable) -> DbTableMetrics {
     let persist_metrics = app
         .persist_markers
         .get_persist_metrics(db_table.name.as_str())

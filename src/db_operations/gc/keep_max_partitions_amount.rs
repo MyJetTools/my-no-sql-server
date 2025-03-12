@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
 use my_no_sql_sdk::core::rust_extensions::date_time::DateTimeAsMicroseconds;
-use my_no_sql_sdk::server::DbTableWrapper;
+use my_no_sql_sdk::server::DbTable;
 
 use crate::{app::AppContext, db_operations::DbOperationError, db_sync::EventSource};
 
 pub async fn keep_max_partitions_amount(
     app: &AppContext,
-    db_table: &Arc<DbTableWrapper>,
+    db_table: &Arc<DbTable>,
     max_partitions_amount: usize,
     event_src: EventSource,
     persist_moment: DateTimeAsMicroseconds,

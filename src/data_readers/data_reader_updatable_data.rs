@@ -1,9 +1,9 @@
 use std::{collections::BTreeMap, sync::Arc};
 
-use my_no_sql_sdk::server::DbTableWrapper;
+use my_no_sql_sdk::server::DbTable;
 
 pub struct DataReaderUpdatableData {
-    tables: BTreeMap<String, Arc<DbTableWrapper>>,
+    tables: BTreeMap<String, Arc<DbTable>>,
 }
 
 impl DataReaderUpdatableData {
@@ -13,7 +13,7 @@ impl DataReaderUpdatableData {
         }
     }
 
-    pub fn subscribe(&mut self, db_table_wrapper: &Arc<DbTableWrapper>) {
+    pub fn subscribe(&mut self, db_table_wrapper: &Arc<DbTable>) {
         self.tables
             .insert(db_table_wrapper.name.to_string(), db_table_wrapper.clone());
     }

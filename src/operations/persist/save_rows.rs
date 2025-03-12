@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use my_no_sql_sdk::core::db::{DbRow, DbTableName, PartitionKey};
-use my_no_sql_sdk::server::DbTableWrapper;
+use my_no_sql_sdk::server::DbTable;
 
 use crate::{app::AppContext, persist_markers::SyncRowJobDescription};
 
@@ -34,7 +34,7 @@ pub async fn save_rows(
 }
 
 async fn find_and_sort_rows(
-    db_table: &DbTableWrapper,
+    db_table: &DbTable,
     jobs: Vec<SyncRowJobDescription>,
 ) -> FoundRowsToSync {
     let mut result = FoundRowsToSync::default();

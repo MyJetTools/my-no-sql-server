@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use my_no_sql_sdk::core::my_json::json_writer::JsonArrayWriter;
 use my_no_sql_sdk::core::rust_extensions::date_time::DateTimeAsMicroseconds;
-use my_no_sql_sdk::server::DbTableWrapper;
+use my_no_sql_sdk::server::DbTable;
 
 use crate::{
     app::AppContext,
@@ -13,7 +13,7 @@ use super::ReadOperationResult;
 
 pub async fn get_highest_row_and_below(
     app: &Arc<AppContext>,
-    db_table_wrapper: &Arc<DbTableWrapper>,
+    db_table_wrapper: &Arc<DbTable>,
     partition_key: &String,
     row_key: &String,
     limit: Option<usize>,

@@ -4,7 +4,7 @@ use std::sync::{
 };
 
 use my_no_sql_sdk::core::rust_extensions::date_time::DateTimeAsMicroseconds;
-use my_no_sql_sdk::server::DbTableWrapper;
+use my_no_sql_sdk::server::DbTable;
 use tokio::sync::RwLock;
 
 use super::{DataReaderConnection, DataReaderUpdatableData};
@@ -64,7 +64,7 @@ impl DataReader {
         self.connection.get_name()
     }
 
-    pub async fn subscribe(&self, db_table: &Arc<DbTableWrapper>) {
+    pub async fn subscribe(&self, db_table: &Arc<DbTable>) {
         let mut write_access = self.data.write().await;
         write_access.subscribe(db_table);
     }

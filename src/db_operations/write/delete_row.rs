@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use my_no_sql_sdk::core::db::{PartitionKeyParameter, RowKeyParameter};
 use my_no_sql_sdk::core::rust_extensions::date_time::DateTimeAsMicroseconds;
-use my_no_sql_sdk::server::DbTableWrapper;
+use my_no_sql_sdk::server::DbTable;
 
 use crate::{
     app::AppContext,
@@ -14,7 +14,7 @@ use super::WriteOperationResult;
 
 pub async fn execute(
     app: &AppContext,
-    db_table: &Arc<DbTableWrapper>,
+    db_table: &Arc<DbTable>,
     partition_key: impl PartitionKeyParameter,
     row_key: impl RowKeyParameter,
     event_src: EventSource,

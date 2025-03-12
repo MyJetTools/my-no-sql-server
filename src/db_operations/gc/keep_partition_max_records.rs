@@ -1,12 +1,12 @@
 use my_no_sql_sdk::core::db::PartitionKeyParameter;
 use my_no_sql_sdk::core::rust_extensions::date_time::DateTimeAsMicroseconds;
-use my_no_sql_sdk::server::DbTableWrapper;
+use my_no_sql_sdk::server::DbTable;
 
 use crate::{app::AppContext, db_operations::DbOperationError, db_sync::EventSource};
 
 pub async fn execute(
     app: &AppContext,
-    db_table: &DbTableWrapper,
+    db_table: &DbTable,
     partition_key: impl PartitionKeyParameter,
     max_rows_amount: usize,
     event_source: EventSource,

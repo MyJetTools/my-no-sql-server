@@ -1,5 +1,5 @@
 use my_http_server::macros::*;
-use my_no_sql_sdk::server::DbTableWrapper;
+use my_no_sql_sdk::server::DbTable;
 use serde::{Deserialize, Serialize};
 
 use crate::db_sync::DataSynchronizationPeriod;
@@ -38,7 +38,7 @@ pub struct TableContract {
 }
 
 impl TableContract {
-    pub async fn from_table_wrapper(table_wrapper: &DbTableWrapper) -> TableContract {
+    pub async fn from_table_wrapper(table_wrapper: &DbTable) -> TableContract {
         let table_snapshot = table_wrapper.get_attributes().await;
         TableContract {
             name: table_wrapper.name.to_string(),

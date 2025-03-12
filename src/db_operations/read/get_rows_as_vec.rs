@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use my_no_sql_sdk::core::{db::DbRow, db_json_entity::JsonTimeStamp};
-use my_no_sql_sdk::server::DbTableWrapper;
+use my_no_sql_sdk::server::DbTable;
 
 use crate::{
     app::AppContext,
@@ -10,7 +10,7 @@ use crate::{
 
 pub async fn execute(
     app: &Arc<AppContext>,
-    table: &Arc<DbTableWrapper>,
+    table: &Arc<DbTable>,
     partition_key: Option<&String>,
     row_key: Option<&String>,
     limit: Option<usize>,
@@ -52,7 +52,7 @@ pub async fn execute(
 }
 
 pub async fn get_as_partition_key_and_row_key(
-    table: &Arc<DbTableWrapper>,
+    table: &Arc<DbTable>,
     partition_key: &String,
     row_key: &String,
     now: &JsonTimeStamp,
@@ -70,7 +70,7 @@ pub async fn get_as_partition_key_and_row_key(
 }
 
 async fn get_as_partition_key_only(
-    table: &DbTableWrapper,
+    table: &DbTable,
     partition_key: &String,
     limit: Option<usize>,
     skip: Option<usize>,
@@ -97,7 +97,7 @@ async fn get_as_partition_key_only(
 }
 
 async fn get_as_row_key_only(
-    table: &Arc<DbTableWrapper>,
+    table: &Arc<DbTable>,
     row_key: &String,
     limit: Option<usize>,
     skip: Option<usize>,
@@ -116,11 +116,7 @@ async fn get_as_row_key_only(
     result
 }
 
-async fn get_all(
-    table: &DbTableWrapper,
-    limit: Option<usize>,
-    skip: Option<usize>,
-) -> Vec<Arc<DbRow>> {
+async fn get_all(table: &DbTable, limit: Option<usize>, skip: Option<usize>) -> Vec<Arc<DbRow>> {
     let read_access = table.data.read().await;
 
     let mut result = if let Some(limit) = limit {

@@ -1,6 +1,6 @@
 use my_no_sql_sdk::core::db::{PartitionKeyParameter, RowKeyParameter};
 use my_no_sql_sdk::core::rust_extensions::date_time::DateTimeAsMicroseconds;
-use my_no_sql_sdk::server::DbTableWrapper;
+use my_no_sql_sdk::server::DbTable;
 
 use crate::{
     app::AppContext,
@@ -10,7 +10,7 @@ use crate::{
 
 pub async fn bulk_delete(
     app: &AppContext,
-    db_table: &DbTableWrapper,
+    db_table: &DbTable,
     rows_to_delete: impl Iterator<Item = (impl PartitionKeyParameter, Vec<impl RowKeyParameter>)>,
     event_src: EventSource,
     persist_moment: DateTimeAsMicroseconds,

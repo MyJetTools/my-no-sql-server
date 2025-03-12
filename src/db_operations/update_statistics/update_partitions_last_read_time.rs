@@ -1,8 +1,8 @@
 use my_no_sql_sdk::core::rust_extensions::date_time::DateTimeAsMicroseconds;
-use my_no_sql_sdk::server::DbTableWrapper;
+use my_no_sql_sdk::server::DbTable;
 
 pub async fn update_partitions_last_read_time<'s, TPartitions: Iterator<Item = &'s str>>(
-    table: &DbTableWrapper,
+    table: &DbTable,
     partitions: TPartitions,
 ) {
     let now = DateTimeAsMicroseconds::now();

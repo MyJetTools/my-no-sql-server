@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use my_no_sql_sdk::core::db::{DbTableAttributes, DbTableInner};
 use my_no_sql_sdk::core::rust_extensions::date_time::DateTimeAsMicroseconds;
-use my_no_sql_sdk::server::DbTableWrapper;
+use my_no_sql_sdk::server::DbTable;
 
 use crate::db_operations::validation;
 use crate::{
@@ -25,7 +25,7 @@ pub async fn create(
     max_rows_per_partition_amount: Option<usize>,
     event_src: EventSource,
     persist_moment: DateTimeAsMicroseconds,
-) -> Result<Arc<DbTableWrapper>, DbOperationError> {
+) -> Result<Arc<DbTable>, DbOperationError> {
     super::super::check_app_states(app)?;
 
     validation::validate_table_name(table_name)?;
@@ -76,7 +76,7 @@ async fn get_or_create(
     max_rows_per_partition_amount: Option<usize>,
     event_src: EventSource,
     persist_moment: DateTimeAsMicroseconds,
-) -> Result<Arc<DbTableWrapper>, DbOperationError> {
+) -> Result<Arc<DbTable>, DbOperationError> {
     validation::validate_table_name(table_name)?;
     let now = DateTimeAsMicroseconds::now();
 
@@ -120,7 +120,7 @@ pub async fn create_if_not_exist(
     event_src: EventSource,
 
     persist_moment: DateTimeAsMicroseconds,
-) -> Result<Arc<DbTableWrapper>, DbOperationError> {
+) -> Result<Arc<DbTable>, DbOperationError> {
     super::super::check_app_states(app)?;
 
     validation::validate_table_name(table_name)?;
@@ -151,7 +151,7 @@ pub async fn create_if_not_exist(
 
 pub async fn update_persist_state(
     app: &Arc<AppContext>,
-    db_table: Arc<DbTableWrapper>,
+    db_table: Arc<DbTable>,
     persist: bool,
     event_src: EventSource,
 ) -> Result<(), DbOperationError> {
@@ -172,7 +172,7 @@ pub async fn update_persist_state(
 
 pub async fn set_table_attributes(
     app: &Arc<AppContext>,
-    db_table: Arc<DbTableWrapper>,
+    db_table: Arc<DbTable>,
     persist: bool,
     max_partitions_amount: Option<usize>,
     max_rows_per_partition_amount: Option<usize>,
@@ -245,8 +245,8 @@ pub async fn delete(
     Ok(())
 }
 
-pub async fn init(app: &AppContext, db_table: DbTableInner) -> Arc<DbTableWrapper> {
-    let db_table = DbTableWrapper::new(db_table);
+pub async fn init(app: &AppContext, db_table: DbTableInner) -> Arc<DbTable> {
+    let db_table = DbTable::new(db_table);
     let mut tables_write_access = app.db.tables.write().await;
 
     tables_write_access.insert(db_table.name.to_string(), db_table.clone());
@@ -255,8 +255,8 @@ pub async fn init(app: &AppContext, db_table: DbTableInner) -> Arc<DbTableWrappe
 }
 
 enum CreateTableResult {
-    JustCreated(Arc<DbTableWrapper>),
-    AlreadyHadTable(Arc<DbTableWrapper>),
+    JustCreated(Arc<DbTable>),
+    AlreadyHadTable(Arc<DbTable>),
 }
 
 async fn get_or_create_table(
@@ -282,7 +282,7 @@ async fn get_or_create_table(
 
     let db_table = DbTableInner::new(table_name.into(), table_attributes);
 
-    let db_table_wrapper = DbTableWrapper::new(db_table);
+    let db_table_wrapper = DbTable::new(db_table);
 
     write_access.insert(table_name.to_string(), db_table_wrapper.clone());
 

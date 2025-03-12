@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use my_no_sql_sdk::core::rust_extensions::date_time::DateTimeAsMicroseconds;
 use my_no_sql_sdk::core::{db::DbRow, db_json_entity::DbJsonEntityWithContent};
-use my_no_sql_sdk::server::DbTableWrapper;
+use my_no_sql_sdk::server::DbTable;
 
 use crate::{
     app::AppContext,
@@ -12,7 +12,7 @@ use crate::{
 
 pub async fn validate_before(
     app: &AppContext,
-    db_table: &Arc<DbTableWrapper>,
+    db_table: &Arc<DbTable>,
     db_entity: DbJsonEntityWithContent<'_>,
 ) -> Result<DbRow, DbOperationError> {
     super::super::check_app_states(app)?;
@@ -35,7 +35,7 @@ pub async fn validate_before(
 
 pub async fn execute(
     app: &AppContext,
-    db_table: Arc<DbTableWrapper>,
+    db_table: Arc<DbTable>,
     db_row: Arc<DbRow>,
     event_src: EventSource,
     persist_moment: DateTimeAsMicroseconds,
