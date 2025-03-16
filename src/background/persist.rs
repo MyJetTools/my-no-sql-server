@@ -20,7 +20,9 @@ impl MyTimerTick for PersistTimer {
     async fn tick(&self) {
         let started = DateTimeAsMicroseconds::now();
         while (DateTimeAsMicroseconds::now() - started).get_full_seconds() < 30 {
-            crate::operations::persist(&self.app).await;
+            if !crate::operations::persist(&self.app).await {
+                break;
+            }
         }
     }
 }

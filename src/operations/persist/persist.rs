@@ -4,7 +4,7 @@ use my_no_sql_sdk::core::rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{app::AppContext, persist_markers::PersistTask};
 
-pub async fn persist(app: &Arc<AppContext>) {
+pub async fn persist(app: &Arc<AppContext>) -> bool {
     let start_time = DateTimeAsMicroseconds::now();
 
     let now = if app.states.is_shutting_down() {
@@ -16,7 +16,7 @@ pub async fn persist(app: &Arc<AppContext>) {
     let persist_task = if let Some(persist_task) = app.persist_markers.get_persist_task(now).await {
         persist_task
     } else {
-        return;
+        return false;
     };
 
     let db_table_name = match persist_task {
@@ -47,4 +47,6 @@ pub async fn persist(app: &Arc<AppContext>) {
     app.persist_markers
         .set_last_persist_time(&db_table_name, now, duration)
         .await;
+
+    true
 }
