@@ -7,8 +7,7 @@ use crate::app::AppContext;
 use super::entities_from_sqlite_reader::EntitiesFromSqliteReader;
 
 pub async fn load_tables(app: Arc<AppContext>) {
-    let mut sw = StopWatch::new();
-    sw.start();
+    let sw = StopWatch::new();
 
     if let Some(server_url) = app.settings.get_init_from_other_server_url() {
         let tables = super::from_other_instance::load_tables(server_url).await;
@@ -20,7 +19,6 @@ pub async fn load_tables(app: Arc<AppContext>) {
 
         super::scripts::init_tables(&app, tables, entities_reader, true).await;
 
-        sw.pause();
         println!("Tables loaded: {} in {:?}", tables_amount, sw.duration());
     } else {
         let tables = app.repo.get_tables().await;
@@ -29,7 +27,7 @@ pub async fn load_tables(app: Arc<AppContext>) {
         let entities_reader =
             EntitiesFromSqliteReader::new(entities, app.settings.skip_broken_partitions);
         super::scripts::init_tables(&app, tables, entities_reader, false).await;
-        sw.pause();
+
         println!("Tables loaded: {} in {:?}", tables_amount, sw.duration());
     }
 

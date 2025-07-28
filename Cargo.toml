@@ -7,7 +7,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-my-http-server = { tag = "0.8.2", git = "https://github.com/MyJetTools/my-http-server.git", features = [
+my-http-server = { tag = "0.8.3", git = "https://github.com/MyJetTools/my-http-server.git", features = [
     "macros",
     "controllers",
     "static-files",
@@ -31,10 +31,10 @@ my-sqlite = { tag = "0.1.2", git = "https://github.com/MyJetTools/my-sqlite.git"
 ] }
 
 
-tonic = { version = "*", features = ["tls", "tls-roots", "prost"] }
+tonic = { version = "*" }
 anyhow = "*"
 tokio = { version = "*", features = ["full"] }
-prost = "*"
+prost = "0.13"
 serde = { version = "*", features = ["derive"] }
 tokio-util = "*"
 futures = "*"
@@ -63,4 +63,4 @@ tikv-jemallocator = { version = "*", features = [
 
 
 [build-dependencies]
-tonic-build = { version = "*", features = ["prost"] }
+tonic-build = { version = "*" }
