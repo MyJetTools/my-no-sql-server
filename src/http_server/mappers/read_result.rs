@@ -7,6 +7,7 @@ impl Into<HttpOkResult> for ReadOperationResult {
         match self {
             ReadOperationResult::SingleRow(content) => {
                 let output = HttpOutput::Content {
+                    status_code: 200,
                     headers: None,
                     content,
                     content_type: Some(WebContentType::Json),
@@ -20,6 +21,7 @@ impl Into<HttpOkResult> for ReadOperationResult {
             }
             ReadOperationResult::RowsArray(content) => {
                 let output = HttpOutput::Content {
+                    status_code: 200,
                     headers: None,
                     content,
                     content_type: Some(WebContentType::Json),
@@ -38,6 +40,7 @@ impl Into<HttpOkResult> for ReadOperationResult {
                 ];
 
                 let output = HttpOutput::Content {
+                    status_code: 200,
                     headers: None,
                     content: empty_array,
                     content_type: Some(WebContentType::Json),

@@ -59,6 +59,7 @@ async fn handle_request(
             HttpPayload::Ping => return HttpOutput::Empty.into_ok_result(false).into(),
             HttpPayload::Payload(payload) => {
                 return HttpOutput::Content {
+                    status_code: 200,
                     headers: None,
                     content_type: None,
                     content: payload,
@@ -70,13 +71,14 @@ async fn handle_request(
         }
     }
 
-    return Err(HttpFailResult {
-        content_type: WebContentType::Text,
+    HttpOutput::Content {
+        content_type: Some(WebContentType::Text),
         status_code: 400,
         content: "Only HTTP sessions are supported".to_string().into_bytes(),
-        write_telemetry: true,
-        write_to_log: true,
-    });
+        headers: Default::default(),
+        set_cookies: None,
+    }
+    .into_err(true, true)
 }
 
 async fn update_expiration_time(

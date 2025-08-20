@@ -1,4 +1,4 @@
-use my_http_server::{HttpFailResult, WebContentType};
+use my_http_server::{HttpFailResult, HttpOutput, WebContentType};
 
 use crate::http_server::mappers::db_operation_error::OPERATION_FAIL_HTTP_STATUS_CODE;
 
@@ -11,11 +11,12 @@ pub fn table_not_found_http_result(table_name: &str) -> HttpFailResult {
     };
     let content = serde_json::to_vec(&err_model).unwrap();
 
-    HttpFailResult {
-        content_type: WebContentType::Json,
+    HttpOutput::Content {
+        content_type: Some(WebContentType::Json),
         status_code: OPERATION_FAIL_HTTP_STATUS_CODE,
         content,
-        write_telemetry: true,
-        write_to_log: true,
+        headers: Default::default(),
+        set_cookies: Default::default(),
     }
+    .into_http_fail_result(true, true)
 }

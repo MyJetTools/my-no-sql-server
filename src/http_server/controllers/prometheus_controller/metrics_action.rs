@@ -25,12 +25,7 @@ async fn handle_request(
 ) -> Result<HttpOkResult, HttpFailResult> {
     let result = action.app.metrics.build();
 
-    HttpOutput::Content {
-        headers: None,
-        content_type: None,
-        content: result.into_bytes(),
-        set_cookies: None,
-    }
-    .into_ok_result(true)
-    .into()
+    HttpOutput::from_builder()
+        .set_content(result.into_bytes())
+        .into_ok_result(false)
 }

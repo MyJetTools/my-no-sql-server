@@ -31,7 +31,7 @@ my-sqlite = { tag = "0.1.2", git = "https://github.com/MyJetTools/my-sqlite.git"
 ] }
 
 
-tonic = { version = "*" }
+tonic = { version = "0.13" }
 anyhow = "*"
 tokio = { version = "*", features = ["full"] }
 prost = "0.13"
@@ -63,4 +63,4 @@ tikv-jemallocator = { version = "*", features = [
 
 
 [build-dependencies]
-tonic-build = { version = "*" }
+tonic-build = { version = "0.13" }

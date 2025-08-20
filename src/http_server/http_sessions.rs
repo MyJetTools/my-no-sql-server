@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use my_http_server::{HttpFailResult, WebContentType};
+use my_http_server::{HttpFailResult, HttpOutput, WebContentType};
 
 use my_no_sql_sdk::core::rust_extensions::date_time::DateTimeAsMicroseconds;
 
@@ -25,15 +25,14 @@ impl HttpSessionsSupport for AppContext {
             return Ok(result);
         }
 
-        let err = HttpFailResult {
-            content_type: WebContentType::Text,
+        HttpOutput::Content {
+            content_type: WebContentType::Text.into(),
             status_code: SESSION_NOT_FOUND_HTTP_CODE,
             content: "Session not found".to_string().into_bytes(),
-            write_telemetry: false,
-            write_to_log: false,
-        };
-
-        Err(err)
+            headers: None,
+            set_cookies: None,
+        }
+        .into_err(false, false)
     }
 }
 

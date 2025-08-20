@@ -7,6 +7,7 @@ impl Into<Result<HttpOkResult, HttpFailResult>> for WriteOperationResult {
         match self {
             WriteOperationResult::SingleRow(db_row) => {
                 let output = HttpOutput::Content {
+                    status_code: 200,
                     headers: None,
                     content_type: Some(WebContentType::Json),
                     content: db_row.to_vec(),

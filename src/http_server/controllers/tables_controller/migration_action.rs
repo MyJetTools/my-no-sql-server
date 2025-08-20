@@ -75,6 +75,7 @@ async fn handle_request(
     .await?;
 
     HttpOutput::Content {
+        status_code: 200,
         headers: None,
         content: format!("Migrated {} partitions", partitions_count).into_bytes(),
         content_type: Some(WebContentType::Text),
