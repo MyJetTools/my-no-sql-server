@@ -12,6 +12,7 @@ use tcp::TcpServerEvents;
 mod zip;
 
 mod app;
+mod consts;
 mod grpc;
 mod persist_markers;
 mod sqlite_repo;
@@ -61,7 +62,7 @@ async fn main() {
 
     let unix_reader = if let Some(unix_socket) = app.use_unix_socket.clone() {
         let mut file_path = unix_socket.clone();
-        file_path.append_segment("my-no-sql-reader.sock");
+        file_path.append_segment(crate::consts::READER_UNIX_SOCKET_NAME);
 
         println!(
             "Listening reader at unix-socket addr: '{}'",
