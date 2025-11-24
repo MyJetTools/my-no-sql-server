@@ -53,14 +53,21 @@ async fn main() {
         .register_event_loop(Arc::new(SyncEventLoop::new(app.clone())))
         .await;
 
-    let tcp_server = TcpServer::new(
-        "MyNoSqlReaderTcp".to_string(),
-        SocketAddr::from(([0, 0, 0, 0], 5125)),
-    );
+    let reader_tcp_addr = SocketAddr::from(([0, 0, 0, 0], 5125));
+
+    println!("Listening reader at TCP addr: '{}'", reader_tcp_addr);
+
+    let tcp_server = TcpServer::new("MyNoSqlReaderTcp".to_string(), reader_tcp_addr);
 
     let unix_reader = if let Some(unix_socket) = app.use_unix_socket.clone() {
         let mut file_path = unix_socket.clone();
         file_path.append_segment("my-no-sql-reader.sock");
+
+        println!(
+            "Listening reader at unix-socket addr: '{}'",
+            file_path.as_str()
+        );
+
         let unix_reader = my_tcp_sockets::unix_socket_server::UnixSocketServer::new(
             "MyNoSqlReaderUnixSocket".to_string(),
             file_path.into_string(),
