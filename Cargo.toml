@@ -24,9 +24,7 @@ flurl = { tag = "0.6.1", git = "https://github.com/MyJetTools/fl-url" }
 
 my-logger = { tag = "1.2.1", git = "https://github.com/MyJetTools/my-logger.git" }
 
-my-tcp-sockets = { tag = "0.1.12", git = "https://github.com/MyJetTools/my-tcp-sockets.git", features = [
-    "unix-socket",
-] }
+my-tcp-sockets = { tag = "0.1.12", git = "https://github.com/MyJetTools/my-tcp-sockets.git" }
 
 my-sqlite = { tag = "0.1.2", git = "https://github.com/MyJetTools/my-sqlite.git", features = [
     "macros",
