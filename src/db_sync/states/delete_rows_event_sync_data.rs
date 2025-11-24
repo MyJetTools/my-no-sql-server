@@ -122,7 +122,8 @@ impl DeleteRowsEventSyncData {
         {
             if let Some(deleted_partitions) = &self.deleted_partitions {
                 for partition_key in deleted_partitions.iter() {
-                    json_object_writer.write(partition_key.as_str(), JsonNullValue);
+                    json_object_writer =
+                        json_object_writer.write(partition_key.as_str(), JsonNullValue);
                 }
             }
 
@@ -130,9 +131,10 @@ impl DeleteRowsEventSyncData {
                 for deleted_rows_data in deleted_rows.iter() {
                     let mut deleted_rows_json_array = JsonArrayWriter::new();
                     for deleted_row in deleted_rows_data.db_rows.iter() {
-                        deleted_rows_json_array.write(deleted_row.get_row_key());
+                        deleted_rows_json_array =
+                            deleted_rows_json_array.write(deleted_row.get_row_key());
                     }
-                    json_object_writer.write(
+                    json_object_writer = json_object_writer.write(
                         deleted_rows_data.partition_key.as_str(),
                         deleted_rows_json_array,
                     );

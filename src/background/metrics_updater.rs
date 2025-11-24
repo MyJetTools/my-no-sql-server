@@ -9,19 +9,22 @@ use crate::app::AppContext;
 pub struct MetricsUpdater {
     app: Arc<AppContext>,
     http_connections_count: HttpConnectionsCounter,
-    threads_statistics: Arc<ThreadsStatistics>,
+    tcp_threads_statistics: Arc<ThreadsStatistics>,
+    unix_threads_statistics: Option<Arc<ThreadsStatistics>>,
 }
 
 impl MetricsUpdater {
     pub fn new(
         app: Arc<AppContext>,
         http_connections_count: HttpConnectionsCounter,
-        threads_statistics: Arc<ThreadsStatistics>,
+        tcp_threads_statistics: Arc<ThreadsStatistics>,
+        unix_threads_statistics: Option<Arc<ThreadsStatistics>>,
     ) -> Self {
         Self {
             app,
             http_connections_count,
-            threads_statistics,
+            tcp_threads_statistics,
+            unix_threads_statistics,
         }
     }
 }
@@ -35,7 +38,13 @@ impl MyTimerTick for MetricsUpdater {
 
         self.app
             .metrics
-            .update_tcp_threads(&self.threads_statistics);
+            .update_tcp_threads(&self.tcp_threads_statistics);
+
+        if let Some(unix_threads_statistics) = self.unix_threads_statistics.as_ref() {
+            self.app
+                .metrics
+                .update_unix_threads(unix_threads_statistics.as_ref());
+        }
 
         for db_table in tables {
             let table_metrics =

@@ -24,17 +24,20 @@ flurl = { tag = "0.6.1", git = "https://github.com/MyJetTools/fl-url" }
 
 my-logger = { tag = "1.2.1", git = "https://github.com/MyJetTools/my-logger.git" }
 
-my-tcp-sockets = { tag = "0.1.11", git = "https://github.com/MyJetTools/my-tcp-sockets.git" }
+my-tcp-sockets = { tag = "0.1.12", git = "https://github.com/MyJetTools/my-tcp-sockets.git", features = [
+    "unix-socket",
+] }
 
 my-sqlite = { tag = "0.1.2", git = "https://github.com/MyJetTools/my-sqlite.git", features = [
     "macros",
 ] }
 
 
-tonic = { version = "0.13" }
+tonic = { version = "*" }
+tonic-prost = "*"
 anyhow = "*"
 tokio = { version = "*", features = ["full"] }
-prost = "0.13"
+prost = "*"
 serde = { version = "*", features = ["derive"] }
 tokio-util = "*"
 futures = "*"
@@ -63,4 +66,4 @@ tikv-jemallocator = { version = "*", features = [
 
 
 [build-dependencies]
-tonic-build = { version = "0.13" }
+ci-utils = { git = "https://github.com/MyJetTools/ci-utils.git", tag = "0.1.3" }

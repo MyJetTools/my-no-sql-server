@@ -18,7 +18,7 @@ impl EntitiesFromSqliteReader {
             skip_errors,
             by_table: rust_extensions::grouped_data::group_to_hash_map(
                 entities.into_iter(),
-                |itm| itm.table_name.clone(),
+                |itm| &itm.table_name,
             ),
         }
     }

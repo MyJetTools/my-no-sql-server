@@ -30,10 +30,11 @@ pub async fn convert(sync_event: &SyncEvent) -> Option<Vec<u8>> {
 fn write_init_table_result(table_name: &str, content: JsonArrayWriter) -> Vec<u8> {
     let mut result = Vec::new();
 
-    let mut header_json = JsonObjectWriter::new();
-    header_json.write("tableName", table_name);
+    let header_json = JsonObjectWriter::new()
+        .write("tableName", table_name)
+        .build();
 
-    let header = format!("initTable:{}", header_json.build());
+    let header = format!("initTable:{}", header_json);
 
     write_pascal_string(header.as_str(), &mut result);
 
@@ -45,10 +46,11 @@ fn write_init_table_result(table_name: &str, content: JsonArrayWriter) -> Vec<u8
 fn write_init_partitions_result(sync_data: &InitPartitionsSyncEventData) -> Vec<u8> {
     let mut result = Vec::new();
 
-    let mut header_json = JsonObjectWriter::new();
-    header_json.write("tableName", sync_data.table_data.table_name.as_str());
+    let header_json = JsonObjectWriter::new()
+        .write("tableName", sync_data.table_data.table_name.as_str())
+        .build();
 
-    let header = format!("initPartitions:{}", header_json.build());
+    let header = format!("initPartitions:{}", header_json);
 
     write_pascal_string(header.as_str(), &mut result);
 
@@ -59,10 +61,11 @@ fn write_init_partitions_result(sync_data: &InitPartitionsSyncEventData) -> Vec<
 
 pub fn compile_update_rows_result(sync_data: &UpdateRowsSyncData) -> Vec<u8> {
     let mut result = Vec::new();
-    let mut header_json = JsonObjectWriter::new();
-    header_json.write("tableName", sync_data.table_data.table_name.as_str());
+    let header_json = JsonObjectWriter::new()
+        .write("tableName", sync_data.table_data.table_name.as_str())
+        .build();
 
-    let header = format!("updateRows:{}", header_json.build());
+    let header = format!("updateRows:{}", header_json);
 
     write_pascal_string(header.as_str(), &mut result);
 
@@ -73,11 +76,11 @@ pub fn compile_update_rows_result(sync_data: &UpdateRowsSyncData) -> Vec<u8> {
 
 pub fn compile_delete_rows_result(sync_data: &DeleteRowsEventSyncData) -> Vec<u8> {
     let mut result = Vec::new();
-    let mut header_json = JsonObjectWriter::new();
+    let header_json = JsonObjectWriter::new()
+        .write("tableName", sync_data.table_data.table_name.as_str())
+        .build();
 
-    header_json.write("tableName", sync_data.table_data.table_name.as_str());
-
-    let header = format!("deleteRows:{}", header_json.build());
+    let header = format!("deleteRows:{}", header_json);
 
     write_pascal_string(header.as_str(), &mut result);
 

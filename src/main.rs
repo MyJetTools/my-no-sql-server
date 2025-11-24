@@ -54,21 +54,38 @@ async fn main() {
         .await;
 
     let tcp_server = TcpServer::new(
-        "MyNoSqlReader".to_string(),
+        "MyNoSqlReaderTcp".to_string(),
         SocketAddr::from(([0, 0, 0, 0], 5125)),
     );
+
+    let unix_reader = if let Some(unix_socket) = app.use_unix_socket.clone() {
+        let mut file_path = unix_socket.clone();
+        file_path.append_segment("my-no-sql-reader.sock");
+        let unix_reader = my_tcp_sockets::unix_socket_server::UnixSocketServer::new(
+            "MyNoSqlReaderUnixSocket".to_string(),
+            file_path.into_string(),
+        );
+
+        Some(unix_reader)
+    } else {
+        None
+    };
 
     let mut timer_1s = MyTimer::new(Duration::from_secs(1));
 
     let mut persist_timer = MyTimer::new(Duration::from_secs(1));
 
     persist_timer.register_timer("Persist", Arc::new(PersistTimer::new(app.clone())));
+
     timer_1s.register_timer(
         "MetricsUpdated",
         Arc::new(MetricsUpdater::new(
             app.clone(),
             http_connections_counter,
             tcp_server.threads_statistics.clone(),
+            unix_reader
+                .as_ref()
+                .map(|itm| itm.threads_statistics.clone()),
         )),
     );
 
@@ -94,6 +111,17 @@ async fn main() {
     backup_timer.start(app.states.clone(), my_logger::LOGGER.clone());
 
     app.sync.start(app.states.clone()).await;
+
+    if let Some(unix_reader) = unix_reader.as_ref() {
+        unix_reader
+            .start(
+                Arc::new(MyNoSqlTcpSerializerFactory),
+                Arc::new(TcpServerEvents::new(app.clone())),
+                app.states.clone(),
+                my_logger::LOGGER.clone(),
+            )
+            .await;
+    }
 
     tcp_server
         .start(

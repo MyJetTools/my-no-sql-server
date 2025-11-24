@@ -3,7 +3,9 @@ use std::{
     time::Duration,
 };
 
-use my_no_sql_sdk::core::rust_extensions::{date_time::DateTimeAsMicroseconds, AppStates};
+use my_no_sql_sdk::core::rust_extensions::{
+    date_time::DateTimeAsMicroseconds, file_utils::FilePath, AppStates,
+};
 use my_no_sql_sdk::server::DbInstance;
 
 use crate::{
@@ -41,11 +43,13 @@ pub struct AppContext {
     pub persist_markers: PersistMarkers,
     pub http_writers: HttpWriters,
     persist_amount: AtomicUsize,
+
+    pub use_unix_socket: Option<FilePath>,
 }
 
 impl AppContext {
     pub async fn new(settings: Arc<SettingsModel>) -> Self {
-        AppContext {
+        Self {
             persist_markers: PersistMarkers::new(),
             created: DateTimeAsMicroseconds::now(),
             db: DbInstance::new(),
@@ -62,6 +66,10 @@ impl AppContext {
             sync: EventsSync::new(),
             http_writers: HttpWriters::new(),
             init_state: InitState::new(),
+            use_unix_socket: match std::env::var("UNIX_SOCKET") {
+                Ok(path) => FilePath::from_str(&path).into(),
+                Err(_) => None,
+            },
         }
     }
 

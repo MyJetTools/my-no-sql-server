@@ -14,6 +14,7 @@ pub struct PrometheusMetrics {
     table_size: IntGaugeVec,
     persist_amount: IntGaugeVec,
     tcp_connections: IntGaugeVec,
+    unix_connections: IntGaugeVec,
     tcp_connections_changes: IntGaugeVec,
     http_connections_count: IntGauge,
     persist_delay_in_seconds: IntGaugeVec,
@@ -30,6 +31,7 @@ impl PrometheusMetrics {
         let table_size = create_table_size_gauge();
         let persist_amount = create_persist_amount_gauge();
         let tcp_connections = create_tcp_connections();
+        let unix_connections = create_unix_connections();
         let tcp_connections_changes = create_tcp_connections_changes();
         let fatal_errors_count = create_fatal_errors_count();
 
@@ -79,6 +81,7 @@ impl PrometheusMetrics {
             persist_delay_in_seconds,
             pending_to_sync,
             http_connections_count,
+            unix_connections,
         };
     }
 
@@ -169,6 +172,24 @@ impl PrometheusMetrics {
             .set(threads_statistics.connections_objects.get());
     }
 
+    pub fn update_unix_threads(&self, threads_statistics: &ThreadsStatistics) {
+        self.unix_connections
+            .with_label_values(&["ping_threads"])
+            .set(threads_statistics.ping_threads.get());
+
+        self.unix_connections
+            .with_label_values(&["read_threads"])
+            .set(threads_statistics.read_threads.get());
+
+        self.unix_connections
+            .with_label_values(&["write_threads"])
+            .set(threads_statistics.write_threads.get());
+
+        self.unix_connections
+            .with_label_values(&["connection_objects"])
+            .set(threads_statistics.connections_objects.get());
+    }
+
     pub fn mark_new_tcp_disconnection(&self) {
         self.tcp_connections.with_label_values(&["count"]).dec();
         self.tcp_connections_changes
@@ -247,6 +268,15 @@ fn create_tcp_connections_changes() -> IntGaugeVec {
 
 fn create_tcp_connections() -> IntGaugeVec {
     let gauge_opts = Opts::new(format!("tcp_connections"), format!("Tcp Connections"));
+    let labels = &[TCP_METRIC];
+    IntGaugeVec::new(gauge_opts, labels).unwrap()
+}
+
+fn create_unix_connections() -> IntGaugeVec {
+    let gauge_opts = Opts::new(
+        format!("unix_connections"),
+        format!("Unix socket connections"),
+    );
     let labels = &[TCP_METRIC];
     IntGaugeVec::new(gauge_opts, labels).unwrap()
 }

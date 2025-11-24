@@ -36,7 +36,7 @@ pub async fn get_single_partition_multiple_rows(
 
         if let Some(db_row) = db_row {
             update_statistics.update(db_table_wrapper, db_partition, Some(db_row), now);
-            json_array_writer.write(db_row.as_ref());
+            json_array_writer = json_array_writer.write(db_row.as_ref());
         }
     }
     return Ok(ReadOperationResult::RowsArray(

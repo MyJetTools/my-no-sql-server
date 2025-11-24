@@ -73,12 +73,13 @@ impl InitPartitionsSyncEventData {
 
         for db_partition in self.partitions_to_update.iter() {
             if let Some(db_partition_snapshot) = &db_partition.snapshot {
-                json_object_writer.write(
+                json_object_writer = json_object_writer.write(
                     db_partition.partition_key.as_str(),
                     db_partition_snapshot.db_rows_snapshot.as_json_array(),
                 );
             } else {
-                json_object_writer.write(db_partition.partition_key.as_str(), EmptyJsonArray)
+                json_object_writer =
+                    json_object_writer.write(db_partition.partition_key.as_str(), EmptyJsonArray)
             }
         }
 
