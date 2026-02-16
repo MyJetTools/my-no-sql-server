@@ -29,7 +29,10 @@ pub fn setup_server(app: &Arc<AppContext>) -> HttpConnectionsCounter {
     );
     let swagger_middleware = Arc::new(swagger_middleware);
 
-    let static_files_middleware = Arc::new(my_http_server::StaticFilesMiddleware::new(None, None));
+    let static_files_middleware = Arc::new(my_http_server::StaticFilesMiddleware::new(
+        None,
+        Some(vec!["index.html".to_string()]),
+    ));
 
     if let Some(unix_socket_http_server) = unix_socket_http_server.as_mut() {
         unix_socket_http_server.add_middleware(swagger_middleware.clone());

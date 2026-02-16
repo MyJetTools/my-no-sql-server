@@ -1,0 +1,85 @@
+body {
+    --app-width: 100vw;
+    --app-height: 100vh;
+    --status-bar-h: 24px;
+    --left-panel-width: 250px
+}
+
+.status-bar {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: var(--app-width);
+    height: var(--status-bar-h);
+    background-color: #ffffffe6;
+    backdrop-filter: blur(5px);
+    align-items: center;
+    display: flex;
+}
+
+.status-bar div {
+    padding: 2px 7px;
+    border-left: 1px solid white;
+    border-right: 1px solid lightgray;
+}
+
+
+nav {
+    display: flex;
+    padding: 10px;
+    position: fixed;
+    top: 5px;
+    right: 5px;
+    background: #ffffffb0;
+    backdrop-filter: blur(5px);
+
+    box-shadow: 0 0 39px #00000012;
+    margin-bottom: 5px;
+    border-radius: 20px;
+}
+
+nav a {
+    padding: 5px;
+    color: lightgray;
+}
+
+nav .active {
+    color: black;
+}
+
+
+.tables {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: var(--left-panel-width);
+    height: var(--app-height);
+    border-right: 1px solid lightgray;
+    overflow-y: auto;
+}
+
+.table-item {
+    padding: 10px;
+    border-bottom: 1px solid lightgray;
+    cursor: pointer;
+}
+
+.table-item-selected {
+    background-color: azure;
+}
+
+.table-data {
+    padding-left: var(--left-panel-width);
+}
+
+.table-row {
+    max-width: 200px;
+    max-height: 100px;
+    overflow: auto;
+    overflow-wrap: anywhere;
+}
+
+.table-super-item {
+    position: sticky;
+    left: var(--left-panel-width);
+}
