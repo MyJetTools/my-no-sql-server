@@ -7,10 +7,9 @@ impl From<TransactionOperationError> for HttpFailResult {
         match src {
             TransactionOperationError::TransactionNotFound { id } => HttpOutput::Content {
                 content: format!("Transaction {} not found", id).into_bytes(),
-                content_type: WebContentType::Text.into(),
+                headers: WebContentType::Text.into(),
                 status_code: 401,
-                headers: None,
-                set_cookies: None,
+         
             }
             .into_http_fail_result(true, true),
             TransactionOperationError::DbEntityParseFail(err) => {
@@ -19,19 +18,15 @@ impl From<TransactionOperationError> for HttpFailResult {
             TransactionOperationError::DbOperationError(op_err) => op_err.into(),
             TransactionOperationError::SerdeJsonError(err) => HttpOutput::Content {
                 content: format!("{}", err).into_bytes(),
-                content_type: WebContentType::Text.into(),
+                headers: WebContentType::Text.into(),
                 status_code: 500,
-                headers: None,
-                set_cookies: None,
             }
             .into_http_fail_result(true, true),
 
             TransactionOperationError::JsonParseError(err) => HttpOutput::Content {
                 content: format!("{:?}", err).into_bytes(),
-                content_type: WebContentType::Text.into(),
+                headers: WebContentType::Text.into(),
                 status_code: 500,
-                headers: None,
-                set_cookies: None,
             }
             .into_http_fail_result(true, true),
         }

@@ -60,10 +60,8 @@ async fn handle_request(
             HttpPayload::Payload(payload) => {
                 return HttpOutput::Content {
                     status_code: 200,
-                    headers: None,
-                    content_type: None,
+                    headers: Default::default(),
                     content: payload,
-                    set_cookies: None,
                 }
                 .into_ok_result(false)
                 .into();
@@ -72,11 +70,10 @@ async fn handle_request(
     }
 
     HttpOutput::Content {
-        content_type: Some(WebContentType::Text),
         status_code: 400,
         content: "Only HTTP sessions are supported".to_string().into_bytes(),
-        headers: Default::default(),
-        set_cookies: None,
+        headers: WebContentType::Text.into(),
+
     }
     .into_err(true, true)
 }

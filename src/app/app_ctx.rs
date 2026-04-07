@@ -28,7 +28,6 @@ pub struct AppContext {
     pub metrics: PrometheusMetrics,
 
     pub active_transactions: ActiveTransactions,
-    pub process_id: String,
 
     pub data_readers: DataReadersList,
 
@@ -55,7 +54,6 @@ impl AppContext {
             db: DbInstance::new(),
             metrics: PrometheusMetrics::new(),
             active_transactions: ActiveTransactions::new(),
-            process_id: uuid::Uuid::new_v4().to_string(),
             states: Arc::new(AppStates::create_un_initialized()),
 
             data_readers: DataReadersList::new(Duration::from_secs(30)),

@@ -8,10 +8,8 @@ impl Into<Result<HttpOkResult, HttpFailResult>> for WriteOperationResult {
             WriteOperationResult::SingleRow(db_row) => {
                 let output = HttpOutput::Content {
                     status_code: 200,
-                    headers: None,
-                    content_type: Some(WebContentType::Json),
+                    headers: WebContentType::Json.into(),
                     content: db_row.to_vec(),
-                    set_cookies: None,
                 };
 
                 Ok(HttpOkResult {

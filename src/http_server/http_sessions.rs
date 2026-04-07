@@ -26,11 +26,9 @@ impl HttpSessionsSupport for AppContext {
         }
 
         HttpOutput::Content {
-            content_type: WebContentType::Text.into(),
+            headers: WebContentType::Text.into(),
             status_code: SESSION_NOT_FOUND_HTTP_CODE,
             content: "Session not found".to_string().into_bytes(),
-            headers: None,
-            set_cookies: None,
         }
         .into_err(false, false)
     }

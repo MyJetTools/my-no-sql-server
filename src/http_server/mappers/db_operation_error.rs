@@ -19,11 +19,9 @@ impl From<DbOperationError> for HttpFailResult {
                 let content = serde_json::to_vec(&err_model).unwrap();
 
                 HttpOutput::Content {
-                    content_type: Some(WebContentType::Json),
+                    headers: WebContentType::Json.into(),
                     status_code: OPERATION_FAIL_HTTP_STATUS_CODE,
                     content,
-                    headers: None,
-                    set_cookies: None,
                 }
                 .into_http_fail_result(true, true)
             }
@@ -31,27 +29,23 @@ impl From<DbOperationError> for HttpFailResult {
                 super::super::get_table::table_not_found_http_result(table_name.as_str())
             }
             DbOperationError::RecordNotFound => HttpOutput::Content {
-                content_type: WebContentType::Json.into(),
+                headers: WebContentType::Json.into(),
                 status_code: 404,
                 content: format!("Record not found").into_bytes(),
-                headers: None,
-                set_cookies: None,
             }
             .into_http_fail_result(false, false),
             DbOperationError::ApplicationIsNotInitializedYet => HttpOutput::Content {
-                content_type: WebContentType::Json.into(),
+                headers: WebContentType::Json.into(),
                 status_code: 503,
                 content: format!("Application is not initialized yet").into_bytes(),
-                headers: None,
-                set_cookies: None,
+      
             }
             .into_http_fail_result(false, false),
             DbOperationError::OptimisticConcurrencyUpdateFails => HttpOutput::Content {
-                content_type: WebContentType::Json.into(),
+                headers: WebContentType::Json.into(),
                 status_code: 409,
                 content: format!("Record is changed").into_bytes(),
-                headers: None,
-                set_cookies: None,
+      
             }
             .into_http_fail_result(false, false),
             DbOperationError::RecordAlreadyExists => {
@@ -62,11 +56,9 @@ impl From<DbOperationError> for HttpFailResult {
                 let content = serde_json::to_vec(&err_model).unwrap();
 
                 HttpOutput::Content {
-                    content_type: WebContentType::Json.into(),
+                    headers: WebContentType::Json.into(),
                     status_code: OPERATION_FAIL_HTTP_STATUS_CODE,
                     content,
-                    headers: None,
-                    set_cookies: None,
                 }
                 .into_http_fail_result(false, false)
             }
@@ -78,11 +70,10 @@ impl From<DbOperationError> for HttpFailResult {
 
                 let content = serde_json::to_vec(&err_model).unwrap();
                 HttpOutput::Content {
-                    content_type: WebContentType::Text.into(),
+                    headers: WebContentType::Text.into(),
                     status_code: OPERATION_FAIL_HTTP_STATUS_CODE,
                     content,
-                    headers: None,
-                    set_cookies: None,
+           
                 }
                 .into_http_fail_result(true, true)
             }
@@ -94,11 +85,10 @@ impl From<DbOperationError> for HttpFailResult {
 
                 let content = serde_json::to_vec(&err_model).unwrap();
                 HttpOutput::Content {
-                    content_type: WebContentType::Text.into(),
+                    headers: WebContentType::Text.into(),
                     status_code: OPERATION_FAIL_HTTP_STATUS_CODE,
                     content,
-                    headers: None,
-                    set_cookies: None,
+         
                 }
                 .into_http_fail_result(true, true)
             }
@@ -111,11 +101,9 @@ impl From<DbOperationError> for HttpFailResult {
                 let content = serde_json::to_vec(&err_model).unwrap();
 
                 HttpOutput::Content {
-                    content_type: WebContentType::Json.into(),
+                    headers: WebContentType::Json.into(),
                     status_code: OPERATION_FAIL_HTTP_STATUS_CODE,
                     content,
-                    headers: None,
-                    set_cookies: None,
                 }
                 .into_http_fail_result(true, true)
             }
@@ -132,11 +120,9 @@ pub fn from_json_parse_error_to_http_result(value: JsonParseError) -> HttpFailRe
     let content = serde_json::to_vec(&err_model).unwrap();
 
     HttpOutput::Content {
-        content_type: WebContentType::Json.into(),
+        headers: WebContentType::Json.into(),
         status_code: OPERATION_FAIL_HTTP_STATUS_CODE,
         content,
-        headers: None,
-        set_cookies: None,
     }
     .into_http_fail_result(true, true)
 }
@@ -152,11 +138,9 @@ pub fn from_db_entity_parse_fail_to_http_result(src: DbEntityParseFail) -> HttpF
             let content = serde_json::to_vec(&err_model).unwrap();
 
             HttpOutput::Content {
-                content_type: WebContentType::Json.into(),
+                headers: WebContentType::Json.into(),
                 status_code: OPERATION_FAIL_HTTP_STATUS_CODE,
                 content,
-                headers: None,
-                set_cookies: None,
             }
             .into_http_fail_result(true, true)
         }
@@ -169,11 +153,9 @@ pub fn from_db_entity_parse_fail_to_http_result(src: DbEntityParseFail) -> HttpF
             let content = serde_json::to_vec(&err_model).unwrap();
 
             HttpOutput::Content {
-                content_type: WebContentType::Json.into(),
+                headers: WebContentType::Json.into(),
                 status_code: OPERATION_FAIL_HTTP_STATUS_CODE,
                 content,
-                headers: None,
-                set_cookies: None,
             }
             .into_http_fail_result(true, true)
         }
@@ -186,11 +168,9 @@ pub fn from_db_entity_parse_fail_to_http_result(src: DbEntityParseFail) -> HttpF
             let content = serde_json::to_vec(&err_model).unwrap();
 
             HttpOutput::Content {
-                content_type: WebContentType::Json.into(),
+                headers: WebContentType::Json.into(),
                 status_code: OPERATION_FAIL_HTTP_STATUS_CODE,
                 content,
-                headers: None,
-                set_cookies: None,
             }
             .into_http_fail_result(true, true)
         }
@@ -207,11 +187,9 @@ pub fn from_db_entity_parse_fail_to_http_result(src: DbEntityParseFail) -> HttpF
             let content = serde_json::to_vec(&err_model).unwrap();
 
             HttpOutput::Content {
-                content_type: WebContentType::Json.into(),
+                headers: WebContentType::Json.into(),
                 status_code: OPERATION_FAIL_HTTP_STATUS_CODE,
                 content,
-                headers: None,
-                set_cookies: None,
             }
             .into_http_fail_result(true, true)
         }
@@ -224,12 +202,10 @@ pub fn from_db_entity_parse_fail_to_http_result(src: DbEntityParseFail) -> HttpF
             let content = serde_json::to_vec(&err_model).unwrap();
 
             HttpOutput::Content {
-                content_type: WebContentType::Json.into(),
+                headers: WebContentType::Json.into(),
                 status_code: OPERATION_FAIL_HTTP_STATUS_CODE,
                 content,
-                headers: None,
-                set_cookies: None,
-            }
+                }
             .into_http_fail_result(true, true)
         }
     }

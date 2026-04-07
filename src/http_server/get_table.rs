@@ -12,11 +12,9 @@ pub fn table_not_found_http_result(table_name: &str) -> HttpFailResult {
     let content = serde_json::to_vec(&err_model).unwrap();
 
     HttpOutput::Content {
-        content_type: Some(WebContentType::Json),
+        headers: WebContentType::Json.into(),
         status_code: OPERATION_FAIL_HTTP_STATUS_CODE,
         content,
-        headers: Default::default(),
-        set_cookies: Default::default(),
     }
     .into_http_fail_result(true, true)
 }

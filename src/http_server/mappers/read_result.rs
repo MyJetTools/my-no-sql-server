@@ -8,10 +8,8 @@ impl Into<HttpOkResult> for ReadOperationResult {
             ReadOperationResult::SingleRow(content) => {
                 let output = HttpOutput::Content {
                     status_code: 200,
-                    headers: None,
+                    headers: WebContentType::Json.into(),
                     content,
-                    content_type: Some(WebContentType::Json),
-                    set_cookies: None,
                 };
 
                 HttpOkResult {
@@ -22,10 +20,8 @@ impl Into<HttpOkResult> for ReadOperationResult {
             ReadOperationResult::RowsArray(content) => {
                 let output = HttpOutput::Content {
                     status_code: 200,
-                    headers: None,
+                    headers: WebContentType::Json.into(),
                     content,
-                    content_type: Some(WebContentType::Json),
-                    set_cookies: None,
                 };
 
                 HttpOkResult {
@@ -41,10 +37,8 @@ impl Into<HttpOkResult> for ReadOperationResult {
 
                 let output = HttpOutput::Content {
                     status_code: 200,
-                    headers: None,
+                    headers: WebContentType::Json.into(),
                     content: empty_array,
-                    content_type: Some(WebContentType::Json),
-                    set_cookies: None,
                 };
 
                 HttpOkResult {
