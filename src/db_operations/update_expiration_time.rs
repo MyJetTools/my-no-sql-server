@@ -22,7 +22,7 @@ pub async fn update_expiration_time(
     }
 
     super::check_app_states(app)?;
-    let table_data = db_table.data.read().await;
+    let table_data = db_table.data.read();
 
     let db_partition = table_data.get_partition(&partition_key);
 

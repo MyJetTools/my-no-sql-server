@@ -20,7 +20,7 @@ pub async fn get_single_partition_multiple_rows(
     now: DateTimeAsMicroseconds,
 ) -> Result<ReadOperationResult, DbOperationError> {
     super::super::super::check_app_states(app)?;
-    let write_access = db_table_wrapper.data.read().await;
+    let write_access = db_table_wrapper.data.read();
 
     let db_partition = write_access.get_partition(partition_key);
 

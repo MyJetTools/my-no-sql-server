@@ -15,7 +15,7 @@ pub async fn keep_max_partitions_amount(
     super::super::check_app_states(app)?;
 
     let partitions_to_gc = {
-        let read_access = db_table.data.read().await;
+        let read_access = db_table.data.read();
 
         read_access
             .partitions

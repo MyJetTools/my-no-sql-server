@@ -36,7 +36,7 @@ pub async fn init_tables(
         let db_table = crate::db_operations::write::table::init(app, db_table).await;
 
         if save_to_db {
-            let table_snapshot = db_table.get_table_snapshot().await;
+            let table_snapshot = db_table.get_table_snapshot();
 
             println!("Migrating table: {}", db_table.name.as_str());
             app.repo

@@ -21,27 +21,30 @@ pub fn update_rows_expiration_time<'s, TRowKeys: Iterator<Item = &'s str>>(
     let app = app.clone();
 
     tokio::spawn(async move {
-        let mut table_data = db_table.data.write().await;
+        let (db_partition_key, updated_db_rows) = {
+            let mut table_data = db_table.data.write();
 
-        let mut updated_db_rows = Vec::new();
+            let mut updated_db_rows = Vec::new();
+            let mut db_partition_key = None;
 
-        let mut db_partition_key = None;
+            if let Some(db_partition) = table_data.get_partition_mut(&partition_key) {
+                for row_key in row_keys {
+                    let db_row = db_partition
+                        .rows
+                        .update_expiration_time(&row_key, set_expiration_time);
 
-        if let Some(db_partition) = table_data.get_partition_mut(&partition_key) {
-            for row_key in row_keys {
-                let db_row = db_partition
-                    .rows
-                    .update_expiration_time(&row_key, set_expiration_time);
+                    if let Some(db_row) = db_row {
+                        updated_db_rows.push(db_row);
 
-                if let Some(db_row) = db_row {
-                    updated_db_rows.push(db_row);
-
-                    if db_partition_key.is_none() {
-                        db_partition_key = Some(db_partition.partition_key.clone());
+                        if db_partition_key.is_none() {
+                            db_partition_key = Some(db_partition.partition_key.clone());
+                        }
                     }
                 }
             }
-        }
+
+            (db_partition_key, updated_db_rows)
+        };
 
         if let Some(db_partition_key) = db_partition_key {
             let mut sync_moment = DateTimeAsMicroseconds::now();
@@ -49,7 +52,7 @@ pub fn update_rows_expiration_time<'s, TRowKeys: Iterator<Item = &'s str>>(
 
             app.persist_markers
                 .persist_rows(
-                    &table_data.name,
+                    &db_table.name,
                     &db_partition_key,
                     sync_moment,
                     updated_db_rows.iter(),

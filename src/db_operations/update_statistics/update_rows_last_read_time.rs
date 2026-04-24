@@ -9,7 +9,7 @@ pub async fn update_row_keys_last_read_access_time<'s, TRowKeys: Iterator<Item =
     row_keys: TRowKeys,
 ) {
     let now = DateTimeAsMicroseconds::now();
-    let db_table_access = db_table.data.read().await;
+    let db_table_access = db_table.data.read();
 
     if let Some(db_partition) = db_table_access.get_partition(partition_key) {
         for row_key in row_keys {

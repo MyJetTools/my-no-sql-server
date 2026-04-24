@@ -96,7 +96,7 @@ impl TcpConnectionInfo {
      */
 
     pub async fn send(&self, tcp_contract: &[MyNoSqlTcpContract]) {
-        let sent_amount = self.connection.send_many(tcp_contract).await;
+        let sent_amount = self.connection.send_many(tcp_contract);
         self.sent_per_second_accumulator
             .fetch_add(sent_amount, std::sync::atomic::Ordering::SeqCst);
     }

@@ -44,21 +44,23 @@ pub async fn create(
 
     match create_table_result {
         CreateTableResult::JustCreated(db_table) => {
-            {
-                let table_data = db_table.data.write().await;
+            let (state, table_name) = {
+                let table_data = db_table.data.read();
+                (
+                    InitTableEventSyncData::new(&table_data, event_src),
+                    table_data.name.clone(),
+                )
+            };
 
-                app.persist_markers
-                    .persist_table_attributes(&table_data.name, persist_moment)
-                    .await;
+            app.persist_markers
+                .persist_table_attributes(&table_name, persist_moment)
+                .await;
 
-                app.persist_markers
-                    .persist_table_attributes(&table_data.name, persist_moment)
-                    .await;
+            app.persist_markers
+                .persist_table_attributes(&table_name, persist_moment)
+                .await;
 
-                let state = InitTableEventSyncData::new(&table_data, event_src);
-
-                crate::operations::sync::dispatch(app, SyncEvent::InitTable(state));
-            }
+            crate::operations::sync::dispatch(app, SyncEvent::InitTable(state));
 
             return Ok(db_table);
         }
@@ -92,16 +94,19 @@ async fn get_or_create(
 
     match create_table_result {
         CreateTableResult::JustCreated(db_table) => {
-            {
-                let table_data = db_table.data.write().await;
-                let state = InitTableEventSyncData::new(&table_data, event_src);
+            let (state, table_name) = {
+                let table_data = db_table.data.read();
+                (
+                    InitTableEventSyncData::new(&table_data, event_src),
+                    table_data.name.clone(),
+                )
+            };
 
-                crate::operations::sync::dispatch(app, SyncEvent::InitTable(state));
+            crate::operations::sync::dispatch(app, SyncEvent::InitTable(state));
 
-                app.persist_markers
-                    .persist_table_attributes(&table_data.name, persist_moment)
-                    .await;
-            }
+            app.persist_markers
+                .persist_table_attributes(&table_name, persist_moment)
+                .await;
 
             return Ok(db_table);
         }
@@ -156,7 +161,7 @@ pub async fn update_persist_state(
     event_src: EventSource,
 ) -> Result<(), DbOperationError> {
     super::super::check_app_states(app)?;
-    let attrs = db_table.get_attributes().await;
+    let attrs = db_table.get_attributes();
 
     set_table_attributes(
         app,
@@ -180,14 +185,17 @@ pub async fn set_table_attributes(
 ) -> Result<(), DbOperationError> {
     super::super::check_app_states(app)?;
 
-    let mut write_access = db_table.data.write().await;
-    let result = write_access.attributes.update(
-        persist,
-        max_partitions_amount,
-        max_rows_per_partition_amount,
-    );
+    let (updated, table_name) = {
+        let mut write_access = db_table.data.write();
+        let updated = write_access.attributes.update(
+            persist,
+            max_partitions_amount,
+            max_rows_per_partition_amount,
+        );
+        (updated, write_access.name.clone())
+    };
 
-    if !result {
+    if !updated {
         return Ok(());
     }
 
@@ -202,7 +210,7 @@ pub async fn set_table_attributes(
     );
 
     app.persist_markers
-        .persist_table_attributes(&write_access.name, DateTimeAsMicroseconds::now())
+        .persist_table_attributes(&table_name, DateTimeAsMicroseconds::now())
         .await;
 
     Ok(())
@@ -215,7 +223,7 @@ pub async fn delete(
     persist_moment: DateTimeAsMicroseconds,
 ) -> Result<(), DbOperationError> {
     super::super::check_app_states(app.as_ref())?;
-    let result = app.db.delete_table(table_name.as_str()).await;
+    let result = app.db.delete_table(table_name.as_str());
 
     if result.is_none() {
         return Err(DbOperationError::TableNotFound(table_name));
@@ -223,18 +231,19 @@ pub async fn delete(
 
     let db_table = result.unwrap();
 
-    {
-        let table_data = db_table.data.read().await;
+    let (sync_data, table_name) = {
+        let table_data = db_table.data.read();
+        (
+            DeleteTableSyncData::new(&table_data, event_src),
+            table_data.name.clone(),
+        )
+    };
 
-        app.persist_markers
-            .persist_table_attributes(&table_data.name, persist_moment)
-            .await;
+    app.persist_markers
+        .persist_table_attributes(&table_name, persist_moment)
+        .await;
 
-        crate::operations::sync::dispatch(
-            app.as_ref(),
-            SyncEvent::DeleteTable(DeleteTableSyncData::new(&table_data, event_src)),
-        );
-    }
+    crate::operations::sync::dispatch(app.as_ref(), SyncEvent::DeleteTable(sync_data));
 
     let app = app.clone();
     let table_name = db_table.name.clone();
@@ -247,10 +256,7 @@ pub async fn delete(
 
 pub async fn init(app: &AppContext, db_table: DbTableInner) -> Arc<DbTable> {
     let db_table = DbTable::new(db_table);
-    let mut tables_write_access = app.db.tables.write().await;
-
-    tables_write_access.insert(db_table.name.to_string(), db_table.clone());
-
+    app.db.insert(db_table.clone());
     db_table
 }
 
@@ -267,24 +273,19 @@ async fn get_or_create_table(
     max_rows_per_partition_amount: Option<usize>,
     now: DateTimeAsMicroseconds,
 ) -> CreateTableResult {
-    let mut write_access = app.db.tables.write().await;
+    let (db_table, just_created) = app.db.get_or_create(table_name, || {
+        let table_attributes = DbTableAttributes {
+            persist,
+            max_partitions_amount,
+            created: now,
+            max_rows_per_partition_amount,
+        };
+        DbTable::new(DbTableInner::new(table_name.into(), table_attributes))
+    });
 
-    if let Some(table) = write_access.get(table_name) {
-        return CreateTableResult::AlreadyHadTable(table.clone());
+    if just_created {
+        CreateTableResult::JustCreated(db_table)
+    } else {
+        CreateTableResult::AlreadyHadTable(db_table)
     }
-
-    let table_attributes = DbTableAttributes {
-        persist,
-        max_partitions_amount,
-        created: now,
-        max_rows_per_partition_amount,
-    };
-
-    let db_table = DbTableInner::new(table_name.into(), table_attributes);
-
-    let db_table_wrapper = DbTable::new(db_table);
-
-    write_access.insert(table_name.to_string(), db_table_wrapper.clone());
-
-    return CreateTableResult::JustCreated(db_table_wrapper);
 }

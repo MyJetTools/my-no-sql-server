@@ -14,7 +14,7 @@ pub async fn subscribe(
     data_reader: Arc<DataReader>,
     table_name: &str,
 ) -> Result<(), DbOperationError> {
-    let mut table = app.db.get_table(table_name).await;
+    let mut table = app.db.get_table(table_name);
 
     if table.is_none() {
         if app.settings.auto_create_table_on_reader_subscribe {

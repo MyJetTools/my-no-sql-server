@@ -38,8 +38,8 @@ pub struct TableContract {
 }
 
 impl TableContract {
-    pub async fn from_table_wrapper(table_wrapper: &DbTable) -> TableContract {
-        let table_snapshot = table_wrapper.get_attributes().await;
+    pub fn from_table_wrapper(table_wrapper: &DbTable) -> TableContract {
+        let table_snapshot = table_wrapper.get_attributes();
         TableContract {
             name: table_wrapper.name.to_string(),
             persist: table_snapshot.persist,

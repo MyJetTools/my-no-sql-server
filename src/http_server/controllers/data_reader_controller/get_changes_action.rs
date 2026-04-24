@@ -83,7 +83,7 @@ async fn update_expiration_time(
     table_name: &str,
     items: &[UpdateExpirationDateTime],
 ) -> Result<(), DbOperationError> {
-    let db_table = app.db.get_table(table_name).await;
+    let db_table = app.db.get_table(table_name);
     if db_table.is_none() {
         return Ok(());
     }

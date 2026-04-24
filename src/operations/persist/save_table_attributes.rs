@@ -3,9 +3,9 @@ use my_no_sql_sdk::core::db::DbTableName;
 use crate::app::AppContext;
 
 pub async fn save_table_attributes(app: &AppContext, table_name: &DbTableName) {
-    match app.db.get_table(table_name.as_str()).await {
+    match app.db.get_table(table_name.as_str()) {
         Some(db_table) => {
-            let attr = db_table.get_attributes().await;
+            let attr = db_table.get_attributes();
             app.repo.save_table_metadata(&table_name, &attr).await;
         }
         None => {

@@ -19,25 +19,29 @@ pub async fn delete_partitions(
     now: DateTimeAsMicroseconds,
 ) -> Result<(), DbOperationError> {
     super::super::check_app_states(app)?;
-    let mut table_write_access = db_table.data.write().await;
 
-    let mut sync_data = InitPartitionsSyncEventData::new(&table_write_access, event_src);
+    let (sync_data, removed_partition_keys) = {
+        let mut table_write_access = db_table.data.write();
+        let mut sync_data = InitPartitionsSyncEventData::new(&table_write_access, event_src);
+        let mut removed_partition_keys = Vec::new();
 
-    for partition_key in partition_keys {
-        let remove_partition_result =
-            table_write_access.remove_partition(&partition_key, Some(now));
+        for partition_key in partition_keys {
+            let remove_partition_result =
+                table_write_access.remove_partition(&partition_key, Some(now));
 
-        if let Some(removed_partition) = remove_partition_result {
-            app.persist_markers
-                .persist_partition(
-                    &db_table.name,
-                    &removed_partition.partition_key,
-                    persist_moment,
-                )
-                .await;
-
-            sync_data.add(partition_key.into_partition_key(), None);
+            if let Some(removed_partition) = remove_partition_result {
+                removed_partition_keys.push(removed_partition.partition_key.clone());
+                sync_data.add(partition_key.into_partition_key(), None);
+            }
         }
+
+        (sync_data, removed_partition_keys)
+    };
+
+    for partition_key in removed_partition_keys {
+        app.persist_markers
+            .persist_partition(&db_table.name, &partition_key, persist_moment)
+            .await;
     }
 
     crate::operations::sync::dispatch(app, SyncEvent::InitPartitions(sync_data));

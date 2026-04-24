@@ -121,7 +121,7 @@ async fn restore_to_db(
         .unwrap();
         db_table
     } else {
-        let db_table = app.db.get_table(table_name).await;
+        let db_table = app.db.get_table(table_name);
 
         if db_table.is_none() {
             return Err(BackupError::TableNotFoundToRestoreBackupAndNoMetadataFound(

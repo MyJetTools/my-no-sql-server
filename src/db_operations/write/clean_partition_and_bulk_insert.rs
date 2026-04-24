@@ -20,30 +20,42 @@ pub async fn clean_partition_and_bulk_insert(
     now: DateTimeAsMicroseconds,
 ) -> Result<(), DbOperationError> {
     super::super::check_app_states(app)?;
-    let mut table_data = db_table.data.write().await;
 
-    table_data.remove_partition(&partition_to_clean, None);
+    let (partition_keys, sync_events) = {
+        let mut table_data = db_table.data.write();
 
-    let mut partition_keys = Vec::new();
+        table_data.remove_partition(&partition_to_clean, None);
 
-    for (partition_key, db_rows) in entities {
-        let (partition_key, _) =
-            table_data.bulk_insert_or_replace(&partition_key, &db_rows, Some(now));
+        let mut partition_keys = Vec::new();
 
-        partition_keys.push(partition_key);
+        for (partition_key, db_rows) in entities {
+            let (partition_key, _) =
+                table_data.bulk_insert_or_replace(&partition_key, &db_rows, Some(now));
+
+            partition_keys.push(partition_key);
+        }
+
+        let sync_events: Vec<_> = partition_keys
+            .iter()
+            .map(|pk| {
+                InitPartitionsSyncEventData::new_as_update_partition(
+                    &table_data,
+                    pk.clone().into(),
+                    event_src.clone(),
+                )
+            })
+            .collect();
+
+        (partition_keys, sync_events)
+    };
+
+    for partition_key in &partition_keys {
+        app.persist_markers
+            .persist_partition(&db_table.name, partition_key, persist_moment)
+            .await;
     }
 
-    for partition_key in partition_keys {
-        app.persist_markers
-            .persist_partition(&table_data.name, &partition_key, persist_moment)
-            .await;
-
-        let state = InitPartitionsSyncEventData::new_as_update_partition(
-            &table_data,
-            partition_key.into(),
-            event_src.clone(),
-        );
-
+    for state in sync_events {
         crate::operations::sync::dispatch(app, SyncEvent::InitPartitions(state));
     }
 

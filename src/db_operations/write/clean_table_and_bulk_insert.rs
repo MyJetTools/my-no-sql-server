@@ -19,21 +19,24 @@ pub async fn execute(
     now: DateTimeAsMicroseconds,
 ) -> Result<(), DbOperationError> {
     super::super::check_app_states(app)?;
-    let mut table_data = db_table.data.write().await;
 
-    table_data.clear_table();
+    let sync_data = {
+        let mut table_data = db_table.data.write();
 
-    for (partition_key, db_rows) in entities {
-        table_data.bulk_insert_or_replace(&partition_key, &db_rows, Some(now));
-    }
+        table_data.clear_table();
+
+        for (partition_key, db_rows) in entities {
+            table_data.bulk_insert_or_replace(&partition_key, &db_rows, Some(now));
+        }
+
+        event_src.map(|event_src| InitTableEventSyncData::new(&table_data, event_src))
+    };
 
     app.persist_markers
-        .persist_table_content(&table_data.name, persist_moment)
+        .persist_table_content(&db_table.name, persist_moment)
         .await;
 
-    if let Some(event_src) = event_src {
-        let sync_data = InitTableEventSyncData::new(&table_data, event_src);
-
+    if let Some(sync_data) = sync_data {
         crate::operations::sync::dispatch(app, SyncEvent::InitTable(sync_data));
     }
 

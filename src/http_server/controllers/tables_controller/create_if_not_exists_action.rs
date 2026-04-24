@@ -46,7 +46,7 @@ async fn handle_request(
     )
     .await?;
 
-    let response = TableContract::from_table_wrapper(&table).await;
+    let response = TableContract::from_table_wrapper(&table);
 
     HttpOutput::as_json(response).into_ok_result(true).into()
 }

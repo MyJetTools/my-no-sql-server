@@ -16,7 +16,7 @@ pub async fn validate_before(
     db_entity: DbJsonEntityWithContent<'_>,
 ) -> Result<DbRow, DbOperationError> {
     super::super::check_app_states(app)?;
-    let read_access = db_table.data.read().await;
+    let read_access = db_table.data.read();
 
     let partition = read_access.get_partition(db_entity.get_partition_key());
 
@@ -41,30 +41,33 @@ pub async fn execute(
     persist_moment: DateTimeAsMicroseconds,
     now: DateTimeAsMicroseconds,
 ) -> Result<(), DbOperationError> {
-    let mut table_data = db_table.data.write().await;
+    let (partition_key, update_rows_state) = {
+        let mut table_data = db_table.data.write();
 
-    let partition_key = table_data.insert_row(&db_row, Some(now));
+        let partition_key = table_data.insert_row(&db_row, Some(now));
 
-    if partition_key.is_none() {
-        return Err(DbOperationError::RecordAlreadyExists);
-    }
+        if partition_key.is_none() {
+            return Err(DbOperationError::RecordAlreadyExists);
+        }
 
-    let partition_key = partition_key.unwrap();
+        let partition_key = partition_key.unwrap();
+
+        let mut update_rows_state = UpdateRowsSyncData::new(&table_data, event_src);
+        update_rows_state
+            .rows_by_partition
+            .add_row(partition_key.clone(), db_row.clone());
+
+        (partition_key, update_rows_state)
+    };
 
     app.persist_markers
         .persist_rows(
-            &table_data.name,
+            &db_table.name,
             &partition_key,
             persist_moment,
             [&db_row].into_iter(),
         )
         .await;
-
-    let mut update_rows_state = UpdateRowsSyncData::new(&table_data, event_src);
-
-    update_rows_state
-        .rows_by_partition
-        .add_row(partition_key, db_row);
 
     crate::operations::sync::dispatch(app, SyncEvent::UpdateRows(update_rows_state));
 

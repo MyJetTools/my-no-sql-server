@@ -8,7 +8,7 @@ use crate::db_sync::{
 pub async fn convert(sync_event: &SyncEvent) -> Option<Vec<u8>> {
     match sync_event {
         SyncEvent::TableFirstInit(sync_data) => {
-            let content = sync_data.db_table.get_table_as_json_array().await;
+            let content = sync_data.db_table.get_table_as_json_array();
             write_init_table_result(sync_data.db_table.name.as_str(), content).into()
         }
         SyncEvent::InitTable(sync_data) => {

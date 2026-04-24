@@ -4,17 +4,15 @@ use std::{
 };
 
 use my_no_sql_sdk::core::rust_extensions::{
-    date_time::DateTimeAsMicroseconds, file_utils::FilePath, AppStates,
+    AppStates, date_time::DateTimeAsMicroseconds, events_loop::EventsLoop, file_utils::FilePath
 };
 use my_no_sql_sdk::server::DbInstance;
 
 use crate::{
-    data_readers::DataReadersList, db_operations::multipart::MultipartList,
-    db_transactions::ActiveTransactions, operations::init::InitState,
-    persist_markers::PersistMarkers, settings_reader::SettingsModel,
+    data_readers::DataReadersList, db_operations::multipart::MultipartList, db_sync::SyncEvent, db_transactions::ActiveTransactions, operations::init::InitState, persist_markers::PersistMarkers, settings_reader::SettingsModel
 };
 
-use super::{EventsSync, HttpWriters, PrometheusMetrics};
+use super::{HttpWriters, PrometheusMetrics};
 
 pub const APP_VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
@@ -37,7 +35,7 @@ pub struct AppContext {
     pub repo: crate::sqlite_repo::SqlLiteRepo,
 
     pub settings: Arc<SettingsModel>,
-    pub sync: EventsSync,
+    pub sync: EventsLoop<SyncEvent>,
     pub states: Arc<AppStates>,
     pub persist_markers: PersistMarkers,
     pub http_writers: HttpWriters,
@@ -61,7 +59,7 @@ impl AppContext {
             repo: settings.get_sqlite_repo().await,
             settings,
             persist_amount: AtomicUsize::new(0),
-            sync: EventsSync::new(),
+            sync: EventsLoop::new("Sync"),
             http_writers: HttpWriters::new(),
             init_state: InitState::new(),
             use_unix_socket: match std::env::var("UNIX_SOCKET") {

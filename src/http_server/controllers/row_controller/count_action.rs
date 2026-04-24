@@ -60,7 +60,7 @@ impl GetAction for RowCountAction {
         .await?;
 
         if let Some(partition_key) = input_data.partition_key {
-            let table_access = db_table.data.read().await;
+            let table_access = db_table.data.read();
 
             let partition = table_access.get_partition(partition_key.as_str());
 
@@ -75,7 +75,7 @@ impl GetAction for RowCountAction {
             }
         }
 
-        let table_access = db_table.data.read().await;
+        let table_access = db_table.data.read();
 
         let mut result = 0;
 
@@ -100,7 +100,7 @@ async fn handle_request(
             .await?;
 
     if let Some(partition_key) = input_data.partition_key {
-        let table_access = db_table.data.read().await;
+        let table_access = db_table.data.read();
 
         let partition = table_access.get_partition(partition_key.as_str());
 
@@ -115,7 +115,7 @@ async fn handle_request(
         }
     }
 
-    let table_access = db_table.data.read().await;
+    let table_access = db_table.data.read();
 
     let mut result = 0;
 

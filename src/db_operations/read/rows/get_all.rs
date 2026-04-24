@@ -21,7 +21,7 @@ pub async fn get_all(
 ) -> Result<ReadOperationResult, DbOperationError> {
     super::super::super::check_app_states(app)?;
 
-    let table_data = db_table_wrapper.data.read().await;
+    let table_data = db_table_wrapper.data.read();
 
     let mut json_array_writer = JsonArrayWriter::new();
     for (db_partition, db_row) in table_data.get_all_rows(skip, limit) {

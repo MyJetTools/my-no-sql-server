@@ -38,7 +38,7 @@ async fn handle_request(
             .await?;
 
     let result = {
-        let read_access = db_table.data.read().await;
+        let read_access = db_table.data.read();
 
         let db_partition = read_access.get_partition(&http_input.partition_key);
 

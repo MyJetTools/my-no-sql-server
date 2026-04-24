@@ -6,7 +6,7 @@ pub async fn update_partitions_last_read_time<'s, TPartitions: Iterator<Item = &
     partitions: TPartitions,
 ) {
     let now = DateTimeAsMicroseconds::now();
-    let table_access = table.data.read().await;
+    let table_access = table.data.read();
 
     for partition_key in partitions {
         if let Some(partition) = table_access.get_partition(partition_key) {

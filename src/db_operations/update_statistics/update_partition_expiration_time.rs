@@ -11,7 +11,7 @@ pub fn update_partition_expiration_time(
     let db_table = db_table.clone();
 
     tokio::spawn(async move {
-        let mut table_data = db_table.data.write().await;
+        let mut table_data = db_table.data.write();
 
         if let Some(db_partition) = table_data.get_partition_mut(partition_key.as_str()) {
             db_partition.expires = set_expiration_time;

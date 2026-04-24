@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use my_no_sql_sdk::core::db::{PartitionKeyParameter, RowKeyParameter};
 use my_no_sql_sdk::core::rust_extensions::date_time::DateTimeAsMicroseconds;
 use my_no_sql_sdk::server::DbTable;
@@ -18,31 +20,44 @@ pub async fn bulk_delete(
 ) -> Result<(), DbOperationError> {
     super::super::check_app_states(app)?;
 
-    let mut table_data = db_table.data.write().await;
+    enum PersistOp {
+        Partition(my_no_sql_sdk::core::db::PartitionKey),
+        Rows(my_no_sql_sdk::core::db::PartitionKey, Vec<Arc<my_no_sql_sdk::core::db::DbRow>>),
+    }
 
-    let mut sync_data = DeleteRowsEventSyncData::new(&table_data, event_src);
+    let (sync_data, persist_ops) = {
+        let mut table_data = db_table.data.write();
+        let mut sync_data = DeleteRowsEventSyncData::new(&table_data, event_src);
+        let mut persist_ops: Vec<PersistOp> = Vec::new();
 
-    for (partition_key, row_keys) in rows_to_delete {
-        let removed_rows_result =
-            table_data.bulk_remove_rows(&partition_key, row_keys.into_iter(), true, Some(now));
+        for (partition_key, row_keys) in rows_to_delete {
+            let removed_rows_result =
+                table_data.bulk_remove_rows(&partition_key, row_keys.into_iter(), true, Some(now));
 
-        if let Some((partition_key, removed_rows, partition_is_empty)) = removed_rows_result {
-            if partition_is_empty {
-                sync_data.new_deleted_partition(&partition_key);
+            if let Some((partition_key, removed_rows, partition_is_empty)) = removed_rows_result {
+                if partition_is_empty {
+                    sync_data.new_deleted_partition(&partition_key);
+                    persist_ops.push(PersistOp::Partition(partition_key));
+                } else {
+                    sync_data.add_deleted_rows(&partition_key, &removed_rows);
+                    persist_ops.push(PersistOp::Rows(partition_key, removed_rows));
+                }
+            }
+        }
 
+        (sync_data, persist_ops)
+    };
+
+    for op in persist_ops {
+        match op {
+            PersistOp::Partition(pk) => {
                 app.persist_markers
-                    .persist_partition(&table_data.name, &partition_key, persist_moment)
+                    .persist_partition(&db_table.name, &pk, persist_moment)
                     .await;
-            } else {
-                sync_data.add_deleted_rows(&partition_key, &removed_rows);
-
+            }
+            PersistOp::Rows(pk, rows) => {
                 app.persist_markers
-                    .delete_db_rows(
-                        &table_data.name,
-                        &partition_key,
-                        persist_moment,
-                        removed_rows.iter(),
-                    )
+                    .delete_db_rows(&db_table.name, &pk, persist_moment, rows.iter())
                     .await;
             }
         }

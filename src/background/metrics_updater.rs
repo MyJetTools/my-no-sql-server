@@ -32,7 +32,7 @@ impl MetricsUpdater {
 #[async_trait::async_trait]
 impl MyTimerTick for MetricsUpdater {
     async fn tick(&self) {
-        let tables = self.app.db.get_tables().await;
+        let tables = self.app.db.get_tables();
 
         let mut persist_amount = 0;
 
@@ -46,7 +46,7 @@ impl MyTimerTick for MetricsUpdater {
                 .update_unix_threads(unix_threads_statistics.as_ref());
         }
 
-        for db_table in tables {
+        for db_table in tables.iter() {
             let table_metrics =
                 crate::operations::get_table_metrics(self.app.as_ref(), db_table.as_ref()).await;
 

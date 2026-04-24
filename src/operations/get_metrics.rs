@@ -22,7 +22,7 @@ pub async fn get_table_metrics(app: &AppContext, db_table: &DbTable) -> DbTableM
         .get_persist_metrics(db_table.name.as_str())
         .await;
 
-    let table_read_access = db_table.data.read().await;
+    let table_read_access = db_table.data.read();
 
     DbTableMetrics {
         table_size: table_read_access.get_table_size(),

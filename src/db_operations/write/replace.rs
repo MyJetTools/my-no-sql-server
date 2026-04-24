@@ -28,7 +28,7 @@ pub async fn validate_before(
         return Err(DbOperationError::TimeStampFieldRequires);
     }
 
-    let read_access = db_table.data.read().await;
+    let read_access = db_table.data.read();
 
     let db_partition = read_access.get_partition(db_entity.get_partition_key());
 
@@ -58,50 +58,53 @@ pub async fn execute(
     persist_moment: DateTimeAsMicroseconds,
     now: &JsonTimeStamp,
 ) -> Result<WriteOperationResult, DbOperationError> {
-    let mut table_data = db_table.data.write().await;
+    let (partition_key, update_rows_state) = {
+        let mut table_data = db_table.data.write();
 
-    let partition_key = {
-        let db_partition = table_data.get_partition_mut(db_row.get_partition_key());
+        let partition_key = {
+            let db_partition = table_data.get_partition_mut(db_row.get_partition_key());
 
-        if db_partition.is_none() {
-            return Err(DbOperationError::RecordNotFound);
-        }
-
-        let db_partition = db_partition.unwrap();
-
-        let current_db_row = db_partition.get_row(db_row.get_row_key());
-
-        match current_db_row {
-            Some(current_db_row) => {
-                if current_db_row.get_time_stamp() != db_row.get_time_stamp() {
-                    return Err(DbOperationError::OptimisticConcurrencyUpdateFails);
-                }
-            }
-            None => {
+            if db_partition.is_none() {
                 return Err(DbOperationError::RecordNotFound);
             }
-        }
 
-        db_partition.partition_key.clone()
+            let db_partition = db_partition.unwrap();
+
+            let current_db_row = db_partition.get_row(db_row.get_row_key());
+
+            match current_db_row {
+                Some(current_db_row) => {
+                    if current_db_row.get_time_stamp() != db_row.get_time_stamp() {
+                        return Err(DbOperationError::OptimisticConcurrencyUpdateFails);
+                    }
+                }
+                None => {
+                    return Err(DbOperationError::RecordNotFound);
+                }
+            }
+
+            db_partition.partition_key.clone()
+        };
+
+        table_data.remove_row(&partition_key, &db_row, false, None);
+        table_data.insert_row(&db_row, Some(now.date_time));
+
+        let mut update_rows_state = UpdateRowsSyncData::new(&table_data, event_src);
+        update_rows_state
+            .rows_by_partition
+            .add_row(partition_key.clone(), db_row.clone());
+
+        (partition_key, update_rows_state)
     };
-
-    table_data.remove_row(&partition_key, &db_row, false, None);
-
-    table_data.insert_row(&db_row, Some(now.date_time));
 
     app.persist_markers
         .persist_rows(
-            &table_data.name,
+            &db_table.name,
             &partition_key,
             persist_moment,
             [&db_row].into_iter(),
         )
         .await;
-
-    let mut update_rows_state = UpdateRowsSyncData::new(&table_data, event_src);
-    update_rows_state
-        .rows_by_partition
-        .add_row(partition_key, db_row.clone());
 
     crate::operations::sync::dispatch(app, SyncEvent::UpdateRows(update_rows_state));
 

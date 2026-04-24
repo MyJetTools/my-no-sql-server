@@ -51,8 +51,7 @@ async fn main() {
     let http_connections_counter = crate::http_server::start_up::setup_server(&app);
 
     app.sync
-        .register_event_loop(Arc::new(SyncEventLoop::new(app.clone())))
-        .await;
+        .register_event_loop(Arc::new(SyncEventLoop::new(app.clone())));
 
     let reader_tcp_addr = SocketAddr::from(([0, 0, 0, 0], 5125));
 
@@ -118,27 +117,25 @@ async fn main() {
 
     backup_timer.start(app.states.clone(), my_logger::LOGGER.clone());
 
-    app.sync.start(app.states.clone()).await;
+    app.sync.start(app.states.clone(), my_logger::LOGGER.clone());
 
     if let Some(unix_reader) = unix_reader.as_ref() {
         unix_reader
             .start(
                 Arc::new(MyNoSqlTcpSerializerFactory),
-                Arc::new(TcpServerEvents::new(app.clone())),
+                TcpServerEvents::new(app.clone()),
                 app.states.clone(),
                 my_logger::LOGGER.clone(),
-            )
-            .await;
+            ).await;
     }
 
     tcp_server
         .start(
             Arc::new(MyNoSqlTcpSerializerFactory),
-            Arc::new(TcpServerEvents::new(app.clone())),
+            TcpServerEvents::new(app.clone()),
             app.states.clone(),
             my_logger::LOGGER.clone(),
-        )
-        .await;
+        ).await;
 
     tokio::task::spawn(crate::grpc::server::start(app.clone(), 5124));
 

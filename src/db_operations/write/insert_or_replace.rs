@@ -22,23 +22,26 @@ pub async fn execute(
 ) -> Result<WriteOperationResult, DbOperationError> {
     super::super::check_app_states(app)?;
 
-    let mut table_data = db_table.data.write().await;
+    let (partition_key, update_rows_state) = {
+        let mut table_data = db_table.data.write();
+        let (partition_key, _) = table_data.insert_or_replace_row(db_row.clone(), Some(now));
 
-    let (partition_key, _) = table_data.insert_or_replace_row(db_row.clone(), Some(now));
+        let mut update_rows_state = UpdateRowsSyncData::new(&table_data, event_src);
+        update_rows_state
+            .rows_by_partition
+            .add_row(partition_key.clone(), db_row.clone());
+
+        (partition_key, update_rows_state)
+    };
 
     app.persist_markers
         .persist_rows(
-            &table_data.name,
+            &db_table.name,
             &partition_key,
             persist_moment,
             [&db_row].into_iter(),
         )
         .await;
-
-    let mut update_rows_state = UpdateRowsSyncData::new(&table_data, event_src);
-    update_rows_state
-        .rows_by_partition
-        .add_row(partition_key, db_row.clone());
 
     crate::operations::sync::dispatch(app, SyncEvent::UpdateRows(update_rows_state));
 

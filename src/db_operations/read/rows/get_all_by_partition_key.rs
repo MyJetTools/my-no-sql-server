@@ -21,7 +21,7 @@ pub async fn get_all_by_partition_key(
 ) -> Result<ReadOperationResult, DbOperationError> {
     super::super::super::check_app_states(app)?;
 
-    let table_data = db_table.data.read().await;
+    let table_data = db_table.data.read();
 
     let db_partition = table_data.get_partition(partition_key);
 

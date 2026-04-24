@@ -20,30 +20,36 @@ pub async fn execute(
 ) -> Result<(), DbOperationError> {
     super::super::check_app_states(app)?;
 
-    let mut table_data = db_table.data.write().await;
+    let (update_rows_state, to_persist, has_insert_or_replace) = {
+        let mut table_data = db_table.data.write();
+        let mut update_rows_state = UpdateRowsSyncData::new(&table_data, event_src);
+        let mut to_persist: Vec<(my_no_sql_sdk::core::db::PartitionKey, Vec<Arc<DbRow>>)> = Vec::new();
+        let mut has_insert_or_replace = false;
 
-    let mut update_rows_state = UpdateRowsSyncData::new(&table_data, event_src);
+        for (partition_key, db_rows) in rows_by_partition {
+            let (partition_key, _) =
+                table_data.bulk_insert_or_replace(&partition_key, &db_rows, Some(now));
 
-    let mut has_insert_or_replace = false;
+            has_insert_or_replace = true;
+            to_persist.push((partition_key.clone(), db_rows.clone()));
 
-    for (partition_key, db_rows) in rows_by_partition {
-        let (partition_key, _) =
-            table_data.bulk_insert_or_replace(&partition_key, &db_rows, Some(now));
+            update_rows_state
+                .rows_by_partition
+                .add_rows(partition_key, db_rows);
+        }
 
-        has_insert_or_replace = true;
+        (update_rows_state, to_persist, has_insert_or_replace)
+    };
 
+    for (partition_key, db_rows) in to_persist {
         app.persist_markers
             .persist_rows(
-                &table_data.name,
+                &db_table.name,
                 &partition_key,
                 persist_moment,
                 db_rows.iter(),
             )
             .await;
-
-        update_rows_state
-            .rows_by_partition
-            .add_rows(partition_key, db_rows);
     }
 
     if has_insert_or_replace {

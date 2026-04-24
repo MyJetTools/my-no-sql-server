@@ -3,7 +3,7 @@ use my_no_sql_sdk::tcp_contracts::MyNoSqlTcpContract;
 use crate::{app::AppContext, data_readers::DataReaderConnection, db_sync::SyncEvent};
 
 pub fn dispatch(app: &AppContext, sync_event: SyncEvent) {
-    app.sync.publisher.send(sync_event);
+    app.sync.send(sync_event);
 }
 
 pub async fn sync(app: &AppContext, sync_event: &SyncEvent) {

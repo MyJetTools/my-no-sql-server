@@ -31,13 +31,13 @@ impl MyTimerTick for GcDbRows {
 }
 
 async fn gc_it(app: &AppContext) {
-    let tables = app.db.get_tables().await;
+    let tables = app.db.get_tables();
 
     let now = DateTimeAsMicroseconds::now();
 
-    for table in tables {
+    for table in tables.iter() {
         let data_to_gc = {
-            let table_data = table.data.read().await;
+            let table_data = table.data.read();
             table_data.get_data_to_gc(now)
         };
 

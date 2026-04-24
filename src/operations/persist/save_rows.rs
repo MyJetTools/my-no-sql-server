@@ -10,7 +10,7 @@ pub async fn save_rows(
     db_table_name: &DbTableName,
     jobs: Vec<SyncRowJobDescription>,
 ) {
-    let db_table = match app.db.get_table(db_table_name.as_str()).await {
+    let db_table = match app.db.get_table(db_table_name.as_str()) {
         Some(db_table) => db_table,
         None => {
             super::scripts::delete_table(app, &db_table_name).await;
@@ -38,7 +38,7 @@ async fn find_and_sort_rows(
     jobs: Vec<SyncRowJobDescription>,
 ) -> FoundRowsToSync {
     let mut result = FoundRowsToSync::default();
-    let db_table_access = db_table.data.read().await;
+    let db_table_access = db_table.data.read();
     for job in jobs {
         match db_table_access.partitions.get(job.partition_key.as_str()) {
             Some(db_partition) => {

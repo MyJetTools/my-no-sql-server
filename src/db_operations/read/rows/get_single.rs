@@ -20,7 +20,7 @@ pub async fn get_single(
 ) -> Result<ReadOperationResult, DbOperationError> {
     super::super::super::check_app_states(app)?;
 
-    let table_data = db_table_wrapper.data.read().await;
+    let table_data = db_table_wrapper.data.read();
 
     let db_partition = table_data.get_partition(partition_key);
 

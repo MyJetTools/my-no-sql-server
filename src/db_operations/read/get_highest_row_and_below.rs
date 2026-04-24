@@ -22,7 +22,7 @@ pub async fn get_highest_row_and_below(
 ) -> Result<ReadOperationResult, DbOperationError> {
     super::super::check_app_states(app)?;
 
-    let read_access = db_table_wrapper.data.read().await;
+    let read_access = db_table_wrapper.data.read();
 
     let db_partition = read_access.get_partition(partition_key);
 

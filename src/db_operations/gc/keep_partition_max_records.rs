@@ -15,7 +15,7 @@ pub async fn execute(
     super::super::check_app_states(app)?;
 
     let rows_to_gc = {
-        let table_data = db_table.data.read().await;
+        let table_data = db_table.data.read();
         let partition = table_data.get_partition(partition_key.as_str());
 
         if partition.is_none() {

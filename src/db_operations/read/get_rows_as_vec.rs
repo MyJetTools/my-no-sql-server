@@ -58,7 +58,7 @@ pub async fn get_as_partition_key_and_row_key(
     now: &JsonTimeStamp,
     update_statistics: UpdateStatistics,
 ) -> Option<Arc<DbRow>> {
-    let read_access = table.data.read().await;
+    let read_access = table.data.read();
 
     let db_partition = read_access.get_partition(partition_key)?;
 
@@ -76,7 +76,7 @@ async fn get_as_partition_key_only(
     skip: Option<usize>,
     now: &JsonTimeStamp,
 ) -> Vec<Arc<DbRow>> {
-    let read_access = table.data.read().await;
+    let read_access = table.data.read();
 
     let db_partition = read_access.get_partition(partition_key);
 
@@ -104,7 +104,7 @@ async fn get_as_row_key_only(
     now: &JsonTimeStamp,
     update_statistics: UpdateStatistics,
 ) -> Vec<Arc<DbRow>> {
-    let read_access = table.data.read().await;
+    let read_access = table.data.read();
 
     let mut result = Vec::new();
 
@@ -117,7 +117,7 @@ async fn get_as_row_key_only(
 }
 
 async fn get_all(table: &DbTable, limit: Option<usize>, skip: Option<usize>) -> Vec<Arc<DbRow>> {
-    let read_access = table.data.read().await;
+    let read_access = table.data.read();
 
     let mut result = if let Some(limit) = limit {
         Vec::with_capacity(limit)

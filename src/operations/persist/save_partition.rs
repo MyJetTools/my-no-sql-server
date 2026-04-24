@@ -7,7 +7,7 @@ pub async fn save_partition(
     db_table_name: &DbTableName,
     partition_key: PartitionKey,
 ) {
-    let db_table = match app.db.get_table(db_table_name.as_str()).await {
+    let db_table = match app.db.get_table(db_table_name.as_str()) {
         Some(db_table) => db_table,
         None => {
             super::scripts::delete_table(app, db_table_name).await;
@@ -15,10 +15,7 @@ pub async fn save_partition(
         }
     };
 
-    match db_table
-        .get_partition_snapshot(partition_key.as_str())
-        .await
-    {
+    match db_table.get_partition_snapshot(partition_key.as_str()) {
         Some(snapshot) => {
             super::scripts::sync_partition_snapshot(app, db_table_name, &partition_key, snapshot)
                 .await;

@@ -22,7 +22,7 @@ pub async fn get_all_by_row_key(
 ) -> Result<ReadOperationResult, DbOperationError> {
     super::super::super::check_app_states(app)?;
 
-    let table_data = db_table.data.read().await;
+    let table_data = db_table.data.read();
 
     let mut json_array_writer = JsonArrayWriter::new();
     for (db_partition, db_row) in table_data.get_by_row_key(row_key, skip, limit) {

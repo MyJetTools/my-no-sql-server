@@ -16,17 +16,23 @@ pub async fn clean_table(
     persist_moment: DateTimeAsMicroseconds,
 ) -> Result<(), DbOperationError> {
     super::super::check_app_states(app)?;
-    let mut table_data = db_table.data.write().await;
 
-    let removed_partitions = table_data.clear_table();
+    let persist = {
+        let mut table_data = db_table.data.write();
+        let removed_partitions = table_data.clear_table();
 
-    if removed_partitions.is_some() {
-        let sync_data = InitTableEventSyncData::new(&table_data, event_src);
+        if removed_partitions.is_some() {
+            let sync_data = InitTableEventSyncData::new(&table_data, event_src);
+            crate::operations::sync::dispatch(app, SyncEvent::InitTable(sync_data));
+            Some(table_data.name.clone())
+        } else {
+            None
+        }
+    };
 
-        crate::operations::sync::dispatch(app, SyncEvent::InitTable(sync_data));
-
+    if let Some(table_name) = persist {
         app.persist_markers
-            .persist_table_content(&table_data.name, persist_moment)
+            .persist_table_content(&table_name, persist_moment)
             .await;
     }
 
