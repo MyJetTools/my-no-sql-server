@@ -12,7 +12,6 @@ use my_no_sql_sdk::core::{
     db_json_entity::{DbJsonEntityWithContent, JsonTimeStamp},
 };
 use my_no_sql_sdk::server::DbTable;
-use serde::{Deserialize, Serialize};
 
 use super::WriteOperationResult;
 
@@ -109,12 +108,6 @@ pub async fn execute(
     crate::operations::sync::dispatch(app, SyncEvent::UpdateRows(update_rows_state));
 
     Ok(WriteOperationResult::SingleRow(db_row))
-}
-
-#[derive(Deserialize, Serialize)]
-pub struct DeleteModel {
-    pub key: String,
-    pub values: Vec<String>,
 }
 
 #[cfg(test)]

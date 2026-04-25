@@ -2,8 +2,6 @@ use my_http_server::macros::*;
 use my_http_server::types::RawDataTyped;
 use serde::{Deserialize, Serialize};
 
-use crate::http_server::controllers::row_controller::models::BaseDbRowContract;
-
 #[derive(MyHttpInput)]
 pub struct DataReaderGreetingInputModel {
     #[http_query(name = "name"; description = "Name of Application")]
@@ -40,29 +38,6 @@ pub struct GetChangesInputModel {
 
     #[http_body_raw(description = "Update model")]
     pub body: RawDataTyped<GetChangesBodyModel>,
-}
-
-#[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
-pub struct DataReaderChangesResult {
-    #[serde(rename = "initTables")]
-    pub init_table: Option<Vec<BaseDbRowContract>>,
-
-    #[serde(rename = "initPartitions")]
-    pub init_partitions: Option<Vec<BaseDbRowContract>>,
-
-    #[serde(rename = "initRows")]
-    pub init_rows: Option<Vec<BaseDbRowContract>>,
-
-    #[serde(rename = "deleteRows")]
-    pub delete_rows: Option<Vec<DeleteRowsHttpContract>>,
-}
-
-#[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
-pub struct DeleteRowsHttpContract {
-    #[serde(rename = "pk")]
-    pub partition_key: String,
-    #[serde(rename = "rk")]
-    pub row_keys: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]

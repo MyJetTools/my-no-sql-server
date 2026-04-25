@@ -1,6 +1,5 @@
 use my_http_server::macros::*;
 use my_http_server::types::RawDataTyped;
-use serde::{Deserialize, Serialize};
 
 use crate::{
     db_operations::UpdateStatistics, db_sync::DataSynchronizationPeriod,
@@ -119,8 +118,3 @@ pub struct DeletePartitionsInputContract {
     pub sync_period: DataSynchronizationPeriod,
 }
 
-#[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
-pub struct DeletePartitionsModel {
-    #[serde(rename = "partitionKeys")]
-    pub partition_keys: Vec<String>,
-}

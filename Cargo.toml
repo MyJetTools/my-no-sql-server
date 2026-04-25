@@ -57,7 +57,6 @@ async-trait = "*"
 tokio-stream = "*"
 zip = "*"
 
-tikv-jemalloc-ctl = { version = "*", features = ['use_std'] }
 tikv-jemallocator = { version = "*", features = [
     "unprefixed_malloc_on_supported_platforms",
 ] }
