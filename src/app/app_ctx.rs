@@ -16,6 +16,8 @@ use super::{HttpWriters, PrometheusMetrics};
 
 pub const APP_VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
+pub const APP_NAME: &'static str = env!("CARGO_PKG_NAME");
+
 pub const DEFAULT_PERSIST_PERIOD: crate::db_sync::DataSynchronizationPeriod =
     crate::db_sync::DataSynchronizationPeriod::Sec5;
 

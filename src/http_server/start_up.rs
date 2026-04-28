@@ -1,11 +1,12 @@
 use std::{net::SocketAddr, sync::Arc};
 
+use mcp_server_middleware::McpMiddleware;
 use my_http_server::controllers::swagger::SwaggerMiddleware;
 use my_http_server::{HttpConnectionsCounter, MyHttpServer};
 
 use crate::app::AppContext;
 
-pub fn setup_server(app: &Arc<AppContext>) -> HttpConnectionsCounter {
+pub async fn setup_server(app: &Arc<AppContext>) -> HttpConnectionsCounter {
     let http_port = SocketAddr::from(([0, 0, 0, 0], 5123));
     println!("Starting HTTP server at Tcp({:?})", http_port);
     let mut http_server = MyHttpServer::new(http_port);
@@ -35,14 +36,18 @@ pub fn setup_server(app: &Arc<AppContext>) -> HttpConnectionsCounter {
             .add_index_path("/data"),
     );
 
+    let mcp_middleware = Arc::new(build_mcp_middleware(app).await);
+
     if let Some(unix_socket_http_server) = unix_socket_http_server.as_mut() {
         unix_socket_http_server.add_middleware(swagger_middleware.clone());
         unix_socket_http_server.add_middleware(controllers.clone());
+        unix_socket_http_server.add_middleware(mcp_middleware.clone());
         unix_socket_http_server.add_middleware(static_files_middleware.clone());
     }
 
     http_server.add_middleware(swagger_middleware);
     http_server.add_middleware(controllers);
+    http_server.add_middleware(mcp_middleware);
     http_server.add_middleware(static_files_middleware);
 
     http_server.start(app.states.clone(), my_logger::LOGGER.clone());
@@ -52,4 +57,25 @@ pub fn setup_server(app: &Arc<AppContext>) -> HttpConnectionsCounter {
     }
 
     http_server.get_http_connections_counter()
+}
+
+async fn build_mcp_middleware(app: &Arc<AppContext>) -> McpMiddleware {
+    let mut mcp = McpMiddleware::new(
+        "/mcp",
+        crate::app::APP_NAME,
+        crate::app::APP_VERSION,
+        "Provides access to MyNoSqlServer data",
+    );
+
+    mcp.register_tool_call(Arc::new(crate::mcp::GetRowsToolCallHandler::new(
+        app.clone(),
+    )))
+    .await;
+
+    mcp.register_tool_call(Arc::new(
+        crate::mcp::GetListOfTablesToolCallHandler::new(app.clone()),
+    ))
+    .await;
+
+    mcp
 }

@@ -26,6 +26,7 @@ mod tcp;
 
 mod background;
 mod data_readers;
+mod mcp;
 mod operations;
 mod settings_reader;
 
@@ -48,7 +49,7 @@ async fn main() {
 
     tokio::spawn(crate::operations::init::load_tables(app.clone()));
 
-    let http_connections_counter = crate::http_server::start_up::setup_server(&app);
+    let http_connections_counter = crate::http_server::start_up::setup_server(&app).await;
 
     app.sync
         .register_event_loop(Arc::new(SyncEventLoop::new(app.clone())));
