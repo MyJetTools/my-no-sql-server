@@ -75,5 +75,15 @@ async fn build_mcp_middleware(app: &Arc<AppContext>) -> McpMiddleware {
         crate::mcp::GetListOfTablesToolCallHandler::new(app.clone()),
     ));
 
+    mcp.register_tool_call_with_context(Arc::new(crate::mcp::DeleteRowToolCallHandler::new(
+        app.clone(),
+    )));
+
+    mcp.register_tool_call_with_context(Arc::new(
+        crate::mcp::InsertOrReplaceRowToolCallHandler::new(app.clone()),
+    ));
+
+    mcp.register_prompt(Arc::new(crate::mcp::McpWritePasswordPolicyPromptHandler));
+
     mcp
 }

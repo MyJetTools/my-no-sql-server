@@ -2,15 +2,17 @@ use dioxus::prelude::*;
 
 use crate::components::atoms::{StateTone, classify_reader};
 use crate::models::ReaderApiModel;
+use crate::settings::HealthThresholds;
 
 #[component]
 pub fn ReaderHealthGrid(readers: Vec<ReaderApiModel>) -> Element {
+    let thresholds = *use_context::<Signal<HealthThresholds>>().read();
     let min_slots: usize = 100;
     let slots = readers.len().max(min_slots);
 
     let cells = (0..slots).map(|i| {
         if let Some(r) = readers.get(i) {
-            let tone = classify_reader(&r.last_incoming_time);
+            let tone = classify_reader(&r.last_incoming_time, thresholds.warn_ms, thresholds.bad_ms);
             let cls = match tone {
                 StateTone::Ok => "rh-cell rh-cell--ok",
                 StateTone::Warn => "rh-cell rh-cell--warn",

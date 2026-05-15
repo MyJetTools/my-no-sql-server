@@ -2,6 +2,7 @@ use dioxus::prelude::*;
 
 use crate::components::atoms::{DeltaTone, Stat, StatTone, classify_reader, StateTone};
 use crate::models::{ReaderApiModel, TableApiModel, WriterApiModel};
+use crate::settings::HealthThresholds;
 
 #[component]
 pub fn StatsRow(
@@ -9,6 +10,7 @@ pub fn StatsRow(
     writers: Vec<WriterApiModel>,
     readers: Vec<ReaderApiModel>,
 ) -> Element {
+    let thresholds = *use_context::<Signal<HealthThresholds>>().read();
     let table_count = tables.len();
     let partitions: usize = tables.iter().map(|t| t.partitions_count).sum();
     let total_rows: usize = tables.iter().map(|t| t.records_amount).sum();
@@ -19,7 +21,7 @@ pub fn StatsRow(
     let mut warn = 0;
     let mut bad = 0;
     for r in readers.iter() {
-        match classify_reader(&r.last_incoming_time) {
+        match classify_reader(&r.last_incoming_time, thresholds.warn_ms, thresholds.bad_ms) {
             StateTone::Ok => ok += 1,
             StateTone::Warn => warn += 1,
             StateTone::Bad => bad += 1,

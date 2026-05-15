@@ -1,0 +1,96 @@
+use std::sync::Arc;
+
+use mcp_server_middleware::*;
+use my_ai_agent::macros::ApplyJsonSchema;
+use my_no_sql_sdk::core::db_json_entity::JsonTimeStamp;
+use serde::*;
+
+use crate::{
+    app::AppContext,
+    db_operations,
+    db_sync::{DataSynchronizationPeriod, EventSource},
+};
+
+#[derive(ApplyJsonSchema, Debug, Serialize, Deserialize)]
+pub struct InsertOrReplaceRowInputData {
+    #[property(description = "Name of the table")]
+    pub table_name: String,
+    #[property(
+        description = "Full row JSON. Must include 'PartitionKey' and 'RowKey' string fields plus any additional row data."
+    )]
+    pub entity_json: String,
+    #[property(
+        description = "Optional. Only used by MCP clients that do NOT support elicitation. On elicitation-capable clients (e.g. Claude Code) the server will prompt the user interactively and IGNORE this field."
+    )]
+    pub password: Option<String>,
+}
+
+#[derive(ApplyJsonSchema, Debug, Serialize, Deserialize)]
+pub struct InsertOrReplaceRowResponse {
+    #[property(description = "Outcome message")]
+    pub status: String,
+}
+
+pub struct InsertOrReplaceRowToolCallHandler {
+    app: Arc<AppContext>,
+}
+
+impl InsertOrReplaceRowToolCallHandler {
+    pub fn new(app: Arc<AppContext>) -> Self {
+        Self { app }
+    }
+}
+
+impl ToolDefinition for InsertOrReplaceRowToolCallHandler {
+    const FUNC_NAME: &'static str = "insert_or_replace_row";
+
+    const DESCRIPTION: &'static str = "\
+Inserts a row or replaces it if a row with the same PartitionKey + \
+RowKey already exists. Requires the mcp-write-password. POLICY: the \
+password is requested via MCP elicitation — your client will prompt \
+the user. NEVER cache, log, or summarize the password value. See \
+prompt 'mcp_write_password_policy'.";
+}
+
+#[async_trait::async_trait]
+impl McpToolCallEx<InsertOrReplaceRowInputData, InsertOrReplaceRowResponse>
+    for InsertOrReplaceRowToolCallHandler
+{
+    async fn execute_tool_call(
+        &self,
+        model: InsertOrReplaceRowInputData,
+        ctx: &ToolCallContext,
+    ) -> Result<InsertOrReplaceRowResponse, String> {
+        super::password_check::elicit_or_validate_password(
+            self.app.as_ref(),
+            ctx,
+            model.password.as_deref(),
+        )
+        .await?;
+
+        let db_table = db_operations::read::table::get(self.app.as_ref(), &model.table_name)
+            .await
+            .map_err(|err| format!("{:?}", err))?;
+
+        let event_src = EventSource::as_client_request(self.app.as_ref());
+        let now = JsonTimeStamp::now();
+
+        let db_row = crate::operations::parse_db_json_entity(model.entity_json.as_bytes(), &now)
+            .map_err(|err| format!("{:?}", err))?;
+
+        db_operations::write::insert_or_replace::execute(
+            self.app.as_ref(),
+            db_table,
+            Arc::new(db_row),
+            event_src,
+            DataSynchronizationPeriod::Sec5.get_sync_moment(),
+            now.date_time,
+        )
+        .await
+        .map_err(|err| format!("{:?}", err))?;
+
+        Ok(InsertOrReplaceRowResponse {
+            status: "ok".into(),
+        })
+    }
+}

@@ -2,9 +2,11 @@ use dioxus::prelude::*;
 
 use crate::components::atoms::{Badge, BadgeTone, StatePill, StateTone, classify_reader};
 use crate::models::WriterApiModel;
+use crate::settings::HealthThresholds;
 
 #[component]
 pub fn WritersTable(writers: Vec<WriterApiModel>) -> Element {
+    let thresholds = *use_context::<Signal<HealthThresholds>>().read();
     if writers.is_empty() {
         return rsx! {
             div { class: "card",
@@ -26,7 +28,7 @@ pub fn WritersTable(writers: Vec<WriterApiModel>) -> Element {
         let tables = w.tables.iter().cloned().map(|t| rsx! {
             Badge { text: t, tone: BadgeTone::Writer }
         });
-        let tone = classify_reader(&w.last_update);
+        let tone = classify_reader(&w.last_update, thresholds.warn_ms, thresholds.bad_ms);
         let state_label = match tone {
             StateTone::Ok => "live",
             StateTone::Warn => "lagging",

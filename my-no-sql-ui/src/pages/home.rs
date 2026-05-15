@@ -10,6 +10,7 @@ use crate::components::overview::{
 };
 use crate::components::atoms::{StateTone, classify_reader};
 use crate::models::{InitializedApiModel, ReaderApiModel, StatusApiModel};
+use crate::settings::HealthThresholds;
 
 #[component]
 pub fn Home() -> Element {
@@ -45,10 +46,11 @@ pub fn Home() -> Element {
     };
 
     let snapshot = data.read().clone();
+    let thresholds = *use_context::<Signal<HealthThresholds>>().read();
 
     let content = match snapshot {
         Some(status) => match status.initialized {
-            Some(init) => render_overview(init),
+            Some(init) => render_overview(init, thresholds),
             None => render_loading_msg("Server is initializing…"),
         },
         None => render_loading_msg("Connecting to server…"),
@@ -69,7 +71,7 @@ fn render_loading_msg(msg: &str) -> Element {
     }
 }
 
-fn render_overview(init: InitializedApiModel) -> Element {
+fn render_overview(init: InitializedApiModel, thresholds: HealthThresholds) -> Element {
     let readers_only: Vec<ReaderApiModel> = init
         .readers
         .iter()
@@ -77,7 +79,7 @@ fn render_overview(init: InitializedApiModel) -> Element {
         .cloned()
         .collect();
 
-    let (tone, headline, sub) = compute_health(&readers_only);
+    let (tone, headline, sub) = compute_health(&readers_only, thresholds);
     let uptime = "—".to_string();
 
     rsx! {
@@ -116,11 +118,14 @@ fn render_overview(init: InitializedApiModel) -> Element {
     }
 }
 
-fn compute_health(readers: &[ReaderApiModel]) -> (HealthTone, String, String) {
+fn compute_health(
+    readers: &[ReaderApiModel],
+    thresholds: HealthThresholds,
+) -> (HealthTone, String, String) {
     let mut bad = 0usize;
     let mut warn = 0usize;
     for r in readers {
-        match classify_reader(&r.last_incoming_time) {
+        match classify_reader(&r.last_incoming_time, thresholds.warn_ms, thresholds.bad_ms) {
             StateTone::Bad => bad += 1,
             StateTone::Warn => warn += 1,
             _ => {}

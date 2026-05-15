@@ -83,6 +83,13 @@ pub fn build(app: &Arc<AppContext>) -> ControllersMiddleware {
         app.clone(),
     )));
 
+    result.register_get_action(Arc::new(super::ui_settings_controller::GetUiSettingsAction::new(
+        app.clone(),
+    )));
+    result.register_post_action(Arc::new(
+        super::ui_settings_controller::PostUiSettingsAction::new(app.clone()),
+    ));
+
     result.register_get_action(Arc::new(super::status_controller::StatusAction::new(
         app.clone(),
     )));

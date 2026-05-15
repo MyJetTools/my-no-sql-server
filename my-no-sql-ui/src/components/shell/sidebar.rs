@@ -44,7 +44,9 @@ pub fn Sidebar(active: SidebarSection, tables_count: usize, clients_count: usize
                     Icon { kind: IconKind::HardDrive, class: "sidebar__nav-icon".to_string() }
                     span { class: "sidebar__nav-label", "Persistence" }
                 }
-                div { class: "sidebar__nav-item",
+                Link {
+                    to: AppRoute::Settings {},
+                    class: nav_class(active == SidebarSection::Settings),
                     Icon { kind: IconKind::Settings, class: "sidebar__nav-icon".to_string() }
                     span { class: "sidebar__nav-label", "Settings" }
                 }
@@ -69,4 +71,5 @@ fn nav_class(active: bool) -> &'static str {
 pub enum SidebarSection {
     Overview,
     Tables,
+    Settings,
 }

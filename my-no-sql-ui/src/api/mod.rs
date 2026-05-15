@@ -112,6 +112,90 @@ pub async fn delete_row(
     Ok(())
 }
 
+pub async fn get_ui_settings() -> Result<crate::settings::UiServerSettings, RequestError> {
+    let url = format!("{}/api/UiSettings", get_base_url());
+    let response = reqwest::Client::new().get(&url).send().await?;
+    if !response.status().is_success() {
+        // Treat any non-success as "settings not available yet" — fall
+        // back to defaults so the UI keeps working on an older server.
+        return Ok(crate::settings::UiServerSettings::default());
+    }
+    #[derive(serde::Deserialize)]
+    struct Payload {
+        #[serde(rename = "warnMs")]
+        warn_ms: u32,
+        #[serde(rename = "badMs")]
+        bad_ms: u32,
+        #[serde(rename = "mcpWritePasswordSet", default)]
+        mcp_write_password_set: bool,
+    }
+    let p: Payload = response.json().await?;
+    Ok(crate::settings::UiServerSettings {
+        thresholds: crate::settings::HealthThresholds {
+            warn_ms: p.warn_ms,
+            bad_ms: p.bad_ms,
+        },
+        mcp_write_password_set: p.mcp_write_password_set,
+    })
+}
+
+pub async fn get_health_thresholds() -> Result<crate::settings::HealthThresholds, RequestError> {
+    Ok(get_ui_settings().await?.thresholds)
+}
+
+pub async fn set_health_thresholds(
+    t: crate::settings::HealthThresholds,
+) -> Result<(), RequestError> {
+    let url = format!("{}/api/UiSettings", get_base_url());
+    #[derive(serde::Serialize)]
+    struct Payload {
+        #[serde(rename = "warnMs")]
+        warn_ms: u32,
+        #[serde(rename = "badMs")]
+        bad_ms: u32,
+    }
+    let response = reqwest::Client::new()
+        .post(&url)
+        .json(&Payload {
+            warn_ms: t.warn_ms,
+            bad_ms: t.bad_ms,
+        })
+        .send()
+        .await?;
+    if !response.status().is_success() {
+        return Err(RequestError {
+            message: format!("Failed to save settings: {}", response.status()),
+        });
+    }
+    Ok(())
+}
+
+/// Sets or clears the MCP write password. Pass `""` to clear it. The
+/// value is sent server-side and hashed with a random salt before
+/// persistence — the GET endpoint will report only whether a password
+/// is configured.
+pub async fn set_mcp_write_password(value: &str) -> Result<(), RequestError> {
+    let url = format!("{}/api/UiSettings", get_base_url());
+    #[derive(serde::Serialize)]
+    struct Payload<'a> {
+        #[serde(rename = "mcpWritePassword")]
+        mcp_write_password: &'a str,
+    }
+    let response = reqwest::Client::new()
+        .post(&url)
+        .json(&Payload {
+            mcp_write_password: value,
+        })
+        .send()
+        .await?;
+    if !response.status().is_success() {
+        return Err(RequestError {
+            message: format!("Failed to save MCP write password: {}", response.status()),
+        });
+    }
+    Ok(())
+}
+
 pub async fn bulk_delete_rows(
     table_name: &str,
     partition_key: &str,

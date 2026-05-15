@@ -4,6 +4,7 @@ use crate::components::atoms::{
     Badge, BadgeTone, Sparkline, StateTone, StatusDot, classify_reader,
 };
 use crate::models::ReaderApiModel;
+use crate::settings::HealthThresholds;
 
 #[derive(Clone, Copy, PartialEq)]
 enum ReaderFilter {
@@ -26,6 +27,7 @@ impl ReadersState {
 
 #[component]
 pub fn ReadersTable(readers: Vec<ReaderApiModel>) -> Element {
+    let thresholds = *use_context::<Signal<HealthThresholds>>().read();
     let mut cs = use_signal(ReadersState::default);
     let cs_ra = cs.read();
     let active_filter = cs_ra.current_filter();
@@ -37,7 +39,7 @@ pub fn ReadersTable(readers: Vec<ReaderApiModel>) -> Element {
     let filtered: Vec<ReaderApiModel> = readers
         .into_iter()
         .filter(|r| {
-            let tone = classify_reader(&r.last_incoming_time);
+            let tone = classify_reader(&r.last_incoming_time, thresholds.warn_ms, thresholds.bad_ms);
             match active_filter {
                 ReaderFilter::All => true,
                 ReaderFilter::Healthy => matches!(tone, StateTone::Ok),
@@ -51,7 +53,7 @@ pub fn ReadersTable(readers: Vec<ReaderApiModel>) -> Element {
     let display: Vec<ReaderApiModel> = filtered.into_iter().take(display_limit).collect();
 
     let rows = display.into_iter().map(|r| {
-        let tone = classify_reader(&r.last_incoming_time);
+        let tone = classify_reader(&r.last_incoming_time, thresholds.warn_ms, thresholds.bad_ms);
         let tone_for_time = tone;
         let table_count = r.tables.len();
         let visible_tables: Vec<String> = r.tables.iter().take(3).cloned().collect();

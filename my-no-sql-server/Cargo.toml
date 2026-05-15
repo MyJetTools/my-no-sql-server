@@ -55,6 +55,7 @@ quick-xml = "*"
 lazy_static = "*"
 hmac = "0.12"
 sha2 = "*"
+subtle = "2"
 base64 = "*"
 serde_yaml = "*"
 uuid = { version = "*", features = ["serde", "v4"] }
@@ -70,3 +71,4 @@ tikv-jemallocator = { version = "*", features = [
 
 [build-dependencies]
 ci-utils = { git = "https://github.com/MyJetTools/ci-utils.git", tag = "0.1.3" }
+

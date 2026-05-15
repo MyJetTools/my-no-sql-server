@@ -4,12 +4,14 @@ mod api;
 mod components;
 mod models;
 mod pages;
+mod settings;
 mod storage;
 mod utils;
 
 use components::shell::{Crumb, Sidebar, SidebarSection, Topbar};
 use models::StatusApiModel;
 use pages::*;
+use settings::HealthThresholds;
 
 #[derive(Routable, PartialEq, Clone)]
 pub enum AppRoute {
@@ -18,6 +20,8 @@ pub enum AppRoute {
     Home {},
     #[route("/data")]
     Data {},
+    #[route("/settings")]
+    Settings {},
     #[route("/:..segments")]
     NotFound { segments: Vec<String> },
 }
@@ -45,10 +49,30 @@ fn Shell() -> Element {
     let ctx_signal = use_context_provider(|| Signal::new(AppContext::default()));
     let mut ctx = ctx_signal;
 
+    // Health thresholds (Green/Yellow/Red) — loaded from the server once,
+    // edited via the Settings page, persisted server-side.
+    let thresholds_signal: Signal<HealthThresholds> =
+        use_context_provider(|| Signal::new(HealthThresholds::default()));
+    let mut thresholds = thresholds_signal;
+    let mut thresholds_loaded = use_signal(|| false);
+    let loaded_val = *thresholds_loaded.read();
+    use_effect(move || {
+        if loaded_val {
+            return;
+        }
+        *thresholds_loaded.write() = true;
+        spawn(async move {
+            if let Ok(t) = api::get_health_thresholds().await {
+                thresholds.set(t);
+            }
+        });
+    });
+
     let route = use_route::<AppRoute>();
     let section = match route {
         AppRoute::Home {} => SidebarSection::Overview,
         AppRoute::Data {} => SidebarSection::Tables,
+        AppRoute::Settings {} => SidebarSection::Settings,
         _ => SidebarSection::Overview,
     };
 
@@ -60,6 +84,10 @@ fn Shell() -> Element {
         SidebarSection::Tables => vec![
             Crumb { label: "MyNoSql".to_string(), active: false },
             Crumb { label: "Tables".to_string(), active: true },
+        ],
+        SidebarSection::Settings => vec![
+            Crumb { label: "MyNoSql".to_string(), active: false },
+            Crumb { label: "Settings".to_string(), active: true },
         ],
     };
 

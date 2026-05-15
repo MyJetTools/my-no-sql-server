@@ -43,11 +43,14 @@ pub fn StatusDot(tone: StateTone) -> Element {
 ///
 /// The server emits durations like `"0.123s"`, `"2.5s"`, `"00:00:14"`, or
 /// `"00:00:00.450"`. We only need rough buckets: ok / warn / bad.
-pub fn classify_reader(last_incoming: &str) -> StateTone {
-    let secs = parse_secs(last_incoming);
-    if secs >= 10.0 {
+///
+/// Thresholds are given in milliseconds — `warn_ms` is the lower bound for
+/// the yellow zone, `bad_ms` for the red zone. Anything below `warn_ms` is OK.
+pub fn classify_reader(last_incoming: &str, warn_ms: u32, bad_ms: u32) -> StateTone {
+    let ms = parse_secs(last_incoming) * 1000.0;
+    if ms >= bad_ms as f64 {
         StateTone::Bad
-    } else if secs >= 3.0 {
+    } else if ms >= warn_ms as f64 {
         StateTone::Warn
     } else {
         StateTone::Ok

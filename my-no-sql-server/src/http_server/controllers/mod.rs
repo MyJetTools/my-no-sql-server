@@ -15,6 +15,7 @@ pub mod prometheus_controller;
 pub mod row_controller;
 pub mod rows_controller;
 pub mod status_controller;
+pub mod ui_settings_controller;
 pub mod tables_controller;
 pub mod transactions;
 pub use mappers::*;
