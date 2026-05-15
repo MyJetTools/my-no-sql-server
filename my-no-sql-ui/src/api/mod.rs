@@ -111,3 +111,26 @@ pub async fn delete_row(
     }
     Ok(())
 }
+
+pub async fn bulk_delete_rows(
+    table_name: &str,
+    partition_key: &str,
+    row_keys: &[String],
+) -> Result<(), RequestError> {
+    let mut body = std::collections::BTreeMap::new();
+    body.insert(partition_key.to_string(), row_keys.to_vec());
+
+    let url = format!("{}/api/Bulk/Delete", get_base_url());
+    let response = reqwest::Client::new()
+        .post(&url)
+        .query(&[("tableName", table_name)])
+        .json(&body)
+        .send()
+        .await?;
+    if !response.status().is_success() {
+        return Err(RequestError {
+            message: format!("Failed to bulk-delete rows: {}", response.status()),
+        });
+    }
+    Ok(())
+}

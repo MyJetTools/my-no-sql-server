@@ -32,8 +32,8 @@ fn main() {
 fn Shell() -> Element {
     rsx! {
         nav { style: "z-index: 2;",
-            Link { to: AppRoute::Home {}, "Home" }
-            Link { to: AppRoute::Data {}, "Data" }
+            Link { to: AppRoute::Home {}, active_class: "active", "Home" }
+            Link { to: AppRoute::Data {}, active_class: "active", "Data" }
         }
         main { Outlet::<AppRoute> {} }
     }
