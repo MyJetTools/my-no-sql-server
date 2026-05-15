@@ -5,6 +5,7 @@ on:
 
 env:
   IMAGE_NAME: ghcr.io/myjettools/my-nosql-server
+  PROJECT_DIR: my-no-sql-server
 
 
 jobs:
@@ -21,17 +22,21 @@ jobs:
         run: echo ::set-output name=VERSION::$(echo ${GITHUB_REF_NAME})
 
       - name: Updating version
-        run: sed -i -e 's/^version = .*/version = "${{ steps.get_version.outputs.VERSION }}"/' Cargo.toml
+        run: |
+          cd ${PROJECT_DIR}
+          sed -i -e 's/^version = .*/version = "${{ steps.get_version.outputs.VERSION }}"/' Cargo.toml
 
       - name: Install Protoc
         uses: arduino/setup-protoc@v1      
               
-      - run: cargo build --release
+      - run: |
+          cd ${PROJECT_DIR}
+          cargo build --release
 
       - name: Docker login
-        run: |
-          echo "${{ secrets.PUBLISH_TOKEN }}" | docker login https://ghcr.io -u "${{ github.actor }}" --password-stdin
+        run: echo "${{ secrets.PUBLISH_TOKEN }}" | docker login https://ghcr.io -u "${{ github.actor }}" --password-stdin
       - name: Docker Build and Publish
-        run: |          
+        run: |  
+          cd ${PROJECT_DIR}                
           docker build -t ${IMAGE_NAME}:${{ steps.get_version.outputs.VERSION }} .
           docker push ${IMAGE_NAME}:${{ steps.get_version.outputs.VERSION }}

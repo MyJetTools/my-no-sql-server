@@ -5,6 +5,8 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+env:
+  PROJECT_DIR: my-no-sql-server
 
 jobs:
   build:
@@ -22,4 +24,5 @@ jobs:
 
       - name: Test Build      
         run: |
+          cd ${PROJECT_DIR}
           cargo test
