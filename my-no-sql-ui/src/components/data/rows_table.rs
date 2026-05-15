@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use dioxus::prelude::*;
 use serde_json::Value;
 
@@ -13,6 +15,10 @@ pub fn RowsTable(
     rows: Vec<Value>,
     selected_row_key: Option<String>,
     on_row_click: EventHandler<Value>,
+    #[props(default)] selectable: bool,
+    #[props(default)] checked_keys: HashSet<String>,
+    #[props(default)] on_toggle_row: EventHandler<String>,
+    #[props(default)] on_toggle_all: EventHandler<bool>,
 ) -> Element {
     if rows.is_empty() {
         return rsx! {
@@ -24,6 +30,18 @@ pub fn RowsTable(
             }
         };
     }
+
+    let total = rows.len();
+    let visible_count = rows
+        .iter()
+        .filter(|r| {
+            r.get(ROW_KEY)
+                .and_then(|v| v.as_str())
+                .map(|s| checked_keys.contains(s))
+                .unwrap_or(false)
+        })
+        .count();
+    let all_checked = visible_count == total && total > 0;
 
     let header_cells = headers.iter().map(|h| {
         let is_numeric = matches!(h.as_str(), "TimeStamp");
@@ -38,6 +56,7 @@ pub fn RowsTable(
             .unwrap_or_default();
 
         let is_selected = selected_row_key.as_ref() == Some(&rk);
+        let is_checked = checked_keys.contains(&rk);
 
         let cells = headers.iter().map(|h| {
             let v = row.get(h.as_str()).cloned().unwrap_or(Value::Null);
@@ -62,21 +81,61 @@ pub fn RowsTable(
 
         let row_val = row.clone();
         let row_cls = if is_selected { "selected" } else { "" };
+        let rk_for_toggle = rk.clone();
+
+        let check_cell = if selectable {
+            rsx! {
+                td {
+                    class: "rt-check",
+                    onclick: move |evt| {
+                        evt.stop_propagation();
+                        on_toggle_row.call(rk_for_toggle.clone());
+                    },
+                    input {
+                        r#type: "checkbox",
+                        checked: is_checked,
+                    }
+                }
+            }
+        } else {
+            rsx! {}
+        };
 
         rsx! {
             tr {
                 key: "{i}",
                 class: row_cls,
                 onclick: move |_| on_row_click.call(row_val.clone()),
+                {check_cell}
                 {cells}
             }
         }
     });
 
+    let head_check = if selectable {
+        rsx! {
+            th {
+                class: "rt-check",
+                onclick: move |_| on_toggle_all.call(!all_checked),
+                input {
+                    r#type: "checkbox",
+                    checked: all_checked,
+                }
+            }
+        }
+    } else {
+        rsx! {}
+    };
+
     rsx! {
         div { class: "rows-wrap",
             table { class: "rt",
-                thead { tr { {header_cells} } }
+                thead {
+                    tr {
+                        {head_check}
+                        {header_cells}
+                    }
+                }
                 tbody { {body_rows} }
             }
         }

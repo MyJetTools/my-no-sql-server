@@ -1353,11 +1353,16 @@ textarea {
 
 /* --- Rows column (header + toolbar + table) --- */
 .rows-col {
-    display: grid;
-    grid-template-rows: auto auto 1fr;
+    display: flex;
+    flex-direction: column;
     min-height: 0;
     min-width: 0;
     background: var(--bg);
+}
+
+.rows-col > .rows-wrap {
+    flex: 1;
+    min-height: 0;
 }
 
 .table-header {
@@ -1494,10 +1499,41 @@ textarea {
 [data-theme="dark"] .rt .pk { color: var(--accent); }
 
 .rt-check {
-    width: 24px;
+    width: 28px;
     text-align: center;
     padding: 5px 6px !important;
 }
+
+.rt-check input[type="checkbox"] {
+    margin: 0;
+    cursor: pointer;
+    vertical-align: middle;
+}
+
+.rt thead th.rt-check {
+    cursor: pointer;
+}
+
+/* --- Bulk action bar (selection toolbar) --- */
+.bulk-bar {
+    padding: 7px 16px;
+    background: var(--accent-soft);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.bulk-bar__count {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--accent-strong);
+}
+
+.bulk-bar__spacer { flex: 1; }
+
+[data-theme="dark"] .bulk-bar__count { color: var(--accent); }
 
 /* --- Row drawer --- */
 .row-drawer {

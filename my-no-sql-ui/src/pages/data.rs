@@ -19,6 +19,10 @@ enum DialogState {
         partition_key: String,
         row_key: String,
     },
+    BulkDelete {
+        partition_key: String,
+        row_keys: Vec<String>,
+    },
 }
 
 #[derive(Default)]
@@ -33,6 +37,7 @@ struct DataState {
     drawer_open: bool,
     started: bool,
     dialog: Option<DialogState>,
+    checked_keys: HashSet<String>,
 }
 
 #[component]
@@ -116,6 +121,7 @@ pub fn Data() -> Element {
             w.rows = Vec::new();
             w.selected_row = None;
             w.drawer_open = false;
+            w.checked_keys.clear();
         }
         storage::save_selected_table(&name);
         storage::save_selected_partition(None);
@@ -152,6 +158,7 @@ pub fn Data() -> Element {
             w.rows = Vec::new();
             w.selected_row = None;
             w.drawer_open = false;
+            w.checked_keys.clear();
         }
         storage::save_selected_partition(Some(&pk));
         let table_name = cs.read().selected_table.clone();
@@ -178,31 +185,93 @@ pub fn Data() -> Element {
     };
 
     let confirm_delete = move |_| {
-        let dialog_val = cs.read().dialog.clone();
-        let table_name = cs.read().selected_table.clone();
-        let Some(DialogState::DeleteOne {
-            partition_key,
-            row_key,
-        }) = dialog_val
-        else {
-            return;
-        };
-        spawn(async move {
-            if let Err(err) = delete_row(&table_name, &partition_key, &row_key).await {
-                dioxus_utils::console_log(&format!("Delete error: {}", err));
-                return;
+        let cs_ra = cs.read();
+        let dialog_val = cs_ra.dialog.clone();
+        let table_name = cs_ra.selected_table.clone();
+        drop(cs_ra);
+        match dialog_val {
+            Some(DialogState::DeleteOne {
+                partition_key,
+                row_key,
+            }) => {
+                spawn(async move {
+                    if let Err(err) = delete_row(&table_name, &partition_key, &row_key).await {
+                        dioxus_utils::console_log(&format!("Delete error: {}", err));
+                        return;
+                    }
+                    {
+                        let mut w = cs.write();
+                        w.dialog = None;
+                        w.drawer_open = false;
+                        w.selected_row = None;
+                        w.checked_keys.remove(&row_key);
+                    }
+                    if let Ok(rows) = get_rows(&table_name, &partition_key).await {
+                        let (headers, rows) = build_rows_state(rows);
+                        let mut w = cs.write();
+                        w.headers = headers;
+                        w.rows = rows;
+                    }
+                });
             }
-            cs.write().dialog = None;
-            cs.write().drawer_open = false;
-            cs.write().selected_row = None;
-            if let Ok(rows) = get_rows(&table_name, &partition_key).await {
-                let (headers, rows) = build_rows_state(rows);
-                let mut w = cs.write();
-                w.headers = headers;
-                w.rows = rows;
+            Some(DialogState::BulkDelete {
+                partition_key,
+                row_keys,
+            }) => {
+                spawn(async move {
+                    if let Err(err) =
+                        bulk_delete_rows(&table_name, &partition_key, &row_keys).await
+                    {
+                        dioxus_utils::console_log(&format!("Bulk delete error: {}", err));
+                        return;
+                    }
+                    {
+                        let mut w = cs.write();
+                        w.dialog = None;
+                        w.drawer_open = false;
+                        w.selected_row = None;
+                        for rk in &row_keys {
+                            w.checked_keys.remove(rk);
+                        }
+                    }
+                    if let Ok(rows) = get_rows(&table_name, &partition_key).await {
+                        let (headers, rows) = build_rows_state(rows);
+                        let mut w = cs.write();
+                        w.headers = headers;
+                        w.rows = rows;
+                    }
+                });
             }
-        });
-        let _ = bulk_delete_rows; // silence unused warning
+            None => {}
+        }
+    };
+
+    let toggle_row_check = move |rk: String| {
+        let mut w = cs.write();
+        if w.checked_keys.contains(&rk) {
+            w.checked_keys.remove(&rk);
+        } else {
+            w.checked_keys.insert(rk);
+        }
+    };
+
+    let toggle_all_check = move |check_all: bool| {
+        let mut w = cs.write();
+        if check_all {
+            let keys: Vec<String> = w
+                .rows
+                .iter()
+                .filter_map(|r| {
+                    r.get(ROW_KEY)
+                        .and_then(|v| v.as_str().map(|s| s.to_string()))
+                })
+                .collect();
+            for k in keys {
+                w.checked_keys.insert(k);
+            }
+        } else {
+            w.checked_keys.clear();
+        }
     };
 
     // Re-read state for rendering
@@ -216,6 +285,7 @@ pub fn Data() -> Element {
     let selected_row = cs_ra.selected_row.clone();
     let drawer_open = cs_ra.drawer_open;
     let dialog_val = cs_ra.dialog.clone();
+    let checked_keys = cs_ra.checked_keys.clone();
     drop(cs_ra);
 
     // Derive writers per table for the selected table
@@ -267,6 +337,45 @@ pub fn Data() -> Element {
                 });
             }
         };
+        let checked_in_partition: Vec<String> = filtered_rows
+            .iter()
+            .filter_map(|r| {
+                r.get(ROW_KEY)
+                    .and_then(|v| v.as_str().map(|s| s.to_string()))
+            })
+            .filter(|k| checked_keys.contains(k))
+            .collect();
+        let checked_count = checked_in_partition.len();
+
+        let bulk_bar = if checked_count > 0 {
+            let pk_opt = selected_partition.clone();
+            let keys_for_delete = checked_in_partition.clone();
+            rsx! {
+                div { class: "bulk-bar",
+                    span { class: "bulk-bar__count", "{checked_count} selected" }
+                    div { class: "bulk-bar__spacer" }
+                    button {
+                        class: "btn btn--ghost btn--sm",
+                        onclick: move |_| { cs.write().checked_keys.clear(); },
+                        "Clear"
+                    }
+                    button {
+                        class: "btn btn--danger btn--sm",
+                        onclick: move |_| {
+                            let Some(pk) = pk_opt.clone() else { return };
+                            cs.write().dialog = Some(DialogState::BulkDelete {
+                                partition_key: pk,
+                                row_keys: keys_for_delete.clone(),
+                            });
+                        },
+                        "Delete selected"
+                    }
+                }
+            }
+        } else {
+            rsx! {}
+        };
+
         rsx! {
             div { class: "rows-col",
                 TableHeader {
@@ -279,11 +388,16 @@ pub fn Data() -> Element {
                     writer_tags: writer_apps_for_selected.clone(),
                     reader_count: reader_count_for_selected,
                 }
+                {bulk_bar}
                 RowsTable {
                     headers: headers.clone(),
                     rows: filtered_rows,
                     selected_row_key,
                     on_row_click,
+                    selectable: true,
+                    checked_keys: checked_keys.clone(),
+                    on_toggle_row: toggle_row_check,
+                    on_toggle_all: toggle_all_check,
                 }
             }
         }
@@ -354,6 +468,48 @@ pub fn Data() -> Element {
                 }
             }
         },
+        Some(DialogState::BulkDelete { partition_key, row_keys }) => {
+            let total = row_keys.len();
+            const PREVIEW_LIMIT: usize = 50;
+            let preview: Vec<String> = row_keys.iter().take(PREVIEW_LIMIT).cloned().collect();
+            let extra = total.saturating_sub(preview.len());
+            let items = preview.into_iter().map(|k| rsx! {
+                div { class: "dialog__list-item", "{k}" }
+            });
+            let extra_line = if extra > 0 {
+                rsx! { div { class: "dialog__list-extra", "+ {extra} more" } }
+            } else {
+                rsx! {}
+            };
+            rsx! {
+                div { class: "dialog-overlay",
+                    div { class: "dialog",
+                        div { class: "dialog__header", "Confirm bulk delete" }
+                        div { class: "dialog__body",
+                            "Delete "
+                            b { "{total}" }
+                            " row(s) from partition "
+                            b { "{partition_key}" }
+                            "?"
+                            div { class: "dialog__list",
+                                {items}
+                                {extra_line}
+                            }
+                        }
+                        div { class: "dialog__footer",
+                            button {
+                                class: "btn btn--ghost btn--sm",
+                                onclick: move |_| { cs.write().dialog = None; },
+                                "Cancel"
+                            }
+                            button { class: "btn btn--danger btn--sm", onclick: confirm_delete,
+                                "Delete {total} row(s)"
+                            }
+                        }
+                    }
+                }
+            }
+        }
         None => rsx! {},
     };
 
