@@ -137,20 +137,24 @@ impl From<&UiSettingsModel> for SettingsPublicModel {
 /// from the body are left as-is on the server. `mcpWritePassword`:
 /// `Some(non-empty)` → set/replace; `Some("")` → clear; `None` →
 /// leave unchanged.
-#[derive(Deserialize, Debug, Default)]
-pub struct UiSettingsPatchBody {
-    #[serde(rename = "warnMs", default)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone, MyHttpObjectStructure)]
+pub struct SettingsPatchBody {
+    #[serde(rename = "warnMs", default, skip_serializing_if = "Option::is_none")]
     pub warn_ms: Option<u32>,
-    #[serde(rename = "badMs", default)]
+    #[serde(rename = "badMs", default, skip_serializing_if = "Option::is_none")]
     pub bad_ms: Option<u32>,
-    #[serde(rename = "mcpWritePassword", default)]
+    #[serde(
+        rename = "mcpWritePassword",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
     pub mcp_write_password: Option<String>,
 }
 
 #[derive(MyHttpInput)]
-pub struct UiSettingsUpdateInput {
+pub struct SettingsUpdateInput {
     #[http_body_raw(
-        description = "UiSettings JSON. Fields: warnMs, badMs, mcpWritePassword (omit to leave unchanged; empty string clears the password)."
+        description = "Settings JSON. All fields optional: warnMs, badMs, mcpWritePassword. Omitted fields are left unchanged. mcpWritePassword set to '' clears the password."
     )]
-    pub body: RawDataTyped<SettingsPublicModel>,
+    pub body: RawDataTyped<SettingsPatchBody>,
 }

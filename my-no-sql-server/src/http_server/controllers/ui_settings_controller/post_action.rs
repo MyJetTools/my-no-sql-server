@@ -5,7 +5,7 @@ use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 
 use crate::app::AppContext;
 
-use super::models::{UiSettingsPatchBody, SettingsPublicModel, UiSettingsUpdateInput};
+use super::models::{SettingsPatchBody, SettingsPublicModel, SettingsUpdateInput};
 
 #[http_route(
     method: "POST",
@@ -13,7 +13,7 @@ use super::models::{UiSettingsPatchBody, SettingsPublicModel, UiSettingsUpdateIn
     controller: "Settings",
     description: "Partial update of server settings. Fields omitted from the body are left unchanged; `mcpWritePassword` set to '' clears the password.",
     summary: "Update settings",
-    input_data: UiSettingsUpdateInput,
+    input_data: SettingsUpdateInput,
     result:[
         {status_code: 200, description: "Saved settings", model: "SettingsPublicModel"},
     ]
@@ -30,10 +30,10 @@ impl PostUiSettingsAction {
 
 async fn handle_request(
     action: &PostUiSettingsAction,
-    input_data: UiSettingsUpdateInput,
+    input_data: SettingsUpdateInput,
     _ctx: &mut HttpContext,
 ) -> Result<HttpOkResult, HttpFailResult> {
-    let patch: UiSettingsPatchBody = match serde_json::from_slice(input_data.body.as_slice()) {
+    let patch: SettingsPatchBody = match serde_json::from_slice(input_data.body.as_slice()) {
         Ok(m) => m,
         Err(err) => {
             return Err(HttpFailResult::as_validation_error(format!(
