@@ -1,6 +1,6 @@
 use serde::*;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct TableApiModel {
     pub name: String,
     pub persist: bool,

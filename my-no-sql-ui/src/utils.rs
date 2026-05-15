@@ -15,6 +15,7 @@ pub fn format_bytes(n: f64) -> String {
     format!("{:.2}Gb", n)
 }
 
+#[allow(dead_code)]
 pub fn format_duration(micros: f64) -> String {
     if micros == 0.0 {
         return "0".to_string();
