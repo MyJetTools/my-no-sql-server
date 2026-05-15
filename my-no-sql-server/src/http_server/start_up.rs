@@ -80,6 +80,10 @@ async fn build_mcp_middleware(app: &Arc<AppContext>) -> McpMiddleware {
     )));
 
     mcp.register_tool_call_with_context(Arc::new(
+        crate::mcp::BulkDeleteRowsToolCallHandler::new(app.clone()),
+    ));
+
+    mcp.register_tool_call_with_context(Arc::new(
         crate::mcp::InsertOrReplaceRowToolCallHandler::new(app.clone()),
     ));
 

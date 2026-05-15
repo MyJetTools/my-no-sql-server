@@ -5,6 +5,8 @@ pub use get_list_of_tables_tool_call::*;
 mod password_check;
 mod delete_row_tool_call;
 pub use delete_row_tool_call::*;
+mod bulk_delete_rows_tool_call;
+pub use bulk_delete_rows_tool_call::*;
 mod insert_or_replace_row_tool_call;
 pub use insert_or_replace_row_tool_call::*;
 mod mcp_write_password_policy_prompt;
