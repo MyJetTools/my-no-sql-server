@@ -192,6 +192,18 @@ pub async fn set_mcp_write_password(value: &str) -> Result<(), RequestError> {
     Ok(())
 }
 
+pub async fn get_snapshots_list() -> Result<Vec<String>, RequestError> {
+    let url = format!("{}/api/Backup/List", get_base_url());
+    let response = reqwest::Client::new().get(&url).send().await?;
+    if !response.status().is_success() {
+        return Err(RequestError {
+            message: format!("Failed to load snapshots: {}", response.status()),
+        });
+    }
+    let result: Vec<String> = response.json().await?;
+    Ok(result)
+}
+
 pub async fn bulk_delete_rows(
     table_name: &str,
     partition_key: &str,

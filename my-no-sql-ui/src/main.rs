@@ -20,6 +20,8 @@ pub enum AppRoute {
     Home {},
     #[route("/data")]
     Data {},
+    #[route("/snapshots")]
+    Snapshots {},
     #[route("/settings")]
     Settings {},
     #[route("/:..segments")]
@@ -72,6 +74,7 @@ fn Shell() -> Element {
     let section = match route {
         AppRoute::Home {} => SidebarSection::Overview,
         AppRoute::Data {} => SidebarSection::Tables,
+        AppRoute::Snapshots {} => SidebarSection::Snapshots,
         AppRoute::Settings {} => SidebarSection::Settings,
         _ => SidebarSection::Overview,
     };
@@ -84,6 +87,10 @@ fn Shell() -> Element {
         SidebarSection::Tables => vec![
             Crumb { label: "MyNoSql".to_string(), active: false },
             Crumb { label: "Tables".to_string(), active: true },
+        ],
+        SidebarSection::Snapshots => vec![
+            Crumb { label: "MyNoSql".to_string(), active: false },
+            Crumb { label: "Snapshots".to_string(), active: true },
         ],
         SidebarSection::Settings => vec![
             Crumb { label: "MyNoSql".to_string(), active: false },
