@@ -5,36 +5,36 @@ use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 
 use crate::app::AppContext;
 
-use super::models::{SettingsPatchBody, SettingsPublicModel, SettingsUpdateInput};
+use super::models::{McpWritePasswordBody, McpWritePasswordInput, SettingsPublicModel};
 
 #[http_route(
     method: "POST",
-    route: "/api/Settings",
+    route: "/api/Settings/McpWritePassword",
     controller: "Settings",
-    description: "Partial update of server settings (warnMs, badMs). Fields omitted from the body are left unchanged. The MCP write password is managed via POST /api/Settings/McpWritePassword.",
-    summary: "Update settings",
-    input_data: SettingsUpdateInput,
+    description: "Sets or clears the MCP write password used by `delete_row` and `insert_or_replace_row` MCP tools. The value is hashed (salt + SHA-256) before persistence — plaintext is never stored or returned. Pass an empty string to clear.",
+    summary: "Set MCP write password",
+    input_data: McpWritePasswordInput,
     result:[
-        {status_code: 200, description: "Saved settings", model: "SettingsPublicModel"},
+        {status_code: 200, description: "Updated settings", model: "SettingsPublicModel"},
     ]
 )]
-pub struct PostUiSettingsAction {
+pub struct SetMcpWritePasswordAction {
     app: Arc<AppContext>,
 }
 
-impl PostUiSettingsAction {
+impl SetMcpWritePasswordAction {
     pub fn new(app: Arc<AppContext>) -> Self {
         Self { app }
     }
 }
 
 async fn handle_request(
-    action: &PostUiSettingsAction,
-    input_data: SettingsUpdateInput,
+    action: &SetMcpWritePasswordAction,
+    input_data: McpWritePasswordInput,
     _ctx: &mut HttpContext,
 ) -> Result<HttpOkResult, HttpFailResult> {
-    let patch: SettingsPatchBody = match serde_json::from_slice(input_data.body.as_slice()) {
-        Ok(m) => m,
+    let body: McpWritePasswordBody = match serde_json::from_slice(input_data.body.as_slice()) {
+        Ok(b) => b,
         Err(err) => {
             return Err(HttpFailResult::as_validation_error(format!(
                 "Invalid body: {}",
@@ -44,14 +44,7 @@ async fn handle_request(
     };
 
     let mut current = super::storage::load(action.app.settings.persistence_dest.as_str()).await;
-
-    if let Some(v) = patch.warn_ms {
-        current.warn_ms = v;
-    }
-    if let Some(v) = patch.bad_ms {
-        current.bad_ms = v;
-    }
-
+    current.set_mcp_write_password(Some(body.password.as_str()));
     let sanitized = current.sanitized();
 
     if let Err(err) =
@@ -63,6 +56,7 @@ async fn handle_request(
         )));
     }
 
-    let public = SettingsPublicModel::from(&sanitized);
-    HttpOutput::as_json(public).into_ok_result(false).into()
+    HttpOutput::as_json(SettingsPublicModel::from(&sanitized))
+        .into_ok_result(false)
+        .into()
 }

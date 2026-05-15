@@ -170,22 +170,18 @@ pub async fn set_health_thresholds(
     Ok(())
 }
 
-/// Sets or clears the MCP write password. Pass `""` to clear it. The
-/// value is sent server-side and hashed with a random salt before
-/// persistence — the GET endpoint will report only whether a password
-/// is configured.
+/// Sets or clears the MCP write password via the dedicated endpoint
+/// POST `/api/Settings/McpWritePassword`. Pass `""` to clear. Value is
+/// hashed (salt + SHA-256) on the server before persistence.
 pub async fn set_mcp_write_password(value: &str) -> Result<(), RequestError> {
-    let url = format!("{}/api/Settings", get_base_url());
+    let url = format!("{}/api/Settings/McpWritePassword", get_base_url());
     #[derive(serde::Serialize)]
     struct Payload<'a> {
-        #[serde(rename = "mcpWritePassword")]
-        mcp_write_password: &'a str,
+        password: &'a str,
     }
     let response = reqwest::Client::new()
         .post(&url)
-        .json(&Payload {
-            mcp_write_password: value,
-        })
+        .json(&Payload { password: value })
         .send()
         .await?;
     if !response.status().is_success() {
