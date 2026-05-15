@@ -9,3 +9,5 @@ mod restore_file_name;
 pub use restore_file_name::*;
 mod get_list_of_files;
 pub use get_list_of_files::*;
+mod inspect;
+pub use inspect::*;

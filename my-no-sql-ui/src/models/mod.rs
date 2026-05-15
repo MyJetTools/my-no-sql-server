@@ -15,3 +15,6 @@ pub use status_bar_api_model::*;
 
 mod data_models;
 pub use data_models::*;
+
+mod snapshot_table_api_model;
+pub use snapshot_table_api_model::*;

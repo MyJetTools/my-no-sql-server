@@ -234,5 +234,17 @@ pub fn build(app: &Arc<AppContext>) -> ControllersMiddleware {
         app.clone(),
     )));
 
+    result.register_get_action(Arc::new(super::backup::ListSnapshotTablesAction::new(
+        app.clone(),
+    )));
+
+    result.register_get_action(Arc::new(super::backup::ListSnapshotPartitionsAction::new(
+        app.clone(),
+    )));
+
+    result.register_get_action(Arc::new(super::backup::GetSnapshotRowsAction::new(
+        app.clone(),
+    )));
+
     result
 }

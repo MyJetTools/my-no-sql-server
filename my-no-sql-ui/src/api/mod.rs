@@ -204,6 +204,65 @@ pub async fn get_snapshots_list() -> Result<Vec<String>, RequestError> {
     Ok(result)
 }
 
+pub async fn get_snapshot_tables(file_name: &str) -> Result<Vec<SnapshotTableApiModel>, RequestError> {
+    let url = format!("{}/api/Backup/Tables", get_base_url());
+    let response = reqwest::Client::new()
+        .get(&url)
+        .query(&[("fileName", file_name)])
+        .send()
+        .await?;
+    if !response.status().is_success() {
+        return Err(RequestError {
+            message: format!("Failed to load snapshot tables: {}", response.status()),
+        });
+    }
+    let result: Vec<SnapshotTableApiModel> = response.json().await?;
+    Ok(result)
+}
+
+pub async fn get_snapshot_partitions(
+    file_name: &str,
+    table_name: &str,
+) -> Result<Vec<String>, RequestError> {
+    let url = format!("{}/api/Backup/Partitions", get_base_url());
+    let response = reqwest::Client::new()
+        .get(&url)
+        .query(&[("fileName", file_name), ("tableName", table_name)])
+        .send()
+        .await?;
+    if !response.status().is_success() {
+        return Err(RequestError {
+            message: format!("Failed to load snapshot partitions: {}", response.status()),
+        });
+    }
+    let result: Vec<String> = response.json().await?;
+    Ok(result)
+}
+
+pub async fn get_snapshot_rows(
+    file_name: &str,
+    table_name: &str,
+    partition_key: &str,
+) -> Result<Vec<Value>, RequestError> {
+    let url = format!("{}/api/Backup/Rows", get_base_url());
+    let response = reqwest::Client::new()
+        .get(&url)
+        .query(&[
+            ("fileName", file_name),
+            ("tableName", table_name),
+            ("partitionKey", partition_key),
+        ])
+        .send()
+        .await?;
+    if !response.status().is_success() {
+        return Err(RequestError {
+            message: format!("Failed to load snapshot rows: {}", response.status()),
+        });
+    }
+    let result: Vec<Value> = response.json().await?;
+    Ok(result)
+}
+
 pub async fn bulk_delete_rows(
     table_name: &str,
     partition_key: &str,
