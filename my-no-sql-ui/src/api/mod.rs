@@ -113,7 +113,7 @@ pub async fn delete_row(
 }
 
 pub async fn get_ui_settings() -> Result<crate::settings::UiServerSettings, RequestError> {
-    let url = format!("{}/api/UiSettings", get_base_url());
+    let url = format!("{}/api/Settings", get_base_url());
     let response = reqwest::Client::new().get(&url).send().await?;
     if !response.status().is_success() {
         // Treat any non-success as "settings not available yet" — fall
@@ -146,7 +146,7 @@ pub async fn get_health_thresholds() -> Result<crate::settings::HealthThresholds
 pub async fn set_health_thresholds(
     t: crate::settings::HealthThresholds,
 ) -> Result<(), RequestError> {
-    let url = format!("{}/api/UiSettings", get_base_url());
+    let url = format!("{}/api/Settings", get_base_url());
     #[derive(serde::Serialize)]
     struct Payload {
         #[serde(rename = "warnMs")]
@@ -175,7 +175,7 @@ pub async fn set_health_thresholds(
 /// persistence — the GET endpoint will report only whether a password
 /// is configured.
 pub async fn set_mcp_write_password(value: &str) -> Result<(), RequestError> {
-    let url = format!("{}/api/UiSettings", get_base_url());
+    let url = format!("{}/api/Settings", get_base_url());
     #[derive(serde::Serialize)]
     struct Payload<'a> {
         #[serde(rename = "mcpWritePassword")]

@@ -9,12 +9,12 @@ use super::models::UiSettingsPublicModel;
 
 #[http_route(
     method: "GET",
-    route: "/api/UiSettings",
-    controller: "UiSettings",
-    description: "Returns UI settings stored next to data files. The MCP write password is reported as a boolean flag — its value is never exposed.",
-    summary: "Read UI settings",
+    route: "/api/Settings",
+    controller: "Settings",
+    description: "Returns server settings (UI thresholds + MCP write password flag). The password value is never exposed — only a boolean indicating whether it is configured.",
+    summary: "Read settings",
     result:[
-        {status_code: 200, description: "UI settings", model: "UiSettingsPublicModel"},
+        {status_code: 200, description: "Settings", model: "UiSettingsPublicModel"},
     ]
 )]
 pub struct GetUiSettingsAction {

@@ -109,7 +109,7 @@ fn hash_password(salt_hex: &str, password: &str) -> String {
     out
 }
 
-/// Wire shape returned by GET `/api/UiSettings`. Hides salt/hash —
+/// Wire shape returned by GET `/api/Settings`. Hides salt/hash —
 /// callers only learn whether a password is set. `Deserialize` is
 /// derived only to satisfy `RawDataTyped`'s bound; the actual POST
 /// body is deserialized into `UiSettingsPatchBody`.
@@ -133,7 +133,7 @@ impl From<&UiSettingsModel> for UiSettingsPublicModel {
     }
 }
 
-/// Partial-update payload for POST `/api/UiSettings`. Fields omitted
+/// Partial-update payload for POST `/api/Settings`. Fields omitted
 /// from the body are left as-is on the server. `mcpWritePassword`:
 /// `Some(non-empty)` → set/replace; `Some("")` → clear; `None` →
 /// leave unchanged.

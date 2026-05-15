@@ -9,10 +9,10 @@ use super::models::{UiSettingsPatchBody, UiSettingsPublicModel, UiSettingsUpdate
 
 #[http_route(
     method: "POST",
-    route: "/api/UiSettings",
-    controller: "UiSettings",
-    description: "Partial update of UI settings (warnMs/badMs/mcpWritePassword). Fields omitted from the body are left unchanged; mcpWritePassword set to '' clears the password.",
-    summary: "Update UI settings",
+    route: "/api/Settings",
+    controller: "Settings",
+    description: "Partial update of server settings. Fields omitted from the body are left unchanged; `mcpWritePassword` set to '' clears the password.",
+    summary: "Update settings",
     input_data: UiSettingsUpdateInput,
     result:[
         {status_code: 200, description: "Saved settings", model: "UiSettingsPublicModel"},
