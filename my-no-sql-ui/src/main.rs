@@ -4,6 +4,7 @@ mod api;
 mod components;
 mod models;
 mod pages;
+mod storage;
 mod utils;
 
 use pages::*;

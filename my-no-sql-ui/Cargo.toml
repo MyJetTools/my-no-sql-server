@@ -19,7 +19,7 @@ futures = { version = "*" }
 serde_json = { version = "*" }
 serde = { version = "*", features = ["derive"] }
 
-web-sys = { version = "*", features = ["Storage"] }
+web-sys = { version = "*", features = ["Storage", "Window"] }
 js-sys = { version = "*" }
 
 [build-dependencies]

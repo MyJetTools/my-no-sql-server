@@ -5,6 +5,7 @@ use serde_json::Value;
 
 use crate::api::{bulk_delete_rows, delete_row, get_partitions, get_rows, get_tables_list};
 use crate::models::TableListItemApiModel;
+use crate::storage;
 
 const PARTITION_KEY: &str = "PartitionKey";
 const ROW_KEY: &str = "RowKey";
@@ -45,11 +46,53 @@ pub fn Data() -> Element {
             return;
         }
         *started.write() = true;
+        let saved_table = storage::load_selected_table();
+        let saved_partition = storage::load_selected_partition();
         spawn(async move {
-            if let Ok(list) = get_tables_list().await {
-                let mut sorted = list;
-                sorted.sort_by(|a, b| a.name.cmp(&b.name));
-                tables.set(sorted);
+            let list = match get_tables_list().await {
+                Ok(l) => l,
+                Err(err) => {
+                    dioxus_utils::console_log(&format!("Tables error: {}", err));
+                    return;
+                }
+            };
+            let mut sorted = list;
+            sorted.sort_by(|a, b| a.name.cmp(&b.name));
+            tables.set(sorted.clone());
+
+            let Some(table_name) = saved_table
+                .filter(|name| sorted.iter().any(|t| &t.name == name))
+            else {
+                return;
+            };
+            selected_table.set(table_name.clone());
+
+            let parts = match get_partitions(&table_name).await {
+                Ok(p) => p.data,
+                Err(err) => {
+                    dioxus_utils::console_log(&format!("Partitions error: {}", err));
+                    return;
+                }
+            };
+
+            let restored_pk = saved_partition
+                .filter(|pk| parts.contains(pk))
+                .or_else(|| {
+                    if parts.len() == 1 {
+                        Some(parts[0].clone())
+                    } else {
+                        None
+                    }
+                });
+
+            partitions.set(Some(parts));
+
+            if let Some(pk) = restored_pk {
+                selected_partition.set(Some(pk.clone()));
+                storage::save_selected_partition(Some(&pk));
+                if let Ok(rows) = get_rows(&table_name, &pk).await {
+                    rows_state.set(build_rows_state(rows));
+                }
             }
         });
     };
@@ -60,6 +103,8 @@ pub fn Data() -> Element {
         partitions.set(None);
         rows_state.set(RowsState::default());
         selected_rows.write().clear();
+        storage::save_selected_table(&name);
+        storage::save_selected_partition(None);
 
         spawn(async move {
             match get_partitions(&name).await {
@@ -68,6 +113,7 @@ pub fn Data() -> Element {
                     if data.len() == 1 {
                         let pk = data[0].clone();
                         selected_partition.set(Some(pk.clone()));
+                        storage::save_selected_partition(Some(&pk));
                         if let Ok(rows) = get_rows(&name, &pk).await {
                             rows_state.set(build_rows_state(rows));
                         }
@@ -85,6 +131,7 @@ pub fn Data() -> Element {
         selected_partition.set(Some(pk.clone()));
         rows_state.set(RowsState::default());
         selected_rows.write().clear();
+        storage::save_selected_partition(Some(&pk));
         let table_name = selected_table.read().clone();
         spawn(async move {
             if let Ok(rows) = get_rows(&table_name, &pk).await {
@@ -309,16 +356,19 @@ pub fn Data() -> Element {
         };
 
         rsx! {
-            button {
-                class: "btn btn-success",
-                style: "margin: 5px;",
-                onclick: move |_| {
-                    selected_partition.set(None);
-                    selected_rows.write().clear();
-                },
-                "Select partition"
+            div { class: "table-toolbar",
+                button {
+                    class: "btn btn-success",
+                    style: "margin: 5px;",
+                    onclick: move |_| {
+                        selected_partition.set(None);
+                        selected_rows.write().clear();
+                        storage::save_selected_partition(None);
+                    },
+                    "Select partition"
+                }
+                {bulk_button}
             }
-            {bulk_button}
             table { class: "table table-striped",
                 thead {
                     tr {
