@@ -9,7 +9,7 @@ const DEFAULT_BAD_MS: u32 = 10_000;
 
 /// On-disk shape (`ui-settings.json`). Salt + hash for the MCP write
 /// password are stored here; the plaintext value is never persisted
-/// and never returned by the GET endpoint. See `UiSettingsPublicModel`
+/// and never returned by the GET endpoint. See `SettingsPublicModel`
 /// for the wire shape returned to UI clients.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct UiSettingsModel {
@@ -114,7 +114,7 @@ fn hash_password(salt_hex: &str, password: &str) -> String {
 /// derived only to satisfy `RawDataTyped`'s bound; the actual POST
 /// body is deserialized into `UiSettingsPatchBody`.
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, MyHttpObjectStructure)]
-pub struct UiSettingsPublicModel {
+pub struct SettingsPublicModel {
     #[serde(rename = "warnMs")]
     pub warn_ms: u32,
     #[serde(rename = "badMs")]
@@ -123,7 +123,7 @@ pub struct UiSettingsPublicModel {
     pub mcp_write_password_set: bool,
 }
 
-impl From<&UiSettingsModel> for UiSettingsPublicModel {
+impl From<&UiSettingsModel> for SettingsPublicModel {
     fn from(m: &UiSettingsModel) -> Self {
         Self {
             warn_ms: m.warn_ms,
@@ -152,5 +152,5 @@ pub struct UiSettingsUpdateInput {
     #[http_body_raw(
         description = "UiSettings JSON. Fields: warnMs, badMs, mcpWritePassword (omit to leave unchanged; empty string clears the password)."
     )]
-    pub body: RawDataTyped<UiSettingsPublicModel>,
+    pub body: RawDataTyped<SettingsPublicModel>,
 }

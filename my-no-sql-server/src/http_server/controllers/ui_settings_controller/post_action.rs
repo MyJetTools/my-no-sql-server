@@ -5,7 +5,7 @@ use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 
 use crate::app::AppContext;
 
-use super::models::{UiSettingsPatchBody, UiSettingsPublicModel, UiSettingsUpdateInput};
+use super::models::{UiSettingsPatchBody, SettingsPublicModel, UiSettingsUpdateInput};
 
 #[http_route(
     method: "POST",
@@ -15,7 +15,7 @@ use super::models::{UiSettingsPatchBody, UiSettingsPublicModel, UiSettingsUpdate
     summary: "Update settings",
     input_data: UiSettingsUpdateInput,
     result:[
-        {status_code: 200, description: "Saved settings", model: "UiSettingsPublicModel"},
+        {status_code: 200, description: "Saved settings", model: "SettingsPublicModel"},
     ]
 )]
 pub struct PostUiSettingsAction {
@@ -66,6 +66,6 @@ async fn handle_request(
         )));
     }
 
-    let public = UiSettingsPublicModel::from(&sanitized);
+    let public = SettingsPublicModel::from(&sanitized);
     HttpOutput::as_json(public).into_ok_result(false).into()
 }

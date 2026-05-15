@@ -5,7 +5,7 @@ use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 
 use crate::app::AppContext;
 
-use super::models::UiSettingsPublicModel;
+use super::models::SettingsPublicModel;
 
 #[http_route(
     method: "GET",
@@ -14,7 +14,7 @@ use super::models::UiSettingsPublicModel;
     description: "Returns server settings (UI thresholds + MCP write password flag). The password value is never exposed — only a boolean indicating whether it is configured.",
     summary: "Read settings",
     result:[
-        {status_code: 200, description: "Settings", model: "UiSettingsPublicModel"},
+        {status_code: 200, description: "Settings", model: "SettingsPublicModel"},
     ]
 )]
 pub struct GetUiSettingsAction {
@@ -32,6 +32,6 @@ async fn handle_request(
     _ctx: &mut HttpContext,
 ) -> Result<HttpOkResult, HttpFailResult> {
     let model = super::storage::load(action.app.settings.persistence_dest.as_str()).await;
-    let public = UiSettingsPublicModel::from(&model);
+    let public = SettingsPublicModel::from(&model);
     HttpOutput::as_json(public).into_ok_result(false).into()
 }
