@@ -33,7 +33,7 @@ pub async fn setup_server(app: &Arc<AppContext>) -> HttpConnectionsCounter {
     let static_files_middleware = Arc::new(
         my_http_server::StaticFilesMiddleware::new()
             .add_index_file("index.html")
-            .add_index_path("/data"),
+            .set_not_found_file("index.html".to_string()),
     );
 
     let mcp_middleware = Arc::new(build_mcp_middleware(app).await);
