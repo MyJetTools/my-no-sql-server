@@ -337,6 +337,20 @@ pub fn Data() -> Element {
                 });
             }
         };
+        let on_export_click = {
+            let table = selected_table.clone();
+            let pk_opt = selected_partition.clone();
+            move |_| {
+                let Some(pk) = pk_opt.clone() else { return };
+                let url = crate::api::download_rows_url(&table, &pk);
+                let script = format!(
+                    "window.location.href = {};",
+                    serde_json::to_string(&url).unwrap_or_else(|_| "\"\"".to_string())
+                );
+                let _ = dioxus::document::eval(&script);
+            }
+        };
+        let export_enabled = selected_partition.is_some();
         let checked_in_partition: Vec<String> = filtered_rows
             .iter()
             .filter_map(|r| {
@@ -387,6 +401,8 @@ pub fn Data() -> Element {
                     filter_value: row_filter,
                     writer_tags: writer_apps_for_selected.clone(),
                     reader_count: reader_count_for_selected,
+                    on_export: on_export_click,
+                    export_enabled,
                 }
                 {bulk_bar}
                 RowsTable {

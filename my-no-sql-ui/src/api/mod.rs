@@ -30,6 +30,32 @@ fn get_base_url() -> String {
     }
 }
 
+pub fn download_rows_url(table_name: &str, partition_key: &str) -> String {
+    format!(
+        "{}/api/Row/Download?tableName={}&partitionKey={}",
+        get_base_url(),
+        url_escape(table_name),
+        url_escape(partition_key),
+    )
+}
+
+fn url_escape(value: &str) -> String {
+    let mut out = String::with_capacity(value.len());
+    for byte in value.as_bytes() {
+        let c = *byte;
+        let safe = matches!(
+            c,
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~'
+        );
+        if safe {
+            out.push(c as char);
+        } else {
+            out.push_str(&format!("%{:02X}", c));
+        }
+    }
+    out
+}
+
 pub async fn get_status() -> Result<StatusApiModel, RequestError> {
     let url = format!("{}/api/Status", get_base_url());
     let response = reqwest::Client::new().get(&url).send().await?;

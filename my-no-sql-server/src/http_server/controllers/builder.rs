@@ -131,6 +131,10 @@ pub fn build(app: &Arc<AppContext>) -> ControllersMiddleware {
         app.clone(),
     )));
 
+    result.register_get_action(Arc::new(super::row_controller::DownloadRowsAction::new(
+        app.clone(),
+    )));
+
     result.register_put_action(Arc::new(super::row_controller::ReplaceRowAction::new(
         app.clone(),
     )));

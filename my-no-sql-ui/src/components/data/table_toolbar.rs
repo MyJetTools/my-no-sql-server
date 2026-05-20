@@ -7,6 +7,8 @@ pub fn TableToolbar(
     filter_value: Signal<String>,
     writer_tags: Vec<String>,
     reader_count: usize,
+    on_export: EventHandler<()>,
+    export_enabled: bool,
 ) -> Element {
     let writer_pills = writer_tags.into_iter().map(|app| rsx! {
         Badge { text: app, tone: BadgeTone::Writer }
@@ -27,7 +29,10 @@ pub fn TableToolbar(
             div { class: "table-toolbar-new__group",
                 Badge { text: format!("{reader_count} readers"), tone: BadgeTone::Reader }
             }
-            button { class: "btn btn--sm",
+            button {
+                class: "btn btn--sm",
+                disabled: !export_enabled,
+                onclick: move |_| on_export.call(()),
                 Icon { kind: IconKind::Download }
                 "Export"
             }
