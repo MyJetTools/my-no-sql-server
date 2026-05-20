@@ -96,6 +96,7 @@ async fn build_mcp_middleware(app: &Arc<AppContext>) -> McpMiddleware {
     ));
 
     mcp.register_prompt(Arc::new(crate::mcp::McpWritePasswordPolicyPromptHandler));
+    mcp.register_prompt(Arc::new(crate::mcp::PasteDeleteViaUiPromptHandler));
 
     mcp
 }

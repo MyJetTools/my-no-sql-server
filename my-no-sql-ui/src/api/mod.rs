@@ -311,3 +311,22 @@ pub async fn bulk_delete_rows(
     }
     Ok(())
 }
+
+pub async fn bulk_delete_many(
+    table_name: &str,
+    grouped: &std::collections::BTreeMap<String, Vec<String>>,
+) -> Result<(), RequestError> {
+    let url = format!("{}/api/Bulk/Delete", get_base_url());
+    let response = reqwest::Client::new()
+        .post(&url)
+        .query(&[("tableName", table_name)])
+        .json(grouped)
+        .send()
+        .await?;
+    if !response.status().is_success() {
+        return Err(RequestError {
+            message: format!("Failed to bulk-delete rows: {}", response.status()),
+        });
+    }
+    Ok(())
+}

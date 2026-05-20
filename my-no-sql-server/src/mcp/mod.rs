@@ -15,3 +15,5 @@ mod insert_or_replace_row_tool_call;
 pub use insert_or_replace_row_tool_call::*;
 mod mcp_write_password_policy_prompt;
 pub use mcp_write_password_policy_prompt::*;
+mod paste_delete_via_ui_prompt;
+pub use paste_delete_via_ui_prompt::*;

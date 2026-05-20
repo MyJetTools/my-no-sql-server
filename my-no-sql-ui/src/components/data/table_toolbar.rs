@@ -9,6 +9,8 @@ pub fn TableToolbar(
     reader_count: usize,
     on_export: EventHandler<()>,
     export_enabled: bool,
+    on_paste_delete: EventHandler<()>,
+    paste_enabled: bool,
 ) -> Element {
     let writer_pills = writer_tags.into_iter().map(|app| rsx! {
         Badge { text: app, tone: BadgeTone::Writer }
@@ -28,6 +30,13 @@ pub fn TableToolbar(
             }
             div { class: "table-toolbar-new__group",
                 Badge { text: format!("{reader_count} readers"), tone: BadgeTone::Reader }
+            }
+            button {
+                class: "btn btn--sm",
+                disabled: !paste_enabled,
+                onclick: move |_| on_paste_delete.call(()),
+                Icon { kind: IconKind::Layers }
+                "Paste & delete"
             }
             button {
                 class: "btn btn--sm",

@@ -1,10 +1,12 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use dioxus::prelude::*;
 use serde_json::Value;
 
 use crate::AppContext;
-use crate::api::{bulk_delete_rows, delete_row, get_partitions, get_rows, get_tables_list};
+use crate::api::{
+    bulk_delete_many, bulk_delete_rows, delete_row, get_partitions, get_rows, get_tables_list,
+};
 use crate::components::atoms::{Badge, BadgeTone, Icon, IconKind};
 use crate::components::data::{
     PARTITION_KEY, PartitionsPane, ROW_KEY, RowDrawer, RowsTable, TableHeader, TableToolbar,
@@ -22,6 +24,13 @@ enum DialogState {
     BulkDelete {
         partition_key: String,
         row_keys: Vec<String>,
+    },
+    PasteDelete {
+        raw: String,
+        parsed: Option<BTreeMap<String, Vec<String>>>,
+        total_rows: usize,
+        partitions_touched: usize,
+        error: Option<String>,
     },
 }
 
@@ -242,6 +251,34 @@ pub fn Data() -> Element {
                     }
                 });
             }
+            Some(DialogState::PasteDelete {
+                parsed: Some(grouped),
+                ..
+            }) => {
+                spawn(async move {
+                    if let Err(err) = bulk_delete_many(&table_name, &grouped).await {
+                        dioxus_utils::console_log(&format!("Paste delete error: {}", err));
+                        return;
+                    }
+                    let current_pk = {
+                        let mut w = cs.write();
+                        w.dialog = None;
+                        w.drawer_open = false;
+                        w.selected_row = None;
+                        w.checked_keys.clear();
+                        w.selected_partition.clone()
+                    };
+                    if let Some(pk) = current_pk {
+                        if let Ok(rows) = get_rows(&table_name, &pk).await {
+                            let (headers, rows) = build_rows_state(rows);
+                            let mut w = cs.write();
+                            w.headers = headers;
+                            w.rows = rows;
+                        }
+                    }
+                });
+            }
+            Some(DialogState::PasteDelete { parsed: None, .. }) => {}
             None => {}
         }
     };
@@ -403,6 +440,16 @@ pub fn Data() -> Element {
                     reader_count: reader_count_for_selected,
                     on_export: on_export_click,
                     export_enabled,
+                    on_paste_delete: move |_| {
+                        cs.write().dialog = Some(DialogState::PasteDelete {
+                            raw: String::new(),
+                            parsed: None,
+                            total_rows: 0,
+                            partitions_touched: 0,
+                            error: None,
+                        });
+                    },
+                    paste_enabled: true,
                 }
                 {bulk_bar}
                 RowsTable {
@@ -526,6 +573,187 @@ pub fn Data() -> Element {
                 }
             }
         }
+        Some(DialogState::PasteDelete {
+            raw,
+            parsed,
+            total_rows,
+            partitions_touched,
+            error,
+        }) => {
+            let parse_ready = parsed.is_some();
+            let total = total_rows;
+            let partitions_n = partitions_touched;
+            let error_text = error.clone();
+            let target_table = selected_table.clone();
+
+            let on_textarea_input = move |evt: dioxus::events::FormEvent| {
+                let new_raw = evt.value();
+                let mut w = cs.write();
+                if let Some(DialogState::PasteDelete {
+                    raw: r,
+                    parsed: p,
+                    total_rows: t,
+                    partitions_touched: pt,
+                    error: e,
+                }) = w.dialog.as_mut()
+                {
+                    *r = new_raw;
+                    *p = None;
+                    *t = 0;
+                    *pt = 0;
+                    *e = None;
+                }
+            };
+
+            let on_parse_click = move |_| {
+                let raw_snapshot = {
+                    let cs_ra = cs.read();
+                    match cs_ra.dialog.as_ref() {
+                        Some(DialogState::PasteDelete { raw, .. }) => raw.clone(),
+                        _ => return,
+                    }
+                };
+                match parse_paste_delete_input(&raw_snapshot) {
+                    Ok((grouped, total, partitions_touched)) => {
+                        let mut w = cs.write();
+                        if let Some(DialogState::PasteDelete {
+                            parsed,
+                            total_rows,
+                            partitions_touched: pt_field,
+                            error,
+                            ..
+                        }) = w.dialog.as_mut()
+                        {
+                            *parsed = Some(grouped);
+                            *total_rows = total;
+                            *pt_field = partitions_touched;
+                            *error = None;
+                        }
+                    }
+                    Err(msg) => {
+                        let mut w = cs.write();
+                        if let Some(DialogState::PasteDelete {
+                            parsed,
+                            total_rows,
+                            partitions_touched: pt_field,
+                            error,
+                            ..
+                        }) = w.dialog.as_mut()
+                        {
+                            *parsed = None;
+                            *total_rows = 0;
+                            *pt_field = 0;
+                            *error = Some(msg);
+                        }
+                    }
+                }
+            };
+
+            let preview_items: Vec<(String, String)> = parsed
+                .as_ref()
+                .map(|g| {
+                    const PREVIEW_LIMIT: usize = 50;
+                    let mut out = Vec::new();
+                    'outer: for (pk, rks) in g.iter() {
+                        for rk in rks {
+                            out.push((pk.clone(), rk.clone()));
+                            if out.len() >= PREVIEW_LIMIT {
+                                break 'outer;
+                            }
+                        }
+                    }
+                    out
+                })
+                .unwrap_or_default();
+            let preview_shown = preview_items.len();
+            let preview_extra = total.saturating_sub(preview_shown);
+            let preview_items_render = preview_items.into_iter().map(|(pk, rk)| {
+                rsx! {
+                    div { class: "dialog__list-item", "pk={pk} / rk={rk}" }
+                }
+            });
+            let preview_extra_line = if preview_extra > 0 {
+                rsx! { div { class: "dialog__list-extra", "+ {preview_extra} more" } }
+            } else {
+                rsx! {}
+            };
+
+            let placeholder_text: &'static str = "[\n  { \"PartitionKey\": \"a\", \"RowKey\": \"1\" },\n  { \"PartitionKey\": \"b\", \"RowKey\": \"5\" }\n]";
+
+            let error_render = if let Some(msg) = error_text {
+                rsx! {
+                    div { class: "dialog__error", "{msg}" }
+                }
+            } else {
+                rsx! {}
+            };
+
+            let summary_render = if parse_ready {
+                rsx! {
+                    div { style: "margin: 6px 0;",
+                        "Will delete "
+                        b { "{total}" }
+                        " row(s) across "
+                        b { "{partitions_n}" }
+                        " partition(s)"
+                    }
+                }
+            } else {
+                rsx! {}
+            };
+
+            rsx! {
+                div { class: "dialog-overlay",
+                    div { class: "dialog",
+                        div { class: "dialog__header", "Paste & delete" }
+                        div { class: "dialog__body",
+                            div { style: "margin-bottom: 6px;",
+                                "Target table: "
+                                b { "{target_table}" }
+                            }
+                            div { style: "margin-bottom: 6px; font-size: 12px; color: gray;",
+                                "Paste a JSON array of objects with "
+                                code { "PartitionKey" }
+                                " and "
+                                code { "RowKey" }
+                                " fields."
+                            }
+                            textarea {
+                                value: "{raw}",
+                                oninput: on_textarea_input,
+                                rows: "10",
+                                style: "width: 100%; font-family: monospace; font-size: 12px;",
+                                placeholder: placeholder_text,
+                            }
+                            {error_render}
+                            {summary_render}
+                            div { class: "dialog__list",
+                                {preview_items_render}
+                                {preview_extra_line}
+                            }
+                        }
+                        div { class: "dialog__footer",
+                            button {
+                                class: "btn btn--ghost btn--sm",
+                                onclick: move |_| { cs.write().dialog = None; },
+                                "Cancel"
+                            }
+                            button {
+                                class: "btn btn--sm",
+                                onclick: on_parse_click,
+                                "Parse"
+                            }
+                            button {
+                                class: "btn btn--danger btn--sm",
+                                disabled: !parse_ready,
+                                onclick: confirm_delete,
+                                "Delete {total} row(s)"
+                            }
+                        }
+                    }
+                }
+            }
+        }
         None => rsx! {},
     };
 
@@ -548,6 +776,70 @@ pub fn Data() -> Element {
             {dialog_render}
         }
     }
+}
+
+fn parse_paste_delete_input(
+    raw: &str,
+) -> Result<(BTreeMap<String, Vec<String>>, usize, usize), String> {
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return Err("Input is empty.".to_string());
+    }
+
+    let parsed: Value = serde_json::from_str(trimmed)
+        .map_err(|err| format!("Invalid JSON: {}", err))?;
+
+    let arr = parsed
+        .as_array()
+        .ok_or_else(|| "Top-level JSON must be an array.".to_string())?;
+
+    if arr.is_empty() {
+        return Err("Array is empty.".to_string());
+    }
+
+    let mut grouped: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    let mut total: usize = 0;
+
+    for (idx, item) in arr.iter().enumerate() {
+        let obj = item.as_object().ok_or_else(|| {
+            format!(
+                "Item #{} is not an object (expected {{ PartitionKey, RowKey }}).",
+                idx
+            )
+        })?;
+
+        let pk = obj
+            .get(PARTITION_KEY)
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| {
+                format!(
+                    "Item #{} is missing a string \"PartitionKey\" field.",
+                    idx
+                )
+            })?;
+        let rk = obj
+            .get(ROW_KEY)
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| {
+                format!("Item #{} is missing a string \"RowKey\" field.", idx)
+            })?;
+
+        if pk.is_empty() {
+            return Err(format!("Item #{}: PartitionKey is empty.", idx));
+        }
+        if rk.is_empty() {
+            return Err(format!("Item #{}: RowKey is empty.", idx));
+        }
+
+        grouped
+            .entry(pk.to_string())
+            .or_insert_with(Vec::new)
+            .push(rk.to_string());
+        total += 1;
+    }
+
+    let partitions_touched = grouped.len();
+    Ok((grouped, total, partitions_touched))
 }
 
 fn build_rows_state(rows: Vec<Value>) -> (Vec<String>, Vec<Value>) {

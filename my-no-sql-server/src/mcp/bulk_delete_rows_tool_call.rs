@@ -52,7 +52,9 @@ Deletes multiple rows from a single partition in one call. Pass \
 `partition_key` and `row_keys[]`. The mcp-write-password is verified \
 ONCE for the whole batch, not per row. POLICY: the password is requested \
 via MCP elicitation; NEVER cache, log, or summarize the value. See \
-prompt 'mcp_write_password_policy'.";
+prompt 'mcp_write_password_policy'. For deletes that span multiple \
+partitions, or for large/sensitive batches, prefer the \
+'paste_delete_via_ui' workflow instead — see that prompt.";
 }
 
 #[async_trait::async_trait]
