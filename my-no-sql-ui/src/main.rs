@@ -18,8 +18,20 @@ pub enum AppRoute {
     #[layout(Shell)]
     #[route("/")]
     Home {},
+    #[layout(DataLayout)]
     #[route("/data")]
     Data {},
+    #[route("/data/:table")]
+    DataTable { table: String },
+    #[route("/data/:table/:partition")]
+    DataPartition { table: String, partition: String },
+    #[route("/data/:table/:partition/:row")]
+    DataRow {
+        table: String,
+        partition: String,
+        row: String,
+    },
+    #[end_layout]
     #[route("/snapshots")]
     Snapshots {},
     #[route("/settings")]
@@ -71,30 +83,33 @@ fn Shell() -> Element {
     });
 
     let route = use_route::<AppRoute>();
-    let section = match route {
+    let section = match &route {
         AppRoute::Home {} => SidebarSection::Overview,
-        AppRoute::Data {} => SidebarSection::Tables,
+        AppRoute::Data {}
+        | AppRoute::DataTable { .. }
+        | AppRoute::DataPartition { .. }
+        | AppRoute::DataRow { .. } => SidebarSection::Tables,
         AppRoute::Snapshots {} => SidebarSection::Snapshots,
         AppRoute::Settings {} => SidebarSection::Settings,
         _ => SidebarSection::Overview,
     };
 
-    let crumbs = match section {
-        SidebarSection::Overview => vec![
-            Crumb { label: "MyNoSql".to_string(), active: false },
-            Crumb { label: "Overview".to_string(), active: true },
-        ],
-        SidebarSection::Tables => vec![
-            Crumb { label: "MyNoSql".to_string(), active: false },
-            Crumb { label: "Tables".to_string(), active: true },
-        ],
-        SidebarSection::Snapshots => vec![
+    let crumbs = match &route {
+        AppRoute::Snapshots {} => vec![
             Crumb { label: "MyNoSql".to_string(), active: false },
             Crumb { label: "Snapshots".to_string(), active: true },
         ],
-        SidebarSection::Settings => vec![
+        AppRoute::Settings {} => vec![
             Crumb { label: "MyNoSql".to_string(), active: false },
             Crumb { label: "Settings".to_string(), active: true },
+        ],
+        AppRoute::Data {}
+        | AppRoute::DataTable { .. }
+        | AppRoute::DataPartition { .. }
+        | AppRoute::DataRow { .. } => build_data_crumbs(&route),
+        AppRoute::Home {} | AppRoute::NotFound { .. } => vec![
+            Crumb { label: "MyNoSql".to_string(), active: false },
+            Crumb { label: "Overview".to_string(), active: true },
         ],
     };
 
@@ -125,4 +140,38 @@ fn Shell() -> Element {
             }
         }
     }
+}
+
+/// Breadcrumbs for the data routes — reflects the `/data/<table>/<partition>/<row>`
+/// path, with the deepest selected segment marked active.
+fn build_data_crumbs(route: &AppRoute) -> Vec<Crumb> {
+    let (table, partition, row) = match route {
+        AppRoute::DataTable { table } => (Some(table.clone()), None, None),
+        AppRoute::DataPartition { table, partition } => {
+            (Some(table.clone()), Some(partition.clone()), None)
+        }
+        AppRoute::DataRow {
+            table,
+            partition,
+            row,
+        } => (
+            Some(table.clone()),
+            Some(partition.clone()),
+            Some(row.clone()),
+        ),
+        _ => (None, None, None),
+    };
+
+    let mut crumbs = vec![Crumb { label: "MyNoSql".to_string(), active: false }];
+    crumbs.push(Crumb { label: "Tables".to_string(), active: table.is_none() });
+    if let Some(t) = table {
+        crumbs.push(Crumb { label: t, active: partition.is_none() });
+    }
+    if let Some(p) = partition {
+        crumbs.push(Crumb { label: p, active: row.is_none() });
+    }
+    if let Some(r) = row {
+        crumbs.push(Crumb { label: r, active: true });
+    }
+    crumbs
 }

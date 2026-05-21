@@ -4,6 +4,7 @@ use dioxus::prelude::*;
 use serde_json::Value;
 
 use crate::AppContext;
+use crate::AppRoute;
 use crate::api::{
     bulk_delete_many, bulk_delete_rows, delete_row, get_partitions, get_rows, get_tables_list,
 };
@@ -13,7 +14,6 @@ use crate::components::data::{
     TablesPane, TIME_STAMP,
 };
 use crate::models::{StatusApiModel, TableApiModel, TableListItemApiModel};
-use crate::storage;
 
 #[derive(Clone)]
 enum DialogState {
@@ -37,249 +37,389 @@ enum DialogState {
 #[derive(Default)]
 struct DataState {
     tables: Vec<TableListItemApiModel>,
-    selected_table: String,
+    tables_loaded: bool,
+    /// Table whose partition list is currently loaded or loading.
+    loaded_for_table: Option<String>,
     partitions: Option<Vec<String>>,
-    selected_partition: Option<String>,
+    /// (table, partition) whose rows are currently loaded or loading.
+    loaded_rows_for: Option<(String, String)>,
+    /// True once the rows for `loaded_rows_for` have actually arrived.
+    rows_ready: bool,
     headers: Vec<String>,
     rows: Vec<Value>,
-    selected_row: Option<Value>,
-    drawer_open: bool,
-    started: bool,
     dialog: Option<DialogState>,
     checked_keys: HashSet<String>,
 }
 
+impl DataState {
+    fn set_tables(&mut self, tables: Vec<TableListItemApiModel>) {
+        self.tables = tables;
+        self.tables_loaded = true;
+    }
+
+    fn mark_tables_loaded(&mut self) {
+        self.tables_loaded = true;
+    }
+
+    /// Start loading the partition list for `table`; invalidates any rows.
+    fn begin_table_load(&mut self, table: &str) {
+        self.loaded_for_table = Some(table.to_string());
+        self.partitions = None;
+        self.loaded_rows_for = None;
+        self.rows_ready = false;
+        self.headers = Vec::new();
+        self.rows = Vec::new();
+        self.checked_keys.clear();
+    }
+
+    /// Apply a fetched partition list, unless the table was switched meanwhile.
+    fn set_partitions(&mut self, table: &str, partitions: Vec<String>) {
+        if self.loaded_for_table.as_deref() == Some(table) {
+            self.partitions = Some(partitions);
+        }
+    }
+
+    /// Start loading rows for `(table, partition)`; clears the previous rows.
+    fn begin_rows_load(&mut self, table: &str, partition: &str) {
+        self.loaded_rows_for = Some((table.to_string(), partition.to_string()));
+        self.rows_ready = false;
+        self.headers = Vec::new();
+        self.rows = Vec::new();
+        self.checked_keys.clear();
+    }
+
+    /// Apply fetched rows, unless the (table, partition) changed meanwhile.
+    fn set_rows(&mut self, table: &str, partition: &str, rows: Vec<Value>) {
+        let matches = self
+            .loaded_rows_for
+            .as_ref()
+            .map(|(t, p)| t.as_str() == table && p.as_str() == partition)
+            .unwrap_or(false);
+        if matches {
+            let (headers, rows) = build_rows_state(rows);
+            self.headers = headers;
+            self.rows = rows;
+            self.rows_ready = true;
+        }
+    }
+
+    /// Force the next render to refetch rows for the current partition.
+    fn clear_rows_scope(&mut self) {
+        self.loaded_rows_for = None;
+        self.rows_ready = false;
+    }
+}
+
+/// Extract `(table, partition, row)` from the current data route.
+fn parse_data_route(route: &AppRoute) -> (Option<String>, Option<String>, Option<String>) {
+    match route {
+        AppRoute::DataTable { table } => (Some(table.clone()), None, None),
+        AppRoute::DataPartition { table, partition } => {
+            (Some(table.clone()), Some(partition.clone()), None)
+        }
+        AppRoute::DataRow {
+            table,
+            partition,
+            row,
+        } => (
+            Some(table.clone()),
+            Some(partition.clone()),
+            Some(row.clone()),
+        ),
+        _ => (None, None, None),
+    }
+}
+
+// Route placeholders — the URL patterns for the data section. `DataLayout`
+// renders the whole page and reads the params via `use_route`, so these render
+// nothing themselves.
 #[component]
 pub fn Data() -> Element {
+    rsx! {}
+}
+
+#[component]
+pub fn DataTable(table: String) -> Element {
+    let _ = table;
+    rsx! {}
+}
+
+#[component]
+pub fn DataPartition(table: String, partition: String) -> Element {
+    let _ = (table, partition);
+    rsx! {}
+}
+
+#[component]
+pub fn DataRow(table: String, partition: String, row: String) -> Element {
+    let _ = (table, partition, row);
+    rsx! {}
+}
+
+#[component]
+pub fn DataLayout() -> Element {
     let mut cs = use_signal(DataState::default);
     let row_filter = use_signal(String::new);
     let app_ctx = use_context::<Signal<AppContext>>();
+    let nav = navigator();
 
-    let cs_ra = cs.read();
-    let started = cs_ra.started;
-    drop(cs_ra);
+    let route = use_route::<AppRoute>();
+    let (url_table, url_partition, url_row) = parse_data_route(&route);
 
-    let on_mount = move |_| {
-        if started {
-            return;
-        }
-        cs.write().started = true;
-
-        let saved_table = storage::load_selected_table();
-        let saved_partition = storage::load_selected_partition();
-
+    // ---- one-time tables list load ----
+    use_effect(move || {
         spawn(async move {
-            let list = match get_tables_list().await {
-                Ok(l) => l,
+            if cs.peek().tables_loaded {
+                return;
+            }
+            match get_tables_list().await {
+                Ok(list) => {
+                    let mut sorted = list;
+                    sorted.sort_by(|a, b| a.name.cmp(&b.name));
+                    cs.write().set_tables(sorted);
+                }
                 Err(err) => {
                     dioxus_utils::console_log(&format!("Tables error: {}", err));
-                    return;
-                }
-            };
-            let mut sorted = list;
-            sorted.sort_by(|a, b| a.name.cmp(&b.name));
-            cs.write().tables = sorted.clone();
-
-            let Some(table_name) = saved_table
-                .filter(|name| sorted.iter().any(|t| &t.name == name))
-            else {
-                return;
-            };
-            cs.write().selected_table = table_name.clone();
-
-            let parts = match get_partitions(&table_name).await {
-                Ok(p) => p.data,
-                Err(err) => {
-                    dioxus_utils::console_log(&format!("Partitions error: {}", err));
-                    return;
-                }
-            };
-
-            let restored_pk = saved_partition
-                .filter(|pk| parts.contains(pk))
-                .or_else(|| {
-                    if parts.len() == 1 {
-                        Some(parts[0].clone())
-                    } else {
-                        None
-                    }
-                });
-
-            cs.write().partitions = Some(parts);
-
-            if let Some(pk) = restored_pk {
-                cs.write().selected_partition = Some(pk.clone());
-                storage::save_selected_partition(Some(&pk));
-                if let Ok(rows) = get_rows(&table_name, &pk).await {
-                    let (headers, rows) = build_rows_state(rows);
-                    let mut w = cs.write();
-                    w.headers = headers;
-                    w.rows = rows;
+                    cs.write().mark_tables_loaded();
                 }
             }
         });
-    };
+    });
 
-    let mut select_table = move |name: String| {
-        {
-            let mut w = cs.write();
-            w.selected_table = name.clone();
-            w.selected_partition = None;
-            w.partitions = None;
-            w.headers = Vec::new();
-            w.rows = Vec::new();
-            w.selected_row = None;
-            w.drawer_open = false;
-            w.checked_keys.clear();
-        }
-        storage::save_selected_table(&name);
-        storage::save_selected_partition(None);
-
-        spawn(async move {
-            match get_partitions(&name).await {
-                Ok(p) => {
-                    let data = p.data;
-                    if data.len() == 1 {
-                        let pk = data[0].clone();
-                        cs.write().selected_partition = Some(pk.clone());
-                        storage::save_selected_partition(Some(&pk));
-                        if let Ok(rows) = get_rows(&name, &pk).await {
-                            let (headers, rows) = build_rows_state(rows);
-                            let mut w = cs.write();
-                            w.headers = headers;
-                            w.rows = rows;
+    // ---- load the partition list whenever the URL table changes ----
+    if let Some(table) = url_table.clone() {
+        let already = { cs.read().loaded_for_table.as_deref() == Some(table.as_str()) };
+        if !already {
+            let url_partition_at_nav = url_partition.clone();
+            spawn(async move {
+                if cs.peek().loaded_for_table.as_deref() == Some(table.as_str()) {
+                    return;
+                }
+                cs.write().begin_table_load(&table);
+                match get_partitions(&table).await {
+                    Ok(p) => {
+                        let data = p.data;
+                        let single = data.len() == 1;
+                        cs.write().set_partitions(&table, data.clone());
+                        // Table with a single partition — jump straight into it.
+                        // `replace` so Back skips this auto-forwarding step.
+                        if single && url_partition_at_nav.is_none() {
+                            if let Some(only) = data.into_iter().next() {
+                                nav.replace(AppRoute::DataPartition {
+                                    table: table.clone(),
+                                    partition: only,
+                                });
+                            }
                         }
                     }
-                    cs.write().partitions = Some(data);
+                    Err(err) => {
+                        dioxus_utils::console_log(&format!("Partitions error: {}", err));
+                    }
                 }
-                Err(err) => {
-                    dioxus_utils::console_log(&format!("Partitions error: {}", err));
-                }
-            }
-        });
-    };
-
-    let mut select_partition = move |pk: String| {
-        {
-            let mut w = cs.write();
-            w.selected_partition = Some(pk.clone());
-            w.headers = Vec::new();
-            w.rows = Vec::new();
-            w.selected_row = None;
-            w.drawer_open = false;
-            w.checked_keys.clear();
+            });
         }
-        storage::save_selected_partition(Some(&pk));
-        let table_name = cs.read().selected_table.clone();
-        spawn(async move {
-            if let Ok(rows) = get_rows(&table_name, &pk).await {
-                let (headers, rows) = build_rows_state(rows);
-                let mut w = cs.write();
-                w.headers = headers;
-                w.rows = rows;
-            }
-        });
+    }
+
+    // ---- load rows whenever the URL (table, partition) changes ----
+    if let (Some(table), Some(partition)) = (url_table.clone(), url_partition.clone()) {
+        let pair = (table, partition);
+        let already = { cs.read().loaded_rows_for.as_ref() == Some(&pair) };
+        if !already {
+            spawn(async move {
+                if cs.peek().loaded_rows_for.as_ref() == Some(&pair) {
+                    return;
+                }
+                cs.write().begin_rows_load(&pair.0, &pair.1);
+                match get_rows(&pair.0, &pair.1).await {
+                    Ok(rows) => cs.write().set_rows(&pair.0, &pair.1, rows),
+                    Err(err) => {
+                        dioxus_utils::console_log(&format!("Rows error: {}", err));
+                    }
+                }
+            });
+        }
+    }
+
+    // ---- read state for rendering ----
+    let cs_ra = cs.read();
+    let tables = cs_ra.tables.clone();
+
+    let partitions_list: Vec<String> = match (&url_table, &cs_ra.loaded_for_table, &cs_ra.partitions)
+    {
+        (Some(t), Some(lt), Some(list)) if t == lt => list.clone(),
+        _ => Vec::new(),
     };
 
-    let on_row_click = move |row: Value| {
-        let mut w = cs.write();
-        w.selected_row = Some(row);
-        w.drawer_open = true;
+    let rows_scope_matches = match (&url_table, &url_partition, &cs_ra.loaded_rows_for) {
+        (Some(t), Some(p), Some((lt, lp))) => t == lt && p == lp,
+        _ => false,
+    };
+    let rows_ready = rows_scope_matches && cs_ra.rows_ready;
+    let headers = if rows_scope_matches {
+        cs_ra.headers.clone()
+    } else {
+        Vec::new()
+    };
+    let all_rows = if rows_scope_matches {
+        cs_ra.rows.clone()
+    } else {
+        Vec::new()
+    };
+    let checked_keys = cs_ra.checked_keys.clone();
+    let dialog_val = cs_ra.dialog.clone();
+    drop(cs_ra);
+
+    let selected_table = url_table.clone().unwrap_or_default();
+
+    // Derive writers/readers/stats for the selected table
+    let ctx_ra = app_ctx.read();
+    let status: Option<StatusApiModel> = ctx_ra.status.clone();
+    drop(ctx_ra);
+
+    let writer_tables: HashSet<String> = build_writer_tables(&status);
+    let (writer_apps_for_selected, reader_count_for_selected) =
+        derive_table_connectivity(&status, &selected_table);
+    let table_stats = derive_table_stats(&status, &selected_table);
+    let row_counts_by_table = derive_table_row_counts(&status);
+    let partition_counts = HashMap::<String, usize>::new();
+
+    // Filter rows
+    let filter_str = row_filter.read().to_lowercase();
+    let filtered_rows: Vec<Value> = if filter_str.is_empty() {
+        all_rows.clone()
+    } else {
+        all_rows
+            .iter()
+            .filter(|row| row.to_string().to_lowercase().contains(&filter_str))
+            .cloned()
+            .collect()
     };
 
-    let close_drawer = move |_| {
-        let mut w = cs.write();
-        w.selected_row = None;
-        w.drawer_open = false;
+    // The drawer carries only the row key in the URL — resolve the full row.
+    let resolved_row: Option<Value> = url_row.as_ref().and_then(|rk| {
+        all_rows
+            .iter()
+            .find(|r| r.get(ROW_KEY).and_then(|v| v.as_str()) == Some(rk.as_str()))
+            .cloned()
+    });
+
+    // ---- navigation handlers ----
+    let select_table = move |name: String| {
+        nav.push(AppRoute::DataTable { table: name });
     };
 
-    let confirm_delete = move |_| {
-        let cs_ra = cs.read();
-        let dialog_val = cs_ra.dialog.clone();
-        let table_name = cs_ra.selected_table.clone();
-        drop(cs_ra);
-        match dialog_val {
-            Some(DialogState::DeleteOne {
-                partition_key,
-                row_key,
-            }) => {
-                spawn(async move {
-                    if let Err(err) = delete_row(&table_name, &partition_key, &row_key).await {
-                        dioxus_utils::console_log(&format!("Delete error: {}", err));
-                        return;
-                    }
-                    {
-                        let mut w = cs.write();
-                        w.dialog = None;
-                        w.drawer_open = false;
-                        w.selected_row = None;
-                        w.checked_keys.remove(&row_key);
-                    }
-                    if let Ok(rows) = get_rows(&table_name, &partition_key).await {
-                        let (headers, rows) = build_rows_state(rows);
-                        let mut w = cs.write();
-                        w.headers = headers;
-                        w.rows = rows;
-                    }
+    let select_partition = {
+        let table = url_table.clone();
+        move |pk: String| {
+            if let Some(table) = table.clone() {
+                nav.push(AppRoute::DataPartition {
+                    table,
+                    partition: pk,
                 });
             }
-            Some(DialogState::BulkDelete {
-                partition_key,
-                row_keys,
-            }) => {
-                spawn(async move {
-                    if let Err(err) =
-                        bulk_delete_rows(&table_name, &partition_key, &row_keys).await
-                    {
-                        dioxus_utils::console_log(&format!("Bulk delete error: {}", err));
-                        return;
-                    }
-                    {
+        }
+    };
+
+    let on_row_click = {
+        let table = url_table.clone();
+        let partition = url_partition.clone();
+        move |row: Value| {
+            let (Some(table), Some(partition)) = (table.clone(), partition.clone()) else {
+                return;
+            };
+            let rk = row
+                .get(ROW_KEY)
+                .and_then(|v| v.as_str().map(|s| s.to_string()))
+                .unwrap_or_default();
+            nav.push(AppRoute::DataRow {
+                table,
+                partition,
+                row: rk,
+            });
+        }
+    };
+
+    let close_drawer = {
+        let table = url_table.clone();
+        let partition = url_partition.clone();
+        move |_| {
+            if let (Some(table), Some(partition)) = (table.clone(), partition.clone()) {
+                nav.push(AppRoute::DataPartition { table, partition });
+            }
+        }
+    };
+
+    let confirm_delete = {
+        let table = url_table.clone();
+        let partition = url_partition.clone();
+        move |_| {
+            let dialog_val = cs.read().dialog.clone();
+            let Some(table_name) = table.clone() else {
+                return;
+            };
+            match dialog_val {
+                Some(DialogState::DeleteOne {
+                    partition_key,
+                    row_key,
+                }) => {
+                    let back_partition = partition.clone();
+                    spawn(async move {
+                        if let Err(err) = delete_row(&table_name, &partition_key, &row_key).await {
+                            dioxus_utils::console_log(&format!("Delete error: {}", err));
+                            return;
+                        }
+                        {
+                            let mut w = cs.write();
+                            w.dialog = None;
+                            w.checked_keys.remove(&row_key);
+                            w.clear_rows_scope();
+                        }
+                        // Drop the row segment so the drawer closes.
+                        if let Some(partition) = back_partition {
+                            nav.push(AppRoute::DataPartition {
+                                table: table_name.clone(),
+                                partition,
+                            });
+                        }
+                    });
+                }
+                Some(DialogState::BulkDelete {
+                    partition_key,
+                    row_keys,
+                }) => {
+                    spawn(async move {
+                        if let Err(err) =
+                            bulk_delete_rows(&table_name, &partition_key, &row_keys).await
+                        {
+                            dioxus_utils::console_log(&format!("Bulk delete error: {}", err));
+                            return;
+                        }
                         let mut w = cs.write();
                         w.dialog = None;
-                        w.drawer_open = false;
-                        w.selected_row = None;
                         for rk in &row_keys {
                             w.checked_keys.remove(rk);
                         }
-                    }
-                    if let Ok(rows) = get_rows(&table_name, &partition_key).await {
-                        let (headers, rows) = build_rows_state(rows);
-                        let mut w = cs.write();
-                        w.headers = headers;
-                        w.rows = rows;
-                    }
-                });
-            }
-            Some(DialogState::PasteDelete {
-                parsed: Some(grouped),
-                ..
-            }) => {
-                spawn(async move {
-                    if let Err(err) = bulk_delete_many(&table_name, &grouped).await {
-                        dioxus_utils::console_log(&format!("Paste delete error: {}", err));
-                        return;
-                    }
-                    let current_pk = {
+                        w.clear_rows_scope();
+                    });
+                }
+                Some(DialogState::PasteDelete {
+                    parsed: Some(grouped),
+                    ..
+                }) => {
+                    spawn(async move {
+                        if let Err(err) = bulk_delete_many(&table_name, &grouped).await {
+                            dioxus_utils::console_log(&format!("Paste delete error: {}", err));
+                            return;
+                        }
                         let mut w = cs.write();
                         w.dialog = None;
-                        w.drawer_open = false;
-                        w.selected_row = None;
                         w.checked_keys.clear();
-                        w.selected_partition.clone()
-                    };
-                    if let Some(pk) = current_pk {
-                        if let Ok(rows) = get_rows(&table_name, &pk).await {
-                            let (headers, rows) = build_rows_state(rows);
-                            let mut w = cs.write();
-                            w.headers = headers;
-                            w.rows = rows;
-                        }
-                    }
-                });
+                        w.clear_rows_scope();
+                    });
+                }
+                Some(DialogState::PasteDelete { parsed: None, .. }) => {}
+                None => {}
             }
-            Some(DialogState::PasteDelete { parsed: None, .. }) => {}
-            None => {}
         }
     };
 
@@ -311,74 +451,19 @@ pub fn Data() -> Element {
         }
     };
 
-    // Re-read state for rendering
-    let cs_ra = cs.read();
-    let tables = cs_ra.tables.clone();
-    let selected_table = cs_ra.selected_table.clone();
-    let partitions = cs_ra.partitions.clone();
-    let selected_partition = cs_ra.selected_partition.clone();
-    let headers = cs_ra.headers.clone();
-    let all_rows = cs_ra.rows.clone();
-    let selected_row = cs_ra.selected_row.clone();
-    let drawer_open = cs_ra.drawer_open;
-    let dialog_val = cs_ra.dialog.clone();
-    let checked_keys = cs_ra.checked_keys.clone();
-    drop(cs_ra);
-
-    // Derive writers per table for the selected table
-    let ctx_ra = app_ctx.read();
-    let status: Option<StatusApiModel> = ctx_ra.status.clone();
-    drop(ctx_ra);
-
-    let writer_tables: HashSet<String> = build_writer_tables(&status);
-    let (writer_apps_for_selected, reader_count_for_selected) =
-        derive_table_connectivity(&status, &selected_table);
-    let table_stats = derive_table_stats(&status, &selected_table);
-    let row_counts_by_table = derive_table_row_counts(&status);
-    let partition_counts = HashMap::<String, usize>::new();
-
-    // Filter rows
-    let filter_str = row_filter.read().to_lowercase();
-    let filtered_rows: Vec<Value> = if filter_str.is_empty() {
-        all_rows.clone()
+    let center_content = if url_table.is_none() {
+        render_empty_state(tables.clone(), select_table)
     } else {
-        all_rows
-            .iter()
-            .filter(|row| row.to_string().to_lowercase().contains(&filter_str))
-            .cloned()
-            .collect()
-    };
-
-    let selected_row_key = selected_row.as_ref().and_then(|r| {
-        r.get(ROW_KEY)
-            .and_then(|v| v.as_str().map(|s| s.to_string()))
-    });
-
-    let center_content = if selected_table.is_empty() {
-        render_empty_state(tables.clone(), move |name| select_table(name))
-    } else {
-        let on_refresh_table = {
-            let name = selected_table.clone();
-            move |_| {
-                let table = name.clone();
-                spawn(async move {
-                    let pk_opt = cs.read().selected_partition.clone();
-                    if let Some(pk) = pk_opt {
-                        if let Ok(rows) = get_rows(&table, &pk).await {
-                            let (headers, rows) = build_rows_state(rows);
-                            let mut w = cs.write();
-                            w.headers = headers;
-                            w.rows = rows;
-                        }
-                    }
-                });
-            }
+        let on_refresh_table = move |_| {
+            cs.write().clear_rows_scope();
         };
         let on_export_click = {
-            let table = selected_table.clone();
-            let pk_opt = selected_partition.clone();
+            let table = url_table.clone();
+            let pk_opt = url_partition.clone();
             move |_| {
-                let Some(pk) = pk_opt.clone() else { return };
+                let (Some(table), Some(pk)) = (table.clone(), pk_opt.clone()) else {
+                    return;
+                };
                 let url = crate::api::download_rows_url(&table, &pk);
                 let script = format!(
                     "window.location.href = {};",
@@ -387,7 +472,7 @@ pub fn Data() -> Element {
                 let _ = dioxus::document::eval(&script);
             }
         };
-        let export_enabled = selected_partition.is_some();
+        let export_enabled = url_partition.is_some();
         let checked_in_partition: Vec<String> = filtered_rows
             .iter()
             .filter_map(|r| {
@@ -399,7 +484,7 @@ pub fn Data() -> Element {
         let checked_count = checked_in_partition.len();
 
         let bulk_bar = if checked_count > 0 {
-            let pk_opt = selected_partition.clone();
+            let pk_opt = url_partition.clone();
             let keys_for_delete = checked_in_partition.clone();
             rsx! {
                 div { class: "bulk-bar",
@@ -455,7 +540,7 @@ pub fn Data() -> Element {
                 RowsTable {
                     headers: headers.clone(),
                     rows: filtered_rows,
-                    selected_row_key,
+                    selected_row_key: url_row.clone(),
                     on_row_click,
                     selectable: true,
                     checked_keys: checked_keys.clone(),
@@ -466,44 +551,61 @@ pub fn Data() -> Element {
         }
     };
 
-    let partitions_content = if selected_table.is_empty() {
+    let partitions_content = if url_table.is_none() {
         rsx! { aside { class: "partitions-pane" } }
     } else {
-        let parts = partitions.clone().unwrap_or_default();
         rsx! {
             PartitionsPane {
-                partitions: parts,
+                partitions: partitions_list,
                 counts: partition_counts,
-                selected: selected_partition.clone(),
+                selected: url_partition.clone(),
                 on_select: move |pk| select_partition(pk),
             }
         }
     };
 
-    let drawer_content = if drawer_open && selected_row.is_some() {
-        let row = selected_row.clone().unwrap();
-        let pk_val = row
-            .get(PARTITION_KEY)
-            .and_then(|v| v.as_str().map(|s| s.to_string()))
-            .unwrap_or_default();
-        let rk_val = row
-            .get(ROW_KEY)
-            .and_then(|v| v.as_str().map(|s| s.to_string()))
-            .unwrap_or_default();
-        rsx! {
-            RowDrawer {
-                row,
-                on_close: close_drawer,
-                on_delete: move |_| {
-                    cs.write().dialog = Some(DialogState::DeleteOne {
-                        partition_key: pk_val.clone(),
-                        row_key: rk_val.clone(),
-                    });
-                },
+    let drawer_content = match url_row.as_ref() {
+        None => rsx! {},
+        Some(rk) => {
+            if !rows_ready {
+                rsx! {
+                    DrawerMessage {
+                        title: "Loading row…".to_string(),
+                        message: "Fetching partition rows…".to_string(),
+                        on_close: close_drawer,
+                    }
+                }
+            } else if let Some(row) = resolved_row.clone() {
+                let pk_val = row
+                    .get(PARTITION_KEY)
+                    .and_then(|v| v.as_str().map(|s| s.to_string()))
+                    .unwrap_or_default();
+                let rk_val = row
+                    .get(ROW_KEY)
+                    .and_then(|v| v.as_str().map(|s| s.to_string()))
+                    .unwrap_or_default();
+                rsx! {
+                    RowDrawer {
+                        row,
+                        on_close: close_drawer,
+                        on_delete: move |_| {
+                            cs.write().dialog = Some(DialogState::DeleteOne {
+                                partition_key: pk_val.clone(),
+                                row_key: rk_val.clone(),
+                            });
+                        },
+                    }
+                }
+            } else {
+                rsx! {
+                    DrawerMessage {
+                        title: "Row not found".to_string(),
+                        message: format!("No row with key \"{}\" in this partition.", rk),
+                        on_close: close_drawer,
+                    }
+                }
             }
         }
-    } else {
-        rsx! {}
     };
 
     let dialog_render = match dialog_val {
@@ -524,7 +626,7 @@ pub fn Data() -> Element {
                             onclick: move |_| { cs.write().dialog = None; },
                             "Cancel"
                         }
-                        button { class: "btn btn--danger btn--sm", onclick: confirm_delete,
+                        button { class: "btn btn--danger btn--sm", onclick: confirm_delete.clone(),
                             "Delete"
                         }
                     }
@@ -565,7 +667,7 @@ pub fn Data() -> Element {
                                 onclick: move |_| { cs.write().dialog = None; },
                                 "Cancel"
                             }
-                            button { class: "btn btn--danger btn--sm", onclick: confirm_delete,
+                            button { class: "btn btn--danger btn--sm", onclick: confirm_delete.clone(),
                                 "Delete {total} row(s)"
                             }
                         }
@@ -746,7 +848,7 @@ pub fn Data() -> Element {
                             button {
                                 class: "btn btn--danger btn--sm",
                                 disabled: !parse_ready,
-                                onclick: confirm_delete,
+                                onclick: confirm_delete.clone(),
                                 "Delete {total} row(s)"
                             }
                         }
@@ -757,10 +859,14 @@ pub fn Data() -> Element {
         None => rsx! {},
     };
 
-    let data_cls = if drawer_open { "data" } else { "data data--no-drawer" };
+    let data_cls = if url_row.is_some() {
+        "data"
+    } else {
+        "data data--no-drawer"
+    };
 
     rsx! {
-        section { class: "page page--flush", onmounted: on_mount,
+        section { class: "page page--flush",
             div { class: data_cls,
                 TablesPane {
                     tables: tables.clone(),
@@ -774,6 +880,31 @@ pub fn Data() -> Element {
                 {drawer_content}
             }
             {dialog_render}
+            Outlet::<AppRoute> {}
+        }
+    }
+}
+
+/// A minimal row drawer used while rows are still loading or when the URL
+/// points at a row key that no longer exists.
+#[component]
+fn DrawerMessage(title: String, message: String, on_close: EventHandler<()>) -> Element {
+    rsx! {
+        aside { class: "row-drawer",
+            div { class: "row-drawer__header",
+                span { class: "row-drawer__title", "Row Detail" }
+                button {
+                    class: "topbar__icon-btn",
+                    onclick: move |_| on_close.call(()),
+                    Icon { kind: IconKind::X }
+                }
+            }
+            div { class: "row-drawer__body",
+                div { class: "empty-state",
+                    div { class: "empty-state__title", "{title}" }
+                    div { class: "empty-state__sub", "{message}" }
+                }
+            }
         }
     }
 }
