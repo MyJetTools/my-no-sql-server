@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
+use my_no_sql_sdk::core::db::{DbTableAttributes, DbTableInner};
 use my_no_sql_sdk::core::rust_extensions::date_time::DateTimeAsMicroseconds;
+use my_no_sql_sdk::server::DbTable;
 
 use crate::{
     app::AppContext,
@@ -37,12 +39,31 @@ pub async fn subscribe(
             .into();
         } else {
             println!(
-                "{:?} is subscribing to the table {} which does not exist",
+                "{:?} is subscribing to the table {} which does not exist. \
+                 Sending an empty snapshot so the reader gets initialized",
                 data_reader.get_name(),
                 table_name
             );
 
-            return Err(DbOperationError::TableNotFound(table_name.to_string()));
+            // Table does not exist and auto-create is disabled. Build a throwaway,
+            // empty DbTable - it is NOT inserted into app.db and NO subscription is
+            // registered. It exists only to produce an empty InitTable snapshot so the
+            // reader initializes instead of receiving an Error contract (which makes
+            // the SDK reader panic).
+            let empty_table = DbTable::new(DbTableInner::new(
+                table_name.into(),
+                DbTableAttributes::new(false, None, None, DateTimeAsMicroseconds::now()),
+            ));
+
+            crate::operations::sync::dispatch(
+                app,
+                SyncEvent::TableFirstInit(TableFirstInitSyncData {
+                    db_table: empty_table,
+                    data_reader,
+                }),
+            );
+
+            return Ok(());
         }
     }
 
