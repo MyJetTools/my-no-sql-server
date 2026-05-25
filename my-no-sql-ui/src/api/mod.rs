@@ -153,16 +153,14 @@ pub async fn delete_row(
     partition_key: &str,
     row_key: &str,
 ) -> Result<(), RequestError> {
-    let url = format!("{}/api/Row", get_base_url());
-    let response = reqwest::Client::new()
-        .delete(&url)
-        .query(&[
-            ("tableName", table_name),
-            ("partitionKey", partition_key),
-            ("rowKey", row_key),
-        ])
-        .send()
-        .await?;
+    let url = format!(
+        "{}/api/Row?tableName={}&partitionKey={}&rowKey={}",
+        get_base_url(),
+        url_escape(table_name),
+        url_escape(partition_key),
+        url_escape(row_key),
+    );
+    let response = reqwest::Client::new().delete(&url).send().await?;
     if !response.status().is_success() {
         return Err(RequestError {
             message: format!("Failed to delete row: {}", response.status()),
@@ -329,10 +327,13 @@ pub async fn bulk_delete_rows(
     let mut body = std::collections::BTreeMap::new();
     body.insert(partition_key.to_string(), row_keys.to_vec());
 
-    let url = format!("{}/api/Bulk/Delete", get_base_url());
+    let url = format!(
+        "{}/api/Bulk/Delete?tableName={}",
+        get_base_url(),
+        url_escape(table_name),
+    );
     let response = reqwest::Client::new()
         .post(&url)
-        .query(&[("tableName", table_name)])
         .json(&body)
         .send()
         .await?;
@@ -348,10 +349,13 @@ pub async fn bulk_delete_many(
     table_name: &str,
     grouped: &std::collections::BTreeMap<String, Vec<String>>,
 ) -> Result<(), RequestError> {
-    let url = format!("{}/api/Bulk/Delete", get_base_url());
+    let url = format!(
+        "{}/api/Bulk/Delete?tableName={}",
+        get_base_url(),
+        url_escape(table_name),
+    );
     let response = reqwest::Client::new()
         .post(&url)
-        .query(&[("tableName", table_name)])
         .json(grouped)
         .send()
         .await?;
