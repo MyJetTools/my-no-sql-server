@@ -18,6 +18,9 @@ pub use rows_table::*;
 mod row_drawer;
 pub use row_drawer::*;
 
+mod pagination;
+pub use pagination::*;
+
 pub fn format_compact_count(n: usize) -> String {
     let v = n as f64;
     if v >= 1_000_000.0 {

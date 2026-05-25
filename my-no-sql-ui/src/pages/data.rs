@@ -10,8 +10,8 @@ use crate::api::{
 };
 use crate::components::atoms::{Badge, BadgeTone, Icon, IconKind};
 use crate::components::data::{
-    PARTITION_KEY, PartitionsPane, ROW_KEY, RowDrawer, RowsTable, TableHeader, TableToolbar,
-    TablesPane, TIME_STAMP,
+    PARTITION_KEY, PartitionsPane, ROW_KEY, RowDrawer, RowsTable, TableHeader, TablePagination,
+    TableToolbar, TablesPane, TIME_STAMP,
 };
 use crate::models::{StatusApiModel, TableApiModel, TableListItemApiModel};
 
@@ -34,7 +34,6 @@ enum DialogState {
     },
 }
 
-#[derive(Default)]
 struct DataState {
     tables: Vec<TableListItemApiModel>,
     tables_loaded: bool,
@@ -49,7 +48,30 @@ struct DataState {
     rows: Vec<Value>,
     dialog: Option<DialogState>,
     checked_keys: HashSet<String>,
+    page_size: usize,
+    current_page: usize,
 }
+
+impl Default for DataState {
+    fn default() -> Self {
+        Self {
+            tables: Vec::new(),
+            tables_loaded: false,
+            loaded_for_table: None,
+            partitions: None,
+            loaded_rows_for: None,
+            rows_ready: false,
+            headers: Vec::new(),
+            rows: Vec::new(),
+            dialog: None,
+            checked_keys: HashSet::new(),
+            page_size: DEFAULT_PAGE_SIZE,
+            current_page: 0,
+        }
+    }
+}
+
+const DEFAULT_PAGE_SIZE: usize = 100;
 
 impl DataState {
     fn set_tables(&mut self, tables: Vec<TableListItemApiModel>) {
@@ -70,6 +92,7 @@ impl DataState {
         self.headers = Vec::new();
         self.rows = Vec::new();
         self.checked_keys.clear();
+        self.current_page = 0;
     }
 
     /// Apply a fetched partition list, unless the table was switched meanwhile.
@@ -86,6 +109,20 @@ impl DataState {
         self.headers = Vec::new();
         self.rows = Vec::new();
         self.checked_keys.clear();
+        self.current_page = 0;
+    }
+
+    fn set_page(&mut self, page: usize) {
+        self.current_page = page;
+    }
+
+    fn set_page_size(&mut self, size: usize) {
+        self.page_size = size.max(1);
+        self.current_page = 0;
+    }
+
+    fn reset_pagination(&mut self) {
+        self.current_page = 0;
     }
 
     /// Apply fetched rows, unless the (table, partition) changed meanwhile.
@@ -186,6 +223,14 @@ pub fn DataLayout() -> Element {
         });
     });
 
+    // ---- reset to page 1 whenever the filter changes ----
+    use_effect(move || {
+        let _ = row_filter.read();
+        if cs.peek().current_page != 0 {
+            cs.write().reset_pagination();
+        }
+    });
+
     // ---- load the partition list whenever the URL table changes ----
     if let Some(table) = url_table.clone() {
         let already = { cs.read().loaded_for_table.as_deref() == Some(table.as_str()) };
@@ -267,6 +312,8 @@ pub fn DataLayout() -> Element {
     };
     let checked_keys = cs_ra.checked_keys.clone();
     let dialog_val = cs_ra.dialog.clone();
+    let page_size = cs_ra.page_size;
+    let stored_page = cs_ra.current_page;
     drop(cs_ra);
 
     let selected_table = url_table.clone().unwrap_or_default();
@@ -294,6 +341,18 @@ pub fn DataLayout() -> Element {
             .cloned()
             .collect()
     };
+
+    // Paginate the filtered set — clamp during render (no signal write here).
+    let filtered_total = filtered_rows.len();
+    let total_pages = filtered_total.div_ceil(page_size).max(1);
+    let current_page = stored_page.min(total_pages - 1);
+    let page_start = current_page * page_size;
+    let page_end = (page_start + page_size).min(filtered_total);
+    let visible_rows: Vec<Value> = filtered_rows[page_start..page_end].to_vec();
+    let visible_keys: Vec<String> = visible_rows
+        .iter()
+        .filter_map(|r| r.get(ROW_KEY).and_then(|v| v.as_str().map(String::from)))
+        .collect();
 
     // The drawer carries only the row key in the URL — resolve the full row.
     let resolved_row: Option<Value> = url_row.as_ref().and_then(|rk| {
@@ -432,22 +491,19 @@ pub fn DataLayout() -> Element {
         }
     };
 
-    let toggle_all_check = move |check_all: bool| {
-        let mut w = cs.write();
-        if check_all {
-            let keys: Vec<String> = w
-                .rows
-                .iter()
-                .filter_map(|r| {
-                    r.get(ROW_KEY)
-                        .and_then(|v| v.as_str().map(|s| s.to_string()))
-                })
-                .collect();
-            for k in keys {
-                w.checked_keys.insert(k);
+    let toggle_all_check = {
+        let visible_keys = visible_keys.clone();
+        move |check_all: bool| {
+            let mut w = cs.write();
+            if check_all {
+                for k in &visible_keys {
+                    w.checked_keys.insert(k.clone());
+                }
+            } else {
+                for k in &visible_keys {
+                    w.checked_keys.remove(k);
+                }
             }
-        } else {
-            w.checked_keys.clear();
         }
     };
 
@@ -539,13 +595,20 @@ pub fn DataLayout() -> Element {
                 {bulk_bar}
                 RowsTable {
                     headers: headers.clone(),
-                    rows: filtered_rows,
+                    rows: visible_rows,
                     selected_row_key: url_row.clone(),
                     on_row_click,
                     selectable: true,
                     checked_keys: checked_keys.clone(),
                     on_toggle_row: toggle_row_check,
                     on_toggle_all: toggle_all_check,
+                }
+                TablePagination {
+                    total: filtered_total,
+                    page_size,
+                    current_page,
+                    on_page_change: move |p: usize| { cs.write().set_page(p); },
+                    on_page_size_change: move |sz: usize| { cs.write().set_page_size(sz); },
                 }
             }
         }
