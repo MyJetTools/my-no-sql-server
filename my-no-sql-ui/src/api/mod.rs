@@ -81,12 +81,12 @@ pub async fn get_tables_list() -> Result<Vec<TableListItemApiModel>, RequestErro
 }
 
 pub async fn get_partitions(table_name: &str) -> Result<PartitionsApiModel, RequestError> {
-    let url = format!("{}/api/Partitions", get_base_url());
-    let response = reqwest::Client::new()
-        .get(&url)
-        .query(&[("tableName", table_name)])
-        .send()
-        .await?;
+    let url = format!(
+        "{}/api/Partitions?tableName={}",
+        get_base_url(),
+        url_escape(table_name),
+    );
+    let response = reqwest::Client::new().get(&url).send().await?;
     if !response.status().is_success() {
         return Err(RequestError {
             message: format!("Failed to load partitions: {}", response.status()),
@@ -100,10 +100,15 @@ pub async fn get_rows(
     table_name: &str,
     partition_key: &str,
 ) -> Result<Vec<Value>, RequestError> {
-    let url = format!("{}/api/Row", get_base_url());
+    let url = format!(
+        "{}/api/Row?tableName={}&partitionKey={}",
+        get_base_url(),
+        url_escape(table_name),
+        url_escape(partition_key),
+    );
     let response = reqwest::Client::new()
         .get(&url)
-        .query(&[("tableName", table_name), ("partitionKey", partition_key)])
+        .header("x-compress", "zstd")
         .send()
         .await?;
     if !response.status().is_success() {
@@ -111,8 +116,36 @@ pub async fn get_rows(
             message: format!("Failed to load rows: {}", response.status()),
         });
     }
-    let result: Vec<Value> = response.json().await?;
-    Ok(result)
+    let compressed = response
+        .headers()
+        .get("x-content-encoding")
+        .and_then(|v| v.to_str().ok())
+        .map(|v| v.to_ascii_lowercase().contains("zstd"))
+        .unwrap_or(false);
+
+    if compressed {
+        let body = response.bytes().await?;
+        let decoded = decode_zstd(body.as_ref())?;
+        let result: Vec<Value> = serde_json::from_slice(&decoded).map_err(|e| RequestError {
+            message: format!("Failed to parse decompressed rows: {}", e),
+        })?;
+        Ok(result)
+    } else {
+        let result: Vec<Value> = response.json().await?;
+        Ok(result)
+    }
+}
+
+fn decode_zstd(bytes: &[u8]) -> Result<Vec<u8>, RequestError> {
+    use std::io::Read;
+    let mut decoder = ruzstd::decoding::StreamingDecoder::new(bytes).map_err(|e| RequestError {
+        message: format!("Failed to start zstd decoder: {}", e),
+    })?;
+    let mut out = Vec::new();
+    decoder.read_to_end(&mut out).map_err(|e| RequestError {
+        message: format!("Failed to decode zstd body: {}", e),
+    })?;
+    Ok(out)
 }
 
 pub async fn delete_row(
@@ -231,12 +264,12 @@ pub async fn get_snapshots_list() -> Result<Vec<String>, RequestError> {
 }
 
 pub async fn get_snapshot_tables(file_name: &str) -> Result<Vec<SnapshotTableApiModel>, RequestError> {
-    let url = format!("{}/api/Backup/Tables", get_base_url());
-    let response = reqwest::Client::new()
-        .get(&url)
-        .query(&[("fileName", file_name)])
-        .send()
-        .await?;
+    let url = format!(
+        "{}/api/Backup/Tables?fileName={}",
+        get_base_url(),
+        url_escape(file_name),
+    );
+    let response = reqwest::Client::new().get(&url).send().await?;
     if !response.status().is_success() {
         return Err(RequestError {
             message: format!("Failed to load snapshot tables: {}", response.status()),
@@ -250,12 +283,13 @@ pub async fn get_snapshot_partitions(
     file_name: &str,
     table_name: &str,
 ) -> Result<Vec<String>, RequestError> {
-    let url = format!("{}/api/Backup/Partitions", get_base_url());
-    let response = reqwest::Client::new()
-        .get(&url)
-        .query(&[("fileName", file_name), ("tableName", table_name)])
-        .send()
-        .await?;
+    let url = format!(
+        "{}/api/Backup/Partitions?fileName={}&tableName={}",
+        get_base_url(),
+        url_escape(file_name),
+        url_escape(table_name),
+    );
+    let response = reqwest::Client::new().get(&url).send().await?;
     if !response.status().is_success() {
         return Err(RequestError {
             message: format!("Failed to load snapshot partitions: {}", response.status()),
@@ -270,16 +304,14 @@ pub async fn get_snapshot_rows(
     table_name: &str,
     partition_key: &str,
 ) -> Result<Vec<Value>, RequestError> {
-    let url = format!("{}/api/Backup/Rows", get_base_url());
-    let response = reqwest::Client::new()
-        .get(&url)
-        .query(&[
-            ("fileName", file_name),
-            ("tableName", table_name),
-            ("partitionKey", partition_key),
-        ])
-        .send()
-        .await?;
+    let url = format!(
+        "{}/api/Backup/Rows?fileName={}&tableName={}&partitionKey={}",
+        get_base_url(),
+        url_escape(file_name),
+        url_escape(table_name),
+        url_escape(partition_key),
+    );
+    let response = reqwest::Client::new().get(&url).send().await?;
     if !response.status().is_success() {
         return Err(RequestError {
             message: format!("Failed to load snapshot rows: {}", response.status()),

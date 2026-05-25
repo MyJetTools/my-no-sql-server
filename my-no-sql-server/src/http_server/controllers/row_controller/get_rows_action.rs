@@ -5,6 +5,9 @@ use std::sync::Arc;
 
 use super::models::*;
 use crate::app::AppContext;
+use crate::http_server::mappers::{
+    try_compress_zstd, wants_zstd, COMPRESSION_THRESHOLD,
+};
 
 #[http_route(
     method: "GET",
@@ -37,6 +40,7 @@ async fn handle_request(
         crate::db_operations::read::table::get(action.app.as_ref(), input_data.table_name.as_ref())
             .await?;
 
+    let compress = wants_zstd(input_data.x_compress.as_deref());
     let now = DateTimeAsMicroseconds::now();
     if let Some(partition_key) = input_data.partition_key.as_ref() {
         if let Some(row_key) = input_data.row_key.as_ref() {
@@ -50,7 +54,7 @@ async fn handle_request(
             )
             .await?;
 
-            return Ok(result.into());
+            return Ok(maybe_compress(result.into(), compress));
         } else {
             let result = crate::db_operations::read::rows::get_all_by_partition_key(
                 &action.app,
@@ -63,7 +67,7 @@ async fn handle_request(
             )
             .await?;
 
-            return Ok(result.into());
+            return Ok(maybe_compress(result.into(), compress));
         }
     } else {
         if let Some(row_key) = input_data.row_key.as_ref() {
@@ -78,7 +82,7 @@ async fn handle_request(
             )
             .await?;
 
-            return Ok(result.into());
+            return Ok(maybe_compress(result.into(), compress));
         } else {
             let result = crate::db_operations::read::rows::get_all(
                 &action.app,
@@ -90,7 +94,15 @@ async fn handle_request(
             )
             .await?;
 
-            return Ok(result.into());
+            return Ok(maybe_compress(result.into(), compress));
         }
+    }
+}
+
+fn maybe_compress(result: HttpOkResult, compress: bool) -> HttpOkResult {
+    if compress {
+        try_compress_zstd(result, COMPRESSION_THRESHOLD)
+    } else {
+        result
     }
 }

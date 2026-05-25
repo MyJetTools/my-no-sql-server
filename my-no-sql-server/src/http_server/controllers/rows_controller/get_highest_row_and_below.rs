@@ -3,7 +3,11 @@ use my_http_server::{HttpContext, HttpFailResult, HttpOkResult};
 use my_no_sql_sdk::core::rust_extensions::date_time::DateTimeAsMicroseconds;
 use std::sync::Arc;
 
-use crate::{app::AppContext, http_server::controllers::row_controller::models::BaseDbRowContract};
+use crate::{
+    app::AppContext,
+    http_server::controllers::row_controller::models::BaseDbRowContract,
+    http_server::mappers::{try_compress_zstd, wants_zstd, COMPRESSION_THRESHOLD},
+};
 
 use super::models::GetHighestRowsAndBelowInputContract;
 
@@ -59,5 +63,10 @@ async fn handle_request(
     )
     .await?;
 
-    Ok(result.into())
+    let response: HttpOkResult = result.into();
+    Ok(if wants_zstd(input_data.x_compress.as_deref()) {
+        try_compress_zstd(response, COMPRESSION_THRESHOLD)
+    } else {
+        response
+    })
 }

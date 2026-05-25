@@ -9,6 +9,7 @@ use std::sync::Arc;
 use crate::app::AppContext;
 use crate::db_operations::UpdateStatistics;
 use crate::db_operations::read::ReadOperationResult;
+use crate::http_server::mappers::{try_compress_zstd, wants_zstd, COMPRESSION_THRESHOLD};
 
 use super::models::*;
 
@@ -84,13 +85,19 @@ async fn handle_request(
         format!("attachment; filename=\"{}\"", filename),
     );
 
-    Ok(HttpOkResult {
+    let response = HttpOkResult {
         write_telemetry: true,
         output: HttpOutput::Content {
             status_code: 200,
             headers,
             content,
         },
+    };
+
+    Ok(if wants_zstd(input_data.x_compress.as_deref()) {
+        try_compress_zstd(response, COMPRESSION_THRESHOLD)
+    } else {
+        response
     })
 }
 

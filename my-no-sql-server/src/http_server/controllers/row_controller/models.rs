@@ -96,6 +96,9 @@ pub struct GetRowInputModel {
 
     #[http_header(name ="setRowsExpirationTime" description = "Set Found DbRows Expiration time")]
     pub set_db_rows_expiration_time: Option<String>,
+
+    #[http_header(name = "x-compress"; description = "Response compression preference (e.g. \"zstd\")")]
+    pub x_compress: Option<String>,
 }
 
 impl GetRowInputModel {
