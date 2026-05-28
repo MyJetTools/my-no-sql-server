@@ -38,13 +38,18 @@ pub async fn setup_server(app: &Arc<AppContext>) -> HttpConnectionsCounter {
 
     let mcp_middleware = Arc::new(build_mcp_middleware(app).await);
 
+    let statistics_middleware =
+        Arc::new(crate::http_server::StatisticsMiddleware::new(app.clone()));
+
     if let Some(unix_socket_http_server) = unix_socket_http_server.as_mut() {
+        unix_socket_http_server.add_middleware(statistics_middleware.clone());
         unix_socket_http_server.add_middleware(swagger_middleware.clone());
         unix_socket_http_server.add_middleware(controllers.clone());
         unix_socket_http_server.add_middleware(mcp_middleware.clone());
         unix_socket_http_server.add_middleware(static_files_middleware.clone());
     }
 
+    http_server.add_middleware(statistics_middleware);
     http_server.add_middleware(swagger_middleware);
     http_server.add_middleware(controllers);
     http_server.add_middleware(mcp_middleware);

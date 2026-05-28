@@ -4,3 +4,5 @@ mod get_table;
 mod http_sessions;
 mod mappers;
 pub mod start_up;
+mod statistics_middleware;
+pub use statistics_middleware::StatisticsMiddleware;

@@ -82,7 +82,13 @@ pub fn StatsRow(
                 label: "Write".to_string(),
                 value: format!("{write_payloads_per_second}"),
                 unit: "req/s".to_string(),
-                delta: format!("{}/s", format_megabytes(write_bytes_per_second as f64)),
+                delta: "post payloads".to_string(),
+                tone: StatTone::Info,
+            }
+            Stat {
+                label: "Write rate".to_string(),
+                value: format!("{}/s", format_megabytes(write_bytes_per_second as f64)),
+                delta: "incoming payloads".to_string(),
                 tone: StatTone::Info,
             }
         }
