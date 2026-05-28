@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
-use my_http_server::{hyper::Method, HttpContext, HttpFailResult, HttpOkResult, HttpServerMiddleware};
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpServerMiddleware};
 
 use crate::app::AppContext;
 
-// Counts every incoming POST request into the write-traffic statistics:
+// Counts every incoming request into the write-traffic statistics:
 //   * +1 to write_payloads_per_second (request count)
 //   * +Content-Length to write_bytes_per_second (payload size)
 // Body length is taken from the `Content-Length` header so the body itself
@@ -25,11 +25,12 @@ impl HttpServerMiddleware for StatisticsMiddleware {
         &self,
         ctx: &mut HttpContext,
     ) -> Option<Result<HttpOkResult, HttpFailResult>> {
-        if ctx.request.method == Method::POST {
-            let body_len = get_content_length(ctx);
-            self.app.write_payloads_per_second.increase(1);
-            self.app.write_bytes_per_second.increase(body_len);
-        }
+        let body_len = get_content_length(ctx);
+        self.app.write_payloads_per_second.increase(1);
+        self.app.write_bytes_per_second.increase(body_len);
+
+        let ip = ctx.request.get_ip().get_real_ip().to_string();
+        self.app.requests_per_ip.increase(&ip);
 
         None
     }

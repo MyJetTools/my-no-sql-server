@@ -32,9 +32,11 @@ impl PingAction {
 async fn handle_request(
     action: &PingAction,
     input_data: PingHttpInputModel,
-    _ctx: &mut HttpContext,
+    ctx: &mut HttpContext,
 ) -> Result<HttpOkResult, HttpFailResult> {
     let now = DateTimeAsMicroseconds::now();
+
+    let ip = ctx.request.get_ip().get_real_ip().to_string();
 
     action
         .app
@@ -43,6 +45,7 @@ async fn handle_request(
             &input_data.name,
             &input_data.version,
             input_data.tables.iter().map(|itm| itm.as_str()),
+            ip,
             now,
         )
         .await;
