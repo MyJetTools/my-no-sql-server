@@ -45,8 +45,13 @@ impl RequestsPerIp {
         });
     }
 
-    pub fn get_value(&self, ip: &str) -> usize {
+    // Snapshot of currently-active connections: (addr, requests_per_second),
+    // only those that had traffic in the last completed second.
+    pub fn get_snapshot(&self) -> Vec<(String, usize)> {
         let data = self.data.lock().unwrap();
-        data.get(ip).map(|counter| counter.value).unwrap_or(0)
+        data.iter()
+            .filter(|(_, counter)| counter.value != 0)
+            .map(|(addr, counter)| (addr.clone(), counter.value))
+            .collect()
     }
 }

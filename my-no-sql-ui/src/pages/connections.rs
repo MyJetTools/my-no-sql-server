@@ -4,7 +4,9 @@ use dioxus::prelude::*;
 
 use crate::api::get_connections;
 use crate::components::atoms::{MiniChart, MiniChartSeries};
-use crate::models::{ConnectionReaderApiModel, ConnectionWriterApiModel, ConnectionsApiModel};
+use crate::models::{
+    ConnectionReaderApiModel, ConnectionStatApiModel, ConnectionWriterApiModel, ConnectionsApiModel,
+};
 use crate::utils::{format_mbit_per_sec, format_megabytes};
 
 const MAX_POINTS: usize = 120;
@@ -184,6 +186,7 @@ fn render_connections(history: &[Sample], snapshot: &ConnectionsApiModel) -> Ele
 
         {render_readers_table(&snapshot.readers)}
         {render_writers_table(&snapshot.writers)}
+        {render_connections_table(&snapshot.connections)}
     }
 }
 
@@ -266,7 +269,6 @@ fn render_writers_table(writers: &[ConnectionWriterApiModel]) -> Element {
                 td { class: "conn-table__id", "{writer.version}" }
                 td { class: "conn-table__id", "{writer.addr}" }
                 td { class: "conn-table__num", "{writer.tables.len()}" }
-                td { class: "conn-table__num", "{writer.req_per_second} req/s" }
                 td { "{tables}" }
                 td { class: "conn-table__num", "{writer.last_incoming_time}" }
             }
@@ -287,9 +289,58 @@ fn render_writers_table(writers: &[ConnectionWriterApiModel]) -> Element {
                             th { "Version" }
                             th { "Addr" }
                             th { class: "conn-table__num", "Tables" }
-                            th { class: "conn-table__num", "Req/s" }
                             th { "Table list" }
                             th { class: "conn-table__num", "Last ping" }
+                        }
+                    }
+                    tbody { {rows} }
+                }
+            }
+        }
+    }
+}
+
+fn render_connections_table(connections: &[ConnectionStatApiModel]) -> Element {
+    if connections.is_empty() {
+        return rsx! {
+            div { class: "card",
+                div { class: "card__header",
+                    span { class: "card__title", "Active connections" }
+                    span { class: "card__subtitle", "0 active" }
+                }
+                div { class: "card__body",
+                    div { class: "empty-state",
+                        div { class: "empty-state__title", "No active connections" }
+                    }
+                }
+            }
+        };
+    }
+
+    let rows = connections.iter().map(|c| {
+        let name = c.name.clone().unwrap_or_else(|| "—".to_string());
+        rsx! {
+            tr {
+                td { class: "conn-table__id", "{c.addr}" }
+                td { "{name}" }
+                td { class: "conn-table__num", "{c.req_per_second} req/s" }
+            }
+        }
+    });
+
+    rsx! {
+        div { class: "card",
+            div { class: "card__header",
+                span { class: "card__title", "Active connections" }
+                span { class: "card__subtitle", "{connections.len()} active" }
+            }
+            div { class: "card__body",
+                table { class: "conn-table",
+                    thead {
+                        tr {
+                            th { "Addr" }
+                            th { "Client" }
+                            th { class: "conn-table__num", "Req/s" }
                         }
                     }
                     tbody { {rows} }

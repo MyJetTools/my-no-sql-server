@@ -23,10 +23,18 @@ pub struct ConnectionWriterApiModel {
     pub addr: String,
     #[serde(default)]
     pub tables: Vec<String>,
-    #[serde(rename = "reqPerSecond", default)]
-    pub req_per_second: usize,
     #[serde(rename = "lastIncomingTime", default)]
     pub last_incoming_time: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct ConnectionStatApiModel {
+    #[serde(default)]
+    pub addr: String,
+    #[serde(default)]
+    pub name: Option<String>,
+    #[serde(rename = "reqPerSecond", default)]
+    pub req_per_second: usize,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
@@ -43,4 +51,6 @@ pub struct ConnectionsApiModel {
     pub readers: Vec<ConnectionReaderApiModel>,
     #[serde(default)]
     pub writers: Vec<ConnectionWriterApiModel>,
+    #[serde(default)]
+    pub connections: Vec<ConnectionStatApiModel>,
 }

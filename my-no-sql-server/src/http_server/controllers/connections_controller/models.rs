@@ -24,10 +24,17 @@ pub struct ConnectionWriterModel {
     pub version: String,
     pub addr: String,
     pub tables: Vec<String>,
-    #[serde(rename = "reqPerSecond")]
-    pub req_per_second: usize,
     #[serde(rename = "lastIncomingTime")]
     pub last_incoming_time: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
+pub struct ConnectionStatModel {
+    pub addr: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(rename = "reqPerSecond")]
+    pub req_per_second: usize,
 }
 
 #[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
@@ -42,6 +49,15 @@ pub struct ConnectionsModel {
     pub write_bytes_per_second: usize,
     pub readers: Vec<ConnectionReaderModel>,
     pub writers: Vec<ConnectionWriterModel>,
+    pub connections: Vec<ConnectionStatModel>,
+}
+
+// Host part of an `ip:port` socket address (handles IPv6 `[::1]:port`).
+fn host_of(addr: &str) -> &str {
+    match addr.rsplit_once(':') {
+        Some((host, _port)) => host,
+        None => addr,
+    }
 }
 
 impl ConnectionsModel {
@@ -76,13 +92,33 @@ impl ConnectionsModel {
                 version: info.version.to_string(),
                 addr: info.addr.to_string(),
                 tables: info.tables.clone(),
-                req_per_second: app.requests_per_ip.get_value(&info.addr),
                 last_incoming_time: format!(
                     "{:?}",
                     now.duration_since(info.last_ping).as_positive_or_zero()
                 ),
             })
             .await;
+
+        // Map a connection host (IP) to a known writer name, best-effort.
+        let host_to_name: std::collections::HashMap<String, String> = writers
+            .iter()
+            .map(|w| (host_of(&w.addr).to_string(), w.name.to_string()))
+            .collect();
+
+        let mut connections: Vec<ConnectionStatModel> = app
+            .requests_per_ip
+            .get_snapshot()
+            .into_iter()
+            .map(|(addr, req_per_second)| {
+                let name = host_to_name.get(host_of(&addr)).cloned();
+                ConnectionStatModel {
+                    addr,
+                    name,
+                    req_per_second,
+                }
+            })
+            .collect();
+        connections.sort_by(|a, b| b.req_per_second.cmp(&a.req_per_second));
 
         Self {
             incoming_per_second: total_incoming,
@@ -91,6 +127,7 @@ impl ConnectionsModel {
             write_bytes_per_second: app.write_bytes_per_second.get_value(),
             readers,
             writers,
+            connections,
         }
     }
 }
