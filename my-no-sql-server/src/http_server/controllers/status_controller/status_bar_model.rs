@@ -28,6 +28,8 @@ pub struct StatusBarModel {
     pub read_per_second: usize,
     #[serde(rename = "writePayloadsPerSecond")]
     pub write_payloads_per_second: usize,
+    #[serde(rename = "writeBytesPerSecond")]
+    pub write_bytes_per_second: usize,
 }
 
 impl StatusBarModel {
@@ -52,6 +54,7 @@ impl StatusBarModel {
             used_http_connections,
             read_per_second,
             write_payloads_per_second: app.write_payloads_per_second.get_value(),
+            write_bytes_per_second: app.write_bytes_per_second.get_value(),
         }
     }
 }

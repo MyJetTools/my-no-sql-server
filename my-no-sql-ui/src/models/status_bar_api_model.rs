@@ -29,4 +29,6 @@ pub struct StatusBarApiModel {
     pub read_per_second: usize,
     #[serde(rename = "writePayloadsPerSecond", default)]
     pub write_payloads_per_second: usize,
+    #[serde(rename = "writeBytesPerSecond", default)]
+    pub write_bytes_per_second: usize,
 }

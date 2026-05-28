@@ -52,10 +52,15 @@ pub fn Home() -> Element {
         Some(status) => {
             let read_per_second = status.status_bar.read_per_second;
             let write_payloads_per_second = status.status_bar.write_payloads_per_second;
+            let write_bytes_per_second = status.status_bar.write_bytes_per_second;
             match status.initialized {
-                Some(init) => {
-                    render_overview(init, thresholds, read_per_second, write_payloads_per_second)
-                }
+                Some(init) => render_overview(
+                    init,
+                    thresholds,
+                    read_per_second,
+                    write_payloads_per_second,
+                    write_bytes_per_second,
+                ),
                 None => render_loading_msg("Server is initializing…"),
             }
         }
@@ -82,6 +87,7 @@ fn render_overview(
     thresholds: HealthThresholds,
     read_per_second: usize,
     write_payloads_per_second: usize,
+    write_bytes_per_second: usize,
 ) -> Element {
     let readers_only: Vec<ReaderApiModel> = init
         .readers
@@ -101,6 +107,7 @@ fn render_overview(
             readers: readers_only.clone(),
             read_per_second,
             write_payloads_per_second,
+            write_bytes_per_second,
         }
         div { class: "two-col",
             div { class: "card",

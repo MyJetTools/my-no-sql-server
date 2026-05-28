@@ -1,5 +1,6 @@
 use crate::app::AppContext;
 use my_http_server::macros::*;
+use my_no_sql_sdk::core::rust_extensions::date_time::DateTimeAsMicroseconds;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
@@ -18,6 +19,15 @@ pub struct ConnectionReaderModel {
 }
 
 #[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
+pub struct ConnectionWriterModel {
+    pub name: String,
+    pub version: String,
+    pub tables: Vec<String>,
+    #[serde(rename = "lastIncomingTime")]
+    pub last_incoming_time: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
 pub struct ConnectionsModel {
     #[serde(rename = "incomingPerSecond")]
     pub incoming_per_second: usize,
@@ -25,7 +35,10 @@ pub struct ConnectionsModel {
     pub outgoing_per_second: usize,
     #[serde(rename = "writePayloadsPerSecond")]
     pub write_payloads_per_second: usize,
+    #[serde(rename = "writeBytesPerSecond")]
+    pub write_bytes_per_second: usize,
     pub readers: Vec<ConnectionReaderModel>,
+    pub writers: Vec<ConnectionWriterModel>,
 }
 
 impl ConnectionsModel {
@@ -52,11 +65,27 @@ impl ConnectionsModel {
             });
         }
 
+        let now = DateTimeAsMicroseconds::now();
+        let writers = app
+            .http_writers
+            .get(|name, info| ConnectionWriterModel {
+                name: name.to_string(),
+                version: info.version.to_string(),
+                tables: info.tables.clone(),
+                last_incoming_time: format!(
+                    "{:?}",
+                    now.duration_since(info.last_ping).as_positive_or_zero()
+                ),
+            })
+            .await;
+
         Self {
             incoming_per_second: total_incoming,
             outgoing_per_second: total_outgoing,
             write_payloads_per_second: app.write_payloads_per_second.get_value(),
+            write_bytes_per_second: app.write_bytes_per_second.get_value(),
             readers,
+            writers,
         }
     }
 }

@@ -44,6 +44,7 @@ pub struct AppContext {
     persist_amount: AtomicUsize,
 
     pub write_payloads_per_second: OneSecondCounter,
+    pub write_bytes_per_second: OneSecondCounter,
 
     pub use_unix_socket: Option<FilePath>,
 }
@@ -66,6 +67,7 @@ impl AppContext {
             sync: EventsLoop::new("Sync"),
             http_writers: HttpWriters::new(),
             write_payloads_per_second: OneSecondCounter::new(),
+            write_bytes_per_second: OneSecondCounter::new(),
             init_state: InitState::new(),
             use_unix_socket: match std::env::var("UNIX_SOCKET") {
                 Ok(path) => FilePath::from_str(&path).into(),

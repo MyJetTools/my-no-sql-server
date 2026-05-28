@@ -4,7 +4,7 @@ use dioxus::prelude::*;
 
 use crate::api::get_connections;
 use crate::components::atoms::{MiniChart, MiniChartSeries};
-use crate::models::{ConnectionReaderApiModel, ConnectionsApiModel};
+use crate::models::{ConnectionReaderApiModel, ConnectionWriterApiModel, ConnectionsApiModel};
 use crate::utils::{format_mbit_per_sec, format_megabytes};
 
 const MAX_POINTS: usize = 120;
@@ -14,6 +14,7 @@ struct Sample {
     incoming: usize,
     outgoing: usize,
     payloads: usize,
+    write_bytes: usize,
 }
 
 #[derive(Default)]
@@ -29,6 +30,7 @@ impl ConnectionsState {
             incoming: snapshot.incoming_per_second,
             outgoing: snapshot.outgoing_per_second,
             payloads: snapshot.write_payloads_per_second,
+            write_bytes: snapshot.write_bytes_per_second,
         });
         if self.history.len() > MAX_POINTS {
             let overflow = self.history.len() - MAX_POINTS;
@@ -85,7 +87,6 @@ pub fn Connections() -> Element {
 fn render_connections(history: &[Sample], snapshot: &ConnectionsApiModel) -> Element {
     let incoming = snapshot.incoming_per_second;
     let outgoing = snapshot.outgoing_per_second;
-    let payloads = snapshot.write_payloads_per_second;
 
     let traffic_series = vec![
         MiniChartSeries::new(
@@ -104,11 +105,20 @@ fn render_connections(history: &[Sample], snapshot: &ConnectionsApiModel) -> Ele
         .unwrap_or(0)
         .max(1) as f64;
 
+    let payloads = snapshot.write_payloads_per_second;
+    let write_bytes = snapshot.write_bytes_per_second;
+
     let payloads_series = vec![MiniChartSeries::new(
         history.iter().map(|s| s.payloads as f64).collect(),
         "mini-chart__line--write",
     )];
     let payloads_max = history.iter().map(|s| s.payloads).max().unwrap_or(0).max(1) as f64;
+
+    let throughput_series = vec![MiniChartSeries::new(
+        history.iter().map(|s| s.write_bytes as f64).collect(),
+        "mini-chart__line--write",
+    )];
+    let throughput_max = history.iter().map(|s| s.write_bytes).max().unwrap_or(0).max(1) as f64;
 
     rsx! {
         div { class: "card",
@@ -144,21 +154,36 @@ fn render_connections(history: &[Sample], snapshot: &ConnectionsApiModel) -> Ele
                 div { class: "conn-legend",
                     span { class: "conn-legend__item",
                         span { class: "conn-legend__dot conn-legend__dot--write" }
+                        "Throughput "
+                        b { "{format_megabytes(write_bytes as f64)}/s" }
+                    }
+                    span { class: "conn-legend__item",
+                        span { class: "conn-legend__dot conn-legend__dot--write" }
                         "Payloads "
                         b { "{payloads} req/s" }
                     }
                 }
             }
             div { class: "card__body",
+                div { class: "conn-chart-label", "Throughput (MB/s)" }
+                MiniChart {
+                    series: throughput_series,
+                    max: throughput_max,
+                    label: format!("{}/s", format_megabytes(throughput_max)),
+                    height: 140.0,
+                }
+                div { class: "conn-chart-label", "Payloads (req/s)" }
                 MiniChart {
                     series: payloads_series,
                     max: payloads_max,
                     label: format!("{} req/s", payloads_max as usize),
+                    height: 140.0,
                 }
             }
         }
 
         {render_readers_table(&snapshot.readers)}
+        {render_writers_table(&snapshot.writers)}
     }
 }
 
@@ -207,6 +232,60 @@ fn render_readers_table(readers: &[ConnectionReaderApiModel]) -> Element {
                             th { class: "conn-table__num", "Incoming" }
                             th { class: "conn-table__num", "Outgoing" }
                             th { class: "conn-table__num", "Pending" }
+                        }
+                    }
+                    tbody { {rows} }
+                }
+            }
+        }
+    }
+}
+
+fn render_writers_table(writers: &[ConnectionWriterApiModel]) -> Element {
+    if writers.is_empty() {
+        return rsx! {
+            div { class: "card",
+                div { class: "card__header",
+                    span { class: "card__title", "Writers" }
+                    span { class: "card__subtitle", "0 connected" }
+                }
+                div { class: "card__body",
+                    div { class: "empty-state",
+                        div { class: "empty-state__title", "No active writers" }
+                    }
+                }
+            }
+        };
+    }
+
+    let rows = writers.iter().map(|writer| {
+        let tables = writer.tables.join(", ");
+        rsx! {
+            tr {
+                td { "{writer.name}" }
+                td { class: "conn-table__id", "{writer.version}" }
+                td { class: "conn-table__num", "{writer.tables.len()}" }
+                td { "{tables}" }
+                td { class: "conn-table__num", "{writer.last_incoming_time}" }
+            }
+        }
+    });
+
+    rsx! {
+        div { class: "card",
+            div { class: "card__header",
+                span { class: "card__title", "Writers" }
+                span { class: "card__subtitle", "{writers.len()} connected" }
+            }
+            div { class: "card__body",
+                table { class: "conn-table",
+                    thead {
+                        tr {
+                            th { "Name" }
+                            th { "Version" }
+                            th { class: "conn-table__num", "Tables" }
+                            th { "Table list" }
+                            th { class: "conn-table__num", "Last ping" }
                         }
                     }
                     tbody { {rows} }

@@ -29,6 +29,18 @@
     color: var(--text-faint);
 }
 
+.conn-chart-label {
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--text-muted);
+    margin: 4px 0 2px;
+}
+
+.conn-chart-label:not(:first-child) {
+    margin-top: 12px;
+}
+
 .conn-legend__dot {
     width: 10px;
     height: 10px;

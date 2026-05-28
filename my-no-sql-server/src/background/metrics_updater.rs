@@ -85,6 +85,7 @@ impl MyTimerTick for MetricsUpdater {
         self.app.update_persist_amount(persist_amount);
 
         self.app.write_payloads_per_second.one_second_tick();
+        self.app.write_bytes_per_second.one_second_tick();
 
         for reader in self.app.data_readers.get_all().await {
             self.app.metrics.update_pending_to_sync(&reader.connection);

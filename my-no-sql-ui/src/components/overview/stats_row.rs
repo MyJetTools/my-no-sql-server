@@ -3,7 +3,7 @@ use dioxus::prelude::*;
 use crate::components::atoms::{DeltaTone, Stat, StatTone, classify_reader, StateTone};
 use crate::models::{ReaderApiModel, TableApiModel, WriterApiModel};
 use crate::settings::HealthThresholds;
-use crate::utils::format_mbit_per_sec;
+use crate::utils::{format_mbit_per_sec, format_megabytes};
 
 #[component]
 pub fn StatsRow(
@@ -12,6 +12,7 @@ pub fn StatsRow(
     readers: Vec<ReaderApiModel>,
     read_per_second: usize,
     write_payloads_per_second: usize,
+    write_bytes_per_second: usize,
 ) -> Element {
     let thresholds = *use_context::<Signal<HealthThresholds>>().read();
     let table_count = tables.len();
@@ -81,7 +82,7 @@ pub fn StatsRow(
                 label: "Write".to_string(),
                 value: format!("{write_payloads_per_second}"),
                 unit: "req/s".to_string(),
-                delta: "post payloads".to_string(),
+                delta: format!("{}/s", format_megabytes(write_bytes_per_second as f64)),
                 tone: StatTone::Info,
             }
         }
