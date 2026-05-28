@@ -25,4 +25,8 @@ pub struct StatusBarApiModel {
     pub used_http_connections: i64,
     #[serde(rename = "syncQueueSize", default)]
     pub sync_queue_size: i64,
+    #[serde(rename = "readPerSecond", default)]
+    pub read_per_second: usize,
+    #[serde(rename = "writePayloadsPerSecond", default)]
+    pub write_payloads_per_second: usize,
 }

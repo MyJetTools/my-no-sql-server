@@ -64,7 +64,7 @@ pub struct StatusModel {
 
 impl StatusModel {
     pub async fn new(app: &AppContext) -> Self {
-        let (readers, tcp, http) = get_readers(app).await;
+        let (readers, tcp, http, read_per_second) = get_readers(app).await;
         let tables = app.db.get_tables();
 
         let mut tables_model = Vec::new();
@@ -117,6 +117,7 @@ impl StatusModel {
                     http,
                     tables.len(),
                     used_http_connections,
+                    read_per_second,
                 ),
             };
         }
@@ -124,7 +125,14 @@ impl StatusModel {
         return Self {
             not_initialized: Some(NonInitializedModel::new(app).await),
             initialized: None,
-            status_bar: StatusBarModel::new(app, tcp, http, tables.len(), used_http_connections),
+            status_bar: StatusBarModel::new(
+                app,
+                tcp,
+                http,
+                tables.len(),
+                used_http_connections,
+                read_per_second,
+            ),
         };
     }
 }
@@ -149,18 +157,22 @@ impl InitializedModel {
     }
 }
 
-async fn get_readers(app: &AppContext) -> (Vec<ReaderModel>, usize, usize) {
+async fn get_readers(app: &AppContext) -> (Vec<ReaderModel>, usize, usize, usize) {
     let mut result = Vec::new();
     let now = DateTimeAsMicroseconds::now();
 
     let mut tcp_count = 0;
     let mut http_count = 0;
+    let mut read_per_second = 0;
 
     for data_reader in app.data_readers.get_all().await {
         match &data_reader.connection {
             crate::data_readers::DataReaderConnection::Tcp(_) => tcp_count += 1,
             crate::data_readers::DataReaderConnection::Http(_) => http_count += 1,
         }
+
+        let (_, outgoing) = data_reader.get_traffic_per_second();
+        read_per_second += outgoing;
 
         let metrics = data_reader.get_metrics().await;
 
@@ -181,7 +193,7 @@ async fn get_readers(app: &AppContext) -> (Vec<ReaderModel>, usize, usize) {
         });
     }
 
-    (result, tcp_count, http_count)
+    (result, tcp_count, http_count, read_per_second)
 }
 
 #[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]

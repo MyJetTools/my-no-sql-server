@@ -23,6 +23,8 @@ pub struct ConnectionsModel {
     pub incoming_per_second: usize,
     #[serde(rename = "outgoingPerSecond")]
     pub outgoing_per_second: usize,
+    #[serde(rename = "writePayloadsPerSecond")]
+    pub write_payloads_per_second: usize,
     pub readers: Vec<ConnectionReaderModel>,
 }
 
@@ -53,6 +55,7 @@ impl ConnectionsModel {
         Self {
             incoming_per_second: total_incoming,
             outgoing_per_second: total_outgoing,
+            write_payloads_per_second: app.write_payloads_per_second.get_value(),
             readers,
         }
     }

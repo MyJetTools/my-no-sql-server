@@ -25,6 +25,10 @@
     color: var(--text);
 }
 
+.conn-legend__sub {
+    color: var(--text-faint);
+}
+
 .conn-legend__dot {
     width: 10px;
     height: 10px;
@@ -40,46 +44,8 @@
     background: var(--info);
 }
 
-/* --- Chart --- */
-.conn-chart {
-    width: 100%;
-    height: 220px;
-    display: block;
-}
-
-.conn-chart--empty {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-faint);
-    font-size: 12px;
-}
-
-.conn-chart__grid {
-    stroke: var(--border);
-    stroke-width: 1;
-    vector-effect: non-scaling-stroke;
-}
-
-.conn-chart__line {
-    stroke-width: 2;
-    vector-effect: non-scaling-stroke;
-    stroke-linejoin: round;
-    stroke-linecap: round;
-}
-
-.conn-chart__line--in {
-    stroke: var(--ok);
-}
-
-.conn-chart__line--out {
-    stroke: var(--info);
-}
-
-.conn-chart__label {
-    fill: var(--text-faint);
-    font-size: 11px;
-    font-family: var(--font-mono);
+.conn-legend__dot--write {
+    background: var(--accent);
 }
 
 /* --- Readers table --- */
@@ -135,4 +101,10 @@
     text-transform: uppercase;
     font-size: 10.5px;
     letter-spacing: 0.4px;
+}
+
+.conn-table__id {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
 }

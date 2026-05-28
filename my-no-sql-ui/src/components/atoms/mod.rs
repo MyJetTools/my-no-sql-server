@@ -12,3 +12,6 @@ pub use icon::*;
 
 mod stat;
 pub use stat::*;
+
+mod mini_chart;
+pub use mini_chart::*;

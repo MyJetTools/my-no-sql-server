@@ -21,6 +21,8 @@ pub struct ConnectionsApiModel {
     pub incoming_per_second: usize,
     #[serde(rename = "outgoingPerSecond", default)]
     pub outgoing_per_second: usize,
+    #[serde(rename = "writePayloadsPerSecond", default)]
+    pub write_payloads_per_second: usize,
     #[serde(default)]
     pub readers: Vec<ConnectionReaderApiModel>,
 }

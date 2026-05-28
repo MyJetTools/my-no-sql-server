@@ -59,6 +59,8 @@ pub enum EventSource {
 
 impl EventSource {
     pub fn as_client_request(app: &AppContext) -> Self {
+        app.write_payloads_per_second.increase(1);
+
         let locations = vec![app.settings.location.to_string()];
 
         let data = ClientRequestsSourceData {

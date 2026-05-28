@@ -9,3 +9,6 @@ pub use metrics::UpdatePendingToSyncModel;
 //pub use events_sync::*;
 mod http_writers;
 pub use http_writers::*;
+
+mod one_second_counter;
+pub use one_second_counter::OneSecondCounter;

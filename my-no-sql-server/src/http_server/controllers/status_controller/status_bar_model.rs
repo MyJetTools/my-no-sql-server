@@ -24,6 +24,10 @@ pub struct StatusBarModel {
     pub master_node: Option<String>,
     #[serde(rename = "usedHttpConnections")]
     pub used_http_connections: i64,
+    #[serde(rename = "readPerSecond")]
+    pub read_per_second: usize,
+    #[serde(rename = "writePayloadsPerSecond")]
+    pub write_payloads_per_second: usize,
 }
 
 impl StatusBarModel {
@@ -33,6 +37,7 @@ impl StatusBarModel {
         http_connections: usize,
         tables_amount: usize,
         used_http_connections: i64,
+        read_per_second: usize,
     ) -> Self {
         Self {
             master_node: None,
@@ -45,6 +50,8 @@ impl StatusBarModel {
             http_connections,
             tables_amount,
             used_http_connections,
+            read_per_second,
+            write_payloads_per_second: app.write_payloads_per_second.get_value(),
         }
     }
 }

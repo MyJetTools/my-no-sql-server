@@ -49,10 +49,16 @@ pub fn Home() -> Element {
     let thresholds = *use_context::<Signal<HealthThresholds>>().read();
 
     let content = match snapshot {
-        Some(status) => match status.initialized {
-            Some(init) => render_overview(init, thresholds),
-            None => render_loading_msg("Server is initializing…"),
-        },
+        Some(status) => {
+            let read_per_second = status.status_bar.read_per_second;
+            let write_payloads_per_second = status.status_bar.write_payloads_per_second;
+            match status.initialized {
+                Some(init) => {
+                    render_overview(init, thresholds, read_per_second, write_payloads_per_second)
+                }
+                None => render_loading_msg("Server is initializing…"),
+            }
+        }
         None => render_loading_msg("Connecting to server…"),
     };
 
@@ -71,7 +77,12 @@ fn render_loading_msg(msg: &str) -> Element {
     }
 }
 
-fn render_overview(init: InitializedApiModel, thresholds: HealthThresholds) -> Element {
+fn render_overview(
+    init: InitializedApiModel,
+    thresholds: HealthThresholds,
+    read_per_second: usize,
+    write_payloads_per_second: usize,
+) -> Element {
     let readers_only: Vec<ReaderApiModel> = init
         .readers
         .iter()
@@ -88,6 +99,8 @@ fn render_overview(init: InitializedApiModel, thresholds: HealthThresholds) -> E
             tables: init.tables.clone(),
             writers: init.writers.clone(),
             readers: readers_only.clone(),
+            read_per_second,
+            write_payloads_per_second,
         }
         div { class: "two-col",
             div { class: "card",
