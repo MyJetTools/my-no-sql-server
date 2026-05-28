@@ -2,6 +2,7 @@ pub mod api;
 //mod as_html;
 pub mod builder;
 pub mod bulk;
+pub mod connections_controller;
 pub mod data_reader_controller;
 pub mod debug_controller;
 pub mod gc_controller;

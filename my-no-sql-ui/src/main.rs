@@ -32,6 +32,8 @@ pub enum AppRoute {
         row: String,
     },
     #[end_layout]
+    #[route("/connections")]
+    Connections {},
     #[route("/snapshots")]
     Snapshots {},
     #[route("/settings")]
@@ -89,12 +91,17 @@ fn Shell() -> Element {
         | AppRoute::DataTable { .. }
         | AppRoute::DataPartition { .. }
         | AppRoute::DataRow { .. } => SidebarSection::Tables,
+        AppRoute::Connections {} => SidebarSection::Connections,
         AppRoute::Snapshots {} => SidebarSection::Snapshots,
         AppRoute::Settings {} => SidebarSection::Settings,
         _ => SidebarSection::Overview,
     };
 
     let crumbs = match &route {
+        AppRoute::Connections {} => vec![
+            Crumb { label: "MyNoSql".to_string(), active: false },
+            Crumb { label: "Connections".to_string(), active: true },
+        ],
         AppRoute::Snapshots {} => vec![
             Crumb { label: "MyNoSql".to_string(), active: false },
             Crumb { label: "Snapshots".to_string(), active: true },

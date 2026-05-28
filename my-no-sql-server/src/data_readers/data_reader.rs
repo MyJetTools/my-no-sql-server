@@ -149,4 +149,19 @@ impl DataReader {
             DataReaderConnection::Http(_) => vec![],
         }
     }
+
+    // Returns current (incoming, outgoing) bytes-per-second rates.
+    // HTTP readers do not track traffic rate, so they report (0, 0).
+    pub fn get_traffic_per_second(&self) -> (usize, usize) {
+        match &self.connection {
+            DataReaderConnection::Tcp(tcp) => {
+                let statistics = tcp.connection_statistics();
+                (
+                    statistics.received_per_sec.get_value(),
+                    statistics.sent_per_sec.get_value(),
+                )
+            }
+            DataReaderConnection::Http(_) => (0, 0),
+        }
+    }
 }

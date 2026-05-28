@@ -5,5 +5,6 @@ fn main() {
         .add_file("03-atoms.css")
         .add_file("04-overview.css")
         .add_file("05-data.css")
+        .add_file("06-connections.css")
         .compile("./public/assets/app.css");
 }

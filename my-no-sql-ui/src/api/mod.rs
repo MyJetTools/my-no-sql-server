@@ -68,6 +68,18 @@ pub async fn get_status() -> Result<StatusApiModel, RequestError> {
     Ok(result)
 }
 
+pub async fn get_connections() -> Result<ConnectionsApiModel, RequestError> {
+    let url = format!("{}/api/Connections", get_base_url());
+    let response = reqwest::Client::new().get(&url).send().await?;
+    if !response.status().is_success() {
+        return Err(RequestError {
+            message: format!("Failed to load connections: {}", response.status()),
+        });
+    }
+    let result: ConnectionsApiModel = response.json().await?;
+    Ok(result)
+}
+
 pub async fn get_tables_list() -> Result<Vec<TableListItemApiModel>, RequestError> {
     let url = format!("{}/api/Tables/List", get_base_url());
     let response = reqwest::Client::new().get(&url).send().await?;

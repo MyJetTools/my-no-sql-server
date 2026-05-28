@@ -97,6 +97,10 @@ pub fn build(app: &Arc<AppContext>) -> ControllersMiddleware {
         app.clone(),
     )));
 
+    result.register_get_action(Arc::new(
+        super::connections_controller::GetConnectionsAction::new(app.clone()),
+    ));
+
     result.register_post_action(Arc::new(super::bulk::BulkDeleteAction::new(app.clone())));
 
     result.register_post_action(Arc::new(super::bulk::CleanAndBulkInsertAction::new(
