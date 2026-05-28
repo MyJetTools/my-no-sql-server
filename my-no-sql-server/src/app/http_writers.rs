@@ -8,7 +8,7 @@ pub struct WriterInfo {
     pub version: String,
     pub last_ping: DateTimeAsMicroseconds,
     pub tables: Vec<String>,
-    pub ip: String,
+    pub addr: String,
 }
 
 pub struct HttpWriters {
@@ -27,7 +27,7 @@ impl HttpWriters {
         name: &str,
         version: &str,
         tables: impl Iterator<Item = &str>,
-        ip: String,
+        addr: String,
         now: DateTimeAsMicroseconds,
     ) {
         let mut data = self.data.lock().await;
@@ -39,7 +39,7 @@ impl HttpWriters {
                 }
 
                 writer_info.tables = tables.map(|x| x.to_string()).collect();
-                writer_info.ip = ip;
+                writer_info.addr = addr;
             }
             None => {
                 data.insert(
@@ -48,7 +48,7 @@ impl HttpWriters {
                         version: version.to_string(),
                         last_ping: now,
                         tables: tables.map(|x| x.to_string()).collect(),
-                        ip,
+                        addr,
                     },
                 );
             }

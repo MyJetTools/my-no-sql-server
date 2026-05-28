@@ -20,7 +20,7 @@ pub struct ConnectionWriterApiModel {
     pub name: String,
     pub version: String,
     #[serde(default)]
-    pub ip: String,
+    pub addr: String,
     #[serde(default)]
     pub tables: Vec<String>,
     #[serde(rename = "reqPerSecond", default)]

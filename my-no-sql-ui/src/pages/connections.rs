@@ -264,7 +264,7 @@ fn render_writers_table(writers: &[ConnectionWriterApiModel]) -> Element {
             tr {
                 td { "{writer.name}" }
                 td { class: "conn-table__id", "{writer.version}" }
-                td { "{writer.ip}" }
+                td { class: "conn-table__id", "{writer.addr}" }
                 td { class: "conn-table__num", "{writer.tables.len()}" }
                 td { class: "conn-table__num", "{writer.req_per_second} req/s" }
                 td { "{tables}" }
@@ -285,7 +285,7 @@ fn render_writers_table(writers: &[ConnectionWriterApiModel]) -> Element {
                         tr {
                             th { "Name" }
                             th { "Version" }
-                            th { "IP" }
+                            th { "Addr" }
                             th { class: "conn-table__num", "Tables" }
                             th { class: "conn-table__num", "Req/s" }
                             th { "Table list" }

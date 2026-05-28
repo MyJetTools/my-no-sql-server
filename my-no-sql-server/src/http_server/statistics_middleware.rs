@@ -29,8 +29,10 @@ impl HttpServerMiddleware for StatisticsMiddleware {
         self.app.write_payloads_per_second.increase(1);
         self.app.write_bytes_per_second.increase(body_len);
 
-        let ip = ctx.request.get_ip().get_real_ip().to_string();
-        self.app.requests_per_ip.increase(&ip);
+        // Attribute by the raw socket peer address (ip:port) so connections
+        // from the same host (shared IP) are distinguished per connection.
+        let connection_addr = ctx.request.addr.to_string();
+        self.app.requests_per_ip.increase(&connection_addr);
 
         None
     }

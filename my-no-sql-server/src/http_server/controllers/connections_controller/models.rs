@@ -22,7 +22,7 @@ pub struct ConnectionReaderModel {
 pub struct ConnectionWriterModel {
     pub name: String,
     pub version: String,
-    pub ip: String,
+    pub addr: String,
     pub tables: Vec<String>,
     #[serde(rename = "reqPerSecond")]
     pub req_per_second: usize,
@@ -74,9 +74,9 @@ impl ConnectionsModel {
             .get(|name, info| ConnectionWriterModel {
                 name: name.to_string(),
                 version: info.version.to_string(),
-                ip: info.ip.to_string(),
+                addr: info.addr.to_string(),
                 tables: info.tables.clone(),
-                req_per_second: app.requests_per_ip.get_value(&info.ip),
+                req_per_second: app.requests_per_ip.get_value(&info.addr),
                 last_incoming_time: format!(
                     "{:?}",
                     now.duration_since(info.last_ping).as_positive_or_zero()
