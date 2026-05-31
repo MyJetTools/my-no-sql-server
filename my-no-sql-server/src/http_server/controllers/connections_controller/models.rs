@@ -20,12 +20,17 @@ pub struct ConnectionReaderModel {
 
 #[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
 pub struct ConnectionWriterModel {
+    pub session: String,
     pub name: String,
     pub version: String,
     pub addr: String,
     pub tables: Vec<String>,
     #[serde(rename = "lastIncomingTime")]
     pub last_incoming_time: String,
+    #[serde(rename = "reqPerSecond")]
+    pub req_per_second: usize,
+    #[serde(rename = "bytesPerSecond")]
+    pub bytes_per_second: usize,
 }
 
 #[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
@@ -85,17 +90,25 @@ impl ConnectionsModel {
         }
 
         let now = DateTimeAsMicroseconds::now();
+        let writers_traffic = app.writers_traffic.get_snapshot();
         let writers = app
             .http_writers
-            .get(|name, info| ConnectionWriterModel {
-                name: name.to_string(),
-                version: info.version.to_string(),
-                addr: info.addr.to_string(),
-                tables: info.tables.clone(),
-                last_incoming_time: format!(
-                    "{:?}",
-                    now.duration_since(info.last_ping).as_positive_or_zero()
-                ),
+            .get(|session_id, info| {
+                let (req_per_second, bytes_per_second) =
+                    writers_traffic.get(session_id).copied().unwrap_or((0, 0));
+                ConnectionWriterModel {
+                    session: session_id.to_string(),
+                    name: info.name.to_string(),
+                    version: info.version.to_string(),
+                    addr: info.addr.to_string(),
+                    tables: info.tables.clone(),
+                    last_incoming_time: format!(
+                        "{:?}",
+                        now.duration_since(info.last_ping).as_positive_or_zero()
+                    ),
+                    req_per_second,
+                    bytes_per_second,
+                }
             })
             .await;
 

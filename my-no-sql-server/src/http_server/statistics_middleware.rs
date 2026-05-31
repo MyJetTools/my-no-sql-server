@@ -34,8 +34,25 @@ impl HttpServerMiddleware for StatisticsMiddleware {
         let connection_addr = ctx.request.addr.to_string();
         self.app.requests_per_ip.increase(&connection_addr);
 
+        // When the writer replays the `session` id issued during the Ping
+        // handshake, attribute the request to that writer exactly.
+        if let Some(session) = get_session(ctx) {
+            self.app.writers_traffic.increase(session, body_len);
+        }
+
         None
     }
+}
+
+fn get_session(ctx: &HttpContext) -> Option<&str> {
+    use my_http_server::HttpRequestHeaders;
+
+    ctx.request
+        .get_headers()
+        .try_get_case_insensitive_as_str("session")
+        .ok()
+        .flatten()
+        .filter(|value| !value.is_empty())
 }
 
 fn get_content_length(ctx: &HttpContext) -> usize {

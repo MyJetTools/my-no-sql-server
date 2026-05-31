@@ -15,7 +15,7 @@ use crate::{
     data_readers::DataReadersList, db_operations::multipart::MultipartList, db_sync::SyncEvent, db_transactions::ActiveTransactions, operations::init::InitState, persist_markers::PersistMarkers, settings_reader::SettingsModel
 };
 
-use super::{HttpWriters, OneSecondCounter, PrometheusMetrics, RequestsPerIp};
+use super::{HttpWriters, OneSecondCounter, PrometheusMetrics, RequestsPerIp, WritersTraffic};
 
 pub const APP_VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
@@ -53,6 +53,7 @@ pub struct AppContext {
     pub write_payloads_per_second: OneSecondCounter,
     pub write_bytes_per_second: OneSecondCounter,
     pub requests_per_ip: RequestsPerIp,
+    pub writers_traffic: WritersTraffic,
 
     pub use_unix_socket: Option<FilePath>,
 
@@ -82,6 +83,7 @@ impl AppContext {
             write_payloads_per_second: OneSecondCounter::new(),
             write_bytes_per_second: OneSecondCounter::new(),
             requests_per_ip: RequestsPerIp::new(),
+            writers_traffic: WritersTraffic::new(),
             init_state: InitState::new(),
             use_unix_socket: match std::env::var("UNIX_SOCKET") {
                 Ok(path) => FilePath::from_str(&path).into(),

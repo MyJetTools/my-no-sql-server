@@ -17,6 +17,8 @@ pub struct ConnectionReaderApiModel {
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct ConnectionWriterApiModel {
+    #[serde(default)]
+    pub session: String,
     pub name: String,
     pub version: String,
     #[serde(default)]
@@ -25,6 +27,10 @@ pub struct ConnectionWriterApiModel {
     pub tables: Vec<String>,
     #[serde(rename = "lastIncomingTime", default)]
     pub last_incoming_time: String,
+    #[serde(rename = "reqPerSecond", default)]
+    pub req_per_second: usize,
+    #[serde(rename = "bytesPerSecond", default)]
+    pub bytes_per_second: usize,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]

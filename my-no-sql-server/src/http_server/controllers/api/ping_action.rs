@@ -1,10 +1,11 @@
 use std::sync::Arc;
 
 use my_http_server::{
-    macros::{http_route, MyHttpInput},
+    macros::{http_route, MyHttpInput, MyHttpObjectStructure},
     HttpContext, HttpFailResult, HttpOkResult, HttpOutput,
 };
 use my_no_sql_sdk::server::rust_extensions::date_time::DateTimeAsMicroseconds;
+use serde::{Deserialize, Serialize};
 
 use crate::app::AppContext;
 
@@ -16,7 +17,7 @@ use crate::app::AppContext;
     summary: "Endpoint to ping the service",
     input_data: PingHttpInputModel,
     result:[
-        {status_code: 204, description: "Ok result"},
+        {status_code: 200, description: "Issued/refreshed writer session", model: "PingResult"},
     ]
 )]
 pub struct PingAction {
@@ -38,10 +39,11 @@ async fn handle_request(
 
     let connection_addr = ctx.request.addr.to_string();
 
-    action
+    let session = action
         .app
         .http_writers
-        .update(
+        .get_or_create(
+            input_data.session_id.as_deref(),
             &input_data.name,
             &input_data.version,
             input_data.tables.iter().map(|itm| itm.as_str()),
@@ -49,7 +51,10 @@ async fn handle_request(
             now,
         )
         .await;
-    HttpOutput::Empty.into_ok_result(false).into()
+
+    HttpOutput::as_json(PingResult { session })
+        .into_ok_result(false)
+        .into()
 }
 
 #[derive(Debug, MyHttpInput)]
@@ -61,4 +66,13 @@ pub struct PingHttpInputModel {
 
     #[http_body(name = "tables", description = "List of tables with")]
     pub tables: Vec<String>,
+
+    #[http_header(name = "session", description = "Writer session id issued by a previous ping")]
+    pub session_id: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
+pub struct PingResult {
+    #[serde(rename = "session")]
+    pub session: String,
 }

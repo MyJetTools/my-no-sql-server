@@ -15,3 +15,6 @@ pub use one_second_counter::OneSecondCounter;
 
 mod requests_per_ip;
 pub use requests_per_ip::RequestsPerIp;
+
+mod writers_traffic;
+pub use writers_traffic::WritersTraffic;
