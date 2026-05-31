@@ -15,14 +15,10 @@ pub fn format_bytes(n: f64) -> String {
     format!("{:.2}Gb", n)
 }
 
-/// Network throughput in megabits per second (decimal: 1 Mbit = 1_000_000 bits).
-pub fn format_mbit_per_sec(bytes_per_sec: f64) -> String {
-    format!("{:.2} Mbit/s", bytes_per_sec * 8.0 / 1_000_000.0)
-}
-
-/// Size in mebibytes (binary: 1 MB = 1024 * 1024 bytes).
-pub fn format_megabytes(bytes: f64) -> String {
-    format!("{:.2} MB", bytes / (1024.0 * 1024.0))
+/// Throughput that scales with magnitude (b/s, Kb/s, Mb/s, Gb/s) so even a few
+/// bytes per second stay visible instead of rounding away to "0.00 MB/s".
+pub fn format_bytes_per_sec(bytes_per_sec: f64) -> String {
+    format!("{}/s", format_bytes(bytes_per_sec))
 }
 
 #[allow(dead_code)]

@@ -7,7 +7,7 @@ use crate::components::atoms::{MiniChart, MiniChartSeries};
 use crate::models::{
     ConnectionReaderApiModel, ConnectionWriterApiModel, ConnectionsApiModel,
 };
-use crate::utils::{format_mbit_per_sec, format_megabytes};
+use crate::utils::{format_bytes, format_bytes_per_sec};
 
 const MAX_POINTS: usize = 120;
 
@@ -130,14 +130,12 @@ fn render_connections(history: &[Sample], snapshot: &ConnectionsApiModel) -> Ele
                     span { class: "conn-legend__item",
                         span { class: "conn-legend__dot conn-legend__dot--in" }
                         "Incoming "
-                        b { "{format_mbit_per_sec(incoming as f64)}" }
-                        span { class: "conn-legend__sub", " · {format_megabytes(incoming as f64)}/s" }
+                        b { "{format_bytes_per_sec(incoming as f64)}" }
                     }
                     span { class: "conn-legend__item",
                         span { class: "conn-legend__dot conn-legend__dot--out" }
                         "Outgoing "
-                        b { "{format_mbit_per_sec(outgoing as f64)}" }
-                        span { class: "conn-legend__sub", " · {format_megabytes(outgoing as f64)}/s" }
+                        b { "{format_bytes_per_sec(outgoing as f64)}" }
                     }
                 }
             }
@@ -145,7 +143,7 @@ fn render_connections(history: &[Sample], snapshot: &ConnectionsApiModel) -> Ele
                 MiniChart {
                     series: traffic_series,
                     max: traffic_max,
-                    label: format_mbit_per_sec(traffic_max),
+                    label: format_bytes_per_sec(traffic_max),
                 }
             }
         }
@@ -157,7 +155,7 @@ fn render_connections(history: &[Sample], snapshot: &ConnectionsApiModel) -> Ele
                     span { class: "conn-legend__item",
                         span { class: "conn-legend__dot conn-legend__dot--write" }
                         "Throughput "
-                        b { "{format_megabytes(write_bytes as f64)}/s" }
+                        b { "{format_bytes_per_sec(write_bytes as f64)}" }
                     }
                     span { class: "conn-legend__item",
                         span { class: "conn-legend__dot conn-legend__dot--write" }
@@ -167,11 +165,11 @@ fn render_connections(history: &[Sample], snapshot: &ConnectionsApiModel) -> Ele
                 }
             }
             div { class: "card__body",
-                div { class: "conn-chart-label", "Throughput (MB/s)" }
+                div { class: "conn-chart-label", "Throughput" }
                 MiniChart {
                     series: throughput_series,
                     max: throughput_max,
-                    label: format!("{}/s", format_megabytes(throughput_max)),
+                    label: format_bytes_per_sec(throughput_max),
                     height: 140.0,
                 }
                 div { class: "conn-chart-label", "Payloads (req/s)" }
@@ -210,9 +208,9 @@ fn render_readers_table(readers: &[ConnectionReaderApiModel]) -> Element {
                 td { "{reader.name}" }
                 td { "{reader.ip}" }
                 td { class: "conn-table__kind", "{kind}" }
-                td { class: "conn-table__num", "{format_mbit_per_sec(reader.incoming_per_second as f64)}" }
-                td { class: "conn-table__num", "{format_mbit_per_sec(reader.outgoing_per_second as f64)}" }
-                td { class: "conn-table__num", "{format_megabytes(reader.pending_to_send as f64)}" }
+                td { class: "conn-table__num", "{format_bytes_per_sec(reader.incoming_per_second as f64)}" }
+                td { class: "conn-table__num", "{format_bytes_per_sec(reader.outgoing_per_second as f64)}" }
+                td { class: "conn-table__num", "{format_bytes(reader.pending_to_send as f64)}" }
             }
         }
     });
@@ -262,7 +260,7 @@ fn render_writers_table(writers: &[ConnectionWriterApiModel]) -> Element {
 
     let rows = writers.iter().map(|writer| {
         let tables = writer.tables.join(", ");
-        let mb_per_second = format_megabytes(writer.bytes_per_second as f64);
+        let rate_per_second = format_bytes_per_sec(writer.bytes_per_second as f64);
         rsx! {
             tr {
                 td { "{writer.name}" }
@@ -272,7 +270,7 @@ fn render_writers_table(writers: &[ConnectionWriterApiModel]) -> Element {
                 td { class: "conn-table__num", "{writer.tables.len()}" }
                 td { "{tables}" }
                 td { class: "conn-table__num", "{writer.req_per_second} req/s" }
-                td { class: "conn-table__num", "{mb_per_second}/s" }
+                td { class: "conn-table__num", "{rate_per_second}" }
                 td { class: "conn-table__num", "{writer.last_incoming_time}" }
             }
         }
@@ -295,7 +293,7 @@ fn render_writers_table(writers: &[ConnectionWriterApiModel]) -> Element {
                             th { class: "conn-table__num", "Tables" }
                             th { "Table list" }
                             th { class: "conn-table__num", "Req/s" }
-                            th { class: "conn-table__num", "MB/s" }
+                            th { class: "conn-table__num", "Rate" }
                             th { class: "conn-table__num", "Last ping" }
                         }
                     }

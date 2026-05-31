@@ -3,7 +3,7 @@ use dioxus::prelude::*;
 use crate::components::atoms::{DeltaTone, Stat, StatTone, classify_reader, StateTone};
 use crate::models::{ReaderApiModel, TableApiModel, WriterApiModel};
 use crate::settings::HealthThresholds;
-use crate::utils::{format_mbit_per_sec, format_megabytes};
+use crate::utils::format_bytes_per_sec;
 
 #[component]
 pub fn StatsRow(
@@ -74,7 +74,7 @@ pub fn StatsRow(
             }
             Stat {
                 label: "Read".to_string(),
-                value: format_mbit_per_sec(read_per_second as f64),
+                value: format_bytes_per_sec(read_per_second as f64),
                 delta: "outgoing to readers".to_string(),
                 tone: StatTone::Info,
             }
@@ -87,7 +87,7 @@ pub fn StatsRow(
             }
             Stat {
                 label: "Write rate".to_string(),
-                value: format!("{}/s", format_megabytes(write_bytes_per_second as f64)),
+                value: format_bytes_per_sec(write_bytes_per_second as f64),
                 delta: "incoming payloads".to_string(),
                 tone: StatTone::Info,
             }
