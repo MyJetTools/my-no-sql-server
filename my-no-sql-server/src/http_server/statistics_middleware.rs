@@ -29,13 +29,9 @@ impl HttpServerMiddleware for StatisticsMiddleware {
         self.app.write_payloads_per_second.increase(1);
         self.app.write_bytes_per_second.increase(body_len);
 
-        // Attribute by the raw socket peer address (ip:port) so connections
-        // from the same host (shared IP) are distinguished per connection.
-        let connection_addr = ctx.request.addr.to_string();
-        self.app.requests_per_ip.increase(&connection_addr);
-
         // When the writer replays the `session` id issued during the Ping
-        // handshake, attribute the request to that writer exactly.
+        // handshake, attribute the request to that writer exactly. Requests
+        // without the header are simply not attributed (shown as 0).
         if let Some(session) = get_session(ctx) {
             self.app.writers_traffic.increase(session, body_len);
         }

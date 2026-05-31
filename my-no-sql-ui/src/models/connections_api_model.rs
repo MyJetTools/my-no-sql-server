@@ -34,16 +34,6 @@ pub struct ConnectionWriterApiModel {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub struct ConnectionStatApiModel {
-    #[serde(default)]
-    pub addr: String,
-    #[serde(default)]
-    pub name: Option<String>,
-    #[serde(rename = "reqPerSecond", default)]
-    pub req_per_second: usize,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct ConnectionsApiModel {
     #[serde(rename = "incomingPerSecond", default)]
     pub incoming_per_second: usize,
@@ -57,6 +47,4 @@ pub struct ConnectionsApiModel {
     pub readers: Vec<ConnectionReaderApiModel>,
     #[serde(default)]
     pub writers: Vec<ConnectionWriterApiModel>,
-    #[serde(default)]
-    pub connections: Vec<ConnectionStatApiModel>,
 }
