@@ -4,11 +4,15 @@ use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpServerMiddle
 
 use crate::app::AppContext;
 
-// Counts every incoming request into the write-traffic statistics:
-//   * +1 to write_payloads_per_second (request count)
-//   * +Content-Length to write_bytes_per_second (payload size)
-// Body length is taken from the `Content-Length` header so the body itself
-// is never read here and stays available for the controllers downstream.
+// Counts traffic into the write statistics, but ONLY for requests we can
+// attribute to a known writer — i.e. those that replay the `session` id issued
+// during the Ping handshake. For such a request we record:
+//   * +1 to write_payloads_per_second (global request count)
+//   * +Content-Length to write_bytes_per_second (global payload size)
+//   * +1 / +Content-Length to that writer's per-session counters
+// Requests without the `session` header are not counted anywhere — we don't
+// know who they are. Body length is taken from the `Content-Length` header so
+// the body itself is never read here and stays available downstream.
 pub struct StatisticsMiddleware {
     app: Arc<AppContext>,
 }
@@ -25,14 +29,12 @@ impl HttpServerMiddleware for StatisticsMiddleware {
         &self,
         ctx: &mut HttpContext,
     ) -> Option<Result<HttpOkResult, HttpFailResult>> {
-        let body_len = get_content_length(ctx);
-        self.app.write_payloads_per_second.increase(1);
-        self.app.write_bytes_per_second.increase(body_len);
-
-        // When the writer replays the `session` id issued during the Ping
-        // handshake, attribute the request to that writer exactly. Requests
-        // without the header are simply not attributed (shown as 0).
+        // Only count requests that carry the `session` id — i.e. ones we can
+        // attribute to a known writer. Everything else is ignored entirely.
         if let Some(session) = get_session(ctx) {
+            let body_len = get_content_length(ctx);
+            self.app.write_payloads_per_second.increase(1);
+            self.app.write_bytes_per_second.increase(body_len);
             self.app.writers_traffic.increase(session, body_len);
         }
 
