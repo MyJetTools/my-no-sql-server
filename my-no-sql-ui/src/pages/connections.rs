@@ -258,6 +258,9 @@ fn render_writers_table(writers: &[ConnectionWriterApiModel]) -> Element {
         };
     }
 
+    let mut writers = writers.to_vec();
+    writers.sort_by(|a, b| a.name.cmp(&b.name).then_with(|| a.session.cmp(&b.session)));
+
     let rows = writers.iter().map(|writer| {
         let tables = writer.tables.join(", ");
         let rate_per_second = format_bytes_per_sec(writer.bytes_per_second as f64);
