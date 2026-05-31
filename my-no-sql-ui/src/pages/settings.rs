@@ -82,7 +82,7 @@ pub fn Settings() -> Element {
                         w.enabled = s.mcp_writes_enabled;
                         w.remaining_secs = s.mcp_writes_remaining_secs;
                     }
-                    dioxus_utils::js::sleep(Duration::from_secs(5)).await;
+                    dioxus_utils::js::sleep(Duration::from_secs(1)).await;
                 }
             });
         }
@@ -204,6 +204,10 @@ pub fn Settings() -> Element {
     } else {
         "var(--text-muted)"
     };
+    let mcp_remaining_label = match mcp_remaining_secs {
+        Some(secs) => format!("{}m {:02}s", secs / 60, secs % 60),
+        None => "—".to_string(),
+    };
 
     rsx! {
         section { class: "page page--padded",
@@ -307,6 +311,20 @@ pub fn Settings() -> Element {
                             "Read-only MCP tools are always available."
                         }
 
+                        if mcp_enabled {
+                            div {
+                                class: "settings-row",
+                                style: "align-items: center;",
+                                label { class: "settings-row__label", "Time remaining" }
+                                div { class: "settings-row__field",
+                                    span {
+                                        style: "color: var(--ok); font-family: var(--font-mono); font-weight: 600; font-size: 15px;",
+                                        "{mcp_remaining_label}"
+                                    }
+                                }
+                            }
+                        }
+
                         {mcp_footer}
                     }
                     div { class: "card__footer", style: "display: flex; justify-content: flex-end; gap: 6px; padding: 10px 14px;",
@@ -317,12 +335,19 @@ pub fn Settings() -> Element {
                                 onclick: mcp_disable,
                                 "Disable"
                             }
-                        }
-                        button {
-                            class: "btn btn--primary btn--sm",
-                            disabled: mcp_saving,
-                            onclick: mcp_enable,
-                            if mcp_saving { "Working…" } else if mcp_enabled { "Extend 10 min" } else { "Enable" }
+                            button {
+                                class: "btn btn--primary btn--sm",
+                                disabled: mcp_saving,
+                                onclick: mcp_enable,
+                                if mcp_saving { "Working…" } else { "Extend +10 min" }
+                            }
+                        } else {
+                            button {
+                                class: "btn btn--primary btn--sm",
+                                disabled: mcp_saving,
+                                onclick: mcp_enable,
+                                if mcp_saving { "Working…" } else { "Enable for 10 min" }
+                            }
                         }
                     }
                 }
