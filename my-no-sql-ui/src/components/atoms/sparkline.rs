@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 
-use crate::utils::format_bytes;
+use crate::utils::format_bytes_per_sec;
 
 #[component]
 pub fn Sparkline(values: Vec<usize>, #[props(default)] bytes_label: bool) -> Element {
@@ -30,7 +30,7 @@ pub fn Sparkline(values: Vec<usize>, #[props(default)] bytes_label: bool) -> Ele
     });
 
     let label_el = if bytes_label && max > 0.0 {
-        let txt = format_bytes(max);
+        let txt = format_bytes_per_sec(max);
         rsx! {
             text {
                 class: "sparkline__label",
