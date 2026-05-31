@@ -36,12 +36,10 @@ impl HttpWriters {
 
     // Refreshes the writer identified by `session` or creates a new entry,
     // returning the resulting session id. Resolution of the key:
-    //   * `Some(s)` known        -> refresh that entry, return `s`.
-    //   * `Some(_)` unknown      -> issue a fresh server `Writer-{n}` id (we do
-    //                               not trust a client-claimed id we never gave,
-    //                               e.g. after a restart/GC).
-    //   * `None` (legacy client) -> stable synthetic `legacy:{name}` key so it
-    //                               does not churn a new entry on every ping.
+    //   * `Some(s)` -> use it as-is (known -> refresh; unknown -> re-adopt the
+    //                  id the client still holds after a server restart/GC).
+    //   * `None`    -> first ping of a fresh writer: issue a new `Writer-{n}`,
+    //                  return it; the client adopts it and replays it afterwards.
     pub async fn get_or_create(
         &self,
         session: Option<&str>,
@@ -54,9 +52,8 @@ impl HttpWriters {
         let mut data = self.data.lock().await;
 
         let session_id = match session {
-            Some(session) if data.contains_key(session) => session.to_string(),
-            Some(_) => self.generate_session_id(),
-            None => format!("legacy:{}", name),
+            Some(session) => session.to_string(),
+            None => self.generate_session_id(),
         };
 
         let writer_info = data.entry(session_id.clone()).or_insert_with(|| WriterInfo {
