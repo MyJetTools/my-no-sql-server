@@ -14,10 +14,6 @@ use crate::{
 pub struct CleanTableInputData {
     #[property(description = "Name of the table to clean (all rows in all partitions will be removed)")]
     pub table_name: String,
-    #[property(
-        description = "Optional: only for clients without elicitation support. On elicitation-capable clients the server will request the password interactively and IGNORE this field."
-    )]
-    pub password: Option<String>,
 }
 
 #[derive(ApplyJsonSchema, Debug, Serialize, Deserialize)]
@@ -41,25 +37,19 @@ impl ToolDefinition for CleanTableToolCallHandler {
 
     const DESCRIPTION: &'static str = "\
 Removes ALL rows from the specified table (the table itself is kept). \
-This is a destructive operation and requires the mcp-write-password. \
-POLICY: the password is requested via MCP elicitation — your client \
-will prompt the user. NEVER cache, log, or summarize the password \
-value. See prompt 'mcp_write_password_policy'.";
+This is a destructive operation and requires MCP writes to be enabled \
+by the admin in the UI Settings page (10-minute window). If this fails \
+as DISABLED, ask the user to enable MCP writes — do not retry in a loop. \
+See prompt 'mcp_writes_enable_policy'.";
 }
 
 #[async_trait::async_trait]
-impl McpToolCallEx<CleanTableInputData, CleanTableResponse> for CleanTableToolCallHandler {
+impl McpToolCall<CleanTableInputData, CleanTableResponse> for CleanTableToolCallHandler {
     async fn execute_tool_call(
         &self,
         model: CleanTableInputData,
-        ctx: &ToolCallContext,
     ) -> Result<CleanTableResponse, String> {
-        super::password_check::elicit_or_validate_password(
-            self.app.as_ref(),
-            ctx,
-            model.password.as_deref(),
-        )
-        .await?;
+        super::write_gate::ensure_mcp_writes_enabled(self.app.as_ref())?;
 
         let db_table = db_operations::read::table::get(self.app.as_ref(), &model.table_name)
             .await

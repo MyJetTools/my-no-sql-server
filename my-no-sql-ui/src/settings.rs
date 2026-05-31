@@ -19,11 +19,12 @@ impl Default for HealthThresholds {
     }
 }
 
-/// Full snapshot of the server-side UI settings. The plaintext MCP
-/// write password is never exposed by the server — the UI only
-/// learns whether one is configured.
+/// Full snapshot of the server-side UI settings. MCP write access is a
+/// runtime-only enable window on the server; the UI learns whether it's
+/// currently enabled and how many seconds remain.
 #[derive(Clone, Copy, PartialEq, Debug, Default)]
 pub struct UiServerSettings {
     pub thresholds: HealthThresholds,
-    pub mcp_write_password_set: bool,
+    pub mcp_writes_enabled: bool,
+    pub mcp_writes_remaining_secs: Option<u64>,
 }

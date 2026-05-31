@@ -19,10 +19,6 @@ pub struct DeleteRowInputData {
     pub partition_key: String,
     #[property(description = "Row key")]
     pub row_key: String,
-    #[property(
-        description = "Optional. Only used by MCP clients that do NOT support elicitation. On elicitation-capable clients (e.g. Claude Code) the server will prompt the user interactively and IGNORE this field."
-    )]
-    pub password: Option<String>,
 }
 
 #[derive(ApplyJsonSchema, Debug, Serialize, Deserialize)]
@@ -45,25 +41,19 @@ impl ToolDefinition for DeleteRowToolCallHandler {
     const FUNC_NAME: &'static str = "delete_row";
 
     const DESCRIPTION: &'static str = "\
-Deletes a single row by partition_key + row_key. Requires the \
-mcp-write-password. POLICY: the password is requested via MCP \
-elicitation — your client will prompt the user. NEVER cache, log, or \
-summarize the password value. See prompt 'mcp_write_password_policy'.";
+Deletes a single row by partition_key + row_key. Requires MCP writes to \
+be enabled by the admin in the UI Settings page (10-minute window). If \
+this fails as DISABLED, ask the user to enable MCP writes — do not retry \
+in a loop. See prompt 'mcp_writes_enable_policy'.";
 }
 
 #[async_trait::async_trait]
-impl McpToolCallEx<DeleteRowInputData, DeleteRowResponse> for DeleteRowToolCallHandler {
+impl McpToolCall<DeleteRowInputData, DeleteRowResponse> for DeleteRowToolCallHandler {
     async fn execute_tool_call(
         &self,
         model: DeleteRowInputData,
-        ctx: &ToolCallContext,
     ) -> Result<DeleteRowResponse, String> {
-        super::password_check::elicit_or_validate_password(
-            self.app.as_ref(),
-            ctx,
-            model.password.as_deref(),
-        )
-        .await?;
+        super::write_gate::ensure_mcp_writes_enabled(self.app.as_ref())?;
 
         let db_table = db_operations::read::table::get(self.app.as_ref(), &model.table_name)
             .await

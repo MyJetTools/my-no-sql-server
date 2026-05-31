@@ -54,8 +54,6 @@ serde_derive = "*"
 quick-xml = "*"
 lazy_static = "*"
 hmac = "0.12"
-sha2 = "*"
-subtle = "2"
 base64 = "*"
 serde_yaml = "*"
 uuid = { version = "*", features = ["serde", "v4"] }

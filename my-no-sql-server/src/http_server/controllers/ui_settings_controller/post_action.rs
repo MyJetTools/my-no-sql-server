@@ -11,7 +11,7 @@ use super::models::{SettingsPatchBody, SettingsPublicModel, SettingsUpdateInput}
     method: "POST",
     route: "/api/Settings",
     controller: "Settings",
-    description: "Partial update of server settings (warnMs, badMs). Fields omitted from the body are left unchanged. The MCP write password is managed via POST /api/Settings/McpWritePassword.",
+    description: "Partial update of server settings (warnMs, badMs). Fields omitted from the body are left unchanged. MCP writes are enabled/disabled via POST /api/Settings/McpWrites.",
     summary: "Update settings",
     input_data: SettingsUpdateInput,
     result:[
@@ -63,6 +63,6 @@ async fn handle_request(
         )));
     }
 
-    let public = SettingsPublicModel::from(&sanitized);
+    let public = SettingsPublicModel::new(&sanitized, action.app.as_ref());
     HttpOutput::as_json(public).into_ok_result(false).into()
 }

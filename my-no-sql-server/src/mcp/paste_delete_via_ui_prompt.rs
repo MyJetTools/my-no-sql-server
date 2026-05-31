@@ -71,12 +71,13 @@ Use this workflow whenever a delete operation is *complex* — defined as
 - The destructive action is confirmed inside the trusted UI rather than
   attributed to the model.
 
-## Password
+## Enabling writes
 
-The UI does not currently prompt for the mcp-write-password on this
-path — the user is presumed to be inside the trusted UI session. If you
-*do* decide to call `delete_row` / `bulk_delete_rows` directly instead,
-the rules in prompt `mcp_write_password_policy` still apply."#;
+The UI "Paste & delete" dialog runs inside the trusted UI session and is
+not gated by the MCP-writes toggle. If you *do* decide to call
+`delete_row` / `bulk_delete_rows` directly instead, MCP writes must first
+be enabled by the admin in the UI Settings page — see prompt
+`mcp_writes_enable_policy`."#;
 
         Ok(PromptExecutionResult {
             description: "When and how to hand off a complex delete to the UI's Paste & delete dialog.".to_string(),

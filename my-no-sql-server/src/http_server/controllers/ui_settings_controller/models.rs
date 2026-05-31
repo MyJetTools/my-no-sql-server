@@ -1,34 +1,22 @@
 use my_http_server::macros::*;
 use my_http_server::types::RawDataTyped;
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
-use subtle::ConstantTimeEq;
+
+use crate::app::AppContext;
 
 const DEFAULT_WARN_MS: u32 = 3_000;
 const DEFAULT_BAD_MS: u32 = 10_000;
 
-/// On-disk shape (`ui-settings.json`). Salt + hash for the MCP write
-/// password are stored here; the plaintext value is never persisted
-/// and never returned by the GET endpoint. See `SettingsPublicModel`
-/// for the wire shape returned to UI clients.
+/// On-disk shape (`ui-settings.json`). MCP write access is gated by a
+/// runtime-only enable window held in `AppContext` — it is never
+/// persisted here. See `SettingsPublicModel` for the wire shape
+/// returned to UI clients.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct UiSettingsModel {
     #[serde(rename = "warnMs")]
     pub warn_ms: u32,
     #[serde(rename = "badMs")]
     pub bad_ms: u32,
-    #[serde(
-        rename = "mcpWritePasswordSalt",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub mcp_write_password_salt: Option<String>,
-    #[serde(
-        rename = "mcpWritePasswordHash",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub mcp_write_password_hash: Option<String>,
 }
 
 impl Default for UiSettingsModel {
@@ -36,8 +24,6 @@ impl Default for UiSettingsModel {
         Self {
             warn_ms: DEFAULT_WARN_MS,
             bad_ms: DEFAULT_BAD_MS,
-            mcp_write_password_salt: None,
-            mcp_write_password_hash: None,
         }
     }
 }
@@ -49,86 +35,30 @@ impl UiSettingsModel {
         }
         self
     }
-
-    pub fn has_mcp_write_password(&self) -> bool {
-        self.mcp_write_password_hash.is_some() && self.mcp_write_password_salt.is_some()
-    }
-
-    /// `Some(non-empty)` → generates fresh salt + hash; `Some("")` or
-    /// `None` → clears both fields. Trims surrounding whitespace.
-    pub fn set_mcp_write_password(&mut self, value: Option<&str>) {
-        match value.map(|v| v.trim()) {
-            Some(plain) if !plain.is_empty() => {
-                let salt = generate_salt_hex();
-                let hash = hash_password(&salt, plain);
-                self.mcp_write_password_salt = Some(salt);
-                self.mcp_write_password_hash = Some(hash);
-            }
-            _ => {
-                self.mcp_write_password_salt = None;
-                self.mcp_write_password_hash = None;
-            }
-        }
-    }
-
-    /// Constant-time check against the stored salt+hash. Returns false
-    /// if no password is configured.
-    pub fn verify_mcp_write_password(&self, password: &str) -> bool {
-        let (Some(salt), Some(hash)) = (
-            self.mcp_write_password_salt.as_deref(),
-            self.mcp_write_password_hash.as_deref(),
-        ) else {
-            return false;
-        };
-
-        let candidate = hash_password(salt, password);
-        candidate.as_bytes().ct_eq(hash.as_bytes()).into()
-    }
 }
 
-fn generate_salt_hex() -> String {
-    // uuid v4 uses a cryptographically secure RNG (`getrandom`).
-    // 16 bytes of entropy is plenty for a per-password salt.
-    let bytes = uuid::Uuid::new_v4().into_bytes();
-    let mut out = String::with_capacity(32);
-    for b in bytes.iter() {
-        out.push_str(&format!("{:02x}", b));
-    }
-    out
-}
-
-fn hash_password(salt_hex: &str, password: &str) -> String {
-    let mut hasher = Sha256::new();
-    hasher.update(salt_hex.as_bytes());
-    hasher.update(password.as_bytes());
-    let digest = hasher.finalize();
-    let mut out = String::with_capacity(64);
-    for b in digest.iter() {
-        out.push_str(&format!("{:02x}", b));
-    }
-    out
-}
-
-/// Wire shape returned by GET `/api/Settings`. Hides salt/hash —
-/// callers only learn whether a password is set. `Deserialize` is
-/// derived only to satisfy `RawDataTyped`'s bound; the actual POST
-/// body is deserialized into `UiSettingsPatchBody`.
+/// Wire shape returned by GET `/api/Settings`. Combines persisted
+/// thresholds with the runtime MCP-writes enable state. `Deserialize`
+/// is derived only to satisfy `RawDataTyped`'s bound.
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, MyHttpObjectStructure)]
 pub struct SettingsPublicModel {
     #[serde(rename = "warnMs")]
     pub warn_ms: u32,
     #[serde(rename = "badMs")]
     pub bad_ms: u32,
-    #[serde(rename = "mcpWritePasswordSet")]
-    pub mcp_write_password_set: bool,
+    #[serde(rename = "mcpWritesEnabled")]
+    pub mcp_writes_enabled: bool,
+    #[serde(rename = "mcpWritesRemainingSecs", skip_serializing_if = "Option::is_none")]
+    pub mcp_writes_remaining_secs: Option<u64>,
 }
 
-impl From<&UiSettingsModel> for SettingsPublicModel {
-    fn from(m: &UiSettingsModel) -> Self {
+impl SettingsPublicModel {
+    pub fn new(settings: &UiSettingsModel, app: &AppContext) -> Self {
         Self {
-            warn_ms: m.warn_ms,
-            bad_ms: m.bad_ms,
-            mcp_write_password_set: m.has_mcp_write_password(),
+            warn_ms: settings.warn_ms,
+            bad_ms: settings.bad_ms,
+            mcp_writes_enabled: app.is_mcp_write_enabled(),
+            mcp_writes_remaining_secs: app.mcp_writes_remaining_secs(),
         }
     }
 }
@@ -151,18 +81,18 @@ pub struct SettingsUpdateInput {
     pub body: RawDataTyped<SettingsPatchBody>,
 }
 
-/// Body for POST `/api/Settings/McpWritePassword`. Empty string in
-/// `password` clears the configured value.
+/// Body for POST `/api/Settings/McpWrites`. `enabled: true` opens the
+/// 10-minute MCP-writes window; `false` closes it immediately.
 #[derive(Serialize, Deserialize, Debug, Default, Clone, MyHttpObjectStructure)]
-pub struct McpWritePasswordBody {
-    #[serde(rename = "password")]
-    pub password: String,
+pub struct McpWritesBody {
+    #[serde(rename = "enabled")]
+    pub enabled: bool,
 }
 
 #[derive(MyHttpInput)]
-pub struct McpWritePasswordInput {
+pub struct McpWritesInput {
     #[http_body_raw(
-        description = "JSON body { password }. Pass an empty string to clear the password."
+        description = "JSON body { enabled }. true enables MCP writes for 10 minutes; false disables them immediately."
     )]
-    pub body: RawDataTyped<McpWritePasswordBody>,
+    pub body: RawDataTyped<McpWritesBody>,
 }

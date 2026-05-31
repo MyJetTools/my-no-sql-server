@@ -195,8 +195,10 @@ pub async fn get_ui_settings() -> Result<crate::settings::UiServerSettings, Requ
         warn_ms: u32,
         #[serde(rename = "badMs")]
         bad_ms: u32,
-        #[serde(rename = "mcpWritePasswordSet", default)]
-        mcp_write_password_set: bool,
+        #[serde(rename = "mcpWritesEnabled", default)]
+        mcp_writes_enabled: bool,
+        #[serde(rename = "mcpWritesRemainingSecs", default)]
+        mcp_writes_remaining_secs: Option<u64>,
     }
     let p: Payload = response.json().await?;
     Ok(crate::settings::UiServerSettings {
@@ -204,7 +206,8 @@ pub async fn get_ui_settings() -> Result<crate::settings::UiServerSettings, Requ
             warn_ms: p.warn_ms,
             bad_ms: p.bad_ms,
         },
-        mcp_write_password_set: p.mcp_write_password_set,
+        mcp_writes_enabled: p.mcp_writes_enabled,
+        mcp_writes_remaining_secs: p.mcp_writes_remaining_secs,
     })
 }
 
@@ -239,23 +242,23 @@ pub async fn set_health_thresholds(
     Ok(())
 }
 
-/// Sets or clears the MCP write password via the dedicated endpoint
-/// POST `/api/Settings/McpWritePassword`. Pass `""` to clear. Value is
-/// hashed (salt + SHA-256) on the server before persistence.
-pub async fn set_mcp_write_password(value: &str) -> Result<(), RequestError> {
-    let url = format!("{}/api/Settings/McpWritePassword", get_base_url());
+/// Enables or disables the MCP write tools via POST
+/// `/api/Settings/McpWrites`. Enabling opens a 10-minute window on the
+/// server; disabling closes it immediately.
+pub async fn set_mcp_writes(enabled: bool) -> Result<(), RequestError> {
+    let url = format!("{}/api/Settings/McpWrites", get_base_url());
     #[derive(serde::Serialize)]
-    struct Payload<'a> {
-        password: &'a str,
+    struct Payload {
+        enabled: bool,
     }
     let response = reqwest::Client::new()
         .post(&url)
-        .json(&Payload { password: value })
+        .json(&Payload { enabled })
         .send()
         .await?;
     if !response.status().is_success() {
         return Err(RequestError {
-            message: format!("Failed to save MCP write password: {}", response.status()),
+            message: format!("Failed to update MCP writes: {}", response.status()),
         });
     }
     Ok(())

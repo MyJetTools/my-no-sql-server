@@ -20,10 +20,6 @@ pub struct BulkDeleteRowsInputData {
     pub partition_key: String,
     #[property(description = "Row keys to delete")]
     pub row_keys: Vec<String>,
-    #[property(
-        description = "Optional: only for clients without elicitation support. On elicitation-capable clients the server will request the password interactively and IGNORE this field. One verification covers the whole batch."
-    )]
-    pub password: Option<String>,
 }
 
 #[derive(ApplyJsonSchema, Debug, Serialize, Deserialize)]
@@ -49,33 +45,27 @@ impl ToolDefinition for BulkDeleteRowsToolCallHandler {
 
     const DESCRIPTION: &'static str = "\
 Deletes multiple rows from a single partition in one call. Pass \
-`partition_key` and `row_keys[]`. The mcp-write-password is verified \
-ONCE for the whole batch, not per row. POLICY: the password is requested \
-via MCP elicitation; NEVER cache, log, or summarize the value. See \
-prompt 'mcp_write_password_policy'. For deletes that span multiple \
+`partition_key` and `row_keys[]`. Requires MCP writes to be enabled by \
+the admin in the UI Settings page (10-minute window). If this fails as \
+DISABLED, ask the user to enable MCP writes — do not retry in a loop. \
+See prompt 'mcp_writes_enable_policy'. For deletes that span multiple \
 partitions, or for large/sensitive batches, prefer the \
 'paste_delete_via_ui' workflow instead — see that prompt.";
 }
 
 #[async_trait::async_trait]
-impl McpToolCallEx<BulkDeleteRowsInputData, BulkDeleteRowsResponse>
+impl McpToolCall<BulkDeleteRowsInputData, BulkDeleteRowsResponse>
     for BulkDeleteRowsToolCallHandler
 {
     async fn execute_tool_call(
         &self,
         model: BulkDeleteRowsInputData,
-        ctx: &ToolCallContext,
     ) -> Result<BulkDeleteRowsResponse, String> {
         if model.row_keys.is_empty() {
             return Err("`row_keys` is empty — nothing to delete.".into());
         }
 
-        super::password_check::elicit_or_validate_password(
-            self.app.as_ref(),
-            ctx,
-            model.password.as_deref(),
-        )
-        .await?;
+        super::write_gate::ensure_mcp_writes_enabled(self.app.as_ref())?;
 
         let db_table = db_operations::read::table::get(self.app.as_ref(), &model.table_name)
             .await

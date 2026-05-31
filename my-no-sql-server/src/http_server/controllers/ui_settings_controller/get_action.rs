@@ -11,7 +11,7 @@ use super::models::SettingsPublicModel;
     method: "GET",
     route: "/api/Settings",
     controller: "Settings",
-    description: "Returns server settings (UI thresholds + MCP write password flag). The password value is never exposed — only a boolean indicating whether it is configured.",
+    description: "Returns server settings: UI health thresholds plus the runtime MCP-writes enable state (whether writes are currently enabled and how many seconds remain in the window).",
     summary: "Read settings",
     result:[
         {status_code: 200, description: "Settings", model: "SettingsPublicModel"},
@@ -32,6 +32,6 @@ async fn handle_request(
     _ctx: &mut HttpContext,
 ) -> Result<HttpOkResult, HttpFailResult> {
     let model = super::storage::load(action.app.settings.persistence_dest.as_str()).await;
-    let public = SettingsPublicModel::from(&model);
+    let public = SettingsPublicModel::new(&model, action.app.as_ref());
     HttpOutput::as_json(public).into_ok_result(false).into()
 }

@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use dioxus::prelude::*;
 
 use crate::api;
@@ -13,35 +15,74 @@ struct SettingsState {
 }
 
 #[derive(Default)]
-struct McpPasswordState {
-    /// Loaded from the server: true if a password is currently set.
-    password_set: bool,
-    /// Set once after first GET, so we don't re-fetch on every render.
+struct McpWritesState {
+    /// True while the server-side enable window is open.
+    enabled: bool,
+    /// Seconds left in the window (None when disabled).
+    remaining_secs: Option<u64>,
+    /// Set once, so we start the status poller only on first render.
     loaded: bool,
-    /// New password being typed; never echoed back to the server unless
-    /// the user clicks Save.
-    new_password: String,
-    show: bool,
     saving: bool,
     message: Option<String>,
     error: Option<String>,
+}
+
+/// Enables/disables MCP writes on the server, then re-reads the
+/// authoritative state so the countdown reflects the real window.
+fn toggle_mcp_writes(mut mcp: Signal<McpWritesState>, enabled: bool) {
+    {
+        let mut w = mcp.write();
+        w.saving = true;
+        w.error = None;
+        w.message = None;
+    }
+    spawn(async move {
+        match api::set_mcp_writes(enabled).await {
+            Ok(()) => {
+                let server = api::get_ui_settings().await.ok();
+                let mut w = mcp.write();
+                w.saving = false;
+                if let Some(s) = server {
+                    w.enabled = s.mcp_writes_enabled;
+                    w.remaining_secs = s.mcp_writes_remaining_secs;
+                } else {
+                    w.enabled = enabled;
+                }
+                w.message = Some(if enabled {
+                    "MCP writes enabled for 10 minutes.".to_string()
+                } else {
+                    "MCP writes disabled.".to_string()
+                });
+            }
+            Err(err) => {
+                let mut w = mcp.write();
+                w.saving = false;
+                w.error = Some(format!("Failed: {}", err));
+            }
+        }
+    });
 }
 
 #[component]
 pub fn Settings() -> Element {
     let mut thresholds = use_context::<Signal<HealthThresholds>>();
     let mut cs = use_signal(SettingsState::default);
-    let mut mcp = use_signal(McpPasswordState::default);
+    let mut mcp = use_signal(McpWritesState::default);
 
-    // Lazy-load whether the MCP write password is configured. We only
-    // care about the boolean — the server never reveals the value.
+    // Poll the MCP-writes enable state so the countdown stays in sync and
+    // the card flips back to "Disabled" when the 10-minute window lapses.
     {
         let loaded = mcp.read().loaded;
         if !loaded {
             mcp.write().loaded = true;
             spawn(async move {
-                if let Ok(s) = api::get_ui_settings().await {
-                    mcp.write().password_set = s.mcp_write_password_set;
+                loop {
+                    if let Ok(s) = api::get_ui_settings().await {
+                        let mut w = mcp.write();
+                        w.enabled = s.mcp_writes_enabled;
+                        w.remaining_secs = s.mcp_writes_remaining_secs;
+                    }
+                    dioxus_utils::js::sleep(Duration::from_secs(5)).await;
                 }
             });
         }
@@ -126,72 +167,17 @@ pub fn Settings() -> Element {
         rsx! {}
     };
 
-    // ----- MCP write password card state & handlers -----
+    // ----- MCP writes card state & handlers -----
     let mcp_ra = mcp.read();
-    let mcp_password_set = mcp_ra.password_set;
-    let mcp_show = mcp_ra.show;
-    let mcp_new = mcp_ra.new_password.clone();
+    let mcp_enabled = mcp_ra.enabled;
+    let mcp_remaining_secs = mcp_ra.remaining_secs;
     let mcp_saving = mcp_ra.saving;
     let mcp_message = mcp_ra.message.clone();
     let mcp_error = mcp_ra.error.clone();
     drop(mcp_ra);
 
-    let mcp_save = move |_| {
-        let value = mcp.read().new_password.clone();
-        if value.trim().is_empty() {
-            let mut w = mcp.write();
-            w.error = Some("Enter a non-empty password.".to_string());
-            w.message = None;
-            return;
-        }
-        {
-            let mut w = mcp.write();
-            w.saving = true;
-            w.error = None;
-            w.message = None;
-        }
-        spawn(async move {
-            match api::set_mcp_write_password(&value).await {
-                Ok(()) => {
-                    let mut w = mcp.write();
-                    w.saving = false;
-                    w.password_set = true;
-                    w.new_password = String::new();
-                    w.message = Some("Password saved.".to_string());
-                }
-                Err(err) => {
-                    let mut w = mcp.write();
-                    w.saving = false;
-                    w.error = Some(format!("Save failed: {}", err));
-                }
-            }
-        });
-    };
-
-    let mcp_clear = move |_| {
-        {
-            let mut w = mcp.write();
-            w.saving = true;
-            w.error = None;
-            w.message = None;
-        }
-        spawn(async move {
-            match api::set_mcp_write_password("").await {
-                Ok(()) => {
-                    let mut w = mcp.write();
-                    w.saving = false;
-                    w.password_set = false;
-                    w.new_password = String::new();
-                    w.message = Some("Password cleared.".to_string());
-                }
-                Err(err) => {
-                    let mut w = mcp.write();
-                    w.saving = false;
-                    w.error = Some(format!("Clear failed: {}", err));
-                }
-            }
-        });
-    };
+    let mcp_enable = move |_| toggle_mcp_writes(mcp, true);
+    let mcp_disable = move |_| toggle_mcp_writes(mcp, false);
 
     let mcp_footer = if let Some(m) = mcp_message.clone() {
         rsx! { div { style: "color: var(--ok); font-size: 12px;", "{m}" } }
@@ -201,18 +187,23 @@ pub fn Settings() -> Element {
         rsx! {}
     };
 
-    let mcp_status_label = if mcp_password_set {
-        "currently set"
+    let mcp_status_label = if mcp_enabled {
+        match mcp_remaining_secs {
+            Some(secs) => {
+                let mins = secs / 60;
+                let rem = secs % 60;
+                format!("enabled — ~{}m {:02}s left", mins, rem)
+            }
+            None => "enabled".to_string(),
+        }
     } else {
-        "not configured"
+        "disabled".to_string()
     };
-    let mcp_status_color = if mcp_password_set {
+    let mcp_status_color = if mcp_enabled {
         "var(--ok)"
     } else {
         "var(--text-muted)"
     };
-    let mcp_input_type = if mcp_show { "text" } else { "password" };
-    let mcp_show_label = if mcp_show { "Hide" } else { "Show" };
 
     rsx! {
         section { class: "page page--padded",
@@ -288,10 +279,10 @@ pub fn Settings() -> Element {
                     }
                 }
 
-                // ----- MCP write password card -----
+                // ----- MCP writes card -----
                 div { class: "card",
                     div { class: "card__header",
-                        span { class: "card__title", "MCP write password" }
+                        span { class: "card__title", "MCP writes" }
                         span {
                             class: "card__subtitle",
                             style: "color: {mcp_status_color};",
@@ -300,65 +291,38 @@ pub fn Settings() -> Element {
                     }
                     div { class: "card__body", style: "display: flex; flex-direction: column; gap: 14px;",
                         p { style: "margin: 0; color: var(--text-muted); font-size: 12.5px;",
-                            "Gates the MCP write tools "
+                            "Controls the MCP write tools ("
                             code { style: "font-family: var(--font-mono);", "delete_row" }
-                            " and "
+                            ", "
                             code { style: "font-family: var(--font-mono);", "insert_or_replace_row" }
-                            ". Stored as a salted SHA-256 hash on the server. AI clients "
-                            "must request the value via MCP elicitation and NEVER cache it — "
-                            "see the "
-                            code { style: "font-family: var(--font-mono);", "mcp_write_password_policy" }
-                            " prompt exposed by the server."
-                        }
-
-                        div { class: "settings-row",
-                            label { class: "settings-row__label",
-                                if mcp_password_set {
-                                    "Replace password"
-                                } else {
-                                    "Set password"
-                                }
-                            }
-                            div { class: "settings-row__field",
-                                input {
-                                    class: "filter-input",
-                                    r#type: "{mcp_input_type}",
-                                    autocomplete: "new-password",
-                                    placeholder: "New password",
-                                    value: "{mcp_new}",
-                                    oninput: move |evt| {
-                                        let mut w = mcp.write();
-                                        w.new_password = evt.value();
-                                        w.message = None;
-                                    },
-                                }
-                                button {
-                                    class: "btn btn--ghost btn--sm",
-                                    onclick: move |_| {
-                                        let mut w = mcp.write();
-                                        w.show = !w.show;
-                                    },
-                                    "{mcp_show_label}"
-                                }
-                            }
+                            ", "
+                            code { style: "font-family: var(--font-mono);", "clean_table" }
+                            ", …). They are disabled by default. Click "
+                            b { "Enable" }
+                            " to allow them for "
+                            b { "10 minutes" }
+                            "; they auto-disable after that, or click "
+                            b { "Disable" }
+                            " to turn them off now. A server restart leaves them disabled. "
+                            "Read-only MCP tools are always available."
                         }
 
                         {mcp_footer}
                     }
                     div { class: "card__footer", style: "display: flex; justify-content: flex-end; gap: 6px; padding: 10px 14px;",
-                        if mcp_password_set {
+                        if mcp_enabled {
                             button {
                                 class: "btn btn--ghost btn--sm",
                                 disabled: mcp_saving,
-                                onclick: mcp_clear,
-                                "Clear"
+                                onclick: mcp_disable,
+                                "Disable"
                             }
                         }
                         button {
                             class: "btn btn--primary btn--sm",
                             disabled: mcp_saving,
-                            onclick: mcp_save,
-                            if mcp_saving { "Saving…" } else { "Save" }
+                            onclick: mcp_enable,
+                            if mcp_saving { "Working…" } else if mcp_enabled { "Extend 10 min" } else { "Enable" }
                         }
                     }
                 }

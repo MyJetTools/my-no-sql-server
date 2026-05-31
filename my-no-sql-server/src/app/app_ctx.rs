@@ -1,5 +1,8 @@
 use std::{
-    sync::{atomic::AtomicUsize, Arc},
+    sync::{
+        atomic::{AtomicI64, AtomicUsize},
+        Arc,
+    },
     time::Duration,
 };
 
@@ -20,6 +23,10 @@ pub const APP_NAME: &'static str = env!("CARGO_PKG_NAME");
 
 pub const DEFAULT_PERSIST_PERIOD: crate::db_sync::DataSynchronizationPeriod =
     crate::db_sync::DataSynchronizationPeriod::Sec5;
+
+/// How long MCP write operations stay enabled after the user clicks
+/// "Enable MCP writes" in the UI Settings page.
+pub const MCP_WRITES_WINDOW: Duration = Duration::from_secs(600);
 
 pub struct AppContext {
     pub created: DateTimeAsMicroseconds,
@@ -48,6 +55,11 @@ pub struct AppContext {
     pub requests_per_ip: RequestsPerIp,
 
     pub use_unix_socket: Option<FilePath>,
+
+    /// Expiry (`unix_microseconds`) of the current MCP-writes enable
+    /// window. `0` means MCP writes are disabled. Runtime-only — never
+    /// persisted, so a restart always leaves MCP writes disabled.
+    mcp_writes_enabled_until: AtomicI64,
 }
 
 impl AppContext {
@@ -75,7 +87,45 @@ impl AppContext {
                 Ok(path) => FilePath::from_str(&path).into(),
                 Err(_) => None,
             },
+            mcp_writes_enabled_until: AtomicI64::new(0),
         }
+    }
+
+    /// Enables MCP write operations for `MCP_WRITES_WINDOW`.
+    pub fn enable_mcp_writes(&self) {
+        let until = DateTimeAsMicroseconds::now().add(MCP_WRITES_WINDOW);
+        self.mcp_writes_enabled_until
+            .store(until.unix_microseconds, std::sync::atomic::Ordering::SeqCst);
+    }
+
+    /// Disables MCP write operations immediately.
+    pub fn disable_mcp_writes(&self) {
+        self.mcp_writes_enabled_until
+            .store(0, std::sync::atomic::Ordering::SeqCst);
+    }
+
+    /// `Some(expiry)` while the enable window is still open, otherwise `None`.
+    pub fn mcp_writes_enabled_until(&self) -> Option<DateTimeAsMicroseconds> {
+        let until = self
+            .mcp_writes_enabled_until
+            .load(std::sync::atomic::Ordering::Relaxed);
+        if until > DateTimeAsMicroseconds::now().unix_microseconds {
+            Some(DateTimeAsMicroseconds::new(until))
+        } else {
+            None
+        }
+    }
+
+    pub fn is_mcp_write_enabled(&self) -> bool {
+        self.mcp_writes_enabled_until().is_some()
+    }
+
+    /// Seconds left in the enable window, or `None` when disabled.
+    pub fn mcp_writes_remaining_secs(&self) -> Option<u64> {
+        let until = self.mcp_writes_enabled_until()?;
+        let now = DateTimeAsMicroseconds::now();
+        let micros_left = until.unix_microseconds - now.unix_microseconds;
+        Some((micros_left.max(0) / 1_000_000) as u64)
     }
 
     pub fn update_persist_amount(&self, value: usize) {

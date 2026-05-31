@@ -17,10 +17,6 @@ pub struct DeletePartitionsInputData {
     pub table_name: String,
     #[property(description = "Partition keys to remove (all rows under each partition will be deleted)")]
     pub partition_keys: Vec<String>,
-    #[property(
-        description = "Optional: only for clients without elicitation support. On elicitation-capable clients the server will request the password interactively and IGNORE this field. One verification covers the whole batch."
-    )]
-    pub password: Option<String>,
 }
 
 #[derive(ApplyJsonSchema, Debug, Serialize, Deserialize)]
@@ -46,32 +42,25 @@ impl ToolDefinition for DeletePartitionsToolCallHandler {
 
     const DESCRIPTION: &'static str = "\
 Deletes whole partitions (and every row they contain) from a table in \
-one call. Pass `table_name` and `partition_keys[]`. The mcp-write-password \
-is verified ONCE for the whole batch, not per partition. POLICY: the \
-password is requested via MCP elicitation — your client will prompt the \
-user. NEVER cache, log, or summarize the password value. See prompt \
-'mcp_write_password_policy'.";
+one call. Pass `table_name` and `partition_keys[]`. Requires MCP writes \
+to be enabled by the admin in the UI Settings page (10-minute window). \
+If this fails as DISABLED, ask the user to enable MCP writes — do not \
+retry in a loop. See prompt 'mcp_writes_enable_policy'.";
 }
 
 #[async_trait::async_trait]
-impl McpToolCallEx<DeletePartitionsInputData, DeletePartitionsResponse>
+impl McpToolCall<DeletePartitionsInputData, DeletePartitionsResponse>
     for DeletePartitionsToolCallHandler
 {
     async fn execute_tool_call(
         &self,
         model: DeletePartitionsInputData,
-        ctx: &ToolCallContext,
     ) -> Result<DeletePartitionsResponse, String> {
         if model.partition_keys.is_empty() {
             return Err("`partition_keys` is empty — nothing to delete.".into());
         }
 
-        super::password_check::elicit_or_validate_password(
-            self.app.as_ref(),
-            ctx,
-            model.password.as_deref(),
-        )
-        .await?;
+        super::write_gate::ensure_mcp_writes_enabled(self.app.as_ref())?;
 
         let db_table = db_operations::read::table::get(self.app.as_ref(), &model.table_name)
             .await
