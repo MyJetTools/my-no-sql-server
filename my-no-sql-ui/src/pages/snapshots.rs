@@ -1,203 +1,338 @@
 use dioxus::prelude::*;
 use serde_json::Value;
 
+use crate::AppRoute;
 use crate::api;
 use crate::components::data::{PARTITION_KEY, ROW_KEY, RowsTable, TIME_STAMP};
-use crate::models::SnapshotTableApiModel;
+use crate::models::{SnapshotFileApiModel, SnapshotTableApiModel};
 
 #[derive(Default)]
 struct SnapshotsState {
-    started: bool,
-    loading: bool,
-    error: Option<String>,
+    // Snapshot files list (loaded once, refreshed on demand).
+    files: Vec<SnapshotFileApiModel>,
+    files_started: bool,
+    files_ready: bool,
 
-    files: Vec<String>,
-
-    selected_file: Option<String>,
+    // Tables for the selected file.
+    loaded_for_file: Option<String>,
     tables: Vec<SnapshotTableApiModel>,
+    tables_ready: bool,
 
-    selected_table: Option<String>,
+    // Partitions for the selected (file, table).
+    loaded_for_table: Option<(String, String)>,
     partitions: Vec<String>,
+    partitions_ready: bool,
 
-    selected_partition: Option<String>,
+    // Rows for the selected (file, table, partition).
+    loaded_rows_for: Option<(String, String, String)>,
     row_headers: Vec<String>,
     rows: Vec<Value>,
+    rows_ready: bool,
+
+    error: Option<String>,
+}
+
+impl SnapshotsState {
+    fn begin_files_load(&mut self) {
+        self.files_started = true;
+        self.files_ready = false;
+        self.error = None;
+    }
+
+    fn set_files(&mut self, files: Vec<SnapshotFileApiModel>) {
+        self.files = files;
+        self.files_ready = true;
+    }
+
+    fn begin_tables_load(&mut self, file: &str) {
+        self.loaded_for_file = Some(file.to_string());
+        self.tables = Vec::new();
+        self.tables_ready = false;
+        self.error = None;
+    }
+
+    fn set_tables(&mut self, file: &str, tables: Vec<SnapshotTableApiModel>) {
+        if self.loaded_for_file.as_deref() == Some(file) {
+            self.tables = tables;
+            self.tables_ready = true;
+        }
+    }
+
+    fn begin_partitions_load(&mut self, key: &(String, String)) {
+        self.loaded_for_table = Some(key.clone());
+        self.partitions = Vec::new();
+        self.partitions_ready = false;
+        self.error = None;
+    }
+
+    fn set_partitions(&mut self, key: &(String, String), partitions: Vec<String>) {
+        if self.loaded_for_table.as_ref() == Some(key) {
+            self.partitions = partitions;
+            self.partitions_ready = true;
+        }
+    }
+
+    fn begin_rows_load(&mut self, key: &(String, String, String)) {
+        self.loaded_rows_for = Some(key.clone());
+        self.row_headers = Vec::new();
+        self.rows = Vec::new();
+        self.rows_ready = false;
+        self.error = None;
+    }
+
+    fn set_rows(&mut self, key: &(String, String, String), headers: Vec<String>, rows: Vec<Value>) {
+        if self.loaded_rows_for.as_ref() == Some(key) {
+            self.row_headers = headers;
+            self.rows = rows;
+            self.rows_ready = true;
+        }
+    }
+}
+
+/// Extract `(file, table, partition)` from the current snapshot route.
+fn parse_snapshot_route(route: &AppRoute) -> (Option<String>, Option<String>, Option<String>) {
+    match route {
+        AppRoute::SnapshotFile { file } => (Some(file.clone()), None, None),
+        AppRoute::SnapshotTable { file, table } => {
+            (Some(file.clone()), Some(table.clone()), None)
+        }
+        AppRoute::SnapshotPartition {
+            file,
+            table,
+            partition,
+        } => (
+            Some(file.clone()),
+            Some(table.clone()),
+            Some(partition.clone()),
+        ),
+        _ => (None, None, None),
+    }
+}
+
+// Route placeholders — the URL patterns for the snapshots section. `SnapshotsLayout`
+// renders the whole page and reads the params via `use_route`, so these render
+// nothing themselves.
+#[component]
+pub fn Snapshots() -> Element {
+    rsx! {}
 }
 
 #[component]
-pub fn Snapshots() -> Element {
-    let mut cs = use_signal(SnapshotsState::default);
+pub fn SnapshotFile(file: String) -> Element {
+    let _ = file;
+    rsx! {}
+}
 
-    let mut load_files = move || {
-        {
-            let mut w = cs.write();
-            w.loading = true;
-            w.error = None;
-        }
+#[component]
+pub fn SnapshotTable(file: String, table: String) -> Element {
+    let _ = (file, table);
+    rsx! {}
+}
+
+#[component]
+pub fn SnapshotPartition(file: String, table: String, partition: String) -> Element {
+    let _ = (file, table, partition);
+    rsx! {}
+}
+
+#[component]
+pub fn SnapshotsLayout() -> Element {
+    let mut cs = use_signal(SnapshotsState::default);
+    let nav = navigator();
+
+    let route = use_route::<AppRoute>();
+    let (url_file, url_table, url_partition) = parse_snapshot_route(&route);
+
+    // ---- load files list ----
+    if !cs.read().files_started {
         spawn(async move {
+            if cs.peek().files_started {
+                return;
+            }
+            cs.write().begin_files_load();
             match api::get_snapshots_list().await {
                 Ok(mut files) => {
-                    files.sort_by(|a, b| b.cmp(a));
-                    let mut w = cs.write();
-                    w.files = files;
-                    w.loading = false;
+                    files.sort_by(|a, b| b.name.cmp(&a.name));
+                    cs.write().set_files(files);
                 }
                 Err(err) => {
-                    let mut w = cs.write();
-                    w.loading = false;
-                    w.error = Some(format!("Failed to load snapshots: {}", err));
+                    cs.write().error = Some(format!("Failed to load snapshots: {}", err));
                 }
             }
         });
-    };
+    }
 
-    let mut open_file = move |file: String| {
-        {
-            let mut w = cs.write();
-            w.selected_file = Some(file.clone());
-            w.tables = Vec::new();
-            w.selected_table = None;
-            w.partitions = Vec::new();
-            w.selected_partition = None;
-            w.rows = Vec::new();
-            w.row_headers = Vec::new();
-            w.loading = true;
-            w.error = None;
+    // ---- load tables whenever the URL file changes ----
+    if let Some(file) = url_file.clone() {
+        if cs.read().loaded_for_file.as_deref() != Some(file.as_str()) {
+            spawn(async move {
+                if cs.peek().loaded_for_file.as_deref() == Some(file.as_str()) {
+                    return;
+                }
+                cs.write().begin_tables_load(&file);
+                match api::get_snapshot_tables(&file).await {
+                    Ok(tables) => cs.write().set_tables(&file, tables),
+                    Err(err) => {
+                        cs.write().error = Some(format!("Failed to load tables: {}", err));
+                    }
+                }
+            });
         }
-        spawn(async move {
-            match api::get_snapshot_tables(&file).await {
-                Ok(tables) => {
-                    let mut w = cs.write();
-                    w.tables = tables;
-                    w.loading = false;
-                }
-                Err(err) => {
-                    let mut w = cs.write();
-                    w.loading = false;
-                    w.error = Some(format!("Failed to load tables: {}", err));
-                }
-            }
-        });
-    };
+    }
 
-    let mut open_table = move |table_name: String| {
-        let file = match cs.read().selected_file.clone() {
-            Some(f) => f,
-            None => return,
-        };
-        {
-            let mut w = cs.write();
-            w.selected_table = Some(table_name.clone());
-            w.partitions = Vec::new();
-            w.selected_partition = None;
-            w.rows = Vec::new();
-            w.row_headers = Vec::new();
-            w.loading = true;
-            w.error = None;
+    // ---- load partitions whenever the URL (file, table) changes ----
+    if let (Some(file), Some(table)) = (url_file.clone(), url_table.clone()) {
+        let key = (file, table);
+        if cs.read().loaded_for_table.as_ref() != Some(&key) {
+            spawn(async move {
+                if cs.peek().loaded_for_table.as_ref() == Some(&key) {
+                    return;
+                }
+                cs.write().begin_partitions_load(&key);
+                match api::get_snapshot_partitions(&key.0, &key.1).await {
+                    Ok(partitions) => cs.write().set_partitions(&key, partitions),
+                    Err(err) => {
+                        cs.write().error = Some(format!("Failed to load partitions: {}", err));
+                    }
+                }
+            });
         }
-        spawn(async move {
-            match api::get_snapshot_partitions(&file, &table_name).await {
-                Ok(partitions) => {
-                    let mut w = cs.write();
-                    w.partitions = partitions;
-                    w.loading = false;
-                }
-                Err(err) => {
-                    let mut w = cs.write();
-                    w.loading = false;
-                    w.error = Some(format!("Failed to load partitions: {}", err));
-                }
-            }
-        });
-    };
+    }
 
-    let mut open_partition = move |partition_key: String| {
-        let (file, table) = {
-            let r = cs.read();
-            match (r.selected_file.clone(), r.selected_table.clone()) {
-                (Some(f), Some(t)) => (f, t),
-                _ => return,
-            }
-        };
-        {
-            let mut w = cs.write();
-            w.selected_partition = Some(partition_key.clone());
-            w.rows = Vec::new();
-            w.row_headers = Vec::new();
-            w.loading = true;
-            w.error = None;
+    // ---- load rows whenever the URL (file, table, partition) changes ----
+    if let (Some(file), Some(table), Some(pk)) =
+        (url_file.clone(), url_table.clone(), url_partition.clone())
+    {
+        let key = (file, table, pk);
+        if cs.read().loaded_rows_for.as_ref() != Some(&key) {
+            spawn(async move {
+                if cs.peek().loaded_rows_for.as_ref() == Some(&key) {
+                    return;
+                }
+                cs.write().begin_rows_load(&key);
+                match api::get_snapshot_rows(&key.0, &key.1, &key.2).await {
+                    Ok(rows) => {
+                        let (headers, rows) = build_rows_state(rows);
+                        cs.write().set_rows(&key, headers, rows);
+                    }
+                    Err(err) => {
+                        cs.write().error = Some(format!("Failed to load rows: {}", err));
+                    }
+                }
+            });
         }
-        spawn(async move {
-            match api::get_snapshot_rows(&file, &table, &partition_key).await {
-                Ok(rows) => {
-                    let (headers, rows) = build_rows_state(rows);
-                    let mut w = cs.write();
-                    w.row_headers = headers;
-                    w.rows = rows;
-                    w.loading = false;
-                }
-                Err(err) => {
-                    let mut w = cs.write();
-                    w.loading = false;
-                    w.error = Some(format!("Failed to load rows: {}", err));
-                }
-            }
-        });
-    };
+    }
 
-    let on_mount = move |_| {
-        if cs.read().started {
-            return;
-        }
-        cs.write().started = true;
-        load_files();
-    };
-
-    let mut go_to_files = move || {
-        let mut w = cs.write();
-        w.selected_file = None;
-        w.selected_table = None;
-        w.selected_partition = None;
-        w.tables = Vec::new();
-        w.partitions = Vec::new();
-        w.rows = Vec::new();
-        w.row_headers = Vec::new();
-        w.error = None;
-    };
-
-    let mut go_to_tables = move || {
-        let mut w = cs.write();
-        w.selected_table = None;
-        w.selected_partition = None;
-        w.partitions = Vec::new();
-        w.rows = Vec::new();
-        w.row_headers = Vec::new();
-        w.error = None;
-    };
-
-    let mut go_to_partitions = move || {
-        let mut w = cs.write();
-        w.selected_partition = None;
-        w.rows = Vec::new();
-        w.row_headers = Vec::new();
-        w.error = None;
-    };
-
-    // Snapshot of state for rendering
+    // ---- snapshot of state for rendering ----
     let cs_ra = cs.read();
-    let loading = cs_ra.loading;
     let error = cs_ra.error.clone();
     let files = cs_ra.files.clone();
-    let selected_file = cs_ra.selected_file.clone();
-    let tables = cs_ra.tables.clone();
-    let selected_table = cs_ra.selected_table.clone();
-    let partitions = cs_ra.partitions.clone();
-    let selected_partition = cs_ra.selected_partition.clone();
-    let row_headers = cs_ra.row_headers.clone();
-    let rows = cs_ra.rows.clone();
+    let files_ready = cs_ra.files_ready;
+
+    let tables_scope = url_file.is_some() && cs_ra.loaded_for_file.as_deref() == url_file.as_deref();
+    let tables = if tables_scope { cs_ra.tables.clone() } else { Vec::new() };
+    let tables_ready = tables_scope && cs_ra.tables_ready;
+
+    let partitions_key = match (&url_file, &url_table) {
+        (Some(f), Some(t)) => Some((f.clone(), t.clone())),
+        _ => None,
+    };
+    let partitions_scope =
+        partitions_key.is_some() && cs_ra.loaded_for_table.as_ref() == partitions_key.as_ref();
+    let partitions = if partitions_scope {
+        cs_ra.partitions.clone()
+    } else {
+        Vec::new()
+    };
+    let partitions_ready = partitions_scope && cs_ra.partitions_ready;
+
+    let rows_key = match (&url_file, &url_table, &url_partition) {
+        (Some(f), Some(t), Some(p)) => Some((f.clone(), t.clone(), p.clone())),
+        _ => None,
+    };
+    let rows_scope = rows_key.is_some() && cs_ra.loaded_rows_for.as_ref() == rows_key.as_ref();
+    let row_headers = if rows_scope {
+        cs_ra.row_headers.clone()
+    } else {
+        Vec::new()
+    };
+    let rows = if rows_scope { cs_ra.rows.clone() } else { Vec::new() };
+    let rows_ready = rows_scope && cs_ra.rows_ready;
     drop(cs_ra);
 
-    let error_view = if let Some(err) = error.clone() {
+    // Refresh re-fetches the deepest level matching the current URL by clearing
+    // its load marker — the inline loaders above pick it up on the next render.
+    let refresh_file = url_file.clone();
+    let refresh_table = url_table.clone();
+    let refresh_partition = url_partition.clone();
+    let on_refresh = move |_| {
+        let mut w = cs.write();
+        match (
+            refresh_file.is_some(),
+            refresh_table.is_some(),
+            refresh_partition.is_some(),
+        ) {
+            (false, _, _) => w.files_started = false,
+            (true, false, _) => w.loaded_for_file = None,
+            (true, true, false) => w.loaded_for_table = None,
+            (true, true, true) => w.loaded_rows_for = None,
+        }
+    };
+    let loading = match (&url_file, &url_table, &url_partition) {
+        (None, _, _) => !files_ready,
+        (Some(_), None, _) => !tables_ready,
+        (Some(_), Some(_), None) => !partitions_ready,
+        (Some(_), Some(_), Some(_)) => !rows_ready,
+    };
+
+    // ---- navigation handlers ----
+    let open_file = move |file: String| {
+        nav.push(AppRoute::SnapshotFile { file });
+    };
+    let open_table = {
+        let file = url_file.clone();
+        move |table: String| {
+            if let Some(file) = file.clone() {
+                nav.push(AppRoute::SnapshotTable { file, table });
+            }
+        }
+    };
+    let open_partition = {
+        let file = url_file.clone();
+        let table = url_table.clone();
+        move |partition: String| {
+            if let (Some(file), Some(table)) = (file.clone(), table.clone()) {
+                nav.push(AppRoute::SnapshotPartition {
+                    file,
+                    table,
+                    partition,
+                });
+            }
+        }
+    };
+
+    let go_to_files = move |_| {
+        nav.push(AppRoute::Snapshots {});
+    };
+    let go_to_tables = {
+        let file = url_file.clone();
+        move |_| {
+            if let Some(file) = file.clone() {
+                nav.push(AppRoute::SnapshotFile { file });
+            }
+        }
+    };
+    let go_to_partitions = {
+        let file = url_file.clone();
+        let table = url_table.clone();
+        move |_| {
+            if let (Some(file), Some(table)) = (file.clone(), table.clone()) {
+                nav.push(AppRoute::SnapshotTable { file, table });
+            }
+        }
+    };
+
+    let error_view = if let Some(err) = error {
         rsx! {
             div { style: "color: var(--danger); font-size: 12.5px; padding: 8px 0;", "{err}" }
         }
@@ -206,46 +341,27 @@ pub fn Snapshots() -> Element {
     };
 
     let body = match (
-        selected_file.clone(),
-        selected_table.clone(),
-        selected_partition.clone(),
+        url_file.clone(),
+        url_table.clone(),
+        url_partition.clone(),
     ) {
-        (None, _, _) => render_files(files, loading, move |name| open_file(name)),
-        (Some(_file), None, _) => render_tables(tables, loading, move |name| open_table(name)),
-        (Some(_file), Some(_table), None) => {
-            render_partitions(partitions, loading, move |pk| open_partition(pk))
-        }
-        (Some(_file), Some(_table), Some(_pk)) => render_rows(row_headers, rows, loading),
+        (None, _, _) => render_files(files, !files_ready, open_file),
+        (Some(_), None, _) => render_tables(tables, !tables_ready, open_table),
+        (Some(_), Some(_), None) => render_partitions(partitions, !partitions_ready, open_partition),
+        (Some(_), Some(_), Some(_)) => render_rows(row_headers, rows, !rows_ready),
     };
 
     let crumbs = render_crumbs(
-        selected_file.clone(),
-        selected_table.clone(),
-        selected_partition.clone(),
-        move |_| go_to_files(),
-        move |_| go_to_tables(),
-        move |_| go_to_partitions(),
+        url_file.clone(),
+        url_table.clone(),
+        url_partition.clone(),
+        go_to_files,
+        go_to_tables,
+        go_to_partitions,
     );
 
-    let on_refresh = move |_| {
-        let (file, table, pk) = {
-            let r = cs.read();
-            (
-                r.selected_file.clone(),
-                r.selected_table.clone(),
-                r.selected_partition.clone(),
-            )
-        };
-        match (file, table, pk) {
-            (None, _, _) => load_files(),
-            (Some(f), None, _) => open_file(f),
-            (Some(_), Some(t), None) => open_table(t),
-            (Some(_), Some(_), Some(pk)) => open_partition(pk),
-        }
-    };
-
     rsx! {
-        section { class: "page page--padded", onmounted: on_mount,
+        section { class: "page page--padded",
             div { style: "display: flex; flex-direction: column; gap: 14px; max-width: 960px;",
                 div { style: "display: flex; align-items: center; justify-content: space-between; gap: 12px;",
                     {crumbs}
@@ -260,6 +376,7 @@ pub fn Snapshots() -> Element {
                 {body}
             }
         }
+        Outlet::<AppRoute> {}
     }
 }
 
@@ -320,7 +437,7 @@ fn render_crumbs(
 }
 
 fn render_files(
-    files: Vec<String>,
+    files: Vec<SnapshotFileApiModel>,
     loading: bool,
     on_pick: impl FnMut(String) + Clone + 'static,
 ) -> Element {
@@ -342,15 +459,17 @@ fn render_files(
         };
     }
     let count = files.len();
-    let rows =files.into_iter().map(move |name| {
-        let n = name.clone();
+    let rows = files.into_iter().map(move |file| {
+        let n = file.name.clone();
+        let size = crate::utils::format_bytes(file.size as f64);
         let mut on_pick = on_pick.clone();
         rsx! {
             tr {
-                key: "{name}",
+                key: "{file.name}",
                 style: "cursor: pointer;",
                 onclick: move |_| on_pick(n.clone()),
-                td { style: "font-family: var(--font-mono);", "{name}" }
+                td { style: "font-family: var(--font-mono);", "{file.name}" }
+                td { class: "num", "{size}" }
             }
         }
     });
@@ -362,7 +481,12 @@ fn render_files(
             }
             div { class: "card__body",
                 table { class: "rt",
-                    thead { tr { th { "File name" } } }
+                    thead {
+                        tr {
+                            th { "File name" }
+                            th { class: "num", "Size" }
+                        }
+                    }
                     tbody { {rows} }
                 }
             }
@@ -390,7 +514,7 @@ fn render_tables(
         };
     }
     let count = tables.len();
-    let rows =tables.into_iter().map(move |t| {
+    let rows = tables.into_iter().map(move |t| {
         let n = t.name.clone();
         let mut on_pick = on_pick.clone();
         rsx! {
@@ -444,7 +568,7 @@ fn render_partitions(
         };
     }
     let count = partitions.len();
-    let rows =partitions.into_iter().map(move |pk| {
+    let rows = partitions.into_iter().map(move |pk| {
         let p = pk.clone();
         let mut on_pick = on_pick.clone();
         rsx! {

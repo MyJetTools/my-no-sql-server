@@ -11,7 +11,7 @@ use crate::app::AppContext;
     summary: "Get list of backup files",
     controller: "Backup",
     result:[
-        {status_code: 200, description: "List of Backup files", model: "Vec<String>"},
+        {status_code: 200, description: "List of Backup files"},
     ]
 )]
 pub struct GetListOfBackupFilesAction {

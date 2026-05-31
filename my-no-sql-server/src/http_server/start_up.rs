@@ -92,6 +92,10 @@ async fn build_mcp_middleware(app: &Arc<AppContext>) -> McpMiddleware {
         app.clone(),
     )));
 
+    mcp.register_tool_call(Arc::new(
+        crate::mcp::BulkInsertOrReplaceRowsToolCallHandler::new(app.clone()),
+    ));
+
     mcp.register_tool_call(Arc::new(crate::mcp::CleanTableToolCallHandler::new(
         app.clone(),
     )));

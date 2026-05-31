@@ -264,7 +264,7 @@ pub async fn set_mcp_writes(enabled: bool) -> Result<(), RequestError> {
     Ok(())
 }
 
-pub async fn get_snapshots_list() -> Result<Vec<String>, RequestError> {
+pub async fn get_snapshots_list() -> Result<Vec<SnapshotFileApiModel>, RequestError> {
     let url = format!("{}/api/Backup/List", get_base_url());
     let response = reqwest::Client::new().get(&url).send().await?;
     if !response.status().is_success() {
@@ -272,7 +272,7 @@ pub async fn get_snapshots_list() -> Result<Vec<String>, RequestError> {
             message: format!("Failed to load snapshots: {}", response.status()),
         });
     }
-    let result: Vec<String> = response.json().await?;
+    let result: Vec<SnapshotFileApiModel> = response.json().await?;
     Ok(result)
 }
 

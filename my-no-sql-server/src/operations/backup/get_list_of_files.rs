@@ -1,8 +1,16 @@
 use std::collections::BTreeMap;
 
+use serde_derive::Serialize;
+
 use crate::app::AppContext;
 
-pub async fn get_list_of_files(app: &AppContext) -> Vec<String> {
+#[derive(Serialize)]
+pub struct SnapshotFileModel {
+    pub name: String,
+    pub size: i64,
+}
+
+pub async fn get_list_of_files(app: &AppContext) -> Vec<SnapshotFileModel> {
     let backup_folder = app.settings.get_backup_folder();
 
     let mut read_dir = tokio::fs::read_dir(backup_folder.as_str()).await.unwrap();
@@ -26,12 +34,16 @@ pub async fn get_list_of_files(app: &AppContext) -> Vec<String> {
             let file_name = extract_file_name(path.as_str(), std::path::MAIN_SEPARATOR);
 
             if if_filename_is_backup(file_name) {
-                result.insert(file_name.to_string(), ());
+                let size = entry.metadata().await.map(|m| m.len()).unwrap_or(0);
+                result.insert(file_name.to_string(), size as i64);
             }
         }
     }
 
-    result.into_iter().map(|x| x.0).collect()
+    result
+        .into_iter()
+        .map(|(name, size)| SnapshotFileModel { name, size })
+        .collect()
 }
 
 pub fn extract_file_name(full_path: &str, separator: char) -> &str {

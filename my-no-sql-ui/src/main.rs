@@ -34,8 +34,20 @@ pub enum AppRoute {
     #[end_layout]
     #[route("/connections")]
     Connections {},
+    #[layout(SnapshotsLayout)]
     #[route("/snapshots")]
     Snapshots {},
+    #[route("/snapshots/:file")]
+    SnapshotFile { file: String },
+    #[route("/snapshots/:file/:table")]
+    SnapshotTable { file: String, table: String },
+    #[route("/snapshots/:file/:table/:partition")]
+    SnapshotPartition {
+        file: String,
+        table: String,
+        partition: String,
+    },
+    #[end_layout]
     #[route("/settings")]
     Settings {},
     #[route("/:..segments")]
@@ -92,7 +104,10 @@ fn Shell() -> Element {
         | AppRoute::DataPartition { .. }
         | AppRoute::DataRow { .. } => SidebarSection::Tables,
         AppRoute::Connections {} => SidebarSection::Connections,
-        AppRoute::Snapshots {} => SidebarSection::Snapshots,
+        AppRoute::Snapshots {}
+        | AppRoute::SnapshotFile { .. }
+        | AppRoute::SnapshotTable { .. }
+        | AppRoute::SnapshotPartition { .. } => SidebarSection::Snapshots,
         AppRoute::Settings {} => SidebarSection::Settings,
         _ => SidebarSection::Overview,
     };
@@ -102,7 +117,10 @@ fn Shell() -> Element {
             Crumb { label: "MyNoSql".to_string(), active: false },
             Crumb { label: "Connections".to_string(), active: true },
         ],
-        AppRoute::Snapshots {} => vec![
+        AppRoute::Snapshots {}
+        | AppRoute::SnapshotFile { .. }
+        | AppRoute::SnapshotTable { .. }
+        | AppRoute::SnapshotPartition { .. } => vec![
             Crumb { label: "MyNoSql".to_string(), active: false },
             Crumb { label: "Snapshots".to_string(), active: true },
         ],

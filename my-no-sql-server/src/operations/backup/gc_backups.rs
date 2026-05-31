@@ -6,7 +6,7 @@ pub async fn gc_backups(app: &AppContext) {
     let mut result = super::get_list_of_files(app).await;
 
     while result.len() > app.settings.max_backups_to_keep {
-        let file_name = result.pop().unwrap();
+        let file_name = result.pop().unwrap().name;
         println!("Deleting backup file: {}", file_name.as_str());
         delete_backup(app, file_name.as_str()).await;
     }

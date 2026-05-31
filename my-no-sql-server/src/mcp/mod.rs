@@ -13,6 +13,8 @@ mod delete_partitions_tool_call;
 pub use delete_partitions_tool_call::*;
 mod insert_or_replace_row_tool_call;
 pub use insert_or_replace_row_tool_call::*;
+mod bulk_insert_or_replace_rows_tool_call;
+pub use bulk_insert_or_replace_rows_tool_call::*;
 mod mcp_writes_enable_policy_prompt;
 pub use mcp_writes_enable_policy_prompt::*;
 mod paste_delete_via_ui_prompt;
