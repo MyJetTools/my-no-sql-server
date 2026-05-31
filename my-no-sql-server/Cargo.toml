@@ -60,7 +60,7 @@ uuid = { version = "*", features = ["serde", "v4"] }
 prometheus = "*"
 async-trait = "*"
 tokio-stream = "*"
-zip = "*"
+zip = { version = "*", default-features = false, features = ["deflate"] }
 zstd = "*"
 
 tikv-jemallocator = { version = "*", features = [

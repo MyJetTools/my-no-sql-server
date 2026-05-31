@@ -13,9 +13,10 @@ pub struct WriterInfo {
     pub addr: String,
 }
 
-// Writers are keyed by the `session` id issued during the Ping handshake, so
-// two instances of the same app name are tracked separately and traffic can be
-// attributed exactly (instead of guessing by IP).
+// Writers are keyed by their `session` id. The server issues the id on the
+// first (header-less) ping and returns it; the client then replays it in the
+// `session` header on every subsequent request, so the same client always
+// maps back to the same writer row.
 pub struct HttpWriters {
     data: Mutex<BTreeMap<String, WriterInfo>>,
     next_session_id: AtomicU64,
@@ -34,12 +35,12 @@ impl HttpWriters {
         format!("Writer-{}", id)
     }
 
-    // Refreshes the writer identified by `session` or creates a new entry,
-    // returning the resulting session id. Resolution of the key:
+    // Refreshes the writer identified by `session`, or creates a new entry,
+    // returning the resulting session id:
     //   * `Some(s)` -> use it as-is (known -> refresh; unknown -> re-adopt the
     //                  id the client still holds after a server restart/GC).
-    //   * `None`    -> first ping of a fresh writer: issue a new `Writer-{n}`,
-    //                  return it; the client adopts it and replays it afterwards.
+    //   * `None`    -> first ping of a fresh writer: issue a new `Writer-{n}`
+    //                  and return it; the client adopts it and replays it.
     pub async fn get_or_create(
         &self,
         session: Option<&str>,

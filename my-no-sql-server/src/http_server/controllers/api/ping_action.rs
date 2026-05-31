@@ -39,11 +39,16 @@ async fn handle_request(
 
     let connection_addr = ctx.request.addr.to_string();
 
+    let session = input_data
+        .session_id
+        .as_deref()
+        .filter(|s| !s.is_empty());
+
     let session = action
         .app
         .http_writers
         .get_or_create(
-            input_data.session_id.as_deref(),
+            session,
             &input_data.name,
             &input_data.version,
             input_data.tables.iter().map(|itm| itm.as_str()),
