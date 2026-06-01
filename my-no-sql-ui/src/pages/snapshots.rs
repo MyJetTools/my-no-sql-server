@@ -29,7 +29,21 @@ struct SnapshotsState {
     rows: Vec<Value>,
     rows_ready: bool,
 
+    // Active "restore table from backup" dialog, if any.
+    restore: Option<RestoreDialog>,
+
     error: Option<String>,
+}
+
+/// State of the confirmation dialog shown when restoring from a snapshot —
+/// either a whole table (`partition` is `None`) or a single partition.
+struct RestoreDialog {
+    table: String,
+    partition: Option<String>,
+    clean_table: bool,
+    in_progress: bool,
+    error: Option<String>,
+    done: bool,
 }
 
 impl SnapshotsState {
@@ -86,6 +100,59 @@ impl SnapshotsState {
             self.rows = rows;
             self.rows_ready = true;
         }
+    }
+
+    fn open_restore(&mut self, table: String) {
+        self.restore = Some(RestoreDialog {
+            table,
+            partition: None,
+            clean_table: false,
+            in_progress: false,
+            error: None,
+            done: false,
+        });
+    }
+
+    fn open_restore_partition(&mut self, table: String, partition: String) {
+        self.restore = Some(RestoreDialog {
+            table,
+            partition: Some(partition),
+            clean_table: false,
+            in_progress: false,
+            error: None,
+            done: false,
+        });
+    }
+
+    fn set_clean_table(&mut self, value: bool) {
+        if let Some(dialog) = self.restore.as_mut() {
+            dialog.clean_table = value;
+        }
+    }
+
+    fn restore_begin(&mut self) {
+        if let Some(dialog) = self.restore.as_mut() {
+            dialog.in_progress = true;
+            dialog.error = None;
+        }
+    }
+
+    fn restore_done(&mut self) {
+        if let Some(dialog) = self.restore.as_mut() {
+            dialog.in_progress = false;
+            dialog.done = true;
+        }
+    }
+
+    fn restore_error(&mut self, err: String) {
+        if let Some(dialog) = self.restore.as_mut() {
+            dialog.in_progress = false;
+            dialog.error = Some(err);
+        }
+    }
+
+    fn close_restore(&mut self) {
+        self.restore = None;
     }
 }
 
@@ -311,6 +378,49 @@ pub fn SnapshotsLayout() -> Element {
         }
     };
 
+    // ---- restore dialog handlers (table or single partition) ----
+    let open_restore = move |table: String| {
+        cs.write().open_restore(table);
+    };
+    let open_restore_partition = {
+        let table = url_table.clone();
+        move |partition: String| {
+            if let Some(table) = table.clone() {
+                cs.write().open_restore_partition(table, partition);
+            }
+        }
+    };
+    let confirm_restore = {
+        let file = url_file.clone();
+        move |_| {
+            let (file, table, partition, clean) = {
+                let ra = cs.read();
+                match (file.as_ref(), ra.restore.as_ref()) {
+                    (Some(f), Some(dialog)) if !dialog.in_progress && !dialog.done => (
+                        f.clone(),
+                        dialog.table.clone(),
+                        dialog.partition.clone(),
+                        dialog.clean_table,
+                    ),
+                    _ => return,
+                }
+            };
+            cs.write().restore_begin();
+            spawn(async move {
+                let result = match partition {
+                    Some(partition) => {
+                        api::restore_partition_from_backup(&file, &table, &partition).await
+                    }
+                    None => api::restore_table_from_backup(&file, &table, clean).await,
+                };
+                match result {
+                    Ok(_) => cs.write().restore_done(),
+                    Err(err) => cs.write().restore_error(err.to_string()),
+                }
+            });
+        }
+    };
+
     let go_to_files = move |_| {
         nav.push(AppRoute::Snapshots {});
     };
@@ -346,8 +456,10 @@ pub fn SnapshotsLayout() -> Element {
         url_partition.clone(),
     ) {
         (None, _, _) => render_files(files, !files_ready, open_file),
-        (Some(_), None, _) => render_tables(tables, !tables_ready, open_table),
-        (Some(_), Some(_), None) => render_partitions(partitions, !partitions_ready, open_partition),
+        (Some(_), None, _) => render_tables(tables, !tables_ready, open_table, open_restore),
+        (Some(_), Some(_), None) => {
+            render_partitions(partitions, !partitions_ready, open_partition, open_restore_partition)
+        }
         (Some(_), Some(_), Some(_)) => render_rows(row_headers, rows, !rows_ready),
     };
 
@@ -359,6 +471,9 @@ pub fn SnapshotsLayout() -> Element {
         go_to_tables,
         go_to_partitions,
     );
+
+    let restore_file_name = url_file.clone().unwrap_or_default();
+    let restore_render = render_restore_dialog(cs, &restore_file_name, confirm_restore);
 
     rsx! {
         section { class: "page page--padded",
@@ -376,7 +491,134 @@ pub fn SnapshotsLayout() -> Element {
                 {body}
             }
         }
+        {restore_render}
         Outlet::<AppRoute> {}
+    }
+}
+
+/// Renders the "restore table from backup" confirmation dialog (or nothing when
+/// no restore is in progress). `confirm` triggers the actual restore request.
+fn render_restore_dialog(
+    mut cs: Signal<SnapshotsState>,
+    file_name: &str,
+    confirm: impl FnMut(()) + Clone + 'static,
+) -> Element {
+    let ra = cs.read();
+    let Some(dialog) = ra.restore.as_ref() else {
+        return rsx! {};
+    };
+
+    let table = dialog.table.clone();
+    let partition = dialog.partition.clone();
+    let clean_table = dialog.clean_table;
+    let in_progress = dialog.in_progress;
+    let done = dialog.done;
+    let error = dialog.error.clone();
+    drop(ra);
+
+    let file_name = file_name.to_string();
+    let mut confirm = confirm;
+
+    let error_view = if let Some(err) = error {
+        rsx! {
+            div { style: "color: var(--danger); font-size: 12.5px; margin-top: 10px;", "{err}" }
+        }
+    } else {
+        rsx! {}
+    };
+
+    // Clean-table checkbox only applies to a whole-table restore. Restoring a
+    // single partition always replaces just that partition's rows.
+    let clean_checkbox = if partition.is_none() {
+        rsx! {
+            label { style: "display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 13px; cursor: pointer;",
+                input {
+                    r#type: "checkbox",
+                    checked: clean_table,
+                    disabled: in_progress,
+                    onchange: move |evt| { cs.write().set_clean_table(evt.checked()); },
+                }
+                "Clean table before restore (delete existing rows)"
+            }
+        }
+    } else {
+        rsx! {}
+    };
+
+    let body = if done {
+        let what = match &partition {
+            Some(pk) => rsx! {
+                "Partition "
+                b { "{pk}" }
+                " of table "
+                b { "{table}" }
+            },
+            None => rsx! {
+                "Table "
+                b { "{table}" }
+            },
+        };
+        rsx! {
+            div { class: "dialog__body",
+                {what}
+                " has been restored from "
+                b { "{file_name}" }
+                "."
+            }
+            div { class: "dialog__footer",
+                button {
+                    class: "btn btn--primary btn--sm",
+                    onclick: move |_| { cs.write().close_restore(); },
+                    "Close"
+                }
+            }
+        }
+    } else {
+        let what = match &partition {
+            Some(pk) => rsx! {
+                "Restore partition "
+                b { "{pk}" }
+                " of table "
+                b { "{table}" }
+            },
+            None => rsx! {
+                "Restore table "
+                b { "{table}" }
+            },
+        };
+        rsx! {
+            div { class: "dialog__body",
+                {what}
+                " from snapshot "
+                b { "{file_name}" }
+                "?"
+                {clean_checkbox}
+                {error_view}
+            }
+            div { class: "dialog__footer",
+                button {
+                    class: "btn btn--ghost btn--sm",
+                    disabled: in_progress,
+                    onclick: move |_| { cs.write().close_restore(); },
+                    "Cancel"
+                }
+                button {
+                    class: "btn btn--primary btn--sm",
+                    disabled: in_progress,
+                    onclick: move |_| confirm(()),
+                    if in_progress { "Restoring…" } else { "Restore" }
+                }
+            }
+        }
+    };
+
+    rsx! {
+        div { class: "dialog-overlay",
+            div { class: "dialog",
+                div { class: "dialog__header", "Restore from backup" }
+                {body}
+            }
+        }
     }
 }
 
@@ -498,6 +740,7 @@ fn render_tables(
     tables: Vec<SnapshotTableApiModel>,
     loading: bool,
     on_pick: impl FnMut(String) + Clone + 'static,
+    on_restore: impl FnMut(String) + Clone + 'static,
 ) -> Element {
     if loading && tables.is_empty() {
         return rsx! {
@@ -516,7 +759,9 @@ fn render_tables(
     let count = tables.len();
     let rows = tables.into_iter().map(move |t| {
         let n = t.name.clone();
+        let restore_name = t.name.clone();
         let mut on_pick = on_pick.clone();
+        let mut on_restore = on_restore.clone();
         rsx! {
             tr {
                 key: "{t.name}",
@@ -524,6 +769,18 @@ fn render_tables(
                 onclick: move |_| on_pick(n.clone()),
                 td { style: "font-family: var(--font-mono);", "{t.name}" }
                 td { class: "num", "{t.partitions_count}" }
+                td {
+                    class: "num",
+                    onclick: move |evt| { evt.stop_propagation(); },
+                    button {
+                        class: "btn btn--ghost btn--sm",
+                        onclick: move |evt| {
+                            evt.stop_propagation();
+                            on_restore(restore_name.clone());
+                        },
+                        "Restore"
+                    }
+                }
             }
         }
     });
@@ -539,6 +796,7 @@ fn render_tables(
                         tr {
                             th { "Table name" }
                             th { class: "num", "Partitions" }
+                            th { class: "num", "" }
                         }
                     }
                     tbody { {rows} }
@@ -552,6 +810,7 @@ fn render_partitions(
     partitions: Vec<String>,
     loading: bool,
     on_pick: impl FnMut(String) + Clone + 'static,
+    on_restore: impl FnMut(String) + Clone + 'static,
 ) -> Element {
     if loading && partitions.is_empty() {
         return rsx! {
@@ -570,13 +829,27 @@ fn render_partitions(
     let count = partitions.len();
     let rows = partitions.into_iter().map(move |pk| {
         let p = pk.clone();
+        let restore_pk = pk.clone();
         let mut on_pick = on_pick.clone();
+        let mut on_restore = on_restore.clone();
         rsx! {
             tr {
                 key: "{pk}",
                 style: "cursor: pointer;",
                 onclick: move |_| on_pick(p.clone()),
                 td { style: "font-family: var(--font-mono);", "{pk}" }
+                td {
+                    class: "num",
+                    onclick: move |evt| { evt.stop_propagation(); },
+                    button {
+                        class: "btn btn--ghost btn--sm",
+                        onclick: move |evt| {
+                            evt.stop_propagation();
+                            on_restore(restore_pk.clone());
+                        },
+                        "Restore"
+                    }
+                }
             }
         }
     });
@@ -588,7 +861,12 @@ fn render_partitions(
             }
             div { class: "card__body",
                 table { class: "rt",
-                    thead { tr { th { "Partition key" } } }
+                    thead {
+                        tr {
+                            th { "Partition key" }
+                            th { class: "num", "" }
+                        }
+                    }
                     tbody { {rows} }
                 }
             }

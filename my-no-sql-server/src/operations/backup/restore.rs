@@ -91,6 +91,47 @@ pub async fn restore(
     Ok(())
 }
 
+/// Restores a single partition of a table from a snapshot file. The table must
+/// already exist on the server (restore the whole table first if it does not).
+/// The partition content is replaced with the rows stored in the snapshot.
+pub async fn restore_partition(
+    app: &Arc<AppContext>,
+    file_name: &str,
+    table_name: &str,
+    partition_key: &str,
+) -> Result<(), String> {
+    let content =
+        super::read_snapshot_partition_rows(app, file_name, table_name, partition_key)
+            .await
+            .map_err(|err| err.into_message())?;
+
+    let db_rows = DbJsonEntity::restore_as_vec(content.as_slice())
+        .map_err(|err| format!("Invalid partition content: {:?}", err))?;
+
+    let db_table = app.db.get_table(table_name).ok_or_else(|| {
+        format!(
+            "Table '{}' does not exist on the server. Restore the whole table first.",
+            table_name
+        )
+    })?;
+
+    let persist_moment = DateTimeAsMicroseconds::now().add(Duration::from_secs(5));
+
+    crate::db_operations::write::clean_partition_and_bulk_insert(
+        app,
+        &db_table,
+        partition_key.to_string(),
+        vec![(partition_key.to_string(), db_rows)],
+        EventSource::Backup,
+        persist_moment,
+        DateTimeAsMicroseconds::now(),
+    )
+    .await
+    .map_err(|err| format!("{:?}", err))?;
+
+    Ok(())
+}
+
 async fn restore_to_db(
     app: &Arc<AppContext>,
     table_name: &str,

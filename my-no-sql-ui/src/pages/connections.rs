@@ -3,7 +3,7 @@ use std::time::Duration;
 use dioxus::prelude::*;
 
 use crate::api::get_connections;
-use crate::components::atoms::{MiniChart, MiniChartSeries};
+use crate::components::atoms::{Badge, BadgeTone, MiniChart, MiniChartSeries};
 use crate::models::{
     ConnectionReaderApiModel, ConnectionWriterApiModel, ConnectionsApiModel,
 };
@@ -262,7 +262,9 @@ fn render_writers_table(writers: &[ConnectionWriterApiModel]) -> Element {
     writers.sort_by(|a, b| a.name.cmp(&b.name).then_with(|| a.session.cmp(&b.session)));
 
     let rows = writers.iter().map(|writer| {
-        let tables = writer.tables.join(", ");
+        let table_badges = writer.tables.iter().cloned().map(|t| rsx! {
+            Badge { text: t, tone: BadgeTone::Writer }
+        });
         let rate_per_second = format_bytes_per_sec(writer.bytes_per_second as f64);
         rsx! {
             tr {
@@ -271,7 +273,7 @@ fn render_writers_table(writers: &[ConnectionWriterApiModel]) -> Element {
                 td { class: "conn-table__id", "{writer.version}" }
                 td { class: "conn-table__id", "{writer.addr}" }
                 td { class: "conn-table__num", "{writer.tables.len()}" }
-                td { "{tables}" }
+                td { span { class: "badge-list", {table_badges} } }
                 td { class: "conn-table__num", "{writer.req_per_second} req/s" }
                 td { class: "conn-table__num", "{rate_per_second}" }
                 td { class: "conn-table__num", "{writer.last_incoming_time}" }

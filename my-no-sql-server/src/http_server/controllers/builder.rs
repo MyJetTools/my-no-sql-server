@@ -238,6 +238,10 @@ pub fn build(app: &Arc<AppContext>) -> ControllersMiddleware {
         app.clone(),
     )));
 
+    result.register_post_action(Arc::new(
+        super::backup::RestorePartitionFromBackupAction::new(app.clone()),
+    ));
+
     result.register_post_action(Arc::new(super::backup::RestoreFromZipAction::new(
         app.clone(),
     )));

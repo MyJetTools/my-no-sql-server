@@ -334,6 +334,68 @@ pub async fn get_snapshot_rows(
     Ok(result)
 }
 
+/// Restores a single table (or all tables when `table_name` is "*") from a
+/// snapshot file in the server's backup folder via POST
+/// `/api/Backup/RestoreFromBackup`.
+pub async fn restore_table_from_backup(
+    file_name: &str,
+    table_name: &str,
+    clean_table: bool,
+) -> Result<(), RequestError> {
+    let url = format!("{}/api/Backup/RestoreFromBackup", get_base_url());
+    let body = format!(
+        "tableName={}&fileName={}&cleanTable={}",
+        url_escape(table_name),
+        url_escape(file_name),
+        if clean_table { "true" } else { "false" },
+    );
+    let response = reqwest::Client::new()
+        .post(&url)
+        .header("content-type", "application/x-www-form-urlencoded")
+        .body(body)
+        .send()
+        .await?;
+    if !response.status().is_success() {
+        let status = response.status();
+        let body = response.text().await.unwrap_or_default();
+        return Err(RequestError {
+            message: format!("Restore failed ({}): {}", status, body),
+        });
+    }
+    Ok(())
+}
+
+/// Restores a single partition of a table from a snapshot file in the server's
+/// backup folder via POST `/api/Backup/RestorePartition`. The table must already
+/// exist on the server.
+pub async fn restore_partition_from_backup(
+    file_name: &str,
+    table_name: &str,
+    partition_key: &str,
+) -> Result<(), RequestError> {
+    let url = format!("{}/api/Backup/RestorePartition", get_base_url());
+    let body = format!(
+        "fileName={}&tableName={}&partitionKey={}",
+        url_escape(file_name),
+        url_escape(table_name),
+        url_escape(partition_key),
+    );
+    let response = reqwest::Client::new()
+        .post(&url)
+        .header("content-type", "application/x-www-form-urlencoded")
+        .body(body)
+        .send()
+        .await?;
+    if !response.status().is_success() {
+        let status = response.status();
+        let body = response.text().await.unwrap_or_default();
+        return Err(RequestError {
+            message: format!("Restore failed ({}): {}", status, body),
+        });
+    }
+    Ok(())
+}
+
 pub async fn bulk_delete_rows(
     table_name: &str,
     partition_key: &str,

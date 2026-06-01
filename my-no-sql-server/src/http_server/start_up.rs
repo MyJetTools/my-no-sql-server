@@ -104,6 +104,22 @@ async fn build_mcp_middleware(app: &Arc<AppContext>) -> McpMiddleware {
         app.clone(),
     )));
 
+    mcp.register_tool_call(Arc::new(crate::mcp::GetListOfBackupsToolCallHandler::new(
+        app.clone(),
+    )));
+
+    mcp.register_tool_call(Arc::new(crate::mcp::GetBackupTablesToolCallHandler::new(
+        app.clone(),
+    )));
+
+    mcp.register_tool_call(Arc::new(
+        crate::mcp::GetBackupPartitionsToolCallHandler::new(app.clone()),
+    ));
+
+    mcp.register_tool_call(Arc::new(crate::mcp::GetBackupRowsToolCallHandler::new(
+        app.clone(),
+    )));
+
     mcp.register_prompt(Arc::new(crate::mcp::McpWritesEnablePolicyPromptHandler));
     mcp.register_prompt(Arc::new(crate::mcp::PasteDeleteViaUiPromptHandler));
 
