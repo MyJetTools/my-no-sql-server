@@ -5,8 +5,10 @@ use my_no_sql_sdk::core::db_json_entity::DbJsonEntity;
 use my_no_sql_sdk::server::rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
-    app::AppContext, db_sync::EventSource,
-    scripts::serializers::table_attrs::TableMetadataFileContract, zip::ZipReader,
+    app::AppContext,
+    db_sync::{states::InitTableEventSyncData, EventSource, SyncEvent},
+    scripts::serializers::table_attrs::TableMetadataFileContract,
+    zip::ZipReader,
 };
 
 use super::RestoreFileName;
@@ -17,6 +19,8 @@ pub enum BackupError {
     #[allow(dead_code)]
     InvalidFileName(String),
     #[allow(dead_code)]
+    FileReadError(String),
+    #[allow(dead_code)]
     ZipArchiveError(String),
     #[allow(dead_code)]
     TableNotFoundToRestoreBackupAndNoMetadataFound(String),
@@ -26,6 +30,47 @@ pub enum BackupError {
         partition_key: String,
         err: String,
     },
+}
+
+impl BackupError {
+    pub fn into_message(self) -> String {
+        match self {
+            BackupError::TableNotFoundInBackupFile => {
+                "Table not found in the backup file".to_string()
+            }
+            BackupError::InvalidFileName(err) => format!("Invalid file name: {}", err),
+            BackupError::FileReadError(err) => err,
+            BackupError::ZipArchiveError(err) => format!("Zip archive error: {}", err),
+            BackupError::TableNotFoundToRestoreBackupAndNoMetadataFound(table) => format!(
+                "Table '{}' is not present on the server and the snapshot has no metadata to recreate it",
+                table
+            ),
+            BackupError::InvalidFileContent {
+                file_name,
+                partition_key,
+                err,
+            } => format!(
+                "Invalid content in '{}' (partition '{}'): {}",
+                file_name, partition_key, err
+            ),
+        }
+    }
+}
+
+/// Reads a snapshot file by name from the server's backup folder and restores
+/// it. `table_name == None` restores every table found in the snapshot.
+pub async fn restore_from_file(
+    app: &Arc<AppContext>,
+    file_name: &str,
+    table_name: Option<&str>,
+    clean_table: bool,
+) -> Result<(), BackupError> {
+    let full_path = super::utils::compile_backup_file(app, file_name);
+    let backup_content = tokio::fs::read(full_path.as_str()).await.map_err(|err| {
+        BackupError::FileReadError(format!("Error loading file '{}': {}", file_name, err))
+    })?;
+
+    restore(app, backup_content, table_name, clean_table).await
 }
 
 pub async fn restore(
@@ -129,6 +174,14 @@ pub async fn restore_partition(
     .await
     .map_err(|err| format!("{:?}", err))?;
 
+    // Emit a full table-init so subscribers re-initialize after the restore,
+    // same as the whole-table restore path (see `restore_to_db`).
+    {
+        let table_data = db_table.data.read();
+        let sync_data = InitTableEventSyncData::new(&table_data, EventSource::Backup);
+        crate::operations::sync::dispatch(app, SyncEvent::InitTable(sync_data));
+    }
+
     Ok(())
 }
 
@@ -210,6 +263,16 @@ async fn restore_to_db(
         )
         .await
         .unwrap();
+    }
+
+    // The per-partition writes above only emit InitPartitions events, so a
+    // reader subscribed to the whole table never receives a fresh full
+    // snapshot after a restore. Dispatch a table-init with the now-restored
+    // state so every subscriber re-initializes its local copy of the table.
+    {
+        let table_data = db_table.data.read();
+        let sync_data = InitTableEventSyncData::new(&table_data, EventSource::Backup);
+        crate::operations::sync::dispatch(app, SyncEvent::InitTable(sync_data));
     }
 
     Ok(())

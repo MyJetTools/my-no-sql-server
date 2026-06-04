@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use dioxus::prelude::*;
 use serde_json::Value;
 
@@ -17,6 +19,8 @@ struct SnapshotsState {
     loaded_for_file: Option<String>,
     tables: Vec<SnapshotTableApiModel>,
     tables_ready: bool,
+    // Snapshot tables ticked for a bulk restore (scoped to the current file).
+    checked_tables: HashSet<String>,
 
     // Partitions for the selected (file, table).
     loaded_for_table: Option<(String, String)>,
@@ -35,13 +39,18 @@ struct SnapshotsState {
     error: Option<String>,
 }
 
-/// State of the confirmation dialog shown when restoring from a snapshot —
-/// either a whole table (`partition` is `None`) or a single partition.
+/// State of the confirmation dialog shown when restoring from a snapshot.
+///
+/// `tables` holds one or more whole tables to restore (a single entry for the
+/// per-row "Restore" button, several for a bulk restore). When `partition` is
+/// `Some`, it is always a single-table restore of just that partition's rows.
 struct RestoreDialog {
-    table: String,
+    tables: Vec<String>,
     partition: Option<String>,
     clean_table: bool,
     in_progress: bool,
+    /// How many of `tables` have been restored so far (bulk progress).
+    completed: usize,
     error: Option<String>,
     done: bool,
 }
@@ -62,7 +71,35 @@ impl SnapshotsState {
         self.loaded_for_file = Some(file.to_string());
         self.tables = Vec::new();
         self.tables_ready = false;
+        self.checked_tables.clear();
         self.error = None;
+    }
+
+    fn toggle_table_check(&mut self, table: &str) {
+        if !self.checked_tables.remove(table) {
+            self.checked_tables.insert(table.to_string());
+        }
+    }
+
+    fn toggle_all_tables_check(&mut self, check_all: bool) {
+        if check_all {
+            self.checked_tables = self.tables.iter().map(|t| t.name.clone()).collect();
+        } else {
+            self.checked_tables.clear();
+        }
+    }
+
+    fn clear_table_checks(&mut self) {
+        self.checked_tables.clear();
+    }
+
+    /// Selected table names in the order they appear in `tables`.
+    fn selected_tables(&self) -> Vec<String> {
+        self.tables
+            .iter()
+            .map(|t| t.name.clone())
+            .filter(|n| self.checked_tables.contains(n))
+            .collect()
     }
 
     fn set_tables(&mut self, file: &str, tables: Vec<SnapshotTableApiModel>) {
@@ -102,12 +139,13 @@ impl SnapshotsState {
         }
     }
 
-    fn open_restore(&mut self, table: String) {
+    fn open_restore(&mut self, tables: Vec<String>) {
         self.restore = Some(RestoreDialog {
-            table,
+            tables,
             partition: None,
             clean_table: false,
             in_progress: false,
+            completed: 0,
             error: None,
             done: false,
         });
@@ -115,10 +153,11 @@ impl SnapshotsState {
 
     fn open_restore_partition(&mut self, table: String, partition: String) {
         self.restore = Some(RestoreDialog {
-            table,
+            tables: vec![table],
             partition: Some(partition),
             clean_table: false,
             in_progress: false,
+            completed: 0,
             error: None,
             done: false,
         });
@@ -133,7 +172,14 @@ impl SnapshotsState {
     fn restore_begin(&mut self) {
         if let Some(dialog) = self.restore.as_mut() {
             dialog.in_progress = true;
+            dialog.completed = 0;
             dialog.error = None;
+        }
+    }
+
+    fn restore_set_completed(&mut self, completed: usize) {
+        if let Some(dialog) = self.restore.as_mut() {
+            dialog.completed = completed;
         }
     }
 
@@ -142,6 +188,9 @@ impl SnapshotsState {
             dialog.in_progress = false;
             dialog.done = true;
         }
+        // Restored tables are no longer "pending" — drop the selection so the
+        // checkboxes are cleared once the dialog closes.
+        self.checked_tables.clear();
     }
 
     fn restore_error(&mut self, err: String) {
@@ -299,6 +348,11 @@ pub fn SnapshotsLayout() -> Element {
     let tables_scope = url_file.is_some() && cs_ra.loaded_for_file.as_deref() == url_file.as_deref();
     let tables = if tables_scope { cs_ra.tables.clone() } else { Vec::new() };
     let tables_ready = tables_scope && cs_ra.tables_ready;
+    let checked_tables = if tables_scope {
+        cs_ra.checked_tables.clone()
+    } else {
+        HashSet::new()
+    };
 
     let partitions_key = match (&url_file, &url_table) {
         (Some(f), Some(t)) => Some((f.clone(), t.clone())),
@@ -378,9 +432,26 @@ pub fn SnapshotsLayout() -> Element {
         }
     };
 
-    // ---- restore dialog handlers (table or single partition) ----
+    // ---- table selection (checkboxes for bulk restore) ----
+    let on_toggle_table = move |table: String| {
+        cs.write().toggle_table_check(&table);
+    };
+    let on_toggle_all_tables = move |check_all: bool| {
+        cs.write().toggle_all_tables_check(check_all);
+    };
+    let clear_table_checks = move |_| {
+        cs.write().clear_table_checks();
+    };
+
+    // ---- restore dialog handlers (table(s) or single partition) ----
     let open_restore = move |table: String| {
-        cs.write().open_restore(table);
+        cs.write().open_restore(vec![table]);
+    };
+    let open_restore_selected = move |_| {
+        let selected = cs.read().selected_tables();
+        if !selected.is_empty() {
+            cs.write().open_restore(selected);
+        }
     };
     let open_restore_partition = {
         let table = url_table.clone();
@@ -393,12 +464,12 @@ pub fn SnapshotsLayout() -> Element {
     let confirm_restore = {
         let file = url_file.clone();
         move |_| {
-            let (file, table, partition, clean) = {
+            let (file, tables, partition, clean) = {
                 let ra = cs.read();
                 match (file.as_ref(), ra.restore.as_ref()) {
                     (Some(f), Some(dialog)) if !dialog.in_progress && !dialog.done => (
                         f.clone(),
-                        dialog.table.clone(),
+                        dialog.tables.clone(),
                         dialog.partition.clone(),
                         dialog.clean_table,
                     ),
@@ -407,15 +478,30 @@ pub fn SnapshotsLayout() -> Element {
             };
             cs.write().restore_begin();
             spawn(async move {
-                let result = match partition {
+                match partition {
+                    // Single-partition restore — always exactly one table.
                     Some(partition) => {
-                        api::restore_partition_from_backup(&file, &table, &partition).await
+                        let table = tables.first().cloned().unwrap_or_default();
+                        match api::restore_partition_from_backup(&file, &table, &partition).await {
+                            Ok(_) => cs.write().restore_done(),
+                            Err(err) => cs.write().restore_error(err.to_string()),
+                        }
                     }
-                    None => api::restore_table_from_backup(&file, &table, clean).await,
-                };
-                match result {
-                    Ok(_) => cs.write().restore_done(),
-                    Err(err) => cs.write().restore_error(err.to_string()),
+                    // One or more whole tables — restore sequentially so a
+                    // failure names the offending table and stops the rest.
+                    None => {
+                        for (idx, table) in tables.iter().enumerate() {
+                            match api::restore_table_from_backup(&file, table, clean).await {
+                                Ok(_) => cs.write().restore_set_completed(idx + 1),
+                                Err(err) => {
+                                    cs.write()
+                                        .restore_error(format!("Table '{}': {}", table, err));
+                                    return;
+                                }
+                            }
+                        }
+                        cs.write().restore_done();
+                    }
                 }
             });
         }
@@ -456,7 +542,17 @@ pub fn SnapshotsLayout() -> Element {
         url_partition.clone(),
     ) {
         (None, _, _) => render_files(files, !files_ready, open_file),
-        (Some(_), None, _) => render_tables(tables, !tables_ready, open_table, open_restore),
+        (Some(_), None, _) => render_tables(
+            tables,
+            !tables_ready,
+            checked_tables,
+            open_table,
+            open_restore,
+            on_toggle_table,
+            on_toggle_all_tables,
+            clear_table_checks,
+            open_restore_selected,
+        ),
         (Some(_), Some(_), None) => {
             render_partitions(partitions, !partitions_ready, open_partition, open_restore_partition)
         }
@@ -508,13 +604,34 @@ fn render_restore_dialog(
         return rsx! {};
     };
 
-    let table = dialog.table.clone();
+    let tables = dialog.tables.clone();
     let partition = dialog.partition.clone();
     let clean_table = dialog.clean_table;
     let in_progress = dialog.in_progress;
+    let completed = dialog.completed;
     let done = dialog.done;
     let error = dialog.error.clone();
     drop(ra);
+
+    let total = tables.len();
+    let multi = partition.is_none() && total > 1;
+    // First table — used for the single-table / partition wording.
+    let first_table = tables.first().cloned().unwrap_or_default();
+    // Bullet list of table names, shown only for a multi-table restore.
+    let tables_list = if multi {
+        let items = tables.iter().map(|t| {
+            rsx! {
+                li { key: "{t}", style: "font-family: var(--font-mono);", "{t}" }
+            }
+        });
+        rsx! {
+            ul { style: "margin: 8px 0 0; padding-left: 20px; font-size: 12.5px; max-height: 180px; overflow: auto;",
+                {items}
+            }
+        }
+    } else {
+        rsx! {}
+    };
 
     let file_name = file_name.to_string();
     let mut confirm = confirm;
@@ -546,24 +663,34 @@ fn render_restore_dialog(
     };
 
     let body = if done {
-        let what = match &partition {
-            Some(pk) => rsx! {
+        let what = match (&partition, multi) {
+            (Some(pk), _) => rsx! {
                 "Partition "
                 b { "{pk}" }
                 " of table "
-                b { "{table}" }
+                b { "{first_table}" }
             },
-            None => rsx! {
+            (None, true) => rsx! {
+                b { "{total}" }
+                " tables"
+            },
+            (None, false) => rsx! {
                 "Table "
-                b { "{table}" }
+                b { "{first_table}" }
             },
+        };
+        let restored_verb = if multi {
+            " have been restored from "
+        } else {
+            " has been restored from "
         };
         rsx! {
             div { class: "dialog__body",
                 {what}
-                " has been restored from "
+                {restored_verb}
                 b { "{file_name}" }
                 "."
+                {tables_list}
             }
             div { class: "dialog__footer",
                 button {
@@ -574,17 +701,31 @@ fn render_restore_dialog(
             }
         }
     } else {
-        let what = match &partition {
-            Some(pk) => rsx! {
+        let what = match (&partition, multi) {
+            (Some(pk), _) => rsx! {
                 "Restore partition "
                 b { "{pk}" }
                 " of table "
-                b { "{table}" }
+                b { "{first_table}" }
             },
-            None => rsx! {
+            (None, true) => rsx! {
+                "Restore "
+                b { "{total}" }
+                " selected tables"
+            },
+            (None, false) => rsx! {
                 "Restore table "
-                b { "{table}" }
+                b { "{first_table}" }
             },
+        };
+        let restore_label = if in_progress {
+            if multi {
+                format!("Restoring… ({}/{})", completed, total)
+            } else {
+                "Restoring…".to_string()
+            }
+        } else {
+            "Restore".to_string()
         };
         rsx! {
             div { class: "dialog__body",
@@ -592,6 +733,7 @@ fn render_restore_dialog(
                 " from snapshot "
                 b { "{file_name}" }
                 "?"
+                {tables_list}
                 {clean_checkbox}
                 {error_view}
             }
@@ -606,7 +748,7 @@ fn render_restore_dialog(
                     class: "btn btn--primary btn--sm",
                     disabled: in_progress,
                     onclick: move |_| confirm(()),
-                    if in_progress { "Restoring…" } else { "Restore" }
+                    "{restore_label}"
                 }
             }
         }
@@ -736,11 +878,17 @@ fn render_files(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn render_tables(
     tables: Vec<SnapshotTableApiModel>,
     loading: bool,
+    checked: HashSet<String>,
     on_pick: impl FnMut(String) + Clone + 'static,
     on_restore: impl FnMut(String) + Clone + 'static,
+    on_toggle: impl FnMut(String) + Clone + 'static,
+    on_toggle_all: impl FnMut(bool) + Clone + 'static,
+    on_clear: impl FnMut(()) + Clone + 'static,
+    on_restore_selected: impl FnMut(()) + Clone + 'static,
 ) -> Element {
     if loading && tables.is_empty() {
         return rsx! {
@@ -757,16 +905,30 @@ fn render_tables(
         };
     }
     let count = tables.len();
+    let selected_count = tables.iter().filter(|t| checked.contains(&t.name)).count();
+    let all_checked = selected_count == count && count > 0;
+
     let rows = tables.into_iter().map(move |t| {
         let n = t.name.clone();
         let restore_name = t.name.clone();
+        let toggle_name = t.name.clone();
+        let is_checked = checked.contains(&t.name);
         let mut on_pick = on_pick.clone();
         let mut on_restore = on_restore.clone();
+        let mut on_toggle = on_toggle.clone();
         rsx! {
             tr {
                 key: "{t.name}",
                 style: "cursor: pointer;",
                 onclick: move |_| on_pick(n.clone()),
+                td {
+                    class: "rt-check",
+                    onclick: move |evt| {
+                        evt.stop_propagation();
+                        on_toggle(toggle_name.clone());
+                    },
+                    input { r#type: "checkbox", checked: is_checked }
+                }
                 td { style: "font-family: var(--font-mono);", "{t.name}" }
                 td { class: "num", "{t.partitions_count}" }
                 td {
@@ -784,16 +946,47 @@ fn render_tables(
             }
         }
     });
+
+    let bulk_bar = if selected_count > 0 {
+        let mut on_clear = on_clear.clone();
+        let mut on_restore_selected = on_restore_selected.clone();
+        rsx! {
+            div { class: "bulk-bar",
+                span { class: "bulk-bar__count", "{selected_count} selected" }
+                div { class: "bulk-bar__spacer" }
+                button {
+                    class: "btn btn--ghost btn--sm",
+                    onclick: move |_| on_clear(()),
+                    "Clear"
+                }
+                button {
+                    class: "btn btn--primary btn--sm",
+                    onclick: move |_| on_restore_selected(()),
+                    "Restore selected"
+                }
+            }
+        }
+    } else {
+        rsx! {}
+    };
+
+    let mut on_toggle_all = on_toggle_all.clone();
     rsx! {
         div { class: "card",
             div { class: "card__header",
                 span { class: "card__title", "Tables" }
                 span { class: "card__subtitle", "{count} table(s)" }
             }
+            {bulk_bar}
             div { class: "card__body",
                 table { class: "rt",
                     thead {
                         tr {
+                            th {
+                                class: "rt-check",
+                                onclick: move |_| on_toggle_all(!all_checked),
+                                input { r#type: "checkbox", checked: all_checked }
+                            }
                             th { "Table name" }
                             th { class: "num", "Partitions" }
                             th { class: "num", "" }

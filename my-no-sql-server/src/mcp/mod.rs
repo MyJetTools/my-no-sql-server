@@ -23,6 +23,8 @@ mod get_backup_partitions_tool_call;
 pub use get_backup_partitions_tool_call::*;
 mod get_backup_rows_tool_call;
 pub use get_backup_rows_tool_call::*;
+mod restore_backup_tool_call;
+pub use restore_backup_tool_call::*;
 mod mcp_writes_enable_policy_prompt;
 pub use mcp_writes_enable_policy_prompt::*;
 mod paste_delete_via_ui_prompt;
