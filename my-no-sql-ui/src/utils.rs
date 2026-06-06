@@ -1,7 +1,7 @@
 pub fn format_bytes(n: f64) -> String {
     let mut n = n;
     if n < 1024.0 {
-        return format!("{:.2}b", n);
+        return format!("{:.0}b", n);
     }
     n /= 1024.0;
     if n < 1024.0 {

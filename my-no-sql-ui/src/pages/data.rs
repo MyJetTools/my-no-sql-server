@@ -387,7 +387,6 @@ pub fn DataLayout() -> Element {
     let (writer_apps_for_selected, reader_count_for_selected) =
         derive_table_connectivity(&status, &selected_table);
     let table_stats = derive_table_stats(&status, &selected_table);
-    let row_counts_by_table = derive_table_row_counts(&status);
     let partition_counts_by_table = derive_table_partition_counts(&status);
 
     // Filter rows
@@ -995,7 +994,6 @@ pub fn DataLayout() -> Element {
                     tables: tables.clone(),
                     selected: selected_table.clone(),
                     writer_tables,
-                    row_counts: row_counts_by_table,
                     partition_counts: partition_counts_by_table,
                     on_select: move |name| select_table(name),
                 }
@@ -1165,18 +1163,6 @@ fn derive_table_stats(status: &Option<StatusApiModel>, table: &str) -> Option<Ta
         .as_ref()
         .and_then(|s| s.initialized.as_ref())
         .and_then(|init| init.tables.iter().find(|t| t.name == table).cloned())
-}
-
-fn derive_table_row_counts(status: &Option<StatusApiModel>) -> HashMap<String, usize> {
-    let mut map = HashMap::new();
-    if let Some(s) = status {
-        if let Some(init) = &s.initialized {
-            for t in &init.tables {
-                map.insert(t.name.clone(), t.records_amount);
-            }
-        }
-    }
-    map
 }
 
 fn derive_table_partition_counts(status: &Option<StatusApiModel>) -> HashMap<String, usize> {

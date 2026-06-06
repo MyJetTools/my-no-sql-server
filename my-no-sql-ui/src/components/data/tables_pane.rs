@@ -8,7 +8,6 @@ pub fn TablesPane(
     tables: Vec<TableListItemApiModel>,
     selected: String,
     writer_tables: HashSet<String>,
-    row_counts: std::collections::HashMap<String, usize>,
     partition_counts: std::collections::HashMap<String, usize>,
     on_select: EventHandler<String>,
 ) -> Element {
@@ -38,8 +37,6 @@ pub fn TablesPane(
         } else {
             "tables-pane__dot"
         };
-        let count = row_counts.get(&t.name).copied().unwrap_or(0);
-        let count_str = super::format_compact_count(count);
         let part_count = partition_counts.get(&t.name).copied().unwrap_or(0);
         let part_str = super::format_compact_count(part_count);
         let name = t.name.clone();
@@ -48,14 +45,9 @@ pub fn TablesPane(
                 span { class: dot_cls }
                 span { class: "tables-pane__name", "{t.name}" }
                 span {
-                    class: "tables-pane__parts",
-                    title: "Partitions",
-                    "{part_str}p"
-                }
-                span {
                     class: "tables-pane__count",
-                    title: "Records",
-                    "{count_str}"
+                    title: "Partitions",
+                    "{part_str}"
                 }
             }
         }

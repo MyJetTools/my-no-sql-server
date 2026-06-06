@@ -123,13 +123,6 @@
     color: var(--text-faint);
 }
 
-.tables-pane__parts {
-    font-family: var(--font-mono);
-    font-size: 10.5px;
-    color: var(--accent-strong);
-    flex-shrink: 0;
-}
-
 /* --- Partitions pane --- */
 .partitions-pane {
     background: var(--bg-elev);
