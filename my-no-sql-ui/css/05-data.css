@@ -123,6 +123,13 @@
     color: var(--text-faint);
 }
 
+.tables-pane__parts {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--accent-strong);
+    flex-shrink: 0;
+}
+
 /* --- Partitions pane --- */
 .partitions-pane {
     background: var(--bg-elev);
@@ -159,6 +166,8 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    flex: 1;
+    min-width: 0;
 }
 
 .partitions-pane__item.active .partitions-pane__name {
@@ -166,10 +175,25 @@
     font-weight: 600;
 }
 
+.partitions-pane__meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 1px;
+    flex-shrink: 0;
+}
+
 .partitions-pane__count {
     font-family: var(--font-mono);
     font-size: 10.5px;
     color: var(--text-faint);
+}
+
+.partitions-pane__size {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    color: var(--text-faint);
+    opacity: 0.8;
 }
 
 /* --- Rows column (header + toolbar + table) --- */

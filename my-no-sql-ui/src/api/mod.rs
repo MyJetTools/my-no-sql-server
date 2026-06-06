@@ -92,9 +92,14 @@ pub async fn get_tables_list() -> Result<Vec<TableListItemApiModel>, RequestErro
     Ok(result)
 }
 
-pub async fn get_partitions(table_name: &str) -> Result<PartitionsApiModel, RequestError> {
+/// Per-partition metrics (records count + data size in bytes) for the table,
+/// in the table's natural partition order. Used both for the partition list and
+/// for the live size/record counters refreshed in the background.
+pub async fn get_partition_details(
+    table_name: &str,
+) -> Result<Vec<PartitionMetricApiModel>, RequestError> {
     let url = format!(
-        "{}/api/Partitions?tableName={}",
+        "{}/api/Partitions/Details?tableName={}",
         get_base_url(),
         url_escape(table_name),
     );
@@ -104,7 +109,7 @@ pub async fn get_partitions(table_name: &str) -> Result<PartitionsApiModel, Requ
             message: format!("Failed to load partitions: {}", response.status()),
         });
     }
-    let result: PartitionsApiModel = response.json().await?;
+    let result: Vec<PartitionMetricApiModel> = response.json().await?;
     Ok(result)
 }
 
@@ -274,6 +279,21 @@ pub async fn get_snapshots_list() -> Result<Vec<SnapshotFileApiModel>, RequestEr
     }
     let result: Vec<SnapshotFileApiModel> = response.json().await?;
     Ok(result)
+}
+
+/// Forces the server to create a snapshot (backup) right now, ignoring the
+/// scheduled interval, via POST `/api/Backup/MakeBackup`.
+pub async fn make_snapshot() -> Result<(), RequestError> {
+    let url = format!("{}/api/Backup/MakeBackup", get_base_url());
+    let response = reqwest::Client::new().post(&url).send().await?;
+    if !response.status().is_success() {
+        let status = response.status();
+        let body = response.text().await.unwrap_or_default();
+        return Err(RequestError {
+            message: format!("Make snapshot failed ({}): {}", status, body),
+        });
+    }
+    Ok(())
 }
 
 pub async fn get_snapshot_tables(file_name: &str) -> Result<Vec<SnapshotTableApiModel>, RequestError> {

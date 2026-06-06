@@ -226,6 +226,10 @@ pub fn build(app: &Arc<AppContext>) -> ControllersMiddleware {
         app.clone(),
     )));
 
+    result.register_get_action(Arc::new(super::partitions::GetPartitionsDetailsAction::new(
+        app.clone(),
+    )));
+
     // Backup controller
 
     result.register_get_action(Arc::new(super::backup::DownloadAction::new(app.clone())));
@@ -233,6 +237,8 @@ pub fn build(app: &Arc<AppContext>) -> ControllersMiddleware {
     result.register_get_action(Arc::new(super::backup::GetListOfBackupFilesAction::new(
         app.clone(),
     )));
+
+    result.register_post_action(Arc::new(super::backup::MakeBackupAction::new(app.clone())));
 
     result.register_post_action(Arc::new(super::backup::RestoreFromBackupAction::new(
         app.clone(),

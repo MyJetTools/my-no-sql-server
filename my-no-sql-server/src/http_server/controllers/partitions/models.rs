@@ -24,3 +24,13 @@ pub struct PartitionsHttpResult {
     pub amount: usize,
     pub data: Vec<String>,
 }
+
+#[derive(MyHttpObjectStructure, Serialize)]
+pub struct PartitionMetricHttpModel {
+    #[serde(rename = "partitionKey")]
+    pub partition_key: String,
+    #[serde(rename = "recordsCount")]
+    pub records_count: usize,
+    #[serde(rename = "dataSize")]
+    pub data_size: usize,
+}

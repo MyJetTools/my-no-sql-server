@@ -36,6 +36,9 @@ struct SnapshotsState {
     // Active "restore table from backup" dialog, if any.
     restore: Option<RestoreDialog>,
 
+    // True while a forced "make snapshot" request is in flight.
+    making_snapshot: bool,
+
     error: Option<String>,
 }
 
@@ -65,6 +68,22 @@ impl SnapshotsState {
     fn set_files(&mut self, files: Vec<SnapshotFileApiModel>) {
         self.files = files;
         self.files_ready = true;
+    }
+
+    fn begin_make_snapshot(&mut self) {
+        self.making_snapshot = true;
+        self.error = None;
+    }
+
+    fn make_snapshot_done(&mut self) {
+        self.making_snapshot = false;
+        // Force the files list to reload so the freshly created snapshot shows up.
+        self.files_started = false;
+    }
+
+    fn make_snapshot_error(&mut self, err: String) {
+        self.making_snapshot = false;
+        self.error = Some(err);
     }
 
     fn begin_tables_load(&mut self, file: &str) {
@@ -344,6 +363,7 @@ pub fn SnapshotsLayout() -> Element {
     let error = cs_ra.error.clone();
     let files = cs_ra.files.clone();
     let files_ready = cs_ra.files_ready;
+    let making_snapshot = cs_ra.making_snapshot;
 
     let tables_scope = url_file.is_some() && cs_ra.loaded_for_file.as_deref() == url_file.as_deref();
     let tables = if tables_scope { cs_ra.tables.clone() } else { Vec::new() };
@@ -399,6 +419,23 @@ pub fn SnapshotsLayout() -> Element {
             (true, true, true) => w.loaded_rows_for = None,
         }
     };
+
+    // Force-create a snapshot on the server, then reload the files list.
+    let on_make_snapshot = move |_| {
+        if cs.peek().making_snapshot {
+            return;
+        }
+        cs.write().begin_make_snapshot();
+        spawn(async move {
+            match api::make_snapshot().await {
+                Ok(_) => cs.write().make_snapshot_done(),
+                Err(err) => cs
+                    .write()
+                    .make_snapshot_error(format!("Failed to make snapshot: {}", err)),
+            }
+        });
+    };
+
     let loading = match (&url_file, &url_table, &url_partition) {
         (None, _, _) => !files_ready,
         (Some(_), None, _) => !tables_ready,
@@ -576,11 +613,19 @@ pub fn SnapshotsLayout() -> Element {
             div { style: "display: flex; flex-direction: column; gap: 14px; max-width: 960px;",
                 div { style: "display: flex; align-items: center; justify-content: space-between; gap: 12px;",
                     {crumbs}
-                    button {
-                        class: "btn btn--ghost btn--sm",
-                        disabled: loading,
-                        onclick: on_refresh,
-                        if loading { "Refreshing…" } else { "Refresh" }
+                    div { style: "display: flex; align-items: center; gap: 8px;",
+                        button {
+                            class: "btn btn--primary btn--sm",
+                            disabled: making_snapshot,
+                            onclick: on_make_snapshot,
+                            if making_snapshot { "Making snapshot…" } else { "Make snapshot" }
+                        }
+                        button {
+                            class: "btn btn--ghost btn--sm",
+                            disabled: loading,
+                            onclick: on_refresh,
+                            if loading { "Refreshing…" } else { "Refresh" }
+                        }
                     }
                 }
                 {error_view}

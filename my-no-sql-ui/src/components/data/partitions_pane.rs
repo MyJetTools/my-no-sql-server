@@ -1,10 +1,12 @@
 use dioxus::prelude::*;
 use std::collections::HashMap;
 
+use crate::models::PartitionMetricApiModel;
+
 #[component]
 pub fn PartitionsPane(
     partitions: Vec<String>,
-    counts: HashMap<String, usize>,
+    metrics: HashMap<String, PartitionMetricApiModel>,
     selected: Option<String>,
     on_select: EventHandler<String>,
 ) -> Element {
@@ -28,13 +30,27 @@ pub fn PartitionsPane(
         } else {
             "partitions-pane__item"
         };
-        let count = counts.get(&pk).copied().unwrap_or(0);
-        let count_str = super::format_compact_count(count);
+        let metric = metrics.get(&pk);
+        let records = metric.map(|m| m.records_count).unwrap_or(0);
+        let size = metric.map(|m| m.data_size).unwrap_or(0);
+        let records_str = super::format_compact_count(records);
+        let size_str = crate::utils::format_bytes(size as f64);
         let pk_for_handler = pk.clone();
         rsx! {
             div { class: cls, onclick: move |_| on_select.call(pk_for_handler.clone()),
                 span { class: "partitions-pane__name", "{pk}" }
-                span { class: "partitions-pane__count", "{count_str}" }
+                span { class: "partitions-pane__meta",
+                    span {
+                        class: "partitions-pane__count",
+                        title: "Records",
+                        "{records_str}"
+                    }
+                    span {
+                        class: "partitions-pane__size",
+                        title: "Size in bytes",
+                        "{size_str}"
+                    }
+                }
             }
         }
     });

@@ -10,10 +10,12 @@ pub struct TableListItemApiModel {
     pub max_rows_per_partition_amount: Option<usize>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PartitionsApiModel {
-    #[serde(default)]
-    pub amount: usize,
-    #[serde(default)]
-    pub data: Vec<String>,
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct PartitionMetricApiModel {
+    #[serde(rename = "partitionKey")]
+    pub partition_key: String,
+    #[serde(rename = "recordsCount", default)]
+    pub records_count: usize,
+    #[serde(rename = "dataSize", default)]
+    pub data_size: usize,
 }

@@ -1,4 +1,5 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
+use std::time::Duration;
 
 use dioxus::prelude::*;
 use serde_json::Value;
@@ -6,14 +7,17 @@ use serde_json::Value;
 use crate::AppContext;
 use crate::AppRoute;
 use crate::api::{
-    bulk_delete_many, bulk_delete_rows, delete_row, get_partitions, get_rows, get_tables_list,
+    bulk_delete_many, bulk_delete_rows, delete_row, get_partition_details, get_rows, get_status,
+    get_tables_list,
 };
 use crate::components::atoms::{Badge, BadgeTone, Icon, IconKind};
 use crate::components::data::{
     PARTITION_KEY, PartitionsPane, ROW_KEY, RowDrawer, RowsTable, TableHeader, TablePagination,
     TableToolbar, TablesPane, TIME_STAMP,
 };
-use crate::models::{StatusApiModel, TableApiModel, TableListItemApiModel};
+use crate::models::{
+    PartitionMetricApiModel, StatusApiModel, TableApiModel, TableListItemApiModel,
+};
 
 #[derive(Clone)]
 enum DialogState {
@@ -40,6 +44,9 @@ struct DataState {
     /// Table whose partition list is currently loaded or loading.
     loaded_for_table: Option<String>,
     partitions: Option<Vec<String>>,
+    /// Per-partition metrics (records + bytes) for `loaded_for_table`, refreshed
+    /// in the background every few seconds.
+    partition_metrics: HashMap<String, PartitionMetricApiModel>,
     /// (table, partition) whose rows are currently loaded or loading.
     loaded_rows_for: Option<(String, String)>,
     /// True once the rows for `loaded_rows_for` have actually arrived.
@@ -59,6 +66,7 @@ impl Default for DataState {
             tables_loaded: false,
             loaded_for_table: None,
             partitions: None,
+            partition_metrics: HashMap::new(),
             loaded_rows_for: None,
             rows_ready: false,
             headers: Vec::new(),
@@ -87,6 +95,7 @@ impl DataState {
     fn begin_table_load(&mut self, table: &str) {
         self.loaded_for_table = Some(table.to_string());
         self.partitions = None;
+        self.partition_metrics.clear();
         self.loaded_rows_for = None;
         self.rows_ready = false;
         self.headers = Vec::new();
@@ -95,11 +104,20 @@ impl DataState {
         self.current_page = 0;
     }
 
-    /// Apply a fetched partition list, unless the table was switched meanwhile.
-    fn set_partitions(&mut self, table: &str, partitions: Vec<String>) {
-        if self.loaded_for_table.as_deref() == Some(table) {
-            self.partitions = Some(partitions);
+    /// Apply fetched per-partition details (keys + metrics), unless the table was
+    /// switched meanwhile. Rebuilds both the ordered key list and the metrics map.
+    fn set_partition_details(&mut self, table: &str, details: Vec<PartitionMetricApiModel>) {
+        if self.loaded_for_table.as_deref() != Some(table) {
+            return;
         }
+        let mut keys = Vec::with_capacity(details.len());
+        let mut metrics = HashMap::with_capacity(details.len());
+        for d in details {
+            keys.push(d.partition_key.clone());
+            metrics.insert(d.partition_key.clone(), d);
+        }
+        self.partitions = Some(keys);
+        self.partition_metrics = metrics;
     }
 
     /// Start loading rows for `(table, partition)`; clears the previous rows.
@@ -223,6 +241,28 @@ pub fn DataLayout() -> Element {
         });
     });
 
+    // ---- background status refresh: keeps the tables-pane partition + record
+    // counts live while the data section is mounted. Polls every 3s. ----
+    let mut status_started = use_signal(|| false);
+    use_effect(move || {
+        if *status_started.peek() {
+            return;
+        }
+        status_started.set(true);
+        let mut ctx = app_ctx;
+        spawn(async move {
+            loop {
+                match get_status().await {
+                    Ok(s) => ctx.write().status = Some(s),
+                    Err(err) => {
+                        dioxus_utils::console_log(&format!("Status error: {}", err));
+                    }
+                }
+                dioxus_utils::js::sleep(Duration::from_secs(3)).await;
+            }
+        });
+    });
+
     // ---- reset to page 1 whenever the filter changes ----
     use_effect(move || {
         let _ = row_filter.read();
@@ -231,7 +271,10 @@ pub fn DataLayout() -> Element {
         }
     });
 
-    // ---- load the partition list whenever the URL table changes ----
+    // ---- load + live-refresh the partition list (keys + metrics) for the URL
+    // table. A per-table loop fetches once immediately and then re-polls every 3s
+    // so record counts and byte sizes stay current. It self-terminates when the
+    // selected table changes (a fresh render spawns a new loop for the new table).
     if let Some(table) = url_table.clone() {
         let already = { cs.read().loaded_for_table.as_deref() == Some(table.as_str()) };
         if !already {
@@ -241,25 +284,36 @@ pub fn DataLayout() -> Element {
                     return;
                 }
                 cs.write().begin_table_load(&table);
-                match get_partitions(&table).await {
-                    Ok(p) => {
-                        let data = p.data;
-                        let single = data.len() == 1;
-                        cs.write().set_partitions(&table, data.clone());
-                        // Table with a single partition — jump straight into it.
-                        // `replace` so Back skips this auto-forwarding step.
-                        if single && url_partition_at_nav.is_none() {
-                            if let Some(only) = data.into_iter().next() {
-                                nav.replace(AppRoute::DataPartition {
-                                    table: table.clone(),
-                                    partition: only,
-                                });
+                let mut first = true;
+                loop {
+                    if cs.peek().loaded_for_table.as_deref() != Some(table.as_str()) {
+                        break;
+                    }
+                    match get_partition_details(&table).await {
+                        Ok(details) => {
+                            // Table with a single partition — jump straight into it
+                            // on first load. `replace` so Back skips this step.
+                            let only = if details.len() == 1 {
+                                details.first().map(|d| d.partition_key.clone())
+                            } else {
+                                None
+                            };
+                            cs.write().set_partition_details(&table, details);
+                            if first && url_partition_at_nav.is_none() {
+                                if let Some(only) = only {
+                                    nav.replace(AppRoute::DataPartition {
+                                        table: table.clone(),
+                                        partition: only,
+                                    });
+                                }
                             }
                         }
+                        Err(err) => {
+                            dioxus_utils::console_log(&format!("Partitions error: {}", err));
+                        }
                     }
-                    Err(err) => {
-                        dioxus_utils::console_log(&format!("Partitions error: {}", err));
-                    }
+                    first = false;
+                    dioxus_utils::js::sleep(Duration::from_secs(3)).await;
                 }
             });
         }
@@ -295,6 +349,12 @@ pub fn DataLayout() -> Element {
         _ => Vec::new(),
     };
 
+    let partition_metrics: HashMap<String, PartitionMetricApiModel> =
+        match (&url_table, &cs_ra.loaded_for_table) {
+            (Some(t), Some(lt)) if t == lt => cs_ra.partition_metrics.clone(),
+            _ => HashMap::new(),
+        };
+
     let rows_scope_matches = match (&url_table, &url_partition, &cs_ra.loaded_rows_for) {
         (Some(t), Some(p), Some((lt, lp))) => t == lt && p == lp,
         _ => false,
@@ -328,7 +388,7 @@ pub fn DataLayout() -> Element {
         derive_table_connectivity(&status, &selected_table);
     let table_stats = derive_table_stats(&status, &selected_table);
     let row_counts_by_table = derive_table_row_counts(&status);
-    let partition_counts = HashMap::<String, usize>::new();
+    let partition_counts_by_table = derive_table_partition_counts(&status);
 
     // Filter rows
     let filter_str = row_filter.read().to_lowercase();
@@ -620,7 +680,7 @@ pub fn DataLayout() -> Element {
         rsx! {
             PartitionsPane {
                 partitions: partitions_list,
-                counts: partition_counts,
+                metrics: partition_metrics,
                 selected: url_partition.clone(),
                 on_select: move |pk| select_partition(pk),
             }
@@ -936,6 +996,7 @@ pub fn DataLayout() -> Element {
                     selected: selected_table.clone(),
                     writer_tables,
                     row_counts: row_counts_by_table,
+                    partition_counts: partition_counts_by_table,
                     on_select: move |name| select_table(name),
                 }
                 {partitions_content}
@@ -1112,6 +1173,18 @@ fn derive_table_row_counts(status: &Option<StatusApiModel>) -> HashMap<String, u
         if let Some(init) = &s.initialized {
             for t in &init.tables {
                 map.insert(t.name.clone(), t.records_amount);
+            }
+        }
+    }
+    map
+}
+
+fn derive_table_partition_counts(status: &Option<StatusApiModel>) -> HashMap<String, usize> {
+    let mut map = HashMap::new();
+    if let Some(s) = status {
+        if let Some(init) = &s.initialized {
+            for t in &init.tables {
+                map.insert(t.name.clone(), t.partitions_count);
             }
         }
     }
