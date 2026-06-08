@@ -33,6 +33,12 @@ pub fn build(app: &Arc<AppContext>) -> ControllersMiddleware {
 
     result.register_post_action(update_persist_action);
 
+    let update_compressed_action = Arc::new(
+        super::tables_controller::UpdateCompressedAction::new(app.clone()),
+    );
+
+    result.register_post_action(update_compressed_action);
+
     let get_partitions_count_action = Arc::new(
         super::tables_controller::GetPartitionsCountAction::new(app.clone()),
     );

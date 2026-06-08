@@ -11,6 +11,10 @@ pub struct TableMetadataFileContract {
     pub max_partitions_amount: Option<usize>,
     #[serde(rename = "MaxRowsPerPartitionAmount")]
     pub max_rows_per_partition_amount: Option<usize>,
+    // Backwards-compatible: missing in metadata written before the feature -> None -> not compressed.
+    #[serde(rename = "Compressed")]
+    #[serde(default)]
+    pub compressed: Option<bool>,
     #[serde(rename = "Created")]
     pub created: Option<String>,
 }
@@ -25,6 +29,7 @@ impl TableMetadataFileContract {
                 max_partitions_amount: None,
                 max_rows_per_partition_amount: None,
                 persist: true,
+                compressed: None,
                 created: Some(DateTimeAsMicroseconds::now().to_rfc3339()),
             },
         }
@@ -45,6 +50,7 @@ impl Into<TableMetadataFileContract> for &'_ DbTableAttributes {
             persist: self.persist,
             max_partitions_amount: self.max_partitions_amount,
             max_rows_per_partition_amount: self.max_rows_per_partition_amount,
+            compressed: Some(self.compressed),
             created: self.created.to_rfc3339().into(),
         }
     }
@@ -64,6 +70,7 @@ impl Into<DbTableAttributes> for TableMetadataFileContract {
             max_partitions_amount: self.max_partitions_amount,
             max_rows_per_partition_amount: self.max_rows_per_partition_amount,
             persist: self.persist,
+            compressed: self.compressed.unwrap_or(false),
         };
 
         if let Some(value) = result.max_partitions_amount {
@@ -87,6 +94,7 @@ pub fn serialize(attrs: &DbTableAttributes) -> Vec<u8> {
         max_partitions_amount: attrs.max_partitions_amount,
         max_rows_per_partition_amount: attrs.max_rows_per_partition_amount,
         persist: attrs.persist,
+        compressed: Some(attrs.compressed),
         created: Some(attrs.created.to_rfc3339()),
     };
 

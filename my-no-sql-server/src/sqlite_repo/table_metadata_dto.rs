@@ -10,6 +10,9 @@ pub struct TableMetaDataDto {
     pub max_partitions_amount: i64,
     pub max_rows_per_partition_amount: i64,
     pub persist: bool,
+    // Nullable for backwards compatibility: my-sqlite auto-adds this column to existing
+    // databases (ALTER TABLE ... ADD COLUMN, no NOT NULL); old rows read back as None.
+    pub compressed: Option<bool>,
     pub created: i64,
 }
 
@@ -20,6 +23,7 @@ impl TableMetaDataDto {
             max_partitions_amount: attr.max_partitions_amount.unwrap_or(0) as i64,
             max_rows_per_partition_amount: attr.max_rows_per_partition_amount.unwrap_or(0) as i64,
             persist: attr.persist,
+            compressed: Some(attr.compressed),
             created: attr.created.unix_microseconds,
         }
     }
@@ -39,6 +43,7 @@ impl TableAttributeInitContract for TableMetaDataDto {
                 Some(self.max_rows_per_partition_amount as usize)
             },
             persist: self.persist,
+            compressed: self.compressed.unwrap_or(false),
             created: DateTimeAsMicroseconds::new(self.created),
         };
 

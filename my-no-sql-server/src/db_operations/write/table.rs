@@ -23,6 +23,7 @@ pub async fn create(
     persist_table: bool,
     max_partitions_amount: Option<usize>,
     max_rows_per_partition_amount: Option<usize>,
+    compressed: bool,
     event_src: EventSource,
     persist_moment: DateTimeAsMicroseconds,
 ) -> Result<Arc<DbTable>, DbOperationError> {
@@ -38,6 +39,7 @@ pub async fn create(
         persist_table,
         max_partitions_amount,
         max_rows_per_partition_amount,
+        compressed,
         now,
     )
     .await;
@@ -88,6 +90,7 @@ async fn get_or_create(
         persist_table,
         max_partitions_amount,
         max_rows_per_partition_amount,
+        false,
         now,
     )
     .await;
@@ -172,6 +175,53 @@ pub async fn update_persist_state(
         event_src,
     )
     .await?;
+    Ok(())
+}
+
+pub async fn update_compressed_state(
+    app: &Arc<AppContext>,
+    db_table: Arc<DbTable>,
+    compressed: bool,
+    force_compress: bool,
+    event_src: EventSource,
+) -> Result<(), DbOperationError> {
+    super::super::check_app_states(app)?;
+
+    let (flag_changed, table_name) = {
+        let mut write_access = db_table.data.write();
+        // By default this is lazy: only flip the flag. Existing rows stay as they are;
+        // new / rewritten rows get compressed (or not) at the insert choke point. A
+        // table may hold a mix of plain and compressed rows — they render identically.
+        let flag_changed = write_access.attributes.set_compressed(compressed);
+        // force_compress: immediately re-encode every already stored row to match the
+        // current flag (compress all if on, decompress all if off). CPU-heavy on big
+        // tables — opt-in only.
+        if force_compress {
+            write_access.apply_rows_compression();
+        }
+        (flag_changed, write_access.name.clone())
+    };
+
+    // Nothing to persist/sync if the flag did not change (rows persist as plain JSON
+    // and readers always receive plain JSON, so a forced re-encode alone is invisible).
+    if !flag_changed {
+        return Ok(());
+    }
+
+    crate::operations::sync::dispatch(
+        app,
+        SyncEvent::UpdateTableAttributes(UpdateTableAttributesSyncData {
+            table_data: SyncTableData {
+                table_name: db_table.name.clone(),
+            },
+            event_src,
+        }),
+    );
+
+    app.persist_markers
+        .persist_table_attributes(&table_name, DateTimeAsMicroseconds::now())
+        .await;
+
     Ok(())
 }
 
@@ -271,6 +321,7 @@ async fn get_or_create_table(
     persist: bool,
     max_partitions_amount: Option<usize>,
     max_rows_per_partition_amount: Option<usize>,
+    compressed: bool,
     now: DateTimeAsMicroseconds,
 ) -> CreateTableResult {
     let (db_table, just_created) = app.db.get_or_create(table_name, || {
@@ -279,6 +330,7 @@ async fn get_or_create_table(
             max_partitions_amount,
             created: now,
             max_rows_per_partition_amount,
+            compressed,
         };
         DbTable::new(DbTableInner::new(table_name.into(), table_attributes))
     });

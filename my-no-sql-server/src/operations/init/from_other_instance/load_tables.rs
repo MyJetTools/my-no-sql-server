@@ -12,6 +12,8 @@ pub struct TableMyNoSqlServerContract {
     #[serde(rename = "maxPartitionsAmount")]
     pub max_partitions_amount: Option<i64>,
     pub max_rows_per_partition_amount: Option<i64>,
+    #[serde(default)]
+    pub compressed: Option<bool>,
     pub created: Option<String>,
 }
 
@@ -35,6 +37,7 @@ impl TableAttributeInitContract for TableMyNoSqlServerContract {
             persist: self.persist.unwrap_or(false),
             max_partitions_amount: self.max_partitions_amount.map(|x| x as usize),
             max_rows_per_partition_amount: self.max_rows_per_partition_amount.map(|x| x as usize),
+            compressed: self.compressed.unwrap_or(false),
             created,
         };
 

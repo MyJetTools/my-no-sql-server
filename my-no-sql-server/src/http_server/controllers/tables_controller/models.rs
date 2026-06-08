@@ -27,6 +27,18 @@ pub struct UpdatePersistTableContract {
     pub persist: bool,
 }
 
+#[derive(MyHttpInput)]
+pub struct UpdateCompressedTableContract {
+    #[http_query(name = "tableName"; description = "Name of a table")]
+    pub table_name: String,
+
+    #[http_query(description = "Keep the rows of this table compressed in memory"; default: false)]
+    pub compressed: bool,
+
+    #[http_query(name: "forceCompress"; description = "If true - immediately re-encode all already stored rows to match the flag (otherwise only new/rewritten rows are affected)"; default: false)]
+    pub force_compress: bool,
+}
+
 #[derive(Deserialize, Serialize, MyHttpObjectStructure)]
 pub struct TableContract {
     pub name: String,
@@ -35,6 +47,7 @@ pub struct TableContract {
     pub max_partitions_amount: Option<usize>,
     #[serde(rename = "maxRowsPerPartitionAmount")]
     pub max_rows_per_partition_amount: Option<usize>,
+    pub compressed: bool,
 }
 
 impl TableContract {
@@ -45,6 +58,7 @@ impl TableContract {
             persist: table_snapshot.persist,
             max_partitions_amount: table_snapshot.max_partitions_amount,
             max_rows_per_partition_amount: table_snapshot.max_rows_per_partition_amount,
+            compressed: table_snapshot.compressed,
         }
     }
 }
@@ -62,6 +76,9 @@ pub struct CreateTableContract {
 
     #[http_query(name: "maxRowsPerPartitionAmount"; description: "Maximum rows per partition amount. Empty - means unlimited")]
     pub max_rows_per_partition_amount: Option<usize>,
+
+    #[http_query(description: "Keep the rows of this table compressed in memory"; default: false)]
+    pub compressed: bool,
 
     #[http_query(name: "syncPeriod"; description: "Synchronization period"; default)]
     pub sync_period: DataSynchronizationPeriod,

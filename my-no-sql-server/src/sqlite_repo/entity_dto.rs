@@ -19,7 +19,7 @@ impl MyNoSqlEntityDto {
             partition_key: db_row.get_partition_key().to_string(),
             row_key: db_row.get_row_key().to_string(),
 
-            content: std::str::from_utf8(db_row.get_src_as_slice())
+            content: std::str::from_utf8(db_row.content_bytes().as_ref())
                 .unwrap()
                 .to_string(),
         }

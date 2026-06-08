@@ -9,6 +9,7 @@ use super::{non_initialized::NonInitializedModel, status_bar_model::StatusBarMod
 pub struct TableModel {
     pub name: String,
     pub persist: bool,
+    pub compressed: bool,
     #[serde(rename = "maxPartitionsAmount")]
     pub max_partitions_amount: Option<usize>,
     #[serde(rename = "maxRowsPerPartition")]
@@ -83,6 +84,7 @@ impl StatusModel {
                 name: table.name.to_string(),
                 avg_entity_size: metrics.avg_entity_size,
                 persist: attr.persist,
+                compressed: attr.compressed,
                 max_partitions_amount: attr.max_partitions_amount,
                 max_rows_per_partition: attr.max_rows_per_partition_amount,
                 partitions_count: metrics.partitions_amount,

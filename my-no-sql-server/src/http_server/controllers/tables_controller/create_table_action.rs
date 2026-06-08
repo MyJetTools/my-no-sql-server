@@ -42,6 +42,7 @@ async fn handle_request(
         input_data.persist,
         input_data.max_partitions_amount,
         input_data.max_rows_per_partition_amount,
+        input_data.compressed,
         even_src,
         input_data.sync_period.get_sync_moment(),
     )

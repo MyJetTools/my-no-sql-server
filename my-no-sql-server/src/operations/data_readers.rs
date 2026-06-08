@@ -52,7 +52,7 @@ pub async fn subscribe(
             // the SDK reader panic).
             let empty_table = DbTable::new(DbTableInner::new(
                 table_name.into(),
-                DbTableAttributes::new(false, None, None, DateTimeAsMicroseconds::now()),
+                DbTableAttributes::new(false, None, None, false, DateTimeAsMicroseconds::now()),
             ));
 
             crate::operations::sync::dispatch(
