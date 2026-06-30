@@ -5,4 +5,6 @@ pub mod gc_multipart;
 pub mod metrics_updater;
 pub mod persist;
 pub mod sync;
+mod vacuum_timer;
 pub use backup_timer::*;
+pub use vacuum_timer::*;

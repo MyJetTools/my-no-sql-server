@@ -112,6 +112,16 @@ impl SqlLiteRepo {
             .unwrap()
     }
 
+    /// Rebuilds the database file, reclaiming pages freed by deletes and
+    /// defragmenting the storage. Takes an exclusive lock for the duration.
+    pub async fn vacuum(&self) {
+        self.sqlite
+            .client
+            .conn(|conn| conn.execute_batch("VACUUM"))
+            .await
+            .unwrap();
+    }
+
     /*
     pub async fn save_file(&self, table_name: &str, file_name: &str, content: String) {
         let table = MyNoSqlFileDto {

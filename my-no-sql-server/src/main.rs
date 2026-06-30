@@ -2,6 +2,7 @@ use app::AppContext;
 use background::{
     gc_db_rows::GcDbRows, gc_http_sessions::GcHttpSessionsTimer, gc_multipart::GcMultipart,
     metrics_updater::MetricsUpdater, persist::PersistTimer, sync::SyncEventLoop, BackupTimer,
+    VacuumTimer,
 };
 
 use my_no_sql_sdk::core::rust_extensions::MyTimer;
@@ -115,6 +116,7 @@ async fn main() {
     let mut backup_timer = MyTimer::new(Duration::from_secs(60));
 
     backup_timer.register_timer("BackupDb", Arc::new(BackupTimer::new(app.clone())));
+    backup_timer.register_timer("Vacuum", Arc::new(VacuumTimer::new(app.clone())));
 
     backup_timer.start(app.states.clone(), my_logger::LOGGER.clone());
 
