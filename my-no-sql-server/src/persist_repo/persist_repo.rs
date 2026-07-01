@@ -105,8 +105,9 @@ impl PersistRepo {
     pub async fn vacuum(&self) {
         match self {
             Self::Sqlite(repo) => repo.vacuum().await,
-            // In-place slot reuse needs no compaction.
-            Self::Files(_) => {}
+            // Reclaims page-files whose every slot has been freed (partial files
+            // keep reusing their free slots in place).
+            Self::Files(repo) => repo.vacuum().await,
         }
     }
 }

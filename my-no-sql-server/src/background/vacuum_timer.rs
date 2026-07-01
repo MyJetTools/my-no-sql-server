@@ -7,12 +7,13 @@ use my_no_sql_sdk::core::rust_extensions::{date_time::DateTimeAsMicroseconds, My
 
 use crate::app::AppContext;
 
-/// How often the SQLite file is compacted via `VACUUM`.
+/// How often the persistence backend is compacted.
 const VACUUM_INTERVAL_SECS: u64 = 60 * 60;
 
-/// Wakes up every minute and runs `VACUUM` on the SQLite persistence file
-/// once an hour has passed since the previous run. The last-run timestamp is
-/// kept in memory, so after a restart the first VACUUM happens an hour later.
+/// Wakes up every minute and compacts the persistence backend once an hour has
+/// passed since the previous run (SQLite `VACUUM`, or dropping fully-freed
+/// page-files for the Files backend). The last-run timestamp is kept in memory,
+/// so after a restart the first vacuum happens an hour later.
 pub struct VacuumTimer {
     app: Arc<AppContext>,
     last_vacuum_unix_micros: AtomicI64,
@@ -45,10 +46,10 @@ impl MyTimerTick for VacuumTimer {
             return;
         }
 
-        println!("Running SQLite VACUUM...");
+        println!("Running persistence vacuum...");
         self.app.repo.vacuum().await;
         self.last_vacuum_unix_micros
             .store(now.unix_microseconds, Ordering::Relaxed);
-        println!("SQLite VACUUM completed");
+        println!("Persistence vacuum completed");
     }
 }

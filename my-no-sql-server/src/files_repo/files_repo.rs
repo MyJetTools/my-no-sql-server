@@ -89,4 +89,8 @@ impl FilesRepo {
             .load_all_partitions(skip_errors)
             .await
     }
+
+    pub async fn vacuum(&self) {
+        self.inner.lock().await.vacuum().await;
+    }
 }

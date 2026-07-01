@@ -367,6 +367,53 @@ impl FilesRepoInner {
         }
     }
 
+    /// Reclaims disk: any page-file whose every slot is free (all slot indices
+    /// present in the free-list) is fully dead, so both `<size>` and
+    /// `<size>.delete` are removed and the class dropped from memory. A future
+    /// write to that size class recreates the file from scratch. Partially-free
+    /// files are left untouched — their free slots are reused in place. Runs
+    /// under the repo mutex, so it never races a write.
+    pub async fn vacuum(&mut self) {
+        let empty_classes: Vec<u32> = self
+            .classes
+            .iter()
+            .filter(|(_, state)| {
+                if state.slot_count == 0 {
+                    return false;
+                }
+                // Every slot index in the file must be in the free-list.
+                let free: std::collections::HashSet<u64> = state.free.iter().copied().collect();
+                (0..state.slot_count).all(|slot_index| free.contains(&slot_index))
+            })
+            .map(|(size_class, _)| *size_class)
+            .collect();
+
+        for size_class in empty_classes {
+            // Remove the page-file first; a stray `.delete` without its page-file
+            // is harmless (ignored on discovery). Treat "already gone" as success.
+            let removed = match tokio::fs::remove_file(self.class_path(size_class)).await {
+                Ok(_) => true,
+                Err(err) if err.kind() == std::io::ErrorKind::NotFound => true,
+                Err(err) => {
+                    println!(
+                        "files_repo: could not vacuum page-file {}: {} (will retry)",
+                        size_class, err
+                    );
+                    false
+                }
+            };
+
+            if removed {
+                let _ = tokio::fs::remove_file(self.delete_path(size_class)).await;
+                self.classes.remove(&size_class);
+                println!(
+                    "files_repo: vacuumed fully-freed page-file for size class {}",
+                    size_class
+                );
+            }
+        }
+    }
+
     // ---- low-level helpers ----------------------------------------------
 
     /// Reserves a slot index in `size_class`, reusing a freed one when
