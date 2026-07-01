@@ -1,9 +1,7 @@
-use std::sync::Arc;
-
-use my_no_sql_sdk::core::db::{DbRow, DbTableName, PartitionKey};
+use my_no_sql_sdk::core::db::{DbTableName, PartitionKey};
 use my_no_sql_sdk::server::db_snapshots::{DbPartitionSnapshot, DbTableSnapshot};
 
-use crate::{app::AppContext, sqlite_repo::MyNoSqlEntityDto};
+use crate::app::AppContext;
 
 pub async fn delete_partition(
     app: &AppContext,
@@ -11,7 +9,7 @@ pub async fn delete_partition(
     partition_key: &PartitionKey,
 ) {
     app.repo
-        .clean_partition_content(table_name, partition_key)
+        .delete_partition(table_name, partition_key.as_str())
         .await;
 }
 
@@ -25,23 +23,20 @@ pub async fn sync_table_snapshot(
     table_name: &DbTableName,
     table_snapshot: DbTableSnapshot,
 ) {
-    app.repo.clean_table_content(table_name).await;
-
-    let mut rows_to_save = Vec::new();
+    // Build + compress every partition first (outside any lock), then replace
+    // the table content in one repo call that writes the new blobs before
+    // removing the partitions that are gone — so a crash mid-sync can never
+    // drop a partition that is still part of the table.
+    let mut partitions = Vec::with_capacity(table_snapshot.by_partition.len());
     for partition_snapshot in table_snapshot.by_partition {
-        for db_row in partition_snapshot.db_rows_snapshot.db_rows.iter() {
-            rows_to_save.push(MyNoSqlEntityDto::from_db_row(table_name.as_str(), db_row));
-
-            if rows_to_save.len() >= super::SAVE_ENTITIES_BATCH_SIZE {
-                app.repo.save_entities(&rows_to_save).await;
-                rows_to_save.clear();
-            }
-        }
+        let json = partition_snapshot.db_rows_snapshot.as_json_array().build();
+        let compressed = crate::persist_compression::compress(json.as_bytes());
+        partitions.push((partition_snapshot.partition_key.to_string(), compressed));
     }
 
-    if rows_to_save.len() > 0 {
-        app.repo.save_entities(&rows_to_save).await;
-    }
+    app.repo
+        .replace_table_partitions(table_name, partitions)
+        .await;
 }
 
 pub async fn sync_partition_snapshot(
@@ -50,39 +45,21 @@ pub async fn sync_partition_snapshot(
     partition_key: &PartitionKey,
     partition_snapshot: DbPartitionSnapshot,
 ) {
+    persist_partition_snapshot(app, table_name, partition_key, partition_snapshot).await;
+}
+
+/// Serializes the whole partition to a JSON array, compresses it and stores it
+/// as a single blob. The snapshot is already detached from the DB, so the
+/// CPU-heavy JSON build + zstd happen outside any lock (Perf Considerations §6).
+async fn persist_partition_snapshot(
+    app: &AppContext,
+    table_name: &DbTableName,
+    partition_key: &PartitionKey,
+    partition_snapshot: DbPartitionSnapshot,
+) {
+    let json = partition_snapshot.db_rows_snapshot.as_json_array().build();
+    let compressed = crate::persist_compression::compress(json.as_bytes());
     app.repo
-        .clean_partition_content(table_name, partition_key)
+        .save_partition(table_name, partition_key.as_str(), &compressed)
         .await;
-
-    save_rows(
-        app,
-        table_name,
-        &partition_snapshot.db_rows_snapshot.db_rows,
-    )
-    .await;
-}
-
-pub async fn delete_rows(app: &AppContext, table_name: &DbTableName, db_rows: &[Arc<DbRow>]) {
-    for db_row in db_rows {
-        app.repo
-            .delete_entity(table_name, db_row.get_partition_key(), db_row.get_row_key())
-            .await;
-    }
-}
-
-pub async fn save_rows(app: &AppContext, table_name: &DbTableName, db_rows: &[Arc<DbRow>]) {
-    let mut rows_to_save = Vec::new();
-
-    for db_row in db_rows.iter() {
-        rows_to_save.push(MyNoSqlEntityDto::from_db_row(table_name.as_str(), db_row));
-
-        if rows_to_save.len() >= super::SAVE_ENTITIES_BATCH_SIZE {
-            app.repo.save_entities(&rows_to_save).await;
-            rows_to_save.clear();
-        }
-    }
-
-    if rows_to_save.len() > 0 {
-        app.repo.save_entities(&rows_to_save).await;
-    }
 }

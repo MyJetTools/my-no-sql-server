@@ -2,7 +2,7 @@ use my_no_sql_sdk::core::db::DbTableAttributes;
 use my_no_sql_sdk::core::rust_extensions::date_time::DateTimeAsMicroseconds;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct TableMetadataFileContract {
     #[serde(rename = "Persist")]
     #[serde(default = "default_persist")]

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use my_no_sql_sdk::core::db::DbRow;
+use my_no_sql_sdk::core::db::{DbRow, PartitionKeyParameter};
 use my_no_sql_sdk::core::rust_extensions::date_time::DateTimeAsMicroseconds;
 use my_no_sql_sdk::server::DbTable;
 
@@ -54,6 +54,14 @@ pub async fn clean_partition_and_bulk_insert(
             .persist_partition(&db_table.name, partition_key, persist_moment)
             .await;
     }
+
+    // Mark the cleaned partition too: if it was not re-inserted, the persist
+    // loop sees an empty snapshot and deletes its on-disk blob (otherwise it is
+    // re-saved). Without this its persisted blob would resurrect on restart.
+    let cleaned_partition_key = partition_to_clean.into_partition_key();
+    app.persist_markers
+        .persist_partition(&db_table.name, &cleaned_partition_key, persist_moment)
+        .await;
 
     for state in sync_events {
         crate::operations::sync::dispatch(app, SyncEvent::InitPartitions(state));

@@ -14,8 +14,11 @@ mod zip;
 
 mod app;
 mod consts;
+mod files_repo;
 mod grpc;
+mod persist_compression;
 mod persist_markers;
+mod persist_repo;
 mod sqlite_repo;
 
 mod db_operations;

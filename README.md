@@ -1,4 +1,4 @@
-# MY SERVICE BUS
+# MyNoSqlServer
 
 
 ### Example of config file
@@ -18,7 +18,7 @@ MaxBackupsToKeep: 5
 ```
 
 ### Parameters:
-* PersistenceDest - can be path of a folder and can be an Microsoft Azure Storage account;
+* PersistenceDest - where the data is persisted. A path ending with `.sqlite`/`.sqlite3`/`.db` selects the SQLite backend; any other path is treated as a directory and selects the slotted-page files backend (see "Persistence Types" below);
 * CompressData - true/false - enable/disable compression of data between nodes;
 * MaxPayloadSize - max size of payload in bytes which is sent to Readers per round trip;
 * Location - shows in statusbar of the UI;
@@ -34,10 +34,54 @@ MaxBackupsToKeep: 5
 
 
 ### Persistence Types
-If PersistenceDest is a MicrosoftAzure connection string - content is going to be persisted to Azure Table Storage.
-If PersistenceDest ends with ".sqlite" - content is going to be persisted to SQLite format.
-If PersistenceDest is a folder path - content is going to be persisted to files in that folder in format:
-* Folder = TableName
-* Each File inside each table folder - is a partition of the table
+
+The persistence backend is chosen by the shape of `PersistenceDest`. In both
+backends the unit of persistence is a **partition**: the whole partition is
+serialized to a JSON array of its rows and compressed with **zstd**. On startup
+everything is read into memory, the in-memory tables are rebuilt, and the raw
+persisted bytes are released.
+
+#### SQLite — `PersistenceDest` ends with `.sqlite` / `.sqlite3` / `.db`
+
+```yaml
+PersistenceDest: ~/.mynosqldb/data.sqlite
+```
+
+One row per partition in the `partitions` table, `content = base64(zstd(rows))`,
+plus a `tables_metadata` table for table attributes. In-place updates, free-page
+reuse and compaction are handled by SQLite itself (`VACUUM` runs periodically).
+
+#### Slotted page-files — `PersistenceDest` is a directory
+
+```yaml
+PersistenceDest: ~/.mynosqldb/data
+```
+
+Data is stored in a set of **size-class page-files** inside the directory
+(candle-storage style). Each page-file holds fixed-size slots; the file name is
+the slot size in bytes (powers of two starting at 512):
+
+```
+<dir>/tables.meta     # table attributes (JSON), rewritten atomically on change
+<dir>/512             # page-file: array of 512-byte slots
+<dir>/512.delete      # free-list: indices of freed 512-byte slots, reused first
+<dir>/1024
+<dir>/1024.delete
+...
+```
+
+A partition is written into the smallest size class its compressed payload fits
+into. As long as it keeps fitting the same class it is **overwritten in place**
+(no reallocation); if it outgrows the class it moves to a larger one and the old
+slot is freed (its index recorded in `<size>.delete`) for reuse. Each slot is
+self-describing (carries its table + partition key) and carries a `crc32`, so
+recovery is a plain scan of the page-files — there is no separate on-disk key
+index. A slot with a failing crc (a torn write) is skipped on recovery
+(honouring `SkipBrokenPartitions`).
+
+> There is no automatic conversion between the two formats. To move data from
+> one backend to another, take a backup and restore it into a server configured
+> with the target `PersistenceDest` — the restore path re-persists everything in
+> the new format.
 
 

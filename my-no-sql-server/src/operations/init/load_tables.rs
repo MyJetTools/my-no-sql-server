@@ -4,7 +4,7 @@ use my_no_sql_sdk::server::rust_extensions::StopWatch;
 
 use crate::app::AppContext;
 
-use super::entities_from_sqlite_reader::EntitiesFromSqliteReader;
+use super::partitions_init_reader::PartitionsInitReader;
 
 pub async fn load_tables(app: Arc<AppContext>) {
     let sw = StopWatch::new();
@@ -23,9 +23,12 @@ pub async fn load_tables(app: Arc<AppContext>) {
     } else {
         let tables = app.repo.get_tables().await;
         let tables_amount = tables.len();
-        let entities = app.repo.get_all_entities().await;
+        let partitions = app
+            .repo
+            .load_all_partitions(app.settings.skip_broken_partitions)
+            .await;
         let entities_reader =
-            EntitiesFromSqliteReader::new(entities, app.settings.skip_broken_partitions);
+            PartitionsInitReader::new(partitions, app.settings.skip_broken_partitions);
         super::scripts::init_tables(&app, tables, entities_reader, false).await;
 
         println!("Tables loaded: {} in {:?}", tables_amount, sw.duration());

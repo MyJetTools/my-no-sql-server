@@ -62,6 +62,8 @@ async-trait = "*"
 tokio-stream = "*"
 zip = { version = "*", default-features = false, features = ["deflate"] }
 zstd = "*"
+crc32fast = "*"
+ahash = "*"
 
 tikv-jemallocator = { version = "*", features = [
     "unprefixed_malloc_on_supported_platforms",

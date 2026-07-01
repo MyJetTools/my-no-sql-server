@@ -41,7 +41,7 @@ pub struct AppContext {
     pub multipart_list: MultipartList,
     //pub persist_io: PersistIoOperations,
     pub init_state: InitState,
-    pub repo: crate::sqlite_repo::SqlLiteRepo,
+    pub repo: crate::persist_repo::PersistRepo,
 
     pub settings: Arc<SettingsModel>,
     pub sync: EventsLoop<SyncEvent>,
@@ -74,7 +74,7 @@ impl AppContext {
 
             data_readers: DataReadersList::new(Duration::from_secs(30)),
             multipart_list: MultipartList::new(),
-            repo: settings.get_sqlite_repo().await,
+            repo: settings.get_persist_repo().await,
             settings,
             persist_amount: AtomicUsize::new(0),
             sync: EventsLoop::new("Sync"),

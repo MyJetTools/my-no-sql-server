@@ -9,4 +9,3 @@ mod save_partition;
 use save_partition::*;
 mod save_rows;
 use save_rows::*;
-const SAVE_ENTITIES_BATCH_SIZE: usize = 200;

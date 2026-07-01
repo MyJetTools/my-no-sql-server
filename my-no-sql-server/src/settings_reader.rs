@@ -2,6 +2,8 @@ use my_no_sql_sdk::core::rust_extensions;
 
 use serde::{Deserialize, Serialize};
 
+use crate::files_repo::FilesRepo;
+use crate::persist_repo::PersistRepo;
 use crate::sqlite_repo::SqlLiteRepo;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -44,11 +46,21 @@ pub struct SettingsModel {
 }
 
 impl SettingsModel {
-    pub async fn get_sqlite_repo(&self) -> SqlLiteRepo {
-        let file = my_no_sql_sdk::server::rust_extensions::file_utils::format_path(
+    /// Selects the persistence backend from `PersistenceDest`: a path ending in
+    /// `.sqlite` / `.sqlite3` / `.db` uses the SQLite backend, any other path is
+    /// treated as a directory and uses the slotted-page `FilesRepo`.
+    pub async fn get_persist_repo(&self) -> PersistRepo {
+        let dest = my_no_sql_sdk::server::rust_extensions::file_utils::format_path(
             self.persistence_dest.as_str(),
-        );
-        SqlLiteRepo::new(file.to_string()).await
+        )
+        .to_string();
+
+        let lower = dest.to_lowercase();
+        if lower.ends_with(".sqlite") || lower.ends_with(".sqlite3") || lower.ends_with(".db") {
+            PersistRepo::Sqlite(SqlLiteRepo::new(dest).await)
+        } else {
+            PersistRepo::Files(FilesRepo::open(dest).await)
+        }
     }
 
     pub fn get_backup_folder<'s>(&'s self) -> rust_extensions::StrOrString<'s> {
