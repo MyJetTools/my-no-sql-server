@@ -2,20 +2,31 @@ use my_no_sql_sdk::core::db::DbTableAttributes;
 use my_no_sql_sdk::core::rust_extensions::date_time::DateTimeAsMicroseconds;
 use serde::{Deserialize, Serialize};
 
+// `Option` fields are `#[serde(skip_serializing_if = "Option::is_none")]` so a
+// `None` is omitted entirely instead of written as `null`, keeping `tables.meta`
+// small. Each also carries `#[serde(default)]` so an omitted field deserializes
+// back to `None` (the write side no longer emits it).
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct TableMetadataFileContract {
     #[serde(rename = "Persist")]
     #[serde(default = "default_persist")]
     pub persist: bool,
     #[serde(rename = "MaxPartitionsAmount")]
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub max_partitions_amount: Option<usize>,
     #[serde(rename = "MaxRowsPerPartitionAmount")]
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub max_rows_per_partition_amount: Option<usize>,
     // Backwards-compatible: missing in metadata written before the feature -> None -> not compressed.
     #[serde(rename = "Compressed")]
     #[serde(default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub compressed: Option<bool>,
     #[serde(rename = "Created")]
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub created: Option<String>,
 }
 
