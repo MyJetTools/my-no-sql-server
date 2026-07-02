@@ -1,6 +1,7 @@
 use my_no_sql_sdk::core::db::{DbTableAttributes, DbTableName};
 
 use crate::files_repo::FilesRepo;
+#[cfg(feature = "sqlite")]
 use crate::sqlite_repo::SqlLiteRepo;
 
 use super::{LoadedPartition, LoadedTableAttrs};
@@ -8,8 +9,10 @@ use super::{LoadedPartition, LoadedTableAttrs};
 /// The persistence backend, selected at startup from `PersistenceDest`:
 /// a `.sqlite`/`.db` path -> SQLite, any other path -> a directory of
 /// slotted page-files (`FilesRepo`). Both store one compressed (zstd) blob
-/// per partition.
+/// per partition. The SQLite variant is a legacy backend, compiled in only
+/// with the `sqlite` feature.
 pub enum PersistRepo {
+    #[cfg(feature = "sqlite")]
     Sqlite(SqlLiteRepo),
     Files(FilesRepo),
 }
@@ -22,6 +25,7 @@ impl PersistRepo {
         compressed: &[u8],
     ) {
         match self {
+            #[cfg(feature = "sqlite")]
             Self::Sqlite(repo) => {
                 repo.save_partition(table_name.as_str(), partition_key, compressed)
                     .await
@@ -35,6 +39,7 @@ impl PersistRepo {
 
     pub async fn delete_partition(&self, table_name: &DbTableName, partition_key: &str) {
         match self {
+            #[cfg(feature = "sqlite")]
             Self::Sqlite(repo) => {
                 repo.delete_partition(table_name.as_str(), partition_key)
                     .await
@@ -48,6 +53,7 @@ impl PersistRepo {
 
     pub async fn clean_table_content(&self, table_name: &DbTableName) {
         match self {
+            #[cfg(feature = "sqlite")]
             Self::Sqlite(repo) => repo.clean_table_content(table_name.as_str()).await,
             Self::Files(repo) => repo.clean_table_content(table_name.as_str()).await,
         }
@@ -55,6 +61,7 @@ impl PersistRepo {
 
     pub async fn save_table_metadata(&self, table_name: &DbTableName, attr: &DbTableAttributes) {
         match self {
+            #[cfg(feature = "sqlite")]
             Self::Sqlite(repo) => repo.save_table_metadata(table_name.as_str(), attr).await,
             Self::Files(repo) => repo.save_table_metadata(table_name.as_str(), attr).await,
         }
@@ -62,6 +69,7 @@ impl PersistRepo {
 
     pub async fn delete_table_metadata(&self, table_name: &DbTableName) {
         match self {
+            #[cfg(feature = "sqlite")]
             Self::Sqlite(repo) => repo.delete_table_metadata(table_name.as_str()).await,
             Self::Files(repo) => repo.delete_table_metadata(table_name.as_str()).await,
         }
@@ -69,6 +77,7 @@ impl PersistRepo {
 
     pub async fn get_tables(&self) -> Vec<LoadedTableAttrs> {
         match self {
+            #[cfg(feature = "sqlite")]
             Self::Sqlite(repo) => repo.get_tables().await,
             Self::Files(repo) => repo.get_tables().await,
         }
@@ -76,6 +85,7 @@ impl PersistRepo {
 
     pub async fn load_all_partitions(&self, skip_errors: bool) -> Vec<LoadedPartition> {
         match self {
+            #[cfg(feature = "sqlite")]
             Self::Sqlite(repo) => repo.load_all_partitions(skip_errors).await,
             Self::Files(repo) => repo.load_all_partitions(skip_errors).await,
         }
@@ -90,6 +100,7 @@ impl PersistRepo {
     /// import. SQLite writes are stateless, so this is a no-op there.
     pub async fn prime_for_writes(&self, skip_errors: bool) {
         match self {
+            #[cfg(feature = "sqlite")]
             Self::Sqlite(_) => {}
             Self::Files(repo) => {
                 let _ = repo.load_all_partitions(skip_errors).await;
@@ -107,6 +118,7 @@ impl PersistRepo {
         partitions: Vec<(String, Vec<u8>)>,
     ) {
         match self {
+            #[cfg(feature = "sqlite")]
             Self::Sqlite(repo) => {
                 repo.replace_table_partitions(table_name.as_str(), partitions)
                     .await
@@ -120,6 +132,7 @@ impl PersistRepo {
 
     pub async fn vacuum(&self) {
         match self {
+            #[cfg(feature = "sqlite")]
             Self::Sqlite(repo) => repo.vacuum().await,
             // Reclaims page-files whose every slot has been freed (partial files
             // keep reusing their free slots in place).

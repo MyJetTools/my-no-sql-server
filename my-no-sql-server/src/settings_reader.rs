@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::files_repo::FilesRepo;
 use crate::persist_repo::PersistRepo;
+#[cfg(feature = "sqlite")]
 use crate::sqlite_repo::SqlLiteRepo;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -49,6 +50,10 @@ impl SettingsModel {
     /// Selects the persistence backend from `PersistenceDest`: a path ending in
     /// `.sqlite` / `.sqlite3` / `.db` uses the SQLite backend, any other path is
     /// treated as a directory and uses the slotted-page `FilesRepo`.
+    ///
+    /// SQLite is a legacy backend compiled in only with the `sqlite` feature.
+    /// Without it, a SQLite `PersistenceDest` panics at startup (see
+    /// [`open_sqlite`]).
     pub async fn get_persist_repo(&self) -> PersistRepo {
         let dest = my_no_sql_sdk::server::rust_extensions::file_utils::format_path(
             self.persistence_dest.as_str(),
@@ -57,10 +62,27 @@ impl SettingsModel {
 
         let lower = dest.to_lowercase();
         if lower.ends_with(".sqlite") || lower.ends_with(".sqlite3") || lower.ends_with(".db") {
-            PersistRepo::Sqlite(SqlLiteRepo::new(dest).await)
+            Self::open_sqlite(dest).await
         } else {
             PersistRepo::Files(FilesRepo::open(dest, self.skip_broken_partitions).await)
         }
+    }
+
+    #[cfg(feature = "sqlite")]
+    async fn open_sqlite(dest: String) -> PersistRepo {
+        PersistRepo::Sqlite(SqlLiteRepo::new(dest).await)
+    }
+
+    /// Fails fast: this build was compiled without the `sqlite` feature, but the
+    /// configured `PersistenceDest` points at a SQLite file. Rebuild with
+    /// `--features sqlite` or point `PersistenceDest` at a directory (FilesRepo).
+    #[cfg(not(feature = "sqlite"))]
+    async fn open_sqlite(dest: String) -> PersistRepo {
+        panic!(
+            "SQLite persistence backend is not supported in this build (PersistenceDest = '{}'). \
+             Rebuild with `--features sqlite`, or point PersistenceDest at a directory to use the FilesRepo backend.",
+            dest
+        );
     }
 
     pub fn get_backup_folder<'s>(&'s self) -> rust_extensions::StrOrString<'s> {

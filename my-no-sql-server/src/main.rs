@@ -19,6 +19,7 @@ mod grpc;
 mod persist_compression;
 mod persist_markers;
 mod persist_repo;
+#[cfg(feature = "sqlite")]
 mod sqlite_repo;
 
 mod db_operations;

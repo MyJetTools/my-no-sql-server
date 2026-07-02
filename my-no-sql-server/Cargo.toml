@@ -28,7 +28,7 @@ my-tcp-sockets = { tag = "0.1.12", git = "https://github.com/MyJetTools/my-tcp-s
 
 my-sqlite = { tag = "0.1.2", git = "https://github.com/MyJetTools/my-sqlite.git", features = [
     "macros",
-] }
+], optional = true }
 
 mcp-server-middleware = { tag = "0.8.3", git = "https://github.com/my-ai-utils/mcp-server-middleware.git" }
 
@@ -69,6 +69,13 @@ tikv-jemallocator = { version = "*", features = [
     "unprefixed_malloc_on_supported_platforms",
 ] }
 
+
+[features]
+# SQLite is a legacy persistence backend, kept for building older releases on
+# demand. New releases are built with default features (no SQLite). Enable with
+# `--features sqlite` to pull in `my-sqlite` and the `sqlite_repo` module.
+default = []
+sqlite = ["dep:my-sqlite"]
 
 [build-dependencies]
 ci-utils = { git = "https://github.com/MyJetTools/ci-utils.git", tag = "0.1.3" }
