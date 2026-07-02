@@ -29,7 +29,9 @@ impl SlotLocation {
 struct ClassState {
     /// Number of slots the file currently holds (file_len / size_class).
     slot_count: u64,
-    /// Indices of freed slots available for reuse (the persisted `.delete`).
+    /// Indices of freed slots available for reuse. In-memory only: a freed
+    /// slot is self-describing on disk (`body_len == 0`), so the list is
+    /// rebuilt by the recovery scan — nothing to persist.
     free: Vec<u64>,
 }
 
@@ -78,10 +80,6 @@ impl FilesRepoInner {
 
     fn class_path(&self, size_class: u32) -> String {
         format!("{}/{}", self.root, size_class)
-    }
-
-    fn delete_path(&self, size_class: u32) -> String {
-        format!("{}/{}.delete", self.root, size_class)
     }
 
     // ---- reads / init ----------------------------------------------------
@@ -218,17 +216,6 @@ impl FilesRepoInner {
             });
         }
 
-        // Persist the reconciled free-lists so the on-disk `.delete` files match.
-        let classes_with_free: Vec<u32> = self
-            .classes
-            .iter()
-            .filter(|(_, state)| !state.free.is_empty())
-            .map(|(size_class, _)| *size_class)
-            .collect();
-        for size_class in classes_with_free {
-            self.persist_delete(size_class).await;
-        }
-
         result
     }
 
@@ -245,16 +232,9 @@ impl FilesRepoInner {
 
         // Synchronous bookkeeping: choose the target slot (in place when the
         // size class is unchanged, otherwise allocate / reuse a free slot).
-        let mut delete_file_to_persist: Option<u32> = None;
         let target = match existing {
             Some(location) if location.size_class == size_class => location,
-            _ => {
-                let reused = self.allocate_slot(size_class);
-                if reused.reused_free {
-                    delete_file_to_persist = Some(size_class);
-                }
-                reused.location
-            }
+            _ => self.allocate_slot(size_class),
         };
 
         self.index.insert(key, target);
@@ -271,12 +251,7 @@ impl FilesRepoInner {
                     .unwrap()
                     .free
                     .push(old.slot_index);
-                self.persist_delete(old.size_class).await;
             }
-        }
-
-        if let Some(size_class) = delete_file_to_persist {
-            self.persist_delete(size_class).await;
         }
     }
 
@@ -289,7 +264,6 @@ impl FilesRepoInner {
                 .unwrap()
                 .free
                 .push(location.slot_index);
-            self.persist_delete(location.size_class).await;
         }
     }
 
@@ -301,7 +275,6 @@ impl FilesRepoInner {
             .map(|(k, loc)| (k.clone(), *loc))
             .collect();
 
-        let mut touched_classes: Vec<u32> = Vec::new();
         for (key, location) in to_free {
             self.index.remove(&key);
             self.zero_slot(location).await;
@@ -310,13 +283,6 @@ impl FilesRepoInner {
                 .unwrap()
                 .free
                 .push(location.slot_index);
-            if !touched_classes.contains(&location.size_class) {
-                touched_classes.push(location.size_class);
-            }
-        }
-
-        for size_class in touched_classes {
-            self.persist_delete(size_class).await;
         }
     }
 
@@ -344,7 +310,6 @@ impl FilesRepoInner {
             .cloned()
             .collect();
 
-        let mut touched_classes: Vec<u32> = Vec::new();
         for key in stale {
             if let Some(location) = self.index.remove(&key) {
                 self.zero_slot(location).await;
@@ -353,14 +318,7 @@ impl FilesRepoInner {
                     .unwrap()
                     .free
                     .push(location.slot_index);
-                if !touched_classes.contains(&location.size_class) {
-                    touched_classes.push(location.size_class);
-                }
             }
-        }
-
-        for size_class in touched_classes {
-            self.persist_delete(size_class).await;
         }
     }
 
@@ -380,11 +338,11 @@ impl FilesRepoInner {
     }
 
     /// Reclaims disk: any page-file whose every slot is free (all slot indices
-    /// present in the free-list) is fully dead, so both `<size>` and
-    /// `<size>.delete` are removed and the class dropped from memory. A future
-    /// write to that size class recreates the file from scratch. Partially-free
-    /// files are left untouched — their free slots are reused in place. Runs
-    /// under the repo mutex, so it never races a write.
+    /// present in the free-list) is fully dead, so the `<size>` file is removed
+    /// and the class dropped from memory. A future write to that size class
+    /// recreates the file from scratch. Partially-free files are left
+    /// untouched — their free slots are reused in place. Runs under the repo
+    /// mutex, so it never races a write.
     pub async fn vacuum(&mut self) {
         let empty_classes: Vec<u32> = self
             .classes
@@ -401,8 +359,7 @@ impl FilesRepoInner {
             .collect();
 
         for size_class in empty_classes {
-            // Remove the page-file first; a stray `.delete` without its page-file
-            // is harmless (ignored on discovery). Treat "already gone" as success.
+            // Treat "already gone" as success.
             let removed = match tokio::fs::remove_file(self.class_path(size_class)).await {
                 Ok(_) => true,
                 Err(err) if err.kind() == std::io::ErrorKind::NotFound => true,
@@ -416,7 +373,6 @@ impl FilesRepoInner {
             };
 
             if removed {
-                let _ = tokio::fs::remove_file(self.delete_path(size_class)).await;
                 self.classes.remove(&size_class);
                 println!(
                     "files_repo: vacuumed fully-freed page-file for size class {}",
@@ -430,30 +386,24 @@ impl FilesRepoInner {
 
     /// Reserves a slot index in `size_class`, reusing a freed one when
     /// available, otherwise extending the file by one slot.
-    fn allocate_slot(&mut self, size_class: u32) -> AllocResult {
+    fn allocate_slot(&mut self, size_class: u32) -> SlotLocation {
         let state = self.classes.entry(size_class).or_insert(ClassState {
             slot_count: 0,
             free: Vec::new(),
         });
 
         if let Some(slot_index) = state.free.pop() {
-            return AllocResult {
-                location: SlotLocation {
-                    size_class,
-                    slot_index,
-                },
-                reused_free: true,
+            return SlotLocation {
+                size_class,
+                slot_index,
             };
         }
 
         let slot_index = state.slot_count;
         state.slot_count += 1;
-        AllocResult {
-            location: SlotLocation {
-                size_class,
-                slot_index,
-            },
-            reused_free: false,
+        SlotLocation {
+            size_class,
+            slot_index,
         }
     }
 
@@ -501,15 +451,6 @@ impl FilesRepoInner {
         file.flush().await.expect("files_repo: slot flush failed");
     }
 
-    async fn persist_delete(&self, size_class: u32) {
-        let state = self.classes.get(&size_class).unwrap();
-        let mut bytes = Vec::with_capacity(state.free.len() * 8);
-        for slot_index in &state.free {
-            bytes.extend_from_slice(&slot_index.to_le_bytes());
-        }
-        atomic_write(&self.delete_path(size_class), &bytes).await;
-    }
-
     async fn persist_tables_meta(&self) {
         let yaml = serde_yaml::to_string(&self.tables).unwrap();
         atomic_write(
@@ -518,11 +459,6 @@ impl FilesRepoInner {
         )
         .await;
     }
-}
-
-struct AllocResult {
-    location: SlotLocation,
-    reused_free: bool,
 }
 
 /// Reads `tables.meta`. A missing file is a fresh directory (empty map). The
@@ -639,8 +575,8 @@ async fn discover_class_files(root: &str) -> AHashMap<u32, ClassState> {
 }
 
 /// Writes `bytes` to `path` atomically: tmp file -> fsync -> rename. Used for
-/// the small metadata files (`tables.meta`, `<S>.delete`) where a torn write
-/// would be costly; the slots themselves are deliberately written without fsync.
+/// `tables.meta`, where a torn write would be costly; the slots themselves are
+/// deliberately written without fsync.
 async fn atomic_write(path: &str, bytes: &[u8]) {
     let tmp_path = format!("{}.tmp", path);
     {

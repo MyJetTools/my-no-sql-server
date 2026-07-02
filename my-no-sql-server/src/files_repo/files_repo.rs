@@ -7,9 +7,10 @@ use crate::scripts::serializers::table_attrs::TableMetadataFileContract;
 use super::files_repo_inner::FilesRepoInner;
 
 /// Slotted-page persistence backend: partitions are stored as self-describing
-/// fixed-size slots grouped into per-size-class page-files (`512`, `1024`, …),
-/// with a `<size>.delete` free-list per class. Recovery is a pure scan of the
-/// page-files. See `files_repo_inner` for the mechanics.
+/// fixed-size slots grouped into per-size-class page-files (`512`, `1024`, …).
+/// Freed slots are self-describing too (`body_len == 0`), so free-lists live
+/// only in memory and recovery is a pure scan of the page-files. See
+/// `files_repo_inner` for the mechanics.
 pub struct FilesRepo {
     // tokio::Mutex (not parking_lot): every method holds the guard across file
     // I/O `.await`s, which a parking_lot guard cannot do. The persist loop runs

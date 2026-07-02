@@ -64,20 +64,18 @@ the slot size in bytes (powers of two starting at 512):
 ```
 <dir>/tables.meta     # table attributes (YAML; legacy JSON still loads), rewritten atomically on change
 <dir>/512             # page-file: array of 512-byte slots
-<dir>/512.delete      # free-list: indices of freed 512-byte slots, reused first
 <dir>/1024
-<dir>/1024.delete
 ...
 ```
 
 A partition is written into the smallest size class its compressed payload fits
 into. As long as it keeps fitting the same class it is **overwritten in place**
 (no reallocation); if it outgrows the class it moves to a larger one and the old
-slot is freed (its index recorded in `<size>.delete`) for reuse. Each slot is
-self-describing (carries its table + partition key) and carries a `crc32`, so
-recovery is a plain scan of the page-files — there is no separate on-disk key
-index. A slot with a failing crc (a torn write) is skipped on recovery
-(honouring `SkipBrokenPartitions`).
+slot is freed for reuse. Each slot is self-describing (carries its table +
+partition key, and `body_len == 0` marks a freed slot) and carries a `crc32`,
+so recovery is a plain scan of the page-files — there is no separate on-disk
+key index and no persisted free-list. A slot with a failing crc (a torn write)
+is skipped on recovery (honouring `SkipBrokenPartitions`).
 
 > There is no automatic conversion between the two formats. To move data from
 > one backend to another, take a backup and restore it into a server configured

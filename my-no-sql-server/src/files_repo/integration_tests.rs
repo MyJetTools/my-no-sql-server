@@ -224,20 +224,13 @@ async fn vacuum_removes_fully_freed_page_file_and_class_is_recreated() {
     repo.delete_partition("tbl", "pk").await;
 
     let page_file = format!("{}/512", dir);
-    let delete_file = format!("{}/512.delete", dir);
     assert!(file_len(&page_file).await.is_some());
-    assert!(file_len(&delete_file).await.is_some());
 
     repo.vacuum().await;
     assert_eq!(
         file_len(&page_file).await,
         None,
         "page-file must be removed"
-    );
-    assert_eq!(
-        file_len(&delete_file).await,
-        None,
-        ".delete must be removed"
     );
 
     // A new save into the same class recreates the file from scratch.
