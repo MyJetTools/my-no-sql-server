@@ -122,31 +122,24 @@ async fn legacy_json_tables_meta_loads_and_is_rewritten_as_yaml() {
     assert!(tables[0].attr.persist);
     assert_eq!(tables[0].attr.max_partitions_amount, Some(7));
     assert!(tables[0].attr.compressed);
-
-    // Any metadata write rewrites the file in the YAML format.
-    let attrs = DbTableAttributes {
-        persist: true,
-        max_partitions_amount: Some(9),
-        max_rows_per_partition_amount: None,
-        compressed: true,
-        created: my_no_sql_sdk::core::rust_extensions::date_time::DateTimeAsMicroseconds::now(),
-    };
-    repo.save_table_metadata("legacy-table", &attrs).await;
     drop(repo);
 
+    // The legacy file is converted to YAML right at open, before any
+    // metadata change happens.
     let bytes = tokio::fs::read(format!("{}/tables.meta", dir))
         .await
         .unwrap();
     assert!(
         serde_json::from_slice::<serde_json::Value>(&bytes).is_err(),
-        "tables.meta is expected to be YAML after a save, got JSON"
+        "tables.meta is expected to be converted to YAML at open, got JSON"
     );
 
-    // And it still round-trips through a reopen.
+    // And the converted file still round-trips with the attributes intact.
     let (repo, _) = reopen(&dir, false).await;
     let tables = repo.get_tables().await;
     assert_eq!(tables.len(), 1);
-    assert_eq!(tables[0].attr.max_partitions_amount, Some(9));
+    assert_eq!(tables[0].attr.max_partitions_amount, Some(7));
+    drop(repo);
 
     cleanup(&dir).await;
 }
@@ -268,6 +261,81 @@ async fn vacuum_keeps_page_file_with_a_live_slot() {
         Some(1024),
         "partially-free page-file must survive vacuum"
     );
+    drop(repo);
+
+    let (_repo, loaded) = reopen(&dir, false).await;
+    assert_eq!(loaded.len(), 1);
+    assert_eq!(
+        find_payload(&loaded, "tbl", "pk-live"),
+        Some(live.as_slice())
+    );
+
+    cleanup(&dir).await;
+}
+
+#[tokio::test]
+async fn vacuum_compacts_half_freed_page_file() {
+    let dir = new_test_dir();
+    let (repo, _) = reopen(&dir, false).await;
+
+    // Four slots in the 512 class; the two HEAD slots get freed, so both
+    // live partitions sit in the tail and must be moved by the compaction.
+    let p0 = payload(100, 20);
+    let p1 = payload(100, 21);
+    let p2 = payload(100, 22);
+    let p3 = payload(100, 23);
+    repo.save_partition("tbl", "pk-0", &p0).await;
+    repo.save_partition("tbl", "pk-1", &p1).await;
+    repo.save_partition("tbl", "pk-2", &p2).await;
+    repo.save_partition("tbl", "pk-3", &p3).await;
+    repo.delete_partition("tbl", "pk-0").await;
+    repo.delete_partition("tbl", "pk-1").await;
+
+    let page_file = format!("{}/512", dir);
+    assert_eq!(file_len(&page_file).await, Some(4 * 512));
+
+    repo.vacuum().await;
+    assert_eq!(
+        file_len(&page_file).await,
+        Some(2 * 512),
+        "half-freed page-file must shrink to its live slots"
+    );
+
+    // Post-compaction bookkeeping: the free-list is empty, so the next save
+    // appends a third slot.
+    let p4 = payload(90, 24);
+    repo.save_partition("tbl", "pk-4", &p4).await;
+    assert_eq!(file_len(&page_file).await, Some(3 * 512));
+    drop(repo);
+
+    let (_repo, loaded) = reopen(&dir, false).await;
+    assert_eq!(loaded.len(), 3);
+    assert_eq!(find_payload(&loaded, "tbl", "pk-2"), Some(p2.as_slice()));
+    assert_eq!(find_payload(&loaded, "tbl", "pk-3"), Some(p3.as_slice()));
+    assert_eq!(find_payload(&loaded, "tbl", "pk-4"), Some(p4.as_slice()));
+    assert_eq!(find_payload(&loaded, "tbl", "pk-0"), None);
+    assert_eq!(find_payload(&loaded, "tbl", "pk-1"), None);
+
+    cleanup(&dir).await;
+}
+
+#[tokio::test]
+async fn vacuum_does_not_compact_two_slot_file() {
+    let dir = new_test_dir();
+    let (repo, _) = reopen(&dir, false).await;
+
+    let live = payload(100, 25);
+    let dead = payload(100, 26);
+    repo.save_partition("tbl", "pk-live", &live).await;
+    repo.save_partition("tbl", "pk-dead", &dead).await;
+    repo.delete_partition("tbl", "pk-dead").await;
+
+    repo.vacuum().await;
+
+    // Compaction requires more than two slots; the file keeps its size and
+    // the free slot is reused in place instead.
+    let page_file = format!("{}/512", dir);
+    assert_eq!(file_len(&page_file).await, Some(2 * 512));
     drop(repo);
 
     let (_repo, loaded) = reopen(&dir, false).await;

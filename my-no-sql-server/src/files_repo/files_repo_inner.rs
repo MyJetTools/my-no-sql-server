@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use ahash::AHashMap;
-use tokio::io::{AsyncSeekExt, AsyncWriteExt};
+use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 
 use crate::persist_repo::{LoadedPartition, LoadedTableAttrs};
 use crate::scripts::serializers::table_attrs::TableMetadataFileContract;
@@ -66,16 +66,26 @@ impl FilesRepoInner {
             .await
             .expect("files_repo: can not create root directory");
 
-        let tables = load_tables_meta(&root, skip_errors).await;
+        let (tables, legacy_json) = load_tables_meta(&root, skip_errors).await;
         let classes = discover_class_files(&root).await;
 
-        Self {
+        let result = Self {
             root,
             classes,
             index: AHashMap::new(),
             tables,
             next_version: 0,
+        };
+
+        // A tables.meta still in the legacy JSON format is converted to YAML
+        // right away, so the migration does not wait for the next metadata
+        // change (which may never come).
+        if legacy_json && !result.tables.is_empty() {
+            println!("files_repo: converting tables.meta from legacy json to yaml");
+            result.persist_tables_meta().await;
         }
+
+        result
     }
 
     fn class_path(&self, size_class: u32) -> String {
@@ -337,12 +347,15 @@ impl FilesRepoInner {
         }
     }
 
-    /// Reclaims disk: any page-file whose every slot is free (all slot indices
-    /// present in the free-list) is fully dead, so the `<size>` file is removed
-    /// and the class dropped from memory. A future write to that size class
-    /// recreates the file from scratch. Partially-free files are left
-    /// untouched — their free slots are reused in place. Runs under the repo
-    /// mutex, so it never races a write.
+    /// Reclaims disk in two phases. (1) Any page-file whose every slot is free
+    /// (all slot indices present in the free-list) is fully dead, so the
+    /// `<size>` file is removed and the class dropped from memory; a future
+    /// write to that size class recreates the file from scratch. (2) A file
+    /// with more than two slots where at least half are free is compacted:
+    /// live slots from the tail move into the free slots at the head and the
+    /// file is truncated to exactly its live slots (at least a 2x shrink given
+    /// the trigger). Other files are left untouched — their free slots are
+    /// reused in place. Runs under the repo mutex, so it never races a write.
     pub async fn vacuum(&mut self) {
         let empty_classes: Vec<u32> = self
             .classes
@@ -380,6 +393,130 @@ impl FilesRepoInner {
                 );
             }
         }
+
+        let compact_candidates: Vec<u32> = self
+            .classes
+            .iter()
+            .filter(|(_, state)| {
+                // Fully-free classes are phase 1's job: if their file removal
+                // failed above ("will retry"), compacting them here would just
+                // re-hit the same broken file.
+                state.slot_count > 2
+                    && (state.free.len() as u64) < state.slot_count
+                    && state.free.len() as u64 * 2 >= state.slot_count
+            })
+            .map(|(size_class, _)| *size_class)
+            .collect();
+
+        for size_class in compact_candidates {
+            self.compact_class(size_class).await;
+        }
+    }
+
+    /// Compacts a half-empty page-file: every live slot sitting at an index
+    /// beyond the new end of file is copied verbatim (crc and version
+    /// included, so the copy is valid by construction) into a free slot at the
+    /// head, the in-memory index is repointed, and the file is truncated to
+    /// exactly its live slots.
+    ///
+    /// Crash safety, in copy-fsync-truncate order: a torn copy fails its crc
+    /// on the next scan and is skipped while the original tail slot still
+    /// holds the data; a completed copy that crashes before the truncate
+    /// leaves two valid slots with the SAME version — the head copy is
+    /// scanned first and wins the dedup, the tail original is zeroed as the
+    /// loser. The copies are fsynced BEFORE the truncate so the filesystem
+    /// can never make the truncate durable ahead of the copied data (that
+    /// order would destroy both the originals and the copies on power loss).
+    async fn compact_class(&mut self, size_class: u32) {
+        let state = self.classes.get(&size_class).unwrap();
+        let slot_count = state.slot_count;
+        let live_count = slot_count - state.free.len() as u64;
+
+        // Copy targets: free slots below the new end of file.
+        let head_frees: Vec<u64> = state
+            .free
+            .iter()
+            .copied()
+            .filter(|slot_index| *slot_index < live_count)
+            .collect();
+
+        // Slots to move: live (indexed) slots at or beyond the new end of file.
+        let tail_lives: Vec<((String, String), u64)> = self
+            .index
+            .iter()
+            .filter(|(_, location)| {
+                location.size_class == size_class && location.slot_index >= live_count
+            })
+            .map(|(key, location)| (key.clone(), location.slot_index))
+            .collect();
+
+        // Live and free slots partition 0..slot_count, so the tail lives and
+        // the head frees always pair up one to one.
+        assert_eq!(
+            tail_lives.len(),
+            head_frees.len(),
+            "files_repo: free-list / index mismatch in size class {}",
+            size_class
+        );
+
+        let path = self.class_path(size_class);
+        let mut file = tokio::fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(&path)
+            .await
+            .expect("files_repo: can not open page-file for compaction");
+
+        let mut buf = vec![0u8; size_class as usize];
+        for ((_, from_index), to_index) in tail_lives.iter().zip(head_frees.iter()) {
+            file.seek(std::io::SeekFrom::Start(from_index * size_class as u64))
+                .await
+                .expect("files_repo: seek failed");
+            file.read_exact(&mut buf)
+                .await
+                .expect("files_repo: compaction read failed");
+            file.seek(std::io::SeekFrom::Start(to_index * size_class as u64))
+                .await
+                .expect("files_repo: seek failed");
+            file.write_all(&buf)
+                .await
+                .expect("files_repo: compaction write failed");
+        }
+        file.flush()
+            .await
+            .expect("files_repo: compaction flush failed");
+        // fsync BEFORE the truncate — the one place in this backend that needs
+        // it: a truncate is a metadata operation the filesystem may journal as
+        // durable before the copied slot DATA reaches disk. On power loss that
+        // order would destroy the tail originals (truncated) while the head
+        // copies never made it — losing the moved partitions entirely. Syncing
+        // the copies first closes that window; compaction is an hourly, rare
+        // event, so the cost is irrelevant.
+        file.sync_all()
+            .await
+            .expect("files_repo: compaction fsync failed");
+        file.set_len(live_count * size_class as u64)
+            .await
+            .expect("files_repo: compaction truncate failed");
+
+        for ((key, _), to_index) in tail_lives.into_iter().zip(head_frees.into_iter()) {
+            self.index.insert(
+                key,
+                SlotLocation {
+                    size_class,
+                    slot_index: to_index,
+                },
+            );
+        }
+
+        let state = self.classes.get_mut(&size_class).unwrap();
+        state.slot_count = live_count;
+        state.free.clear();
+
+        println!(
+            "files_repo: compacted page-file {}: {} -> {} slots",
+            size_class, slot_count, live_count
+        );
     }
 
     // ---- low-level helpers ----------------------------------------------
@@ -461,31 +598,37 @@ impl FilesRepoInner {
     }
 }
 
-/// Reads `tables.meta`. A missing file is a fresh directory (empty map). The
-/// file is YAML; files written before the format switch were JSON, so a failed
-/// YAML parse falls back to JSON — the next metadata write rewrites the file
-/// as YAML. A read error or a file neither format can parse is fatal unless
+/// Reads `tables.meta`, returning the map and whether the file was found in
+/// the legacy JSON format (the caller then rewrites it as YAML right away).
+/// A missing file is a fresh directory (empty map). The file is YAML; files
+/// written before the format switch were JSON, so a failed YAML parse falls
+/// back to JSON. Because JSON is itself valid YAML, the parse branch alone can
+/// not tell the formats apart — the raw bytes are probed with a JSON parse
+/// instead (the YAML writer emits block style, which never parses as JSON).
+/// A read error or a file neither format can parse is fatal unless
 /// `skip_errors` (SkipBrokenPartitions) is set — silently defaulting would
 /// reset every table's attributes and let the next metadata write overwrite
 /// the still-recoverable file.
 async fn load_tables_meta(
     root: &str,
     skip_errors: bool,
-) -> BTreeMap<String, TableMetadataFileContract> {
+) -> (BTreeMap<String, TableMetadataFileContract>, bool) {
     let path = format!("{}/{}", root, TABLES_META_FILE);
     let bytes = match tokio::fs::read(&path).await {
         Ok(bytes) => bytes,
-        Err(err) if err.kind() == std::io::ErrorKind::NotFound => return BTreeMap::new(),
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => return (BTreeMap::new(), false),
         Err(err) => panic!("files_repo: can not read {}: {}", path, err),
     };
 
+    let is_legacy_json = serde_json::from_slice::<serde_json::Value>(&bytes).is_ok();
+
     let yaml_err = match serde_yaml::from_slice(&bytes) {
-        Ok(tables) => return tables,
+        Ok(tables) => return (tables, is_legacy_json),
         Err(err) => err,
     };
 
     match serde_json::from_slice(&bytes) {
-        Ok(tables) => tables,
+        Ok(tables) => (tables, true),
         Err(json_err) => {
             let msg = format!(
                 "files_repo: can not parse {} as yaml ({}) nor as legacy json ({})",
@@ -493,7 +636,7 @@ async fn load_tables_meta(
             );
             if skip_errors {
                 println!("{}. Table attributes will be restored with defaults.", msg);
-                BTreeMap::new()
+                (BTreeMap::new(), false)
             } else {
                 panic!("{}", msg);
             }
