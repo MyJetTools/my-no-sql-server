@@ -26,7 +26,9 @@ pub struct BulkDeleteRowsInputData {
 pub struct BulkDeleteRowsResponse {
     #[property(description = "Outcome message")]
     pub status: String,
-    #[property(description = "Number of row keys submitted for deletion (does not guarantee all existed)")]
+    #[property(
+        description = "Number of row keys submitted for deletion (does not guarantee all existed)"
+    )]
     pub rows_submitted: usize,
 }
 

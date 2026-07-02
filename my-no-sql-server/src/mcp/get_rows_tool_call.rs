@@ -5,10 +5,7 @@ use my_ai_agent::macros::ApplyJsonSchema;
 use my_no_sql_sdk::core::db_json_entity::JsonTimeStamp;
 use serde::*;
 
-use crate::{
-    app::AppContext,
-    db_operations::UpdateStatistics,
-};
+use crate::{app::AppContext, db_operations::UpdateStatistics};
 
 #[derive(ApplyJsonSchema, Debug, Serialize, Deserialize)]
 pub struct GetRowsInputData {
@@ -47,10 +44,7 @@ impl ToolDefinition for GetRowsToolCallHandler {
 
 #[async_trait::async_trait]
 impl McpToolCall<GetRowsInputData, GetRowsResponse> for GetRowsToolCallHandler {
-    async fn execute_tool_call(
-        &self,
-        model: GetRowsInputData,
-    ) -> Result<GetRowsResponse, String> {
+    async fn execute_tool_call(&self, model: GetRowsInputData) -> Result<GetRowsResponse, String> {
         let table = crate::db_operations::read::table::get(self.app.as_ref(), &model.table_name)
             .await
             .map_err(|err| format!("{:?}", err))?;

@@ -293,13 +293,18 @@ pub async fn delete(
         .persist_table_attributes(&table_name, persist_moment)
         .await;
 
-    crate::operations::sync::dispatch(app.as_ref(), SyncEvent::DeleteTable(sync_data));
+    // Repo cleanup must ride the serialized persist loop, not a detached task:
+    // a SyncPartition task already in flight for this table lands its
+    // save_partition first, and only then the SyncTable task below sees the
+    // table gone and deletes its content + metadata — so the cleanup can never
+    // be overtaken by a stale in-flight blob. If the table is recreated before
+    // the task fires, the same task becomes a full re-sync that prunes the old
+    // partitions instead.
+    app.persist_markers
+        .persist_table_content(&table_name, DateTimeAsMicroseconds::now())
+        .await;
 
-    let app = app.clone();
-    let table_name = db_table.name.clone();
-    tokio::spawn(async move {
-        crate::operations::persist::scripts::delete_table(&app, &table_name).await
-    });
+    crate::operations::sync::dispatch(app.as_ref(), SyncEvent::DeleteTable(sync_data));
 
     Ok(())
 }

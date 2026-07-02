@@ -145,10 +145,9 @@ pub async fn restore_partition(
     table_name: &str,
     partition_key: &str,
 ) -> Result<(), String> {
-    let content =
-        super::read_snapshot_partition_rows(app, file_name, table_name, partition_key)
-            .await
-            .map_err(|err| err.into_message())?;
+    let content = super::read_snapshot_partition_rows(app, file_name, table_name, partition_key)
+        .await
+        .map_err(|err| err.into_message())?;
 
     let db_rows = DbJsonEntity::restore_as_vec(content.as_slice())
         .map_err(|err| format!("Invalid partition content: {:?}", err))?;

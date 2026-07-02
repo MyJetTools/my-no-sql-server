@@ -48,7 +48,10 @@ pub struct SettingsPublicModel {
     pub bad_ms: u32,
     #[serde(rename = "mcpWritesEnabled")]
     pub mcp_writes_enabled: bool,
-    #[serde(rename = "mcpWritesRemainingSecs", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "mcpWritesRemainingSecs",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub mcp_writes_remaining_secs: Option<u64>,
 }
 

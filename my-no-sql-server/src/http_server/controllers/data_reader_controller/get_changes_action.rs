@@ -73,7 +73,6 @@ async fn handle_request(
         status_code: 400,
         content: "Only HTTP sessions are supported".to_string().into_bytes(),
         headers: WebContentType::Text.into(),
-
     }
     .into_err(true, true)
 }

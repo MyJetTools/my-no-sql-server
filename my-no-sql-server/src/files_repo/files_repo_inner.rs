@@ -59,12 +59,12 @@ struct ScannedSlot {
 }
 
 impl FilesRepoInner {
-    pub async fn open(root: String) -> Self {
+    pub async fn open(root: String, skip_errors: bool) -> Self {
         tokio::fs::create_dir_all(&root)
             .await
             .expect("files_repo: can not create root directory");
 
-        let tables = load_tables_meta(&root).await;
+        let tables = load_tables_meta(&root, skip_errors).await;
         let classes = discover_class_files(&root).await;
 
         Self {
@@ -109,7 +109,19 @@ impl FilesRepoInner {
         for size_class in class_sizes {
             let slot_count = self.classes.get(&size_class).unwrap().slot_count;
             let path = self.class_path(size_class);
-            let file_bytes = tokio::fs::read(&path).await.unwrap_or_default();
+            // An unreadable page-file is always fatal, even with
+            // SkipBrokenPartitions: unlike a corrupt slot (which the scan zeroes
+            // so it can never resurrect), an unread file can not be neutralized —
+            // its partitions would silently vanish for this run and its versions
+            // would be missing from the `next_version` seed, so partitions
+            // re-saved later would lose the dedup against the stale slots on the
+            // following restart and be destroyed. NotFound is tolerated: the file
+            // disappeared after discovery, so the class is simply empty.
+            let file_bytes = match tokio::fs::read(&path).await {
+                Ok(bytes) => bytes,
+                Err(err) if err.kind() == std::io::ErrorKind::NotFound => Vec::new(),
+                Err(err) => panic!("files_repo: can not read page-file {}: {}", path, err),
+            };
             let slot_len = size_class as usize;
 
             for slot_index in 0..slot_count {
@@ -463,6 +475,11 @@ impl FilesRepoInner {
         file.write_all(buf)
             .await
             .expect("files_repo: slot write failed");
+        // tokio buffers the write and hands it to the blocking pool; flush waits
+        // for that write to land in the OS (it does NOT fsync), so reads through
+        // other fds in this process observe it. Power-loss durability stays
+        // best-effort by design.
+        file.flush().await.expect("files_repo: slot flush failed");
     }
 
     /// Marks a slot free by zeroing its 16-byte prefix (`body_len = 0`), so the
@@ -480,6 +497,8 @@ impl FilesRepoInner {
         file.write_all(&[0u8; SLOT_PREFIX_LEN])
             .await
             .expect("files_repo: zeroing slot failed");
+        // Same as write_slot: wait for the buffered write, no fsync.
+        file.flush().await.expect("files_repo: slot flush failed");
     }
 
     async fn persist_delete(&self, size_class: u32) {
@@ -492,8 +511,12 @@ impl FilesRepoInner {
     }
 
     async fn persist_tables_meta(&self) {
-        let bytes = serde_json::to_vec(&self.tables).unwrap();
-        atomic_write(&format!("{}/{}", self.root, TABLES_META_FILE), &bytes).await;
+        let yaml = serde_yaml::to_string(&self.tables).unwrap();
+        atomic_write(
+            &format!("{}/{}", self.root, TABLES_META_FILE),
+            yaml.as_bytes(),
+        )
+        .await;
     }
 }
 
@@ -502,26 +525,77 @@ struct AllocResult {
     reused_free: bool,
 }
 
-async fn load_tables_meta(root: &str) -> BTreeMap<String, TableMetadataFileContract> {
+/// Reads `tables.meta`. A missing file is a fresh directory (empty map). The
+/// file is YAML; files written before the format switch were JSON, so a failed
+/// YAML parse falls back to JSON — the next metadata write rewrites the file
+/// as YAML. A read error or a file neither format can parse is fatal unless
+/// `skip_errors` (SkipBrokenPartitions) is set — silently defaulting would
+/// reset every table's attributes and let the next metadata write overwrite
+/// the still-recoverable file.
+async fn load_tables_meta(
+    root: &str,
+    skip_errors: bool,
+) -> BTreeMap<String, TableMetadataFileContract> {
     let path = format!("{}/{}", root, TABLES_META_FILE);
-    match tokio::fs::read(&path).await {
-        Ok(bytes) => serde_json::from_slice(&bytes).unwrap_or_default(),
-        Err(_) => BTreeMap::new(),
+    let bytes = match tokio::fs::read(&path).await {
+        Ok(bytes) => bytes,
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => return BTreeMap::new(),
+        Err(err) => panic!("files_repo: can not read {}: {}", path, err),
+    };
+
+    let yaml_err = match serde_yaml::from_slice(&bytes) {
+        Ok(tables) => return tables,
+        Err(err) => err,
+    };
+
+    match serde_json::from_slice(&bytes) {
+        Ok(tables) => tables,
+        Err(json_err) => {
+            let msg = format!(
+                "files_repo: can not parse {} as yaml ({}) nor as legacy json ({})",
+                path, yaml_err, json_err
+            );
+            if skip_errors {
+                println!("{}. Table attributes will be restored with defaults.", msg);
+                BTreeMap::new()
+            } else {
+                panic!("{}", msg);
+            }
+        }
     }
 }
 
+/// Lists the persistence root and records every page-file's slot count. Any
+/// listing / stat error is fatal — silently dropping a size class here would
+/// bypass the recovery scan exactly like an unreadable page-file: its
+/// partitions vanish for the run and `next_version` gets seeded below the
+/// unscanned slots' versions, so data re-saved later would lose the dedup and
+/// be destroyed on the following restart.
 async fn discover_class_files(root: &str) -> AHashMap<u32, ClassState> {
     let mut classes = AHashMap::new();
 
-    let mut read_dir = match tokio::fs::read_dir(root).await {
-        Ok(read_dir) => read_dir,
-        Err(_) => return classes,
-    };
+    let mut read_dir = tokio::fs::read_dir(root).await.unwrap_or_else(|err| {
+        panic!(
+            "files_repo: can not list persistence root {}: {}",
+            root, err
+        )
+    });
 
-    while let Ok(Some(entry)) = read_dir.next_entry().await {
-        let Ok(file_type) = entry.file_type().await else {
-            continue;
+    loop {
+        let entry = read_dir.next_entry().await.unwrap_or_else(|err| {
+            panic!(
+                "files_repo: can not list persistence root {}: {}",
+                root, err
+            )
+        });
+        let Some(entry) = entry else {
+            break;
         };
+
+        let file_type = entry
+            .file_type()
+            .await
+            .unwrap_or_else(|err| panic!("files_repo: can not stat {:?}: {}", entry.path(), err));
         if !file_type.is_file() {
             continue;
         }
@@ -539,7 +613,17 @@ async fn discover_class_files(root: &str) -> AHashMap<u32, ClassState> {
             continue;
         }
 
-        let len = entry.metadata().await.map(|m| m.len()).unwrap_or(0);
+        let len = entry
+            .metadata()
+            .await
+            .unwrap_or_else(|err| {
+                panic!(
+                    "files_repo: can not stat page-file {:?}: {}",
+                    entry.path(),
+                    err
+                )
+            })
+            .len();
         let slot_count = len / size_class as u64;
 
         classes.insert(

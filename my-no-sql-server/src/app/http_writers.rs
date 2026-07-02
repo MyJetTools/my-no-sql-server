@@ -57,13 +57,15 @@ impl HttpWriters {
             None => self.generate_session_id(),
         };
 
-        let writer_info = data.entry(session_id.clone()).or_insert_with(|| WriterInfo {
-            name: name.to_string(),
-            version: version.to_string(),
-            last_ping: now,
-            tables: Vec::new(),
-            addr: addr.clone(),
-        });
+        let writer_info = data
+            .entry(session_id.clone())
+            .or_insert_with(|| WriterInfo {
+                name: name.to_string(),
+                version: version.to_string(),
+                last_ping: now,
+                tables: Vec::new(),
+                addr: addr.clone(),
+            });
 
         writer_info.last_ping = now;
         writer_info.name = name.to_string();

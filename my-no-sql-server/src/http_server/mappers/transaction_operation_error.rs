@@ -9,7 +9,6 @@ impl From<TransactionOperationError> for HttpFailResult {
                 content: format!("Transaction {} not found", id).into_bytes(),
                 headers: WebContentType::Text.into(),
                 status_code: 401,
-         
             }
             .into_http_fail_result(true, true),
             TransactionOperationError::DbEntityParseFail(err) => {

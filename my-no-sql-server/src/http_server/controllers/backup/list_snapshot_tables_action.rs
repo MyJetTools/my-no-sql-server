@@ -33,8 +33,7 @@ async fn handle_request(
     input_data: SnapshotFileContract,
     _ctx: &mut HttpContext,
 ) -> Result<HttpOkResult, HttpFailResult> {
-    match crate::operations::backup::list_snapshot_tables(&action.app, &input_data.file_name)
-        .await
+    match crate::operations::backup::list_snapshot_tables(&action.app, &input_data.file_name).await
     {
         Ok(tables) => HttpOutput::as_json(tables).into_ok_result(true).into(),
         Err(err) => Err(HttpFailResult::as_not_supported_content_type(

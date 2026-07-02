@@ -80,7 +80,9 @@ be enabled by the admin in the UI Settings page — see prompt
 `mcp_writes_enable_policy`."#;
 
         Ok(PromptExecutionResult {
-            description: "When and how to hand off a complex delete to the UI's Paste & delete dialog.".to_string(),
+            description:
+                "When and how to hand off a complex delete to the UI's Paste & delete dialog."
+                    .to_string(),
             message: body.to_string(),
         })
     }

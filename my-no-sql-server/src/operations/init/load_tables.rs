@@ -13,6 +13,14 @@ pub async fn load_tables(app: Arc<AppContext>) {
     let sw = StopWatch::new();
 
     if let Some(server_url) = app.settings.get_init_from_other_server_url() {
+        // The import below writes without the normal local-load having run;
+        // the Files backend must scan its page-files first (see
+        // PersistRepo::prime_for_writes) or the import would be silently
+        // reverted on the next restart.
+        app.repo
+            .prime_for_writes(app.settings.skip_broken_partitions)
+            .await;
+
         let tables = super::from_other_instance::load_tables(server_url).await;
         let tables_amount = tables.len();
 

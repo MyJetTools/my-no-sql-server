@@ -5,9 +5,7 @@ use std::sync::Arc;
 
 use super::models::*;
 use crate::app::AppContext;
-use crate::http_server::mappers::{
-    try_compress_zstd, wants_zstd, COMPRESSION_THRESHOLD,
-};
+use crate::http_server::mappers::{try_compress_zstd, wants_zstd, COMPRESSION_THRESHOLD};
 
 #[http_route(
     method: "GET",

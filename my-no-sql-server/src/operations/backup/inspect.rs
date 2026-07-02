@@ -74,7 +74,11 @@ pub async fn list_snapshot_tables(
         if rest.is_empty() {
             continue;
         }
-        let bump = if rest == TABLE_METADATA_FILE_NAME { 0 } else { 1 };
+        let bump = if rest == TABLE_METADATA_FILE_NAME {
+            0
+        } else {
+            1
+        };
         *counts.entry(table.to_string()).or_insert(0) += bump;
     }
 
@@ -110,8 +114,7 @@ pub async fn list_snapshot_partitions(
         let bytes = rest
             .from_base64()
             .map_err(|_| InspectError::InvalidPartitionKey)?;
-        let pk =
-            String::from_utf8(bytes).map_err(|_| InspectError::InvalidPartitionKey)?;
+        let pk = String::from_utf8(bytes).map_err(|_| InspectError::InvalidPartitionKey)?;
         partitions.push(pk);
     }
 
@@ -130,8 +133,7 @@ pub async fn read_snapshot_partition_rows(
     partition_key: &str,
 ) -> Result<Vec<u8>, InspectError> {
     use base64::Engine;
-    let encoded =
-        base64::engine::general_purpose::STANDARD.encode(partition_key.as_bytes());
+    let encoded = base64::engine::general_purpose::STANDARD.encode(partition_key.as_bytes());
     let zip_path = format!("{}/{}", table_name, encoded);
 
     let mut zip = load_zip(app, file_name).await?;

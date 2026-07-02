@@ -2,8 +2,8 @@ mod load_tables;
 use std::sync::Arc;
 
 pub use load_tables::*;
-mod partitions_init_reader;
 mod from_other_instance;
+mod partitions_init_reader;
 mod scripts;
 use my_no_sql_sdk::core::db::{DbRow, DbTableAttributes, DbTableName};
 

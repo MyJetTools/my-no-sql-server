@@ -9,8 +9,10 @@ pub fn ensure_mcp_writes_enabled(app: &AppContext) -> Result<(), String> {
         return Ok(());
     }
 
-    Err("MCP write operations are currently DISABLED. Ask the user to open the \
+    Err(
+        "MCP write operations are currently DISABLED. Ask the user to open the \
          MyNoSqlServer UI \u{2192} Settings and click \"Enable MCP writes\" (writes stay on \
          for 10 minutes, or until the user disables them). Do not retry until enabled."
-        .into())
+            .into(),
+    )
 }

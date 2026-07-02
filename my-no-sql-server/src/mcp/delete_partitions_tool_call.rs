@@ -15,7 +15,9 @@ use crate::{
 pub struct DeletePartitionsInputData {
     #[property(description = "Name of the table")]
     pub table_name: String,
-    #[property(description = "Partition keys to remove (all rows under each partition will be deleted)")]
+    #[property(
+        description = "Partition keys to remove (all rows under each partition will be deleted)"
+    )]
     pub partition_keys: Vec<String>,
 }
 

@@ -12,7 +12,9 @@ use crate::{
 
 #[derive(ApplyJsonSchema, Debug, Serialize, Deserialize)]
 pub struct CleanTableInputData {
-    #[property(description = "Name of the table to clean (all rows in all partitions will be removed)")]
+    #[property(
+        description = "Name of the table to clean (all rows in all partitions will be removed)"
+    )]
     pub table_name: String,
 }
 

@@ -5,6 +5,11 @@ use my_no_sql_sdk::core::rust_extensions::date_time::DateTimeAsMicroseconds;
 use crate::{app::AppContext, persist_markers::PersistTask};
 
 pub async fn persist(app: &Arc<AppContext>) -> bool {
+    // Single-flight: the timer, the Force-Persist HTTP action and the shutdown
+    // drain may call this concurrently; overlapping tasks would break the
+    // in-flight-write-then-cleanup ordering that table deletion relies on.
+    let _single_flight = app.persist_call_lock.lock().await;
+
     let start_time = DateTimeAsMicroseconds::now();
 
     let now = if app.states.is_shutting_down() {

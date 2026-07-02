@@ -39,10 +39,7 @@ async fn handle_request(
 
     let connection_addr = ctx.request.addr.to_string();
 
-    let session = input_data
-        .session_id
-        .as_deref()
-        .filter(|s| !s.is_empty());
+    let session = input_data.session_id.as_deref().filter(|s| !s.is_empty());
 
     let session = action
         .app
@@ -72,7 +69,10 @@ pub struct PingHttpInputModel {
     #[http_body(name = "tables", description = "List of tables with")]
     pub tables: Vec<String>,
 
-    #[http_header(name = "session", description = "Writer session id issued by a previous ping")]
+    #[http_header(
+        name = "session",
+        description = "Writer session id issued by a previous ping"
+    )]
     pub session_id: Option<String>,
 }
 

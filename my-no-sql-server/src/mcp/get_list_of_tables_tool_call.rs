@@ -30,7 +30,8 @@ impl GetListOfTablesToolCallHandler {
 impl ToolDefinition for GetListOfTablesToolCallHandler {
     const FUNC_NAME: &'static str = "get_list_of_tables";
 
-    const DESCRIPTION: &'static str = "Returns the list of all MyNoSql table names available on this server.";
+    const DESCRIPTION: &'static str =
+        "Returns the list of all MyNoSql table names available on this server.";
 }
 
 #[async_trait::async_trait]
@@ -43,10 +44,7 @@ impl McpToolCall<GetListOfTablesInputData, GetListOfTablesResponse>
     ) -> Result<GetListOfTablesResponse, String> {
         let tables = self.app.db.get_tables();
 
-        let tables: Vec<String> = tables
-            .iter()
-            .map(|table| table.name.to_string())
-            .collect();
+        let tables: Vec<String> = tables.iter().map(|table| table.name.to_string()).collect();
 
         Ok(GetListOfTablesResponse {
             count: tables.len(),

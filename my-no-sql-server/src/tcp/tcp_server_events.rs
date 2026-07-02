@@ -125,8 +125,7 @@ impl SocketEventCallback<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()> for
                                 .add("TableName", table_name),
                         );
 
-                        connection
-                            .send(&MyNoSqlTcpContract::Error { message });
+                        connection.send(&MyNoSqlTcpContract::Error { message });
                     }
                 }
             }
@@ -137,8 +136,7 @@ impl SocketEventCallback<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()> for
                     let table = self.app.db.get_table(table_name.as_str());
 
                     if table.is_none() {
-                        connection
-                            .send(&MyNoSqlTcpContract::TableNotFound(table_name));
+                        connection.send(&MyNoSqlTcpContract::TableNotFound(table_name));
 
                         return;
                     }
@@ -196,8 +194,7 @@ impl SocketEventCallback<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()> for
                     .await;
                 }
 
-                connection
-                    .send(&MyNoSqlTcpContract::Confirmation { confirmation_id });
+                connection.send(&MyNoSqlTcpContract::Confirmation { confirmation_id });
             }
 
             MyNoSqlTcpContract::UpdateRowsLastReadTime {
@@ -213,11 +210,11 @@ impl SocketEventCallback<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()> for
                         &db_table,
                         &partition_key,
                         row_keys.iter().map(|x| x.as_str()),
-                    ).await;
+                    )
+                    .await;
                 }
 
-                connection
-                    .send(&MyNoSqlTcpContract::Confirmation { confirmation_id });
+                connection.send(&MyNoSqlTcpContract::Confirmation { confirmation_id });
             }
 
             MyNoSqlTcpContract::UpdatePartitionsExpirationTime {
@@ -237,8 +234,7 @@ impl SocketEventCallback<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()> for
                     }
                 }
 
-                connection
-                    .send(&MyNoSqlTcpContract::Confirmation { confirmation_id });
+                connection.send(&MyNoSqlTcpContract::Confirmation { confirmation_id });
             }
             MyNoSqlTcpContract::UpdateRowsExpirationTime {
                 confirmation_id,
@@ -259,8 +255,7 @@ impl SocketEventCallback<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()> for
                     )
                 }
 
-                connection
-                    .send(&MyNoSqlTcpContract::Confirmation { confirmation_id });
+                connection.send(&MyNoSqlTcpContract::Confirmation { confirmation_id });
             }
 
             _ => {}

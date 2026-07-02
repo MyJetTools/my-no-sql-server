@@ -62,7 +62,7 @@ Data is stored in a set of **size-class page-files** inside the directory
 the slot size in bytes (powers of two starting at 512):
 
 ```
-<dir>/tables.meta     # table attributes (JSON), rewritten atomically on change
+<dir>/tables.meta     # table attributes (YAML; legacy JSON still loads), rewritten atomically on change
 <dir>/512             # page-file: array of 512-byte slots
 <dir>/512.delete      # free-list: indices of freed 512-byte slots, reused first
 <dir>/1024

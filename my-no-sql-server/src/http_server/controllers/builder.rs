@@ -33,9 +33,9 @@ pub fn build(app: &Arc<AppContext>) -> ControllersMiddleware {
 
     result.register_post_action(update_persist_action);
 
-    let update_compressed_action = Arc::new(
-        super::tables_controller::UpdateCompressedAction::new(app.clone()),
-    );
+    let update_compressed_action = Arc::new(super::tables_controller::UpdateCompressedAction::new(
+        app.clone(),
+    ));
 
     result.register_post_action(update_compressed_action);
 
@@ -89,9 +89,9 @@ pub fn build(app: &Arc<AppContext>) -> ControllersMiddleware {
         app.clone(),
     )));
 
-    result.register_get_action(Arc::new(super::ui_settings_controller::GetUiSettingsAction::new(
-        app.clone(),
-    )));
+    result.register_get_action(Arc::new(
+        super::ui_settings_controller::GetUiSettingsAction::new(app.clone()),
+    ));
     result.register_post_action(Arc::new(
         super::ui_settings_controller::PostUiSettingsAction::new(app.clone()),
     ));
@@ -232,9 +232,9 @@ pub fn build(app: &Arc<AppContext>) -> ControllersMiddleware {
         app.clone(),
     )));
 
-    result.register_get_action(Arc::new(super::partitions::GetPartitionsDetailsAction::new(
-        app.clone(),
-    )));
+    result.register_get_action(Arc::new(
+        super::partitions::GetPartitionsDetailsAction::new(app.clone()),
+    ));
 
     // Backup controller
 

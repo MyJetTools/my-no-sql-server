@@ -7,12 +7,14 @@ use std::{
 };
 
 use my_no_sql_sdk::core::rust_extensions::{
-    AppStates, date_time::DateTimeAsMicroseconds, events_loop::EventsLoop, file_utils::FilePath
+    date_time::DateTimeAsMicroseconds, events_loop::EventsLoop, file_utils::FilePath, AppStates,
 };
 use my_no_sql_sdk::server::DbInstance;
 
 use crate::{
-    data_readers::DataReadersList, db_operations::multipart::MultipartList, db_sync::SyncEvent, db_transactions::ActiveTransactions, operations::init::InitState, persist_markers::PersistMarkers, settings_reader::SettingsModel
+    data_readers::DataReadersList, db_operations::multipart::MultipartList, db_sync::SyncEvent,
+    db_transactions::ActiveTransactions, operations::init::InitState,
+    persist_markers::PersistMarkers, settings_reader::SettingsModel,
 };
 
 use super::{HttpWriters, OneSecondCounter, PrometheusMetrics, WritersTraffic};
@@ -47,6 +49,11 @@ pub struct AppContext {
     pub sync: EventsLoop<SyncEvent>,
     pub states: Arc<AppStates>,
     pub persist_markers: PersistMarkers,
+    /// Serializes `operations::persist` across its entry points (persist timer,
+    /// Force-Persist HTTP action, shutdown drain): delete-table cleanup relies
+    /// on persist tasks never overlapping. tokio::Mutex because the guard is
+    /// held across repo I/O awaits.
+    pub persist_call_lock: tokio::sync::Mutex<()>,
     pub http_writers: HttpWriters,
     persist_amount: AtomicUsize,
 
@@ -75,6 +82,7 @@ impl AppContext {
             data_readers: DataReadersList::new(Duration::from_secs(30)),
             multipart_list: MultipartList::new(),
             repo: settings.get_persist_repo().await,
+            persist_call_lock: tokio::sync::Mutex::new(()),
             settings,
             persist_amount: AtomicUsize::new(0),
             sync: EventsLoop::new("Sync"),

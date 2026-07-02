@@ -62,9 +62,7 @@ impl WritersTraffic {
         let data = self.data.lock().unwrap();
         data.iter()
             .filter(|(_, counter)| counter.req_value != 0 || counter.bytes_value != 0)
-            .map(|(session, counter)| {
-                (session.clone(), (counter.req_value, counter.bytes_value))
-            })
+            .map(|(session, counter)| (session.clone(), (counter.req_value, counter.bytes_value)))
             .collect()
     }
 }

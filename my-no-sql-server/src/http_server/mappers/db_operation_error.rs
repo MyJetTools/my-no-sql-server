@@ -38,14 +38,12 @@ impl From<DbOperationError> for HttpFailResult {
                 headers: WebContentType::Json.into(),
                 status_code: 503,
                 content: format!("Application is not initialized yet").into_bytes(),
-      
             }
             .into_http_fail_result(false, false),
             DbOperationError::OptimisticConcurrencyUpdateFails => HttpOutput::Content {
                 headers: WebContentType::Json.into(),
                 status_code: 409,
                 content: format!("Record is changed").into_bytes(),
-      
             }
             .into_http_fail_result(false, false),
             DbOperationError::RecordAlreadyExists => {
@@ -73,7 +71,6 @@ impl From<DbOperationError> for HttpFailResult {
                     headers: WebContentType::Text.into(),
                     status_code: OPERATION_FAIL_HTTP_STATUS_CODE,
                     content,
-           
                 }
                 .into_http_fail_result(true, true)
             }
@@ -88,7 +85,6 @@ impl From<DbOperationError> for HttpFailResult {
                     headers: WebContentType::Text.into(),
                     status_code: OPERATION_FAIL_HTTP_STATUS_CODE,
                     content,
-         
                 }
                 .into_http_fail_result(true, true)
             }
@@ -205,7 +201,7 @@ pub fn from_db_entity_parse_fail_to_http_result(src: DbEntityParseFail) -> HttpF
                 headers: WebContentType::Json.into(),
                 status_code: OPERATION_FAIL_HTTP_STATUS_CODE,
                 content,
-                }
+            }
             .into_http_fail_result(true, true)
         }
     }

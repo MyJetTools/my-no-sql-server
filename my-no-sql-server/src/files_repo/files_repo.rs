@@ -18,10 +18,13 @@ pub struct FilesRepo {
 }
 
 impl FilesRepo {
-    pub async fn open(root: String) -> Self {
+    /// `skip_errors` mirrors `SkipBrokenPartitions`: it decides whether a
+    /// corrupt `tables.meta` is skipped (attributes restored with defaults)
+    /// or fatal.
+    pub async fn open(root: String, skip_errors: bool) -> Self {
         println!("Opening files persistence at: {}", root);
         Self {
-            inner: Mutex::new(FilesRepoInner::open(root).await),
+            inner: Mutex::new(FilesRepoInner::open(root, skip_errors).await),
         }
     }
 

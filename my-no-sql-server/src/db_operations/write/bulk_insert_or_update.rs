@@ -23,7 +23,8 @@ pub async fn execute(
     let (update_rows_state, to_persist, has_insert_or_replace) = {
         let mut table_data = db_table.data.write();
         let mut update_rows_state = UpdateRowsSyncData::new(&table_data, event_src);
-        let mut to_persist: Vec<(my_no_sql_sdk::core::db::PartitionKey, Vec<Arc<DbRow>>)> = Vec::new();
+        let mut to_persist: Vec<(my_no_sql_sdk::core::db::PartitionKey, Vec<Arc<DbRow>>)> =
+            Vec::new();
         let mut has_insert_or_replace = false;
 
         for (partition_key, db_rows) in rows_by_partition {

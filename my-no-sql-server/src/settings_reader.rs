@@ -59,7 +59,7 @@ impl SettingsModel {
         if lower.ends_with(".sqlite") || lower.ends_with(".sqlite3") || lower.ends_with(".db") {
             PersistRepo::Sqlite(SqlLiteRepo::new(dest).await)
         } else {
-            PersistRepo::Files(FilesRepo::open(dest).await)
+            PersistRepo::Files(FilesRepo::open(dest, self.skip_broken_partitions).await)
         }
     }
 

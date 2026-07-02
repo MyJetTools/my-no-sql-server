@@ -81,6 +81,22 @@ impl PersistRepo {
         }
     }
 
+    /// Prepares the backend for writes when init skips the normal local-load
+    /// path (init-from-other-server). The Files backend must scan its page-files
+    /// first — the scan rebuilds the key index and free-lists and seeds the
+    /// version counter past every slot already on disk; writing into a non-empty
+    /// directory without it would append duplicate slots with LOWER versions,
+    /// and the next restart's higher-version-wins dedup would revert the whole
+    /// import. SQLite writes are stateless, so this is a no-op there.
+    pub async fn prime_for_writes(&self, skip_errors: bool) {
+        match self {
+            Self::Sqlite(_) => {}
+            Self::Files(repo) => {
+                let _ = repo.load_all_partitions(skip_errors).await;
+            }
+        }
+    }
+
     /// Replaces the entire persisted content of a table with `partitions`
     /// (each `(partition_key, zstd bytes)`), writing the new blobs before
     /// removing any partitions no longer present — so a crash mid-sync cannot

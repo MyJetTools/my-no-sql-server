@@ -76,9 +76,9 @@ async fn build_mcp_middleware(app: &Arc<AppContext>) -> McpMiddleware {
         app.clone(),
     )));
 
-    mcp.register_tool_call(Arc::new(
-        crate::mcp::GetListOfTablesToolCallHandler::new(app.clone()),
-    ));
+    mcp.register_tool_call(Arc::new(crate::mcp::GetListOfTablesToolCallHandler::new(
+        app.clone(),
+    )));
 
     mcp.register_tool_call(Arc::new(crate::mcp::DeleteRowToolCallHandler::new(
         app.clone(),
@@ -88,9 +88,9 @@ async fn build_mcp_middleware(app: &Arc<AppContext>) -> McpMiddleware {
         app.clone(),
     )));
 
-    mcp.register_tool_call(Arc::new(crate::mcp::InsertOrReplaceRowToolCallHandler::new(
-        app.clone(),
-    )));
+    mcp.register_tool_call(Arc::new(
+        crate::mcp::InsertOrReplaceRowToolCallHandler::new(app.clone()),
+    ));
 
     mcp.register_tool_call(Arc::new(
         crate::mcp::BulkInsertOrReplaceRowsToolCallHandler::new(app.clone()),

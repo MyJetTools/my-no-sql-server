@@ -11,7 +11,10 @@ const FILE_NAME: &str = "ui-settings.json";
 pub fn settings_path(persistence_dest: &str) -> PathBuf {
     let resolved = file_utils::format_path(persistence_dest);
     let path = PathBuf::from(resolved.as_str());
-    let dir = path.parent().map(|p| p.to_path_buf()).unwrap_or_else(|| PathBuf::from("."));
+    let dir = path
+        .parent()
+        .map(|p| p.to_path_buf())
+        .unwrap_or_else(|| PathBuf::from("."));
     dir.join(FILE_NAME)
 }
 

@@ -22,7 +22,10 @@ pub async fn bulk_delete(
 
     enum PersistOp {
         Partition(my_no_sql_sdk::core::db::PartitionKey),
-        Rows(my_no_sql_sdk::core::db::PartitionKey, Vec<Arc<my_no_sql_sdk::core::db::DbRow>>),
+        Rows(
+            my_no_sql_sdk::core::db::PartitionKey,
+            Vec<Arc<my_no_sql_sdk::core::db::DbRow>>,
+        ),
     }
 
     let (sync_data, persist_ops) = {

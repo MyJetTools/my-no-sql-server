@@ -12,7 +12,9 @@ pub struct GetBackupRowsInputData {
     pub file_name: String,
     #[property(description = "Table name inside the snapshot (as returned by get_backup_tables)")]
     pub table_name: String,
-    #[property(description = "Partition key inside the table (as returned by get_backup_partitions)")]
+    #[property(
+        description = "Partition key inside the table (as returned by get_backup_partitions)"
+    )]
     pub partition_key: String,
 }
 

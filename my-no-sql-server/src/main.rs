@@ -123,7 +123,8 @@ async fn main() {
 
     backup_timer.start(app.states.clone(), my_logger::LOGGER.clone());
 
-    app.sync.start(app.states.clone(), my_logger::LOGGER.clone());
+    app.sync
+        .start(app.states.clone(), my_logger::LOGGER.clone());
 
     if let Some(unix_reader) = unix_reader.as_ref() {
         unix_reader
@@ -132,7 +133,8 @@ async fn main() {
                 TcpServerEvents::new(app.clone()),
                 app.states.clone(),
                 my_logger::LOGGER.clone(),
-            ).await;
+            )
+            .await;
     }
 
     tcp_server
@@ -141,7 +143,8 @@ async fn main() {
             TcpServerEvents::new(app.clone()),
             app.states.clone(),
             my_logger::LOGGER.clone(),
-        ).await;
+        )
+        .await;
 
     tokio::task::spawn(crate::grpc::server::start(app.clone(), 5124));
 

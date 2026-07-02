@@ -3,8 +3,10 @@
 // scan of the page-files — there is no separate key→location index on disk.
 //
 //   [0..4)    crc32      (u32 LE)  over bytes [4 .. 16 + body_len)
-//   [4..12)   version    (u64 LE)  write counter (unix-micros); higher wins on
-//                                  a duplicate after a crash mid-relocation
+//   [4..12)   version    (u64 LE)  monotonic write counter (seeded from the
+//                                  max on-disk version + 1 at scan); higher
+//                                  wins on a duplicate after a crash
+//                                  mid-relocation
 //   [12..16)  body_len   (u32 LE)  length of body; 0 => slot is free
 //   [16..)    body       table_len(u16) pk_len(u16) table pk zstd_payload
 //   [...]     padding    zeroed up to the size class

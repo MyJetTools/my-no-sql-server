@@ -120,4 +120,3 @@ pub struct DeletePartitionsInputContract {
     #[http_query(name: "syncPeriod"; description: "Synchronization period"; default)]
     pub sync_period: DataSynchronizationPeriod,
 }
-
