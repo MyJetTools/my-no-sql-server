@@ -1535,15 +1535,22 @@ textarea {
 
 /* --- Frozen left columns: checkbox + PartitionKey + RowKey ---
    `.rows-wrap` is the scroll container. Two things make this work:
-   1. The frozen columns need pinned widths, because each `left` offset is the
-      sum of the widths of the columns to its left.
+   1. Each `left` offset is the sum of the widths of the frozen columns to its
+      left. The checkbox is a fixed 28px, but PartitionKey sizes to its content,
+      so its width is measured after layout and published as `--rt-pk-w` (see
+      `FROZEN_WIDTH_SYNC_JS` in rows_table.rs). RowKey needs no measurement — it
+      is the last frozen column, so nothing is offset from it.
    2. A sticky cell must paint an opaque background of its own: the rest of the
       row scrolls *underneath* it, and a transparent cell would let it show
       through. Hence the per-row-state background rules below. */
 .rt {
     --rt-check-w: 0px; /* only a selectable table renders a checkbox column */
-    --rt-pk-w: 200px;
-    --rt-rk-w: 200px;
+    /* Caps. Both key columns shrink to their content below these. */
+    --rt-pk-max: 200px;
+    --rt-rk-max: 200px;
+    /* Overwritten inline with the measured PartitionKey column width. The cap
+       is the pre-measurement fallback, used for the first painted frame. */
+    --rt-pk-w: var(--rt-pk-max);
 }
 
 .rt--selectable {
@@ -1551,15 +1558,11 @@ textarea {
 }
 
 .rt .pk {
-    width: var(--rt-pk-w);
-    min-width: var(--rt-pk-w);
-    max-width: var(--rt-pk-w);
+    max-width: var(--rt-pk-max);
 }
 
 .rt .rk {
-    width: var(--rt-rk-w);
-    min-width: var(--rt-rk-w);
-    max-width: var(--rt-rk-w);
+    max-width: var(--rt-rk-max);
     /* Right edge of the frozen block. A box-shadow rather than a border:
        collapsed table borders do not travel with sticky cells. */
     box-shadow: inset -1px 0 0 var(--border);

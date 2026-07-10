@@ -9,6 +9,34 @@ pub const PARTITION_KEY: &str = "PartitionKey";
 pub const ROW_KEY: &str = "RowKey";
 pub const TIME_STAMP: &str = "TimeStamp";
 
+/// Publishes the PartitionKey column's laid-out width as `--rt-pk-w` on the
+/// table, because the RowKey column's sticky `left` is offset by it and CSS
+/// cannot read a content-sized column's width.
+///
+/// Run on mount, then kept current by a `ResizeObserver`: the column resizes
+/// whenever the rows change, a longer key appears, the webfont finishes
+/// loading, or the window is resized — and every one of those would otherwise
+/// leave RowKey frozen at a stale offset. The observer is re-attached on each
+/// run (the previous one may be watching a detached node) and stored on the
+/// table element so it never accumulates.
+const FROZEN_WIDTH_SYNC_JS: &str = r#"(function () {
+    const table = document.querySelector('table.rt');
+    if (!table) return;
+    const sync = () => {
+        const pk = table.querySelector('thead th.pk');
+        const w = pk ? pk.getBoundingClientRect().width : 0;
+        table.style.setProperty('--rt-pk-w', w + 'px');
+    };
+    sync();
+    if (window.ResizeObserver) {
+        if (table.__rtFrozenObs) table.__rtFrozenObs.disconnect();
+        const obs = new ResizeObserver(sync);
+        const pk = table.querySelector('thead th.pk');
+        if (pk) obs.observe(pk);
+        table.__rtFrozenObs = obs;
+    }
+})();"#;
+
 #[component]
 pub fn RowsTable(
     headers: Vec<String>,
@@ -139,7 +167,11 @@ pub fn RowsTable(
 
     rsx! {
         div { class: "rows-wrap",
-            table { class: "{table_cls}",
+            table {
+                class: "{table_cls}",
+                onmounted: move |_| {
+                    let _ = dioxus::document::eval(FROZEN_WIDTH_SYNC_JS);
+                },
                 thead {
                     tr {
                         {head_check}
