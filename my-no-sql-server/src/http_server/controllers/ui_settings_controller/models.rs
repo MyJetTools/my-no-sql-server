@@ -38,8 +38,8 @@ impl UiSettingsModel {
 }
 
 /// Wire shape returned by GET `/api/Settings`. Combines persisted
-/// thresholds with the runtime MCP-writes enable state. `Deserialize`
-/// is derived only to satisfy `RawDataTyped`'s bound.
+/// thresholds with the runtime MCP-writes and UI-writes enable state.
+/// `Deserialize` is derived only to satisfy `RawDataTyped`'s bound.
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, MyHttpObjectStructure)]
 pub struct SettingsPublicModel {
     #[serde(rename = "warnMs")]
@@ -53,6 +53,13 @@ pub struct SettingsPublicModel {
         skip_serializing_if = "Option::is_none"
     )]
     pub mcp_writes_remaining_secs: Option<u64>,
+    #[serde(rename = "uiWritesEnabled")]
+    pub ui_writes_enabled: bool,
+    #[serde(
+        rename = "uiWritesRemainingSecs",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub ui_writes_remaining_secs: Option<u64>,
 }
 
 impl SettingsPublicModel {
@@ -62,6 +69,8 @@ impl SettingsPublicModel {
             bad_ms: settings.bad_ms,
             mcp_writes_enabled: app.is_mcp_write_enabled(),
             mcp_writes_remaining_secs: app.mcp_writes_remaining_secs(),
+            ui_writes_enabled: app.is_ui_write_enabled(),
+            ui_writes_remaining_secs: app.ui_writes_remaining_secs(),
         }
     }
 }
@@ -98,4 +107,20 @@ pub struct McpWritesInput {
         description = "JSON body { enabled }. true enables MCP writes for 10 minutes; false disables them immediately."
     )]
     pub body: RawDataTyped<McpWritesBody>,
+}
+
+/// Body for POST `/api/Settings/UiWrites`. `enabled: true` opens the
+/// 10-minute UI-writes window; `false` closes it immediately.
+#[derive(Serialize, Deserialize, Debug, Default, Clone, MyHttpObjectStructure)]
+pub struct UiWritesBody {
+    #[serde(rename = "enabled")]
+    pub enabled: bool,
+}
+
+#[derive(MyHttpInput)]
+pub struct UiWritesInput {
+    #[http_body_raw(
+        description = "JSON body { enabled }. true enables UI writes for 10 minutes; false disables them immediately."
+    )]
+    pub body: RawDataTyped<UiWritesBody>,
 }

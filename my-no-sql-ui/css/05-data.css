@@ -326,15 +326,17 @@
     background: var(--accent-soft);
 }
 
-.rt .pk { color: var(--accent-strong); }
-.rt .rk { color: var(--info); }
+/* `pk` / `rk` are on the <th> too (the frozen-column rules need them there), so
+   these value colors are scoped to the body — a header keeps its muted color. */
+.rt tbody td.pk { color: var(--accent-strong); }
+.rt tbody td.rk { color: var(--info); }
 .rt .bool-true { color: var(--ok); }
 .rt .bool-false { color: var(--danger); }
 .rt .str-val { color: var(--text); }
 .rt .num-val { color: var(--text); }
 .rt .null-val { color: var(--text-faint); font-style: italic; }
 
-[data-theme="dark"] .rt .pk { color: var(--accent); }
+[data-theme="dark"] .rt tbody td.pk { color: var(--accent); }
 
 .rt-check {
     width: 28px;
@@ -350,6 +352,84 @@
 
 .rt thead th.rt-check {
     cursor: pointer;
+}
+
+/* --- Frozen left columns: checkbox + PartitionKey + RowKey ---
+   `.rows-wrap` is the scroll container. Two things make this work:
+   1. The frozen columns need pinned widths, because each `left` offset is the
+      sum of the widths of the columns to its left.
+   2. A sticky cell must paint an opaque background of its own: the rest of the
+      row scrolls *underneath* it, and a transparent cell would let it show
+      through. Hence the per-row-state background rules below. */
+.rt {
+    --rt-check-w: 0px; /* only a selectable table renders a checkbox column */
+    --rt-pk-w: 200px;
+    --rt-rk-w: 200px;
+}
+
+.rt--selectable {
+    --rt-check-w: 28px; /* keep in sync with .rt-check width */
+}
+
+.rt .pk {
+    width: var(--rt-pk-w);
+    min-width: var(--rt-pk-w);
+    max-width: var(--rt-pk-w);
+}
+
+.rt .rk {
+    width: var(--rt-rk-w);
+    min-width: var(--rt-rk-w);
+    max-width: var(--rt-rk-w);
+    /* Right edge of the frozen block. A box-shadow rather than a border:
+       collapsed table borders do not travel with sticky cells. */
+    box-shadow: inset -1px 0 0 var(--border);
+}
+
+.rt .rt-check,
+.rt .pk,
+.rt .rk {
+    position: sticky;
+}
+
+.rt .rt-check { left: 0; }
+.rt .pk { left: var(--rt-check-w); }
+.rt .rk { left: calc(var(--rt-check-w) + var(--rt-pk-w)); }
+
+/* Frozen body cells: above the scrolling cells, below the sticky header (z 2). */
+.rt tbody td.rt-check,
+.rt tbody td.pk,
+.rt tbody td.rk {
+    z-index: 1;
+    background: var(--bg);
+}
+
+/* Header corners are frozen on both axes -> above the header row and the body. */
+.rt thead th.rt-check,
+.rt thead th.pk,
+.rt thead th.rk {
+    z-index: 3;
+}
+
+/* Frozen cells repaint each row state, mirroring the <tr> rules above. */
+.rt tbody tr:nth-child(even) td.rt-check,
+.rt tbody tr:nth-child(even) td.pk,
+.rt tbody tr:nth-child(even) td.rk {
+    background: var(--bg-row-alt);
+}
+
+.rt tbody tr:hover td.rt-check,
+.rt tbody tr:hover td.pk,
+.rt tbody tr:hover td.rk {
+    background: var(--bg-hover);
+}
+
+/* --accent-soft is translucent in the dark theme, so it is composited over an
+   opaque base instead of being used on its own. */
+.rt tbody tr.selected td.rt-check,
+.rt tbody tr.selected td.pk,
+.rt tbody tr.selected td.rk {
+    background: linear-gradient(var(--accent-soft), var(--accent-soft)), var(--bg);
 }
 
 /* --- Bulk action bar (selection toolbar) --- */
@@ -589,6 +669,18 @@
     color: var(--text-faint);
     font-style: italic;
     padding: 2px 0 0;
+}
+
+/* Rejected write / bad paste input. Shown inside the dialog body. */
+.dialog__error {
+    margin: 8px 0 0;
+    padding: 8px 10px;
+    border: 1px solid var(--danger);
+    border-radius: 6px;
+    background: var(--bg-sunken);
+    color: var(--danger);
+    font-size: 12px;
+    line-height: 1.45;
 }
 
 /* --- Table pagination --- */

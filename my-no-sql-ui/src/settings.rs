@@ -19,12 +19,18 @@ impl Default for HealthThresholds {
     }
 }
 
-/// Full snapshot of the server-side UI settings. MCP write access is a
-/// runtime-only enable window on the server; the UI learns whether it's
-/// currently enabled and how many seconds remain.
+/// Full snapshot of the server-side UI settings. MCP and UI write access are
+/// two independent runtime-only enable windows on the server; the UI learns
+/// whether each is currently enabled and how many seconds remain.
+///
+/// `Default` must leave both write flags `false`: `api::get_ui_settings` falls
+/// back to it when the server is unreachable or too old, and the write guard
+/// reads these — so an unreachable server fails closed.
 #[derive(Clone, Copy, PartialEq, Debug, Default)]
 pub struct UiServerSettings {
     pub thresholds: HealthThresholds,
     pub mcp_writes_enabled: bool,
     pub mcp_writes_remaining_secs: Option<u64>,
+    pub ui_writes_enabled: bool,
+    pub ui_writes_remaining_secs: Option<u64>,
 }

@@ -54,6 +54,10 @@ struct DataState {
     headers: Vec<String>,
     rows: Vec<Value>,
     dialog: Option<DialogState>,
+    /// Why the last write attempt from the open dialog failed — most often
+    /// "write access is disabled". Rendered inside the dialog, since a
+    /// rejected delete otherwise looks like the button did nothing.
+    write_error: Option<String>,
     checked_keys: HashSet<String>,
     page_size: usize,
     current_page: usize,
@@ -72,6 +76,7 @@ impl Default for DataState {
             headers: Vec::new(),
             rows: Vec::new(),
             dialog: None,
+            write_error: None,
             checked_keys: HashSet::new(),
             page_size: DEFAULT_PAGE_SIZE,
             current_page: 0,
@@ -162,6 +167,22 @@ impl DataState {
     fn clear_rows_scope(&mut self) {
         self.loaded_rows_for = None;
         self.rows_ready = false;
+    }
+
+    /// Opens a confirm dialog. Clears any error left over from a previous
+    /// attempt, so a reopened dialog never shows a stale rejection.
+    fn open_dialog(&mut self, dialog: DialogState) {
+        self.dialog = Some(dialog);
+        self.write_error = None;
+    }
+
+    fn close_dialog(&mut self) {
+        self.dialog = None;
+        self.write_error = None;
+    }
+
+    fn set_write_error(&mut self, err: String) {
+        self.write_error = Some(err);
     }
 }
 
@@ -372,6 +393,7 @@ pub fn DataLayout() -> Element {
     };
     let checked_keys = cs_ra.checked_keys.clone();
     let dialog_val = cs_ra.dialog.clone();
+    let write_error = cs_ra.write_error.clone();
     let page_size = cs_ra.page_size;
     let stored_page = cs_ra.current_page;
     drop(cs_ra);
@@ -483,12 +505,12 @@ pub fn DataLayout() -> Element {
                     let back_partition = partition.clone();
                     spawn(async move {
                         if let Err(err) = delete_row(&table_name, &partition_key, &row_key).await {
-                            dioxus_utils::console_log(&format!("Delete error: {}", err));
+                            cs.write().set_write_error(err.to_string());
                             return;
                         }
                         {
                             let mut w = cs.write();
-                            w.dialog = None;
+                            w.close_dialog();
                             w.checked_keys.remove(&row_key);
                             w.clear_rows_scope();
                         }
@@ -509,11 +531,11 @@ pub fn DataLayout() -> Element {
                         if let Err(err) =
                             bulk_delete_rows(&table_name, &partition_key, &row_keys).await
                         {
-                            dioxus_utils::console_log(&format!("Bulk delete error: {}", err));
+                            cs.write().set_write_error(err.to_string());
                             return;
                         }
                         let mut w = cs.write();
-                        w.dialog = None;
+                        w.close_dialog();
                         for rk in &row_keys {
                             w.checked_keys.remove(rk);
                         }
@@ -526,11 +548,11 @@ pub fn DataLayout() -> Element {
                 }) => {
                     spawn(async move {
                         if let Err(err) = bulk_delete_many(&table_name, &grouped).await {
-                            dioxus_utils::console_log(&format!("Paste delete error: {}", err));
+                            cs.write().set_write_error(err.to_string());
                             return;
                         }
                         let mut w = cs.write();
-                        w.dialog = None;
+                        w.close_dialog();
                         w.checked_keys.clear();
                         w.clear_rows_scope();
                     });
@@ -614,7 +636,7 @@ pub fn DataLayout() -> Element {
                         class: "btn btn--danger btn--sm",
                         onclick: move |_| {
                             let Some(pk) = pk_opt.clone() else { return };
-                            cs.write().dialog = Some(DialogState::BulkDelete {
+                            cs.write().open_dialog(DialogState::BulkDelete {
                                 partition_key: pk,
                                 row_keys: keys_for_delete.clone(),
                             });
@@ -641,7 +663,7 @@ pub fn DataLayout() -> Element {
                     on_export: on_export_click,
                     export_enabled,
                     on_paste_delete: move |_| {
-                        cs.write().dialog = Some(DialogState::PasteDelete {
+                        cs.write().open_dialog(DialogState::PasteDelete {
                             raw: String::new(),
                             parsed: None,
                             total_rows: 0,
@@ -711,7 +733,7 @@ pub fn DataLayout() -> Element {
                         row,
                         on_close: close_drawer,
                         on_delete: move |_| {
-                            cs.write().dialog = Some(DialogState::DeleteOne {
+                            cs.write().open_dialog(DialogState::DeleteOne {
                                 partition_key: pk_val.clone(),
                                 row_key: rk_val.clone(),
                             });
@@ -730,6 +752,14 @@ pub fn DataLayout() -> Element {
         }
     };
 
+    // A rejected write (most often "write access is disabled") is shown inside
+    // the open dialog — the dialog deliberately stays open so the user can
+    // enable write access and retry without re-selecting the rows.
+    let write_error_line = match write_error.as_ref() {
+        Some(msg) => rsx! { div { class: "dialog__error", "{msg}" } },
+        None => rsx! {},
+    };
+
     let dialog_render = match dialog_val {
         Some(DialogState::DeleteOne { partition_key, row_key }) => rsx! {
             div { class: "dialog-overlay",
@@ -741,11 +771,12 @@ pub fn DataLayout() -> Element {
                         " from partition "
                         b { "{partition_key}" }
                         "?"
+                        {write_error_line.clone()}
                     }
                     div { class: "dialog__footer",
                         button {
                             class: "btn btn--ghost btn--sm",
-                            onclick: move |_| { cs.write().dialog = None; },
+                            onclick: move |_| { cs.write().close_dialog(); },
                             "Cancel"
                         }
                         button { class: "btn btn--danger btn--sm", onclick: confirm_delete.clone(),
@@ -782,11 +813,12 @@ pub fn DataLayout() -> Element {
                                 {items}
                                 {extra_line}
                             }
+                            {write_error_line.clone()}
                         }
                         div { class: "dialog__footer",
                             button {
                                 class: "btn btn--ghost btn--sm",
-                                onclick: move |_| { cs.write().dialog = None; },
+                                onclick: move |_| { cs.write().close_dialog(); },
                                 "Cancel"
                             }
                             button { class: "btn btn--danger btn--sm", onclick: confirm_delete.clone(),
@@ -950,6 +982,7 @@ pub fn DataLayout() -> Element {
                                 placeholder: placeholder_text,
                             }
                             {error_render}
+                            {write_error_line.clone()}
                             {summary_render}
                             div { class: "dialog__list",
                                 {preview_items_render}
@@ -959,7 +992,7 @@ pub fn DataLayout() -> Element {
                         div { class: "dialog__footer",
                             button {
                                 class: "btn btn--ghost btn--sm",
-                                onclick: move |_| { cs.write().dialog = None; },
+                                onclick: move |_| { cs.write().close_dialog(); },
                                 "Cancel"
                             }
                             button {

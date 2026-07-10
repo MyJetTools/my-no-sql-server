@@ -98,6 +98,9 @@ pub fn build(app: &Arc<AppContext>) -> ControllersMiddleware {
     result.register_post_action(Arc::new(
         super::ui_settings_controller::SetMcpWritesAction::new(app.clone()),
     ));
+    result.register_post_action(Arc::new(
+        super::ui_settings_controller::SetUiWritesAction::new(app.clone()),
+    ));
 
     result.register_get_action(Arc::new(super::status_controller::StatusAction::new(
         app.clone(),

@@ -170,6 +170,7 @@ pub async fn delete_row(
     partition_key: &str,
     row_key: &str,
 ) -> Result<(), RequestError> {
+    ensure_ui_writes_enabled().await?;
     let url = format!(
         "{}/api/Row?tableName={}&partitionKey={}&rowKey={}",
         get_base_url(),
@@ -204,6 +205,10 @@ pub async fn get_ui_settings() -> Result<crate::settings::UiServerSettings, Requ
         mcp_writes_enabled: bool,
         #[serde(rename = "mcpWritesRemainingSecs", default)]
         mcp_writes_remaining_secs: Option<u64>,
+        #[serde(rename = "uiWritesEnabled", default)]
+        ui_writes_enabled: bool,
+        #[serde(rename = "uiWritesRemainingSecs", default)]
+        ui_writes_remaining_secs: Option<u64>,
     }
     let p: Payload = response.json().await?;
     Ok(crate::settings::UiServerSettings {
@@ -213,6 +218,8 @@ pub async fn get_ui_settings() -> Result<crate::settings::UiServerSettings, Requ
         },
         mcp_writes_enabled: p.mcp_writes_enabled,
         mcp_writes_remaining_secs: p.mcp_writes_remaining_secs,
+        ui_writes_enabled: p.ui_writes_enabled,
+        ui_writes_remaining_secs: p.ui_writes_remaining_secs,
     })
 }
 
@@ -267,6 +274,50 @@ pub async fn set_mcp_writes(enabled: bool) -> Result<(), RequestError> {
         });
     }
     Ok(())
+}
+
+/// Enables or disables destructive UI writes via POST
+/// `/api/Settings/UiWrites`. Enabling opens a 10-minute window on the
+/// server; disabling closes it immediately.
+pub async fn set_ui_writes(enabled: bool) -> Result<(), RequestError> {
+    let url = format!("{}/api/Settings/UiWrites", get_base_url());
+    #[derive(serde::Serialize)]
+    struct Payload {
+        enabled: bool,
+    }
+    let response = reqwest::Client::new()
+        .post(&url)
+        .json(&Payload { enabled })
+        .send()
+        .await?;
+    if !response.status().is_success() {
+        return Err(RequestError {
+            message: format!("Failed to update write access: {}", response.status()),
+        });
+    }
+    Ok(())
+}
+
+/// Message shown when a write is attempted while write access is off.
+pub const WRITE_ACCESS_DISABLED: &str = "Write access is DISABLED. \
+    Open Settings \u{2192} Write access and click \"Enable\" to allow writes for 10 minutes.";
+
+/// Gate every destructive UI write goes through. The server owns the
+/// 10-minute window, so the flag is re-read per call rather than cached — a
+/// page left open past the expiry cannot keep writing. Any failure to reach
+/// the server also blocks the write (fail closed).
+///
+/// This is an admin guardrail, not a security boundary: the UI writes through
+/// the same public REST API that SDK client apps use (`/api/Row`,
+/// `/api/Bulk/Delete`, `/api/Backup/...`), so those endpoints cannot be gated
+/// server-side without breaking every writer app.
+async fn ensure_ui_writes_enabled() -> Result<(), RequestError> {
+    if get_ui_settings().await?.ui_writes_enabled {
+        return Ok(());
+    }
+    Err(RequestError {
+        message: WRITE_ACCESS_DISABLED.to_string(),
+    })
 }
 
 pub async fn get_snapshots_list() -> Result<Vec<SnapshotFileApiModel>, RequestError> {
@@ -362,6 +413,7 @@ pub async fn restore_table_from_backup(
     table_name: &str,
     clean_table: bool,
 ) -> Result<(), RequestError> {
+    ensure_ui_writes_enabled().await?;
     let url = format!("{}/api/Backup/RestoreFromBackup", get_base_url());
     let body = format!(
         "tableName={}&fileName={}&cleanTable={}",
@@ -393,6 +445,7 @@ pub async fn restore_partition_from_backup(
     table_name: &str,
     partition_key: &str,
 ) -> Result<(), RequestError> {
+    ensure_ui_writes_enabled().await?;
     let url = format!("{}/api/Backup/RestorePartition", get_base_url());
     let body = format!(
         "fileName={}&tableName={}&partitionKey={}",
@@ -421,6 +474,7 @@ pub async fn bulk_delete_rows(
     partition_key: &str,
     row_keys: &[String],
 ) -> Result<(), RequestError> {
+    ensure_ui_writes_enabled().await?;
     let mut body = std::collections::BTreeMap::new();
     body.insert(partition_key.to_string(), row_keys.to_vec());
 
@@ -446,6 +500,7 @@ pub async fn bulk_delete_many(
     table_name: &str,
     grouped: &std::collections::BTreeMap<String, Vec<String>>,
 ) -> Result<(), RequestError> {
+    ensure_ui_writes_enabled().await?;
     let url = format!(
         "{}/api/Bulk/Delete?tableName={}",
         get_base_url(),

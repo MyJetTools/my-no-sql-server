@@ -30,6 +30,12 @@ pub const DEFAULT_PERSIST_PERIOD: crate::db_sync::DataSynchronizationPeriod =
 /// "Enable MCP writes" in the UI Settings page.
 pub const MCP_WRITES_WINDOW: Duration = Duration::from_secs(600);
 
+/// How long UI write operations stay enabled after the user clicks
+/// "Enable" on the Write access card in the UI Settings page. Separate
+/// from `MCP_WRITES_WINDOW` on purpose: enabling writes for an MCP agent
+/// must not silently open the destructive buttons in the UI, and vice versa.
+pub const UI_WRITES_WINDOW: Duration = Duration::from_secs(600);
+
 pub struct AppContext {
     pub created: DateTimeAsMicroseconds,
     pub db: DbInstance,
@@ -67,6 +73,10 @@ pub struct AppContext {
     /// window. `0` means MCP writes are disabled. Runtime-only — never
     /// persisted, so a restart always leaves MCP writes disabled.
     mcp_writes_enabled_until: AtomicI64,
+
+    /// Expiry (`unix_microseconds`) of the current UI-writes enable window.
+    /// `0` means UI writes are disabled. Runtime-only, same as the MCP one.
+    ui_writes_enabled_until: AtomicI64,
 }
 
 impl AppContext {
@@ -96,6 +106,7 @@ impl AppContext {
                 Err(_) => None,
             },
             mcp_writes_enabled_until: AtomicI64::new(0),
+            ui_writes_enabled_until: AtomicI64::new(0),
         }
     }
 
@@ -131,6 +142,43 @@ impl AppContext {
     /// Seconds left in the enable window, or `None` when disabled.
     pub fn mcp_writes_remaining_secs(&self) -> Option<u64> {
         let until = self.mcp_writes_enabled_until()?;
+        let now = DateTimeAsMicroseconds::now();
+        let micros_left = until.unix_microseconds - now.unix_microseconds;
+        Some((micros_left.max(0) / 1_000_000) as u64)
+    }
+
+    /// Enables UI write operations for `UI_WRITES_WINDOW`.
+    pub fn enable_ui_writes(&self) {
+        let until = DateTimeAsMicroseconds::now().add(UI_WRITES_WINDOW);
+        self.ui_writes_enabled_until
+            .store(until.unix_microseconds, std::sync::atomic::Ordering::SeqCst);
+    }
+
+    /// Disables UI write operations immediately.
+    pub fn disable_ui_writes(&self) {
+        self.ui_writes_enabled_until
+            .store(0, std::sync::atomic::Ordering::SeqCst);
+    }
+
+    /// `Some(expiry)` while the enable window is still open, otherwise `None`.
+    pub fn ui_writes_enabled_until(&self) -> Option<DateTimeAsMicroseconds> {
+        let until = self
+            .ui_writes_enabled_until
+            .load(std::sync::atomic::Ordering::Relaxed);
+        if until > DateTimeAsMicroseconds::now().unix_microseconds {
+            Some(DateTimeAsMicroseconds::new(until))
+        } else {
+            None
+        }
+    }
+
+    pub fn is_ui_write_enabled(&self) -> bool {
+        self.ui_writes_enabled_until().is_some()
+    }
+
+    /// Seconds left in the enable window, or `None` when disabled.
+    pub fn ui_writes_remaining_secs(&self) -> Option<u64> {
+        let until = self.ui_writes_enabled_until()?;
         let now = DateTimeAsMicroseconds::now();
         let micros_left = until.unix_microseconds - now.unix_microseconds;
         Some((micros_left.max(0) / 1_000_000) as u64)

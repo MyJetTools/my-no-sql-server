@@ -43,9 +43,15 @@ pub fn RowsTable(
         .count();
     let all_checked = visible_count == total && total > 0;
 
+    // The PartitionKey / RowKey headers carry the same `pk` / `rk` classes as
+    // their body cells, so the frozen-column rules line up across thead+tbody.
     let header_cells = headers.iter().map(|h| {
-        let is_numeric = matches!(h.as_str(), "TimeStamp");
-        let cls = if is_numeric { "num" } else { "" };
+        let cls = match h.as_str() {
+            PARTITION_KEY => "pk",
+            ROW_KEY => "rk",
+            TIME_STAMP => "num",
+            _ => "",
+        };
         rsx! { th { class: cls, "{h}" } }
     });
 
@@ -127,9 +133,13 @@ pub fn RowsTable(
         rsx! {}
     };
 
+    // Tells the CSS whether a checkbox column exists, since it shifts the
+    // `left` offset of every frozen column to its right.
+    let table_cls = if selectable { "rt rt--selectable" } else { "rt" };
+
     rsx! {
         div { class: "rows-wrap",
-            table { class: "rt",
+            table { class: "{table_cls}",
                 thead {
                     tr {
                         {head_check}

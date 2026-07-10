@@ -27,6 +27,54 @@ struct McpWritesState {
     error: Option<String>,
 }
 
+/// Mirrors `McpWritesState` for the UI's own destructive-write window.
+/// Kept separate from the MCP one on purpose — enabling writes for an agent
+/// must not silently unlock the delete buttons in the UI.
+#[derive(Default)]
+struct UiWritesState {
+    enabled: bool,
+    remaining_secs: Option<u64>,
+    saving: bool,
+    message: Option<String>,
+    error: Option<String>,
+}
+
+/// Enables/disables UI writes on the server, then re-reads the authoritative
+/// state so the countdown reflects the real window.
+fn toggle_ui_writes(mut uiw: Signal<UiWritesState>, enabled: bool) {
+    {
+        let mut w = uiw.write();
+        w.saving = true;
+        w.error = None;
+        w.message = None;
+    }
+    spawn(async move {
+        match api::set_ui_writes(enabled).await {
+            Ok(()) => {
+                let server = api::get_ui_settings().await.ok();
+                let mut w = uiw.write();
+                w.saving = false;
+                if let Some(s) = server {
+                    w.enabled = s.ui_writes_enabled;
+                    w.remaining_secs = s.ui_writes_remaining_secs;
+                } else {
+                    w.enabled = enabled;
+                }
+                w.message = Some(if enabled {
+                    "Write access enabled for 10 minutes.".to_string()
+                } else {
+                    "Write access disabled.".to_string()
+                });
+            }
+            Err(err) => {
+                let mut w = uiw.write();
+                w.saving = false;
+                w.error = Some(format!("Failed: {}", err));
+            }
+        }
+    });
+}
+
 /// Enables/disables MCP writes on the server, then re-reads the
 /// authoritative state so the countdown reflects the real window.
 fn toggle_mcp_writes(mut mcp: Signal<McpWritesState>, enabled: bool) {
@@ -68,9 +116,11 @@ pub fn Settings() -> Element {
     let mut thresholds = use_context::<Signal<HealthThresholds>>();
     let mut cs = use_signal(SettingsState::default);
     let mut mcp = use_signal(McpWritesState::default);
+    let mut uiw = use_signal(UiWritesState::default);
 
-    // Poll the MCP-writes enable state so the countdown stays in sync and
-    // the card flips back to "Disabled" when the 10-minute window lapses.
+    // Poll both enable states so the countdowns stay in sync and each card
+    // flips back to "Disabled" when its 10-minute window lapses. One poller
+    // drives both — `/api/Settings` returns them together.
     {
         let loaded = mcp.read().loaded;
         if !loaded {
@@ -78,9 +128,14 @@ pub fn Settings() -> Element {
             spawn(async move {
                 loop {
                     if let Ok(s) = api::get_ui_settings().await {
-                        let mut w = mcp.write();
-                        w.enabled = s.mcp_writes_enabled;
-                        w.remaining_secs = s.mcp_writes_remaining_secs;
+                        {
+                            let mut w = mcp.write();
+                            w.enabled = s.mcp_writes_enabled;
+                            w.remaining_secs = s.mcp_writes_remaining_secs;
+                        }
+                        let mut w = uiw.write();
+                        w.enabled = s.ui_writes_enabled;
+                        w.remaining_secs = s.ui_writes_remaining_secs;
                     }
                     dioxus_utils::js::sleep(Duration::from_secs(1)).await;
                 }
@@ -209,6 +264,44 @@ pub fn Settings() -> Element {
         None => "—".to_string(),
     };
 
+    // ----- Write access card state & handlers -----
+    let uiw_ra = uiw.read();
+    let uiw_enabled = uiw_ra.enabled;
+    let uiw_remaining_secs = uiw_ra.remaining_secs;
+    let uiw_saving = uiw_ra.saving;
+    let uiw_message = uiw_ra.message.clone();
+    let uiw_error = uiw_ra.error.clone();
+    drop(uiw_ra);
+
+    let uiw_enable = move |_| toggle_ui_writes(uiw, true);
+    let uiw_disable = move |_| toggle_ui_writes(uiw, false);
+
+    let uiw_footer = if let Some(m) = uiw_message.clone() {
+        rsx! { div { style: "color: var(--ok); font-size: 12px;", "{m}" } }
+    } else if let Some(e) = uiw_error.clone() {
+        rsx! { div { style: "color: var(--danger); font-size: 12px;", "{e}" } }
+    } else {
+        rsx! {}
+    };
+
+    let uiw_status_label = if uiw_enabled {
+        match uiw_remaining_secs {
+            Some(secs) => format!("enabled — ~{}m {:02}s left", secs / 60, secs % 60),
+            None => "enabled".to_string(),
+        }
+    } else {
+        "disabled".to_string()
+    };
+    let uiw_status_color = if uiw_enabled {
+        "var(--ok)"
+    } else {
+        "var(--text-muted)"
+    };
+    let uiw_remaining_label = match uiw_remaining_secs {
+        Some(secs) => format!("{}m {:02}s", secs / 60, secs % 60),
+        None => "—".to_string(),
+    };
+
     rsx! {
         section { class: "page page--padded",
             div { style: "max-width: 640px; display: flex; flex-direction: column; gap: 14px;",
@@ -279,6 +372,78 @@ pub fn Settings() -> Element {
                             disabled: saving,
                             onclick: save,
                             if saving { "Saving…" } else { "Save" }
+                        }
+                    }
+                }
+
+                // ----- Write access card (UI writes) -----
+                div { class: "card",
+                    div { class: "card__header",
+                        span { class: "card__title", "Write access" }
+                        span {
+                            class: "card__subtitle",
+                            style: "color: {uiw_status_color};",
+                            "{uiw_status_label}"
+                        }
+                    }
+                    div { class: "card__body", style: "display: flex; flex-direction: column; gap: 14px;",
+                        p { style: "margin: 0; color: var(--text-muted); font-size: 12.5px;",
+                            "Controls destructive operations in this UI ("
+                            b { "delete row" }
+                            ", "
+                            b { "bulk delete" }
+                            ", "
+                            b { "paste & delete" }
+                            ", "
+                            b { "restore from backup" }
+                            "). They are disabled by default. Click "
+                            b { "Enable" }
+                            " to allow them for "
+                            b { "10 minutes" }
+                            "; they auto-disable after that, or click "
+                            b { "Disable" }
+                            " to turn them off now. A server restart leaves them disabled. "
+                            "Browsing data and making backups are always available. "
+                            "This window is independent of MCP writes."
+                        }
+
+                        if uiw_enabled {
+                            div {
+                                class: "settings-row",
+                                style: "align-items: center;",
+                                label { class: "settings-row__label", "Time remaining" }
+                                div { class: "settings-row__field",
+                                    span {
+                                        style: "color: var(--ok); font-family: var(--font-mono); font-weight: 600; font-size: 15px;",
+                                        "{uiw_remaining_label}"
+                                    }
+                                }
+                            }
+                        }
+
+                        {uiw_footer}
+                    }
+                    div { class: "card__footer", style: "display: flex; justify-content: flex-end; gap: 6px; padding: 10px 14px;",
+                        if uiw_enabled {
+                            button {
+                                class: "btn btn--ghost btn--sm",
+                                disabled: uiw_saving,
+                                onclick: uiw_disable,
+                                "Disable"
+                            }
+                            button {
+                                class: "btn btn--primary btn--sm",
+                                disabled: uiw_saving,
+                                onclick: uiw_enable,
+                                if uiw_saving { "Working…" } else { "Extend +10 min" }
+                            }
+                        } else {
+                            button {
+                                class: "btn btn--primary btn--sm",
+                                disabled: uiw_saving,
+                                onclick: uiw_enable,
+                                if uiw_saving { "Working…" } else { "Enable for 10 min" }
+                            }
                         }
                     }
                 }
