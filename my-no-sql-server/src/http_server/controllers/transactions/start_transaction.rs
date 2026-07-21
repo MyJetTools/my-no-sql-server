@@ -12,7 +12,7 @@ use std::sync::Arc;
     summary: "Starts new Transaction",
     controller: "Transactions",
     result:[
-        {status_code: 200, description: "Issued transaction". model:"StartTransactionResponse"},        
+        {status_code: 200, description: "Issued transaction", model: "StartTransactionResponse"},        
     ]
 )]
 

@@ -1,5 +1,5 @@
 use my_http_server::macros::*;
-use my_http_server::types::RawDataTyped;
+use my_http_server::RawDataTyped;
 
 use crate::{
     db_operations::UpdateStatistics, db_sync::DataSynchronizationPeriod,

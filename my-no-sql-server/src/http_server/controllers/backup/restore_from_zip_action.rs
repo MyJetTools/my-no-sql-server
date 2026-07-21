@@ -1,5 +1,5 @@
 use my_http_server::macros::*;
-use my_http_server::types::FileContent;
+use super::UploadedFile;
 use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 use std::sync::Arc;
 
@@ -35,7 +35,7 @@ async fn handle_request(
 
     let restore_result = crate::operations::backup::restore(
         &action.app,
-        input_data.zip.content,
+        input_data.zip.into_content(),
         table_name.as_deref(),
         input_data.clean_table,
     )
@@ -56,7 +56,7 @@ pub struct RestoreFromBackupZipFileInputData {
     pub table_name: String,
 
     #[http_form_data(name = "fileName", description = "File in backup folder")]
-    pub zip: FileContent,
+    pub zip: UploadedFile,
 
     #[http_form_data(name = "cleanTable", description = "Clean table before restore")]
     pub clean_table: bool,

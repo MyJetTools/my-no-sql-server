@@ -24,6 +24,13 @@ pub enum DataSynchronizationPeriod {
 }
 
 impl DataSynchronizationPeriod {
+    // `MyHttpInput` expands a bare `default` on an enum field into `Type::create_default()?`, but
+    // the `MyHttpStringEnum` derive only emits `Default` (from the case marked `default`). Bridge
+    // the two here.
+    pub fn create_default() -> Result<Self, my_http_utils::http_input::HttpParseError> {
+        Ok(Self::default())
+    }
+
     pub fn get_sync_moment(&self) -> DateTimeAsMicroseconds {
         let mut now = DateTimeAsMicroseconds::now();
 

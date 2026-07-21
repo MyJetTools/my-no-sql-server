@@ -1,7 +1,7 @@
 use my_http_server::macros::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, MyHttpIntegerEnum)]
+#[derive(Debug, MyHttpIntegerEnum)]
 pub enum OperationFailReason {
     #[http_enum_case(id = -1; description = "Table already exists")]
     TableAlreadyExists,

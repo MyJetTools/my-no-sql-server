@@ -55,7 +55,9 @@ pub async fn setup_server(app: &Arc<AppContext>) -> HttpConnectionsCounter {
     http_server.add_middleware(mcp_middleware);
     http_server.add_middleware(static_files_middleware);
 
-    http_server.start(app.states.clone(), my_logger::LOGGER.clone());
+    // One TCP listener serving both protocols: hyper's auto builder sniffs the HTTP/2 preface, so
+    // h1 and h2c (prior-knowledge) clients are accepted on the same port.
+    http_server.start_auto(app.states.clone(), my_logger::LOGGER.clone());
 
     if let Some(unix_socket_http_server) = unix_socket_http_server.as_mut() {
         unix_socket_http_server.start(app.states.clone(), my_logger::LOGGER.clone());

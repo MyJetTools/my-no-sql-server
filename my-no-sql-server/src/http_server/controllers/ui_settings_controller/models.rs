@@ -1,5 +1,5 @@
 use my_http_server::macros::*;
-use my_http_server::types::RawDataTyped;
+use my_http_server::RawDataTyped;
 use serde::{Deserialize, Serialize};
 
 use crate::app::AppContext;
@@ -48,17 +48,11 @@ pub struct SettingsPublicModel {
     pub bad_ms: u32,
     #[serde(rename = "mcpWritesEnabled")]
     pub mcp_writes_enabled: bool,
-    #[serde(
-        rename = "mcpWritesRemainingSecs",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "mcpWritesRemainingSecs")]
     pub mcp_writes_remaining_secs: Option<u64>,
     #[serde(rename = "uiWritesEnabled")]
     pub ui_writes_enabled: bool,
-    #[serde(
-        rename = "uiWritesRemainingSecs",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "uiWritesRemainingSecs")]
     pub ui_writes_remaining_secs: Option<u64>,
 }
 
@@ -79,9 +73,9 @@ impl SettingsPublicModel {
 /// from the body are left as-is on the server.
 #[derive(Serialize, Deserialize, Debug, Default, Clone, MyHttpObjectStructure)]
 pub struct SettingsPatchBody {
-    #[serde(rename = "warnMs", default, skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "warnMs", default)]
     pub warn_ms: Option<u32>,
-    #[serde(rename = "badMs", default, skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "badMs", default)]
     pub bad_ms: Option<u32>,
 }
 

@@ -55,9 +55,8 @@ pub struct ReaderModel {
 }
 #[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
 pub struct StatusModel {
-    #[serde(rename = "notInitialized", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "notInitialized")]
     not_initialized: Option<NonInitializedModel>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     initialized: Option<InitializedModel>,
     #[serde(rename = "statusBar")]
     status_bar: StatusBarModel,

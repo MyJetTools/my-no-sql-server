@@ -17,3 +17,5 @@ mod list_snapshot_partitions_action;
 pub use list_snapshot_partitions_action::*;
 mod get_snapshot_rows_action;
 pub use get_snapshot_rows_action::*;
+mod uploaded_file;
+pub use uploaded_file::*;
