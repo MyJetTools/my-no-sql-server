@@ -116,6 +116,18 @@ pub fn build(app: &Arc<AppContext>) -> ControllersMiddleware {
         app.clone(),
     )));
 
+    result.register_post_action(Arc::new(
+        super::bulk::CleanAndBulkInsertByChunksAction::new(app.clone()),
+    ));
+
+    result.register_post_action(Arc::new(
+        super::bulk::CleanAndBulkInsertByChunksCommitAction::new(app.clone()),
+    ));
+
+    result.register_post_action(Arc::new(
+        super::bulk::CleanAndBulkInsertByChunksCancelAction::new(app.clone()),
+    ));
+
     result.register_post_action(Arc::new(super::bulk::BulkInsertOrReplaceAction::new(
         app.clone(),
     )));

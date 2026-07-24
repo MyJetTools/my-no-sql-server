@@ -12,7 +12,8 @@ use my_no_sql_sdk::core::rust_extensions::{
 use my_no_sql_sdk::server::DbInstance;
 
 use crate::{
-    data_readers::DataReadersList, db_operations::multipart::MultipartList, db_sync::SyncEvent,
+    data_readers::DataReadersList, db_operations::bulk_processes::ActiveBulkProcesses,
+    db_operations::multipart::MultipartList, db_sync::SyncEvent,
     db_transactions::ActiveTransactions, operations::init::InitState,
     persist_markers::PersistMarkers, settings_reader::SettingsModel,
 };
@@ -43,6 +44,10 @@ pub struct AppContext {
     pub metrics: PrometheusMetrics,
 
     pub active_transactions: ActiveTransactions,
+
+    /// Chunked `CleanAndBulkInsert` uploads which are still being collected.
+    /// Nothing here is visible to readers until the process is committed.
+    pub active_bulk_processes: ActiveBulkProcesses,
 
     pub data_readers: DataReadersList,
 
@@ -87,6 +92,7 @@ impl AppContext {
             db: DbInstance::new(),
             metrics: PrometheusMetrics::new(),
             active_transactions: ActiveTransactions::new(),
+            active_bulk_processes: ActiveBulkProcesses::new(),
             states: Arc::new(AppStates::create_un_initialized()),
 
             data_readers: DataReadersList::new(Duration::from_secs(30)),

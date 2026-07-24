@@ -1,3 +1,4 @@
+pub mod bulk_processes;
 mod check_app_states;
 mod error;
 pub mod gc;

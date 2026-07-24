@@ -1,4 +1,5 @@
 mod backup_timer;
+pub mod gc_bulk_processes;
 pub mod gc_db_rows;
 pub mod gc_http_sessions;
 pub mod gc_multipart;
