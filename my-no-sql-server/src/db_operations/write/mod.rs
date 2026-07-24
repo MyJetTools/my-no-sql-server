@@ -1,4 +1,5 @@
 mod bulk_delete;
+pub mod bulk_insert_or_replace_if_new;
 pub mod bulk_insert_or_update;
 
 mod clean_partition_and_bulk_insert;
@@ -10,6 +11,7 @@ mod delete_partitions;
 pub mod delete_row;
 pub mod insert;
 pub mod insert_or_replace;
+pub mod insert_or_replace_if_new;
 pub mod replace;
 pub mod table;
 

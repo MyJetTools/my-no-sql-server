@@ -30,6 +30,20 @@ pub struct InsertOrReplaceInputContract {
 }
 
 #[derive(MyHttpInput)]
+pub struct InsertOrReplaceIfNewInputContract {
+    #[http_query(name = "tableName"; description = "Name of a table")]
+    pub table_name: String,
+
+    #[http_query(name = "syncPeriod"; description = "Synchronization period"; default)]
+    pub sync_period: DataSynchronizationPeriod,
+
+    #[http_body_raw(
+        description = "DbEntity description. Must carry a TimeStamp - the row is written only when it is new or its TimeStamp is greater than the stored one"
+    )]
+    pub body: RawDataTyped<BaseDbRowContract>,
+}
+
+#[derive(MyHttpInput)]
 pub struct InsertInputContract {
     #[http_query(name = "tableName"; description = "Name of a table")]
     pub table_name: String,

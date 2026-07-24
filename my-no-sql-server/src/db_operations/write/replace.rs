@@ -41,8 +41,18 @@ pub async fn validate_before(
         return Err(DbOperationError::RecordNotFound);
     }
 
-    if db_row.unwrap().get_time_stamp() != db_entity.get_time_stamp().unwrap() {
-        return Err(DbOperationError::OptimisticConcurrencyUpdateFails);
+    let incoming_time_stamp =
+        DateTimeAsMicroseconds::parse_iso_string(db_entity.get_time_stamp().unwrap());
+
+    match incoming_time_stamp {
+        Some(incoming_time_stamp) => {
+            if db_row.unwrap().get_time_stamp_as_date_time().unix_microseconds
+                != incoming_time_stamp.unix_microseconds
+            {
+                return Err(DbOperationError::OptimisticConcurrencyUpdateFails);
+            }
+        }
+        None => return Err(DbOperationError::OptimisticConcurrencyUpdateFails),
     }
 
     Ok(db_entity.into_db_row()?)
@@ -73,7 +83,9 @@ pub async fn execute(
 
             match current_db_row {
                 Some(current_db_row) => {
-                    if current_db_row.get_time_stamp() != db_row.get_time_stamp() {
+                    if current_db_row.get_time_stamp_as_date_time().unix_microseconds
+                        != db_row.get_time_stamp_as_date_time().unix_microseconds
+                    {
                         return Err(DbOperationError::OptimisticConcurrencyUpdateFails);
                     }
                 }

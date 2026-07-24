@@ -4,6 +4,7 @@ mod download_action;
 mod get_rows_action;
 mod insert_action;
 mod insert_or_replace_action;
+mod insert_or_replace_if_new_action;
 pub mod models;
 mod replace_row_action;
 
@@ -13,4 +14,5 @@ pub use download_action::DownloadRowsAction;
 pub use get_rows_action::*;
 pub use insert_action::InsertRowAction;
 pub use insert_or_replace_action::InsertOrReplaceAction;
+pub use insert_or_replace_if_new_action::InsertOrReplaceIfNewAction;
 pub use replace_row_action::*;

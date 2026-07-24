@@ -89,19 +89,7 @@ impl From<DbOperationError> for HttpFailResult {
                 .into_http_fail_result(true, true)
             }
             DbOperationError::DbEntityParseFail(src) => {
-                let err_model = OperationFailHttpContract {
-                    reason: OperationFailReason::JsonParseFail,
-                    message: format!("{:?}", src),
-                };
-
-                let content = serde_json::to_vec(&err_model).unwrap();
-
-                HttpOutput::Content {
-                    headers: WebContentType::Json.into(),
-                    status_code: OPERATION_FAIL_HTTP_STATUS_CODE,
-                    content,
-                }
-                .into_http_fail_result(true, true)
+                from_db_entity_parse_fail_to_http_result(src)
             }
         }
     }
@@ -193,6 +181,27 @@ pub fn from_db_entity_parse_fail_to_http_result(src: DbEntityParseFail) -> HttpF
             let err_model = OperationFailHttpContract {
                 reason: OperationFailReason::RequiredEntityFieldIsMissing,
                 message: format!("RowKey can not be null"),
+            };
+
+            let content = serde_json::to_vec(&err_model).unwrap();
+
+            HttpOutput::Content {
+                headers: WebContentType::Json.into(),
+                status_code: OPERATION_FAIL_HTTP_STATUS_CODE,
+                content,
+            }
+            .into_http_fail_result(true, true)
+        }
+        DbEntityParseFail::FieldTimeStampIsRequired {
+            partition_key,
+            row_key,
+        } => {
+            let err_model = OperationFailHttpContract {
+                reason: OperationFailReason::RequiredEntityFieldIsMissing,
+                message: format!(
+                    "Entity with PartitionKey '{}' RowKey '{}' does not contain TimeStamp",
+                    partition_key, row_key
+                ),
             };
 
             let content = serde_json::to_vec(&err_model).unwrap();

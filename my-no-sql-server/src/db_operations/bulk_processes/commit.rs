@@ -51,6 +51,17 @@ pub async fn commit(
             )
             .await?;
         }
+        BulkProcessScope::InsertOrReplaceIfNew => {
+            crate::db_operations::write::bulk_insert_or_replace_if_new::execute(
+                app,
+                &db_table,
+                rows_by_partition,
+                event_src,
+                persist_moment,
+                now,
+            )
+            .await?;
+        }
     }
 
     Ok(())

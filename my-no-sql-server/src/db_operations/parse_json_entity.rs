@@ -19,3 +19,20 @@ pub fn parse_grouped_by_partition_key(
         }
     }
 }
+
+/// Same as [`parse_grouped_by_partition_key`], but each parsed row keeps the
+/// `TimeStamp` that came in the entity. Unlike the plain variant it does NOT
+/// substitute the server clock: an entity without a valid `TimeStamp` is an error
+/// (naming that entity). This is what the `*_if_new` operations compare against the
+/// timestamp already stored in the table.
+pub fn parse_grouped_by_partition_key_and_keep_date_time(
+    as_bytes: &[u8],
+) -> Result<Vec<(String, Vec<Arc<DbRow>>)>, DbOperationError> {
+    match DbJsonEntity::parse_grouped_by_partition_key_and_keep_date_time(as_bytes) {
+        Ok(result) => Ok(result),
+        Err(err) => {
+            let result = DbOperationError::DbEntityParseFail(err);
+            Err(result)
+        }
+    }
+}

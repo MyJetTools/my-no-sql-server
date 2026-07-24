@@ -3,12 +3,18 @@ use std::{collections::BTreeMap, sync::Arc};
 use my_no_sql_sdk::core::db::DbRow;
 use my_no_sql_sdk::core::rust_extensions::date_time::DateTimeAsMicroseconds;
 
-/// What the committed snapshot replaces. Fixed when the process is started -
-/// the following chunks only carry rows.
+/// What the committed snapshot does to the table. Fixed when the process is
+/// started - the following chunks only carry rows.
+///
+/// `Table` / `Partition` clean the whole table (or one partition) and re-insert
+/// the snapshot. `InsertOrReplaceIfNew` cleans nothing: on commit each row is
+/// written only when it is missing or its `TimeStamp` is greater than the stored
+/// one (rows must be accumulated keeping their own `TimeStamp`).
 #[derive(Debug, Clone)]
 pub enum BulkProcessScope {
     Table,
     Partition(String),
+    InsertOrReplaceIfNew,
 }
 
 /// Rows of a chunked `CleanAndBulkInsert` accumulated aside from the real

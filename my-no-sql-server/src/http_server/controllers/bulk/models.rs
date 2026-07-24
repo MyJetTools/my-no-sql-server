@@ -57,6 +57,23 @@ pub struct CleanAndBulkInsertByChunksInputContract {
 }
 
 #[derive(MyHttpInput)]
+pub struct InsertOrReplaceIfNewByChunksInputContract {
+    #[http_query(name = "tableName"; description = "Name of a table")]
+    pub table_name: String,
+
+    #[http_query(name = "processId"; description = "Id of the process. Omit it to start a new process - the id is returned in the response";)]
+    pub process_id: Option<String>,
+
+    #[http_header(name = "session", description = "Writer session id")]
+    pub session_id: Option<String>,
+
+    #[http_body_raw(
+        description = "DbRows. Each row must carry a TimeStamp - on commit a row is written only when it is new or its TimeStamp is greater than the stored one"
+    )]
+    pub body: RawDataTyped<Vec<BaseDbRowContract>>,
+}
+
+#[derive(MyHttpInput)]
 pub struct BulkProcessInputContract {
     #[http_query(name = "processId"; description = "Id of the process")]
     pub process_id: String,
@@ -92,5 +109,19 @@ pub struct BulkInsertOrReplaceInputContract {
     pub sync_period: DataSynchronizationPeriod,
 
     #[http_body_raw(description = "Rows")]
+    pub body: RawDataTyped<Vec<BaseDbRowContract>>,
+}
+
+#[derive(MyHttpInput)]
+pub struct BulkInsertOrReplaceIfNewInputContract {
+    #[http_query(name = "tableName"; description = "Name of a table")]
+    pub table_name: String,
+
+    #[http_query(name = "syncPeriod"; description = "Synchronization period"; default)]
+    pub sync_period: DataSynchronizationPeriod,
+
+    #[http_body_raw(
+        description = "Rows. Each row must carry a TimeStamp - a row is written only when it is new or its TimeStamp is greater than the stored one"
+    )]
     pub body: RawDataTyped<Vec<BaseDbRowContract>>,
 }

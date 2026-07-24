@@ -133,6 +133,22 @@ pub fn build(app: &Arc<AppContext>) -> ControllersMiddleware {
     )));
 
     result.register_post_action(Arc::new(
+        super::bulk::BulkInsertOrReplaceIfNewAction::new(app.clone()),
+    ));
+
+    result.register_post_action(Arc::new(
+        super::bulk::InsertOrReplaceIfNewByChunksAction::new(app.clone()),
+    ));
+
+    result.register_post_action(Arc::new(
+        super::bulk::InsertOrReplaceIfNewByChunksCommitAction::new(app.clone()),
+    ));
+
+    result.register_post_action(Arc::new(
+        super::bulk::InsertOrReplaceIfNewByChunksCancelAction::new(app.clone()),
+    ));
+
+    result.register_post_action(Arc::new(
         super::gc_controller::CleanAndKeepMaxPartitionsAmountAction::new(app.clone()),
     ));
 
@@ -147,6 +163,10 @@ pub fn build(app: &Arc<AppContext>) -> ControllersMiddleware {
     result.register_post_action(Arc::new(super::row_controller::InsertOrReplaceAction::new(
         app.clone(),
     )));
+
+    result.register_post_action(Arc::new(
+        super::row_controller::InsertOrReplaceIfNewAction::new(app.clone()),
+    ));
 
     result.register_get_action(Arc::new(super::row_controller::RowCountAction::new(
         app.clone(),
