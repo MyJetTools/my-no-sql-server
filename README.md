@@ -83,3 +83,45 @@ is skipped on recovery (honouring `SkipBrokenPartitions`).
 > the new format.
 
 
+### Write operations and the `TimeStamp` field
+
+For almost every write operation the server **assigns the `TimeStamp` itself** (its
+own clock at the moment of the write) and ignores whatever `TimeStamp` the client
+sent. This holds for `Insert`, `InsertOrReplace`, `Bulk/InsertOrReplace`,
+`Bulk/CleanAndBulkInsert*`, transactions, etc. Here `TimeStamp` means "when the
+server stored the row".
+
+#### `InsertOrReplaceIfNew` — conditional upsert by client `TimeStamp`
+
+There is one family of operations where `TimeStamp` means something different — the
+**version of the object in a distributed system**, assigned by the *client*:
+
+| Endpoint | Shape |
+|----------|-------|
+| `POST /api/Row/InsertOrReplaceIfNew` | single entity |
+| `POST /api/Bulk/InsertOrReplaceIfNew` | array of entities |
+| `POST /api/Bulk/InsertOrReplaceIfNewByChunks` | accumulate chunks, then `...Commit` / `...Cancel` |
+
+Semantics: a row is written **only** when it is missing, or when the incoming
+`TimeStamp` is **strictly greater** than the `TimeStamp` already stored. Equal or
+older timestamps are silently skipped. This is a last-writer-wins upsert keyed on a
+client-owned version, used to converge replicas that may deliver the same object out
+of order.
+
+Because the timestamp *is* the version, it is **mandatory** here: every entity must
+carry a valid ISO-8601 `TimeStamp`. An entity with a missing or unparseable
+`TimeStamp` makes the whole request fail with **HTTP 400** naming the offender:
+
+```
+Entity with PartitionKey '<pk>' RowKey '<rk>' does not contain TimeStamp
+```
+
+(For the chunked flow this validation runs per chunk at upload time, so a bad chunk
+is rejected before the commit.) The response of the successful bulk / chunked
+operations is an empty `202`; the single one returns `200`.
+
+Server-clock substitution (the default of every *other* write) and client-version
+comparison (these `IfNew` operations) are two distinct request-parsing paths and
+must not be confused.
+
+
