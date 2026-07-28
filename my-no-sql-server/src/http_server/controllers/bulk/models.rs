@@ -108,6 +108,12 @@ pub struct BulkInsertOrReplaceInputContract {
     #[http_query(name = "syncPeriod"; description = "Synchronization period"; default)]
     pub sync_period: DataSynchronizationPeriod,
 
+    #[http_query(
+        name = "useTimestamp";
+        description = "If true - use each entity's own TimeStamp (every entity must carry a valid one, otherwise the request fails with 400). If absent or false - the server assigns its own clock as before"
+    )]
+    pub use_timestamp: Option<bool>,
+
     #[http_body_raw(description = "Rows")]
     pub body: RawDataTyped<Vec<BaseDbRowContract>>,
 }

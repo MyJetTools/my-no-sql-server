@@ -45,11 +45,18 @@ async fn handle_request(
 
     let now = JsonTimeStamp::now();
 
-    let rows_by_partition =
+    // useTimestamp=true: keep each entity's own TimeStamp (all entities must carry one,
+    // otherwise 400). Otherwise the server assigns its own clock as before.
+    let rows_by_partition = if input_data.use_timestamp == Some(true) {
+        crate::db_operations::parse_json_entity::parse_grouped_by_partition_key_and_keep_date_time(
+            input_data.body.as_slice(),
+        )?
+    } else {
         crate::db_operations::parse_json_entity::parse_grouped_by_partition_key(
             input_data.body.as_slice(),
             &now,
-        )?;
+        )?
+    };
 
     crate::db_operations::write::bulk_insert_or_update::execute(
         action.app.as_ref(),

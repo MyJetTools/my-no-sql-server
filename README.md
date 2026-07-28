@@ -124,4 +124,17 @@ Server-clock substitution (the default of every *other* write) and client-versio
 comparison (these `IfNew` operations) are two distinct request-parsing paths and
 must not be confused.
 
+#### `Bulk/InsertOrReplace?useTimestamp=true` — keep client timestamps on a plain upsert
+
+`POST /api/Bulk/InsertOrReplace` takes an optional `useTimestamp` query flag:
+
+- **absent / `false`** (default): the historical behaviour — the server assigns its
+  own clock to every row and ignores whatever `TimeStamp` the client sent.
+- **`true`**: each row keeps the `TimeStamp` that came in the entity. This is a plain
+  **unconditional** upsert (unlike `InsertOrReplaceIfNew` there is *no* "is it newer"
+  check — every row is written), it only controls *which* `TimeStamp` gets stored. As
+  with the `IfNew` family the timestamp is then mandatory: any entity with a missing
+  or unparseable `TimeStamp` fails the whole request with the same **HTTP 400** naming
+  the offender.
+
 
