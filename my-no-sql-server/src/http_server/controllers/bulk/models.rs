@@ -34,6 +34,12 @@ pub struct CleanAndBulkInsertInputContract {
     #[http_query(name = "syncPeriod"; description = "Synchronization period"; default)]
     pub sync_period: DataSynchronizationPeriod,
 
+    #[http_query(
+        name = "useTimestamp";
+        description = "If true - use each entity's own TimeStamp (every entity must carry a valid one, otherwise the request fails with 400). If absent or false - the server assigns its own clock as before"
+    )]
+    pub use_timestamp: Option<bool>,
+
     #[http_body_raw(description = "DbRows")]
     pub body: RawDataTyped<Vec<BaseDbRowContract>>,
 }
@@ -48,6 +54,12 @@ pub struct CleanAndBulkInsertByChunksInputContract {
 
     #[http_query(name = "processId"; description = "Id of the process. Omit it to start a new process - the id is returned in the response";)]
     pub process_id: Option<String>,
+
+    #[http_query(
+        name = "useTimestamp";
+        description = "If true - use each entity's own TimeStamp (every entity of this chunk must carry a valid one, otherwise the chunk is rejected with 400). If absent or false - the server assigns its own clock as before"
+    )]
+    pub use_timestamp: Option<bool>,
 
     #[http_header(name = "session", description = "Writer session id")]
     pub session_id: Option<String>,

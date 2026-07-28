@@ -40,8 +40,9 @@ async fn handle_request(
     let now = JsonTimeStamp::now();
 
     let rows_by_partition =
-        crate::db_operations::parse_json_entity::parse_grouped_by_partition_key(
+        crate::db_operations::parse_json_entity::parse_grouped_by_partition_key_with_use_timestamp(
             input_data.body.as_slice(),
+            input_data.use_timestamp,
             &now,
         )?;
 

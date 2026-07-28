@@ -36,3 +36,20 @@ pub fn parse_grouped_by_partition_key_and_keep_date_time(
         }
     }
 }
+
+/// Picks the parsing behaviour from the `useTimestamp` request flag:
+/// - `Some(true)` → keep each entity's own `TimeStamp` (every entity must carry a
+///   valid one, otherwise it fails naming the offender);
+/// - `None` / `Some(false)` → substitute the server clock (`inject_time_stamp`) for
+///   every row, as before.
+pub fn parse_grouped_by_partition_key_with_use_timestamp(
+    as_bytes: &[u8],
+    use_timestamp: Option<bool>,
+    inject_time_stamp: &JsonTimeStamp,
+) -> Result<Vec<(String, Vec<Arc<DbRow>>)>, DbOperationError> {
+    if use_timestamp == Some(true) {
+        parse_grouped_by_partition_key_and_keep_date_time(as_bytes)
+    } else {
+        parse_grouped_by_partition_key(as_bytes, inject_time_stamp)
+    }
+}
