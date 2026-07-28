@@ -1,7 +1,9 @@
 use std::{collections::HashMap, sync::Arc};
 
 use my_logger::LogEventCtx;
-use my_no_sql_sdk::core::rust_extensions::{date_time::DateTimeAsMicroseconds, MyTimerTick};
+use my_no_sql_sdk::core::rust_extensions::{
+    date_time::DateTimeAsMicroseconds, MyTimerTick, RepeatTimerIteration,
+};
 
 use crate::{app::AppContext, db_sync::EventSource};
 
@@ -17,16 +19,18 @@ impl GcDbRows {
 
 #[async_trait::async_trait]
 impl MyTimerTick for GcDbRows {
-    async fn tick(&self) {
+    async fn tick(&self) -> RepeatTimerIteration {
         if !self.app.states.is_initialized() {
-            return;
+            return RepeatTimerIteration::WithInterval;
         }
 
         if self.app.states.is_shutting_down() {
-            return;
+            return RepeatTimerIteration::WithInterval;
         }
 
         gc_it(self.app.as_ref()).await;
+
+        RepeatTimerIteration::WithInterval
     }
 }
 

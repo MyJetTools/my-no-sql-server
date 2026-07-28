@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use my_no_sql_sdk::core::rust_extensions::{date_time::DateTimeAsMicroseconds, MyTimerTick};
+use my_no_sql_sdk::core::rust_extensions::{
+    date_time::DateTimeAsMicroseconds, MyTimerTick, RepeatTimerIteration,
+};
 
 use crate::app::AppContext;
 
@@ -16,7 +18,7 @@ impl GcHttpSessionsTimer {
 
 #[async_trait::async_trait]
 impl MyTimerTick for GcHttpSessionsTimer {
-    async fn tick(&self) {
+    async fn tick(&self) -> RepeatTimerIteration {
         let now = DateTimeAsMicroseconds::now();
 
         for data_reader in self.app.data_readers.get_all().await {
@@ -31,5 +33,7 @@ impl MyTimerTick for GcHttpSessionsTimer {
         }
 
         self.app.http_writers.gc(now).await;
+
+        RepeatTimerIteration::WithInterval
     }
 }

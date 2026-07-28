@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use my_no_sql_sdk::core::rust_extensions::MyTimerTick;
+use my_no_sql_sdk::core::rust_extensions::{MyTimerTick, RepeatTimerIteration};
 
 use crate::app::AppContext;
 
@@ -16,8 +16,10 @@ impl BackupTimer {
 
 #[async_trait::async_trait]
 impl MyTimerTick for BackupTimer {
-    async fn tick(&self) {
+    async fn tick(&self) -> RepeatTimerIteration {
         crate::operations::backup::save_backup(&self.app, false).await;
         crate::operations::backup::gc_backups(&self.app).await;
+
+        RepeatTimerIteration::WithInterval
     }
 }

@@ -1,6 +1,8 @@
 use std::{sync::Arc, time::Duration};
 
-use my_no_sql_sdk::core::rust_extensions::{date_time::DateTimeAsMicroseconds, MyTimerTick};
+use my_no_sql_sdk::core::rust_extensions::{
+    date_time::DateTimeAsMicroseconds, MyTimerTick, RepeatTimerIteration,
+};
 
 use crate::app::AppContext;
 
@@ -16,11 +18,13 @@ impl GcMultipart {
 
 #[async_trait::async_trait]
 impl MyTimerTick for GcMultipart {
-    async fn tick(&self) {
+    async fn tick(&self) -> RepeatTimerIteration {
         let multipart_timeout = Duration::from_secs(60);
 
         let now = DateTimeAsMicroseconds::now();
 
         self.app.multipart_list.gc(now, multipart_timeout).await;
+
+        RepeatTimerIteration::WithInterval
     }
 }

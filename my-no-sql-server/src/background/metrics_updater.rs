@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use my_http_server::HttpConnectionsCounter;
-use my_no_sql_sdk::core::rust_extensions::MyTimerTick;
+use my_no_sql_sdk::core::rust_extensions::{MyTimerTick, RepeatTimerIteration};
 use my_tcp_sockets::ThreadsStatistics;
 
 use crate::app::AppContext;
@@ -31,7 +31,7 @@ impl MetricsUpdater {
 
 #[async_trait::async_trait]
 impl MyTimerTick for MetricsUpdater {
-    async fn tick(&self) {
+    async fn tick(&self) -> RepeatTimerIteration {
         let tables = self.app.db.get_tables();
 
         let mut persist_amount = 0;
@@ -93,5 +93,7 @@ impl MyTimerTick for MetricsUpdater {
 
             reader.connection.one_sec_tick().await;
         }
+
+        RepeatTimerIteration::WithInterval
     }
 }

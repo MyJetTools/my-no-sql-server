@@ -3,7 +3,9 @@ use std::sync::{
     Arc,
 };
 
-use my_no_sql_sdk::core::rust_extensions::{date_time::DateTimeAsMicroseconds, MyTimerTick};
+use my_no_sql_sdk::core::rust_extensions::{
+    date_time::DateTimeAsMicroseconds, MyTimerTick, RepeatTimerIteration,
+};
 
 use crate::app::AppContext;
 
@@ -32,7 +34,7 @@ impl VacuumTimer {
 
 #[async_trait::async_trait]
 impl MyTimerTick for VacuumTimer {
-    async fn tick(&self) {
+    async fn tick(&self) -> RepeatTimerIteration {
         let now = DateTimeAsMicroseconds::now();
         let last_vacuum =
             DateTimeAsMicroseconds::new(self.last_vacuum_unix_micros.load(Ordering::Relaxed));
@@ -43,7 +45,7 @@ impl MyTimerTick for VacuumTimer {
             .as_secs()
             < VACUUM_INTERVAL_SECS
         {
-            return;
+            return RepeatTimerIteration::WithInterval;
         }
 
         println!("Running persistence vacuum...");
@@ -51,5 +53,7 @@ impl MyTimerTick for VacuumTimer {
         self.last_vacuum_unix_micros
             .store(now.unix_microseconds, Ordering::Relaxed);
         println!("Persistence vacuum completed");
+
+        RepeatTimerIteration::WithInterval
     }
 }

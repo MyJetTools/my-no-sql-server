@@ -1,6 +1,8 @@
 use std::{sync::Arc, time::Duration};
 
-use my_no_sql_sdk::core::rust_extensions::{date_time::DateTimeAsMicroseconds, MyTimerTick};
+use my_no_sql_sdk::core::rust_extensions::{
+    date_time::DateTimeAsMicroseconds, MyTimerTick, RepeatTimerIteration,
+};
 
 use crate::app::AppContext;
 
@@ -21,12 +23,14 @@ impl GcBulkProcesses {
 
 #[async_trait::async_trait]
 impl MyTimerTick for GcBulkProcesses {
-    async fn tick(&self) {
+    async fn tick(&self) -> RepeatTimerIteration {
         let now = DateTimeAsMicroseconds::now();
 
         self.app
             .active_bulk_processes
             .gc(now, BULK_PROCESS_TIMEOUT)
             .await;
+
+        RepeatTimerIteration::WithInterval
     }
 }
