@@ -5,6 +5,11 @@ use dioxus::prelude::*;
 use crate::api;
 use crate::settings::{DEFAULT_BAD_MS, DEFAULT_WARN_MS, HealthThresholds};
 
+/// Remaining time of a write-enable window as `Nm SSs`.
+fn format_remaining(secs: u64) -> String {
+    format!("{}m {:02}s", secs / 60, secs % 60)
+}
+
 #[derive(Default)]
 struct SettingsState {
     warn_ms: String,
@@ -60,8 +65,16 @@ fn toggle_ui_writes(mut uiw: Signal<UiWritesState>, enabled: bool) {
                 } else {
                     w.enabled = enabled;
                 }
+                // The server ADDS the window to whatever was left, so a fixed
+                // "for 10 minutes" would be wrong on every extension. Report
+                // what the server actually says is left.
                 w.message = Some(if enabled {
-                    "Write access enabled for 10 minutes.".to_string()
+                    match w.remaining_secs {
+                        Some(secs) => {
+                            format!("Write access enabled. {} left.", format_remaining(secs))
+                        }
+                        None => "Write access enabled.".to_string(),
+                    }
                 } else {
                     "Write access disabled.".to_string()
                 });
@@ -97,7 +110,12 @@ fn toggle_mcp_writes(mut mcp: Signal<McpWritesState>, enabled: bool) {
                     w.enabled = enabled;
                 }
                 w.message = Some(if enabled {
-                    "MCP writes enabled for 10 minutes.".to_string()
+                    match w.remaining_secs {
+                        Some(secs) => {
+                            format!("MCP writes enabled. {} left.", format_remaining(secs))
+                        }
+                        None => "MCP writes enabled.".to_string(),
+                    }
                 } else {
                     "MCP writes disabled.".to_string()
                 });
@@ -260,7 +278,7 @@ pub fn Settings() -> Element {
         "var(--text-muted)"
     };
     let mcp_remaining_label = match mcp_remaining_secs {
-        Some(secs) => format!("{}m {:02}s", secs / 60, secs % 60),
+        Some(secs) => format_remaining(secs),
         None => "—".to_string(),
     };
 
@@ -286,7 +304,7 @@ pub fn Settings() -> Element {
 
     let uiw_status_label = if uiw_enabled {
         match uiw_remaining_secs {
-            Some(secs) => format!("enabled — ~{}m {:02}s left", secs / 60, secs % 60),
+            Some(secs) => format!("enabled — ~{} left", format_remaining(secs)),
             None => "enabled".to_string(),
         }
     } else {
@@ -298,7 +316,7 @@ pub fn Settings() -> Element {
         "var(--text-muted)"
     };
     let uiw_remaining_label = match uiw_remaining_secs {
-        Some(secs) => format!("{}m {:02}s", secs / 60, secs % 60),
+        Some(secs) => format_remaining(secs),
         None => "—".to_string(),
     };
 

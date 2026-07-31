@@ -211,9 +211,36 @@ impl AppContext {
 
     /// Enables MCP write operations for `MCP_WRITES_WINDOW`.
     pub fn enable_mcp_writes(&self) {
-        let until = DateTimeAsMicroseconds::now().add(MCP_WRITES_WINDOW);
-        self.mcp_writes_enabled_until
-            .store(until.unix_microseconds, std::sync::atomic::Ordering::SeqCst);
+        Self::extend_write_window(&self.mcp_writes_enabled_until, MCP_WRITES_WINDOW);
+    }
+
+    /// Adds `window` to what is LEFT of the current window instead of resetting
+    /// it to `window`. The UI offers this as an explicit "Extend +10 min"
+    /// button, and pressing it must never be able to shorten a window that is
+    /// already open — which a plain reset does whenever more than a moment of
+    /// the previous window remains.
+    ///
+    /// `fetch_update` rather than load-then-store: two people pressing the
+    /// button at the same time should both add their ten minutes, not have one
+    /// of them silently dropped.
+    fn extend_write_window(slot: &AtomicI64, window: Duration) {
+        let now = DateTimeAsMicroseconds::now();
+
+        let _ = slot.fetch_update(
+            std::sync::atomic::Ordering::SeqCst,
+            std::sync::atomic::Ordering::SeqCst,
+            |current| {
+                // An expired window (or one that was never opened) starts
+                // counting from now; a live one keeps its remainder and grows.
+                let base = if current > now.unix_microseconds {
+                    DateTimeAsMicroseconds::new(current)
+                } else {
+                    now
+                };
+
+                Some(base.add(window).unix_microseconds)
+            },
+        );
     }
 
     /// Disables MCP write operations immediately.
@@ -248,9 +275,7 @@ impl AppContext {
 
     /// Enables UI write operations for `UI_WRITES_WINDOW`.
     pub fn enable_ui_writes(&self) {
-        let until = DateTimeAsMicroseconds::now().add(UI_WRITES_WINDOW);
-        self.ui_writes_enabled_until
-            .store(until.unix_microseconds, std::sync::atomic::Ordering::SeqCst);
+        Self::extend_write_window(&self.ui_writes_enabled_until, UI_WRITES_WINDOW);
     }
 
     /// Disables UI write operations immediately.
