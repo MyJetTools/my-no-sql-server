@@ -18,7 +18,7 @@ MaxBackupsToKeep: 5
 ```
 
 ### Parameters:
-* PersistenceDest - where the data is persisted. A path ending with `.sqlite`/`.sqlite3`/`.db` selects the SQLite backend; any other path is treated as a directory and selects the slotted-page files backend (see "Persistence Types" below);
+* PersistenceDest - directory where the data is persisted. Every namespace gets a folder of its own inside it (see "Persistence" below);
 * CompressData - true/false - enable/disable compression of data between nodes;
 * MaxPayloadSize - max size of payload in bytes which is sent to Readers per round trip;
 * Location - shows in statusbar of the UI;
@@ -33,25 +33,22 @@ MaxBackupsToKeep: 5
 
 
 
-### Persistence Types
+### Persistence
 
-The persistence backend is chosen by the shape of `PersistenceDest`. In both
-backends the unit of persistence is a **partition**: the whole partition is
-serialized to a JSON array of its rows and compressed with **zstd**. On startup
-everything is read into memory, the in-memory tables are rebuilt, and the raw
-persisted bytes are released.
+The unit of persistence is a **partition**: the whole partition is serialized to
+a JSON array of its rows and compressed with **zstd**. On startup everything is
+read into memory, the in-memory tables are rebuilt, and the raw persisted bytes
+are released.
 
-#### SQLite — `PersistenceDest` ends with `.sqlite` / `.sqlite3` / `.db`
+`PersistenceDest` is a directory. Every namespace persists into a folder of its
+own inside it — the default namespace included:
 
-```yaml
-PersistenceDest: ~/.mynosqldb/data.sqlite
+```text
+<PersistenceDest>/default/512, /1024, /tables.meta
+<PersistenceDest>/alpha/512,   /1024, /tables.meta
 ```
 
-One row per partition in the `partitions` table, `content = base64(zstd(rows))`,
-plus a `tables_metadata` table for table attributes. In-place updates, free-page
-reuse and compaction are handled by SQLite itself (`VACUUM` runs periodically).
-
-#### Slotted page-files — `PersistenceDest` is a directory
+#### Slotted page-files
 
 ```yaml
 PersistenceDest: ~/.mynosqldb/data

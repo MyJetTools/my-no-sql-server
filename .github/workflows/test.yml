@@ -5,9 +5,6 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-env:
-  PROJECT_DIR: my-no-sql-server
-
 jobs:
   build:
 
@@ -22,7 +19,5 @@ jobs:
       - name: Install Protoc
         uses: arduino/setup-protoc@v1            
 
-      - name: Test Build      
-        run: |
-          cd ${PROJECT_DIR}
-          cargo test
+      - name: Test Build
+        run: cargo test
