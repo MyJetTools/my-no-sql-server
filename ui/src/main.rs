@@ -264,6 +264,18 @@ fn Shell() -> Element {
             None => Vec::new(),
         };
 
+    // The Connections page lists the selected namespace only, so its nav badge
+    // counts the same set. The footer below keeps the server-wide total.
+    // NOTE: `current_ns` above is the SELECT value, where an empty string means
+    // the default namespace. Here we need the real name the server reports.
+    let selected_ns_name =
+        storage::load_namespace().unwrap_or_else(|| models::DEFAULT_NAMESPACE.to_string());
+    let clients_in_current_ns = clients_by_namespace
+        .iter()
+        .find(|(namespace, _)| namespace == &selected_ns_name)
+        .map(|(_, amount)| *amount)
+        .unwrap_or(0);
+
     let on_refresh = move |_| {
         let next = ctx.read().refresh_token.wrapping_add(1);
         ctx.write().refresh_token = next;
@@ -271,7 +283,14 @@ fn Shell() -> Element {
 
     rsx! {
         div { class: "shell",
-            Sidebar { active: section, tables_count, clients_count, clients_by_namespace, online }
+            Sidebar {
+                active: section,
+                tables_count,
+                clients_count,
+                clients_in_current_ns,
+                clients_by_namespace,
+                online,
+            }
             div { class: "main",
                 Topbar {
                     crumbs,

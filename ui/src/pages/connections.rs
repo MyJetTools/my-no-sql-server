@@ -4,6 +4,7 @@ use dioxus::prelude::*;
 
 use crate::api::get_connections;
 use crate::components::atoms::{Badge, BadgeTone, MiniChart, MiniChartSeries};
+use crate::models::DEFAULT_NAMESPACE;
 use crate::models::{ConnectionReaderApiModel, ConnectionWriterApiModel, ConnectionsApiModel};
 use crate::utils::{format_bytes, format_bytes_per_sec};
 
@@ -85,6 +86,26 @@ pub fn Connections() -> Element {
 }
 
 fn render_connections(history: &[Sample], snapshot: &ConnectionsApiModel) -> Element {
+    // The UI works in one namespace at a time, so the connection lists show that
+    // namespace only. The traffic charts above stay server-wide: those counters
+    // are process-level and can not be attributed to a namespace at all.
+    let namespace =
+        crate::storage::load_namespace().unwrap_or_else(|| DEFAULT_NAMESPACE.to_string());
+
+    let readers: Vec<ConnectionReaderApiModel> = snapshot
+        .readers
+        .iter()
+        .filter(|itm| itm.namespace == namespace)
+        .cloned()
+        .collect();
+
+    let writers: Vec<ConnectionWriterApiModel> = snapshot
+        .writers
+        .iter()
+        .filter(|itm| itm.namespace == namespace)
+        .cloned()
+        .collect();
+
     let incoming = snapshot.incoming_per_second;
     let outgoing = snapshot.outgoing_per_second;
 
@@ -185,18 +206,18 @@ fn render_connections(history: &[Sample], snapshot: &ConnectionsApiModel) -> Ele
             }
         }
 
-        {render_readers_table(&snapshot.readers)}
-        {render_writers_table(&snapshot.writers)}
+        {render_readers_table(&readers, namespace.as_str())}
+        {render_writers_table(&writers, namespace.as_str())}
     }
 }
 
-fn render_readers_table(readers: &[ConnectionReaderApiModel]) -> Element {
+fn render_readers_table(readers: &[ConnectionReaderApiModel], namespace: &str) -> Element {
     if readers.is_empty() {
         return rsx! {
             div { class: "card",
                 div { class: "card__body",
                     div { class: "empty-state",
-                        div { class: "empty-state__title", "No active connections" }
+                        div { class: "empty-state__title", "No active connections in namespace {namespace}" }
                     }
                 }
             }
@@ -209,7 +230,6 @@ fn render_readers_table(readers: &[ConnectionReaderApiModel]) -> Element {
             tr {
                 td { class: "conn-table__id", "{reader.id}" }
                 td { "{reader.name}" }
-                td { class: "conn-table__ns", "{reader.namespace}" }
                 td { "{reader.ip}" }
                 td { class: "conn-table__kind", "{kind}" }
                 td { class: "conn-table__num", "{format_bytes_per_sec(reader.incoming_per_second as f64)}" }
@@ -223,7 +243,7 @@ fn render_readers_table(readers: &[ConnectionReaderApiModel]) -> Element {
         div { class: "card",
             div { class: "card__header",
                 span { class: "card__title", "Readers" }
-                span { class: "card__subtitle", "{readers.len()} connected" }
+                span { class: "card__subtitle", "{readers.len()} connected · ns {namespace}" }
             }
             div { class: "card__body",
                 table { class: "conn-table",
@@ -231,7 +251,6 @@ fn render_readers_table(readers: &[ConnectionReaderApiModel]) -> Element {
                         tr {
                             th { "ID" }
                             th { "Name" }
-                            th { "Namespace" }
                             th { "IP" }
                             th { "Kind" }
                             th { class: "conn-table__num", "Incoming" }
@@ -246,17 +265,17 @@ fn render_readers_table(readers: &[ConnectionReaderApiModel]) -> Element {
     }
 }
 
-fn render_writers_table(writers: &[ConnectionWriterApiModel]) -> Element {
+fn render_writers_table(writers: &[ConnectionWriterApiModel], namespace: &str) -> Element {
     if writers.is_empty() {
         return rsx! {
             div { class: "card",
                 div { class: "card__header",
                     span { class: "card__title", "Writers" }
-                    span { class: "card__subtitle", "0 connected" }
+                    span { class: "card__subtitle", "0 connected · ns {namespace}" }
                 }
                 div { class: "card__body",
                     div { class: "empty-state",
-                        div { class: "empty-state__title", "No active writers" }
+                        div { class: "empty-state__title", "No active writers in namespace {namespace}" }
                     }
                 }
             }
@@ -276,7 +295,6 @@ fn render_writers_table(writers: &[ConnectionWriterApiModel]) -> Element {
         rsx! {
             tr {
                 td { "{writer.name}" }
-                td { class: "conn-table__ns", "{writer.namespace}" }
                 td { class: "conn-table__id", "{writer.session}" }
                 td { class: "conn-table__id", "{writer.version}" }
                 td { class: "conn-table__id", "{writer.addr}" }
@@ -293,14 +311,13 @@ fn render_writers_table(writers: &[ConnectionWriterApiModel]) -> Element {
         div { class: "card",
             div { class: "card__header",
                 span { class: "card__title", "Writers" }
-                span { class: "card__subtitle", "{writers.len()} connected" }
+                span { class: "card__subtitle", "{writers.len()} connected · ns {namespace}" }
             }
             div { class: "card__body",
                 table { class: "conn-table",
                     thead {
                         tr {
                             th { "Name" }
-                            th { "Namespace" }
                             th { "Session" }
                             th { "Version" }
                             th { "Addr" }

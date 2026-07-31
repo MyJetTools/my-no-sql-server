@@ -6,6 +6,8 @@ use crate::db_sync::DataSynchronizationPeriod;
 
 #[derive(MyHttpInput)]
 pub struct GetTableSizeContract {
+    #[http_header(name = "ns"; description = "Namespace to work in. Empty or absent means the default namespace")]
+    pub namespace: Option<String>,
     #[http_query(name: "tableName"; description: "Name of a table")]
     pub table_name: String,
 }
@@ -98,6 +100,8 @@ pub struct TableMigrationInputContract {
 
 #[derive(MyHttpInput)]
 pub struct DeleteTableContract {
+    #[http_header(name = "ns"; description = "Namespace to work in. Empty or absent means the default namespace")]
+    pub namespace: Option<String>,
     #[http_query(name = "tableName"; description = "Name of a table")]
     pub table_name: String,
     #[http_header(name = "apikey"; description = "Api Key protecting the table to be deleted")]

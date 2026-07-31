@@ -41,7 +41,7 @@ async fn load_from_other_instance(app: &Arc<AppContext>, server_url: &str) {
 
     let db_namespace = app
         .namespaces
-        .get_or_create(&connection_string.get_namespace().into())
+        .get_or_create(connection_string.get_namespace())
         .await;
 
     let server_url = connection_string.host.as_str();

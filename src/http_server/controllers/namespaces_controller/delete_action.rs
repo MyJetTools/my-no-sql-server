@@ -41,15 +41,14 @@ async fn handle_request(
         ));
     }
 
-    let namespace_name = input_data.namespace.as_str().into();
-
     // Dropping a namespace which still holds tables would delete those tables
     // too — the caller has to remove them first, so that deleting data is always
     // an explicit act.
     let db_namespace = action
         .app
         .namespaces
-        .delete(&namespace_name)
+        .delete(input_data.namespace.as_str())
+        .await
         .map_err(|err| match err {
             DeleteNamespaceError::NotFound => HttpFailResult::as_forbidden(
                 format!("Namespace '{}' is not found", input_data.namespace).into(),

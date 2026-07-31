@@ -6,6 +6,15 @@ use crate::app::{AppContext, DbNamespace};
 
 /// Header naming the namespace a request works in. No header — or an empty one —
 /// means the default namespace, which is what every pre-namespace client sends.
+///
+/// The value is resolved HERE, from the request, for every action — one path,
+/// so the query-parameter fallback below applies everywhere. The input
+/// contracts additionally declare the header with `#[http_header(name = "ns")]`,
+/// but only so that it shows up in the generated OpenAPI schema: swagger is
+/// built from the contracts, and a header read straight off the request is
+/// invisible to it. Those declared fields are documentation, not the source of
+/// truth — reading them instead would quietly skip the query-parameter
+/// fallback.
 pub const NAMESPACE_HEADER: &str = "ns";
 
 /// Namespace of an incoming HTTP request.

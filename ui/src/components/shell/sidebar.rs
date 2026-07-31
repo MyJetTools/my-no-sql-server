@@ -8,6 +8,9 @@ pub fn Sidebar(
     active: SidebarSection,
     tables_count: usize,
     clients_count: usize,
+    /// Clients of the namespace the UI is currently pointed at. This is what the
+    /// Connections nav badge shows, because that page lists exactly these.
+    clients_in_current_ns: usize,
     /// Readers + writers per namespace, biggest first. Empty while the status
     /// has not arrived yet.
     clients_by_namespace: Vec<(String, usize)>,
@@ -77,7 +80,7 @@ pub fn Sidebar(
                     class: nav_class(active == SidebarSection::Connections),
                     Icon { kind: IconKind::Plug, class: "sidebar__nav-icon".to_string() }
                     span { class: "sidebar__nav-label", "Connections" }
-                    span { class: "sidebar__nav-count", "{clients_count}" }
+                    span { class: "sidebar__nav-count", "{clients_in_current_ns}" }
                 }
                 Link {
                     to: AppRoute::Snapshots {},

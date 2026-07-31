@@ -27,7 +27,7 @@ impl TcpServerEvents {
     async fn get_namespace(&self, data_reader: &Arc<DataReader>) -> Arc<DbNamespace> {
         self.app
             .namespaces
-            .get_or_create(&data_reader.get_namespace())
+            .get_or_create(data_reader.get_namespace().as_str())
             .await
     }
 
@@ -45,7 +45,7 @@ impl TcpServerEvents {
         // Materialize it right away: the reader is going to subscribe to it
         // next, and doing it here keeps the failure (if any) attached to the
         // packet which asked for the namespace.
-        self.app.namespaces.get_or_create(&namespace.into()).await;
+        self.app.namespaces.get_or_create(namespace).await;
 
         Ok(())
     }

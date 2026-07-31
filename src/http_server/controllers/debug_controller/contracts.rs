@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(MyHttpInput)]
 pub struct GetRowStatisticsInputData {
+    #[http_header(name = "ns"; description = "Namespace to work in. Empty or absent means the default namespace")]
+    pub namespace: Option<String>,
     #[http_query(name = "tableName"; description = "Name of a table")]
     pub table_name: String,
     #[http_query(name = "partitionKey"; description = "PartitionKey ")]

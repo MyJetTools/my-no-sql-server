@@ -27,7 +27,7 @@ pub async fn commit(
 
     // Every table of the transaction is resolved inside the namespace the
     // transaction was started in.
-    let db_namespace = match app.namespaces.get(&transaction.namespace) {
+    let db_namespace = match app.namespaces.get(transaction.namespace.as_str()) {
         Some(db_namespace) => db_namespace,
         None => {
             return Err(TransactionOperationError::TransactionNotFound {

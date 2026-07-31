@@ -1,5 +1,6 @@
-use std::collections::BTreeMap;
 use std::sync::Arc;
+
+use arc_swap::ArcSwap;
 
 use my_no_sql_sdk::core::db::DbNamespaceName;
 use my_no_sql_sdk::server::DbInstance;
@@ -49,84 +50,113 @@ pub enum DeleteNamespaceError {
 /// write or the first subscription which mentions it brings it to life together
 /// with its folder on disk.
 pub struct DbNamespaces {
-    /// `std::sync::RwLock` on purpose: a read only clones an `Arc` out of the map
-    /// and the guard is never held across an `await`.
-    items: std::sync::RwLock<BTreeMap<DbNamespaceName, Arc<DbNamespace>>>,
-    /// Opening a persistence backend is async, so creation cannot happen under
-    /// the map's lock. This one serializes it instead: without it two callers
+    /// Copy-on-write behind an `ArcSwap`, holding a plain `Vec`.
+    ///
+    /// A `Vec` and not a map because a deployment runs one or two namespaces and
+    /// five at the very most: a linear scan over a contiguous slice beats
+    /// hashing or a tree descent at that size, and this is looked up on EVERY
+    /// request and every TCP packet, so the constant is what matters, not the
+    /// asymptotics.
+    ///
+    /// `ArcSwap` and not a lock because namespaces are created about as often as
+    /// the server is deployed, while they are READ constantly. A reader pays a
+    /// single atomic load and no lock at all; a writer rebuilds the whole list
+    /// and swaps it in.
+    items: ArcSwap<Vec<Arc<DbNamespace>>>,
+    /// Serializes the writers among themselves — `ArcSwap` makes the swap
+    /// atomic but not the read-modify-write around it. Also covers the async
+    /// part: opening a persistence backend awaits, and without this two callers
     /// racing on the same new namespace would open its folder twice.
-    create_lock: tokio::sync::Mutex<()>,
+    write_lock: tokio::sync::Mutex<()>,
     settings: Arc<SettingsModel>,
 }
 
 impl DbNamespaces {
     pub fn new(settings: Arc<SettingsModel>) -> Self {
         Self {
-            items: std::sync::RwLock::new(BTreeMap::new()),
-            create_lock: tokio::sync::Mutex::new(()),
+            items: ArcSwap::from_pointee(Vec::new()),
+            write_lock: tokio::sync::Mutex::new(()),
             settings,
         }
     }
 
-    pub fn get(&self, name: &DbNamespaceName) -> Option<Arc<DbNamespace>> {
-        self.items.read().unwrap().get(name).cloned()
+    /// Takes a `&str` rather than a `DbNamespaceName`: the name arrives as a
+    /// slice of a header, and building a `DbNamespaceName` to look it up would
+    /// allocate an `Arc<String>` on every request just to throw it away.
+    pub fn get(&self, name: &str) -> Option<Arc<DbNamespace>> {
+        self.items
+            .load()
+            .iter()
+            .find(|itm| itm.name.as_str() == name)
+            .cloned()
     }
 
+    /// The hot path — most requests name no namespace at all. Scans for the
+    /// default one instead of constructing `DbNamespaceName::default()`, which
+    /// would allocate a `String` and an `Arc` on every single request.
     pub fn get_default(&self) -> Arc<DbNamespace> {
-        let name = DbNamespaceName::default();
-        self.get(&name)
+        self.items
+            .load()
+            .iter()
+            .find(|itm| itm.name.is_default())
+            .cloned()
             .expect("Default namespace must be created during the app start up")
     }
 
     /// Returns the namespace, creating it (and its folder on disk) if this is the
     /// first time it is mentioned.
-    pub async fn get_or_create(&self, name: &DbNamespaceName) -> Arc<DbNamespace> {
+    pub async fn get_or_create(&self, name: &str) -> Arc<DbNamespace> {
         if let Some(result) = self.get(name) {
             return result;
         }
 
-        let _create_lock = self.create_lock.lock().await;
+        let _write_lock = self.write_lock.lock().await;
 
         // Somebody could have created it while we were waiting for the lock.
         if let Some(result) = self.get(name) {
             return result;
         }
 
-        let namespace = Arc::new(DbNamespace::open(name.clone(), self.settings.as_ref()).await);
+        // Only here, on the rare creation path, is the owned name worth building.
+        let namespace = Arc::new(DbNamespace::open(name.into(), self.settings.as_ref()).await);
 
-        self.items
-            .write()
-            .unwrap()
-            .insert(name.clone(), namespace.clone());
+        let mut new_items = self.items.load().as_ref().clone();
+        new_items.push(namespace.clone());
+        self.items.store(Arc::new(new_items));
 
         namespace
     }
 
     pub fn get_all(&self) -> Vec<Arc<DbNamespace>> {
-        self.items.read().unwrap().values().cloned().collect()
+        self.items.load().as_ref().clone()
     }
 
-    /// Removes an empty namespace. The emptiness check happens under the same
-    /// lock as the removal — otherwise a table created in between would be
+    /// Removes an empty namespace. The emptiness check and the removal happen
+    /// under the same write lock — otherwise a table created in between would be
     /// dropped from memory together with the namespace.
-    pub fn delete(&self, name: &DbNamespaceName) -> Result<Arc<DbNamespace>, DeleteNamespaceError> {
-        if name.is_default() {
-            return Err(DeleteNamespaceError::IsDefault);
-        }
+    pub async fn delete(&self, name: &str) -> Result<Arc<DbNamespace>, DeleteNamespaceError> {
+        let _write_lock = self.write_lock.lock().await;
 
-        let mut write_access = self.items.write().unwrap();
+        let mut new_items = self.items.load().as_ref().clone();
 
-        let namespace = match write_access.get(name) {
-            Some(namespace) => namespace,
+        let index = match new_items.iter().position(|itm| itm.name.as_str() == name) {
+            Some(index) => index,
             None => return Err(DeleteNamespaceError::NotFound),
         };
 
-        let tables_amount = namespace.tables_amount();
+        if new_items[index].name.is_default() {
+            return Err(DeleteNamespaceError::IsDefault);
+        }
+
+        let tables_amount = new_items[index].tables_amount();
 
         if tables_amount > 0 {
             return Err(DeleteNamespaceError::NotEmpty(tables_amount));
         }
 
-        Ok(write_access.remove(name).unwrap())
+        let removed = new_items.remove(index);
+        self.items.store(Arc::new(new_items));
+
+        Ok(removed)
     }
 }

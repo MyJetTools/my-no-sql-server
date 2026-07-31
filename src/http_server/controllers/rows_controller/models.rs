@@ -7,6 +7,8 @@ use crate::{
 };
 #[derive(MyHttpInput)]
 pub struct GetHighestRowsAndBelowInputContract {
+    #[http_header(name = "ns"; description = "Namespace to work in. Empty or absent means the default namespace")]
+    pub namespace: Option<String>,
     #[http_query(name = "tableName"; description = "Name of a table")]
     pub table_name: String,
 
@@ -111,6 +113,8 @@ impl GetSinglePartitionMultipleRowsActionInputContract {
 
 #[derive(MyHttpInput, Debug)]
 pub struct DeletePartitionsInputContract {
+    #[http_header(name = "ns"; description = "Namespace to work in. Empty or absent means the default namespace")]
+    pub namespace: Option<String>,
     #[http_query(name: "tableName"; description: "Name of a table")]
     pub table_name: String,
 

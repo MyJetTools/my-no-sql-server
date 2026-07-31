@@ -6,7 +6,6 @@ use std::{
     time::Duration,
 };
 
-use my_no_sql_sdk::core::db::DbNamespaceName;
 use my_no_sql_sdk::core::rust_extensions::{
     date_time::DateTimeAsMicroseconds, events_loop::EventsLoop, file_utils::FilePath, AppStates,
 };
@@ -130,10 +129,12 @@ impl AppContext {
         crate::persist_repo::migrate_legacy_root_into_default_namespace(root.as_str()).await;
 
         for namespace in crate::persist_repo::get_namespaces_on_disk(root.as_str()).await {
-            namespaces.get_or_create(&namespace).await;
+            namespaces.get_or_create(namespace.as_str()).await;
         }
 
-        namespaces.get_or_create(&DbNamespaceName::default()).await;
+        namespaces
+            .get_or_create(my_no_sql_sdk::DEFAULT_NAMESPACE)
+            .await;
 
         namespaces
     }
@@ -153,7 +154,7 @@ impl AppContext {
         name: Option<&str>,
     ) -> Result<Arc<DbNamespace>, crate::db_operations::DbOperationError> {
         match Self::parse_namespace_name(name)? {
-            Some(name) => Ok(self.namespaces.get_or_create(&name).await),
+            Some(name) => Ok(self.namespaces.get_or_create(name).await),
             None => Ok(self.namespaces.get_default()),
         }
     }
@@ -172,7 +173,7 @@ impl AppContext {
             None => return Ok(self.namespaces.get_default()),
         };
 
-        match self.namespaces.get(&name) {
+        match self.namespaces.get(name) {
             Some(db_namespace) => Ok(db_namespace),
             None => Err(crate::db_operations::DbOperationError::NamespaceNotFound(
                 name.to_string(),
@@ -182,9 +183,11 @@ impl AppContext {
 
     /// `None` means "the default namespace": both a missing and an empty name
     /// are what every pre-namespace client sends.
+    /// Returns a BORROWED name: a lookup needs no owned `DbNamespaceName`, and
+    /// building one here would allocate on every request that names a namespace.
     fn parse_namespace_name(
         name: Option<&str>,
-    ) -> Result<Option<DbNamespaceName>, crate::db_operations::DbOperationError> {
+    ) -> Result<Option<&str>, crate::db_operations::DbOperationError> {
         let name = match name {
             Some(name) => name.trim(),
             None => return Ok(None),
@@ -206,7 +209,7 @@ impl AppContext {
             return Ok(None);
         }
 
-        Ok(Some(name.into()))
+        Ok(Some(name))
     }
 
     /// Enables MCP write operations for `MCP_WRITES_WINDOW`.

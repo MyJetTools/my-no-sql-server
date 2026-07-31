@@ -10,6 +10,8 @@ use crate::{
 
 #[derive(MyHttpInput)]
 pub struct RowsCountInputContract {
+    #[http_header(name = "ns"; description = "Namespace to work in. Empty or absent means the default namespace")]
+    pub namespace: Option<String>,
     #[http_query(name = "tableName"; description = "Name of a table")]
     pub table_name: String,
 
@@ -84,6 +86,8 @@ pub struct BaseDbRowContract {
 
 #[derive(MyHttpInput)]
 pub struct GetRowInputModel {
+    #[http_header(name = "ns"; description = "Namespace to work in. Empty or absent means the default namespace")]
+    pub namespace: Option<String>,
     #[http_query(name = "tableName"; description = "Name of a table")]
     pub table_name: String,
 
@@ -142,6 +146,8 @@ impl GetRowInputModel {
 
 #[derive(MyHttpInput)]
 pub struct DeleteRowInputModel {
+    #[http_header(name = "ns"; description = "Namespace to work in. Empty or absent means the default namespace")]
+    pub namespace: Option<String>,
     #[http_query(name = "tableName"; description = "Name of a table")]
     pub table_name: String,
 
