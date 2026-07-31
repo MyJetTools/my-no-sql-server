@@ -4,6 +4,8 @@ use serde::*;
 pub struct ReaderApiModel {
     pub id: String,
     pub name: String,
+    #[serde(default = "crate::models::default_namespace")]
+    pub namespace: String,
     pub ip: String,
     #[serde(default)]
     pub tables: Vec<String>,

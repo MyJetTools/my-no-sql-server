@@ -240,6 +240,30 @@ fn Shell() -> Element {
         (0, 0)
     };
 
+    // Readers and writers grouped by the namespace they work in, biggest first.
+    // /api/Status is server-wide, so this covers every connection, not just the
+    // ones of the namespace the UI is currently pointed at.
+    let clients_by_namespace: Vec<(String, usize)> =
+        match status.as_ref().and_then(|s| s.initialized.as_ref()) {
+            Some(initialized) => {
+                let mut by_namespace: std::collections::BTreeMap<String, usize> =
+                    std::collections::BTreeMap::new();
+
+                for reader in initialized.readers.iter() {
+                    *by_namespace.entry(reader.namespace.clone()).or_default() += 1;
+                }
+
+                for writer in initialized.writers.iter() {
+                    *by_namespace.entry(writer.namespace.clone()).or_default() += 1;
+                }
+
+                let mut result: Vec<(String, usize)> = by_namespace.into_iter().collect();
+                result.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+                result
+            }
+            None => Vec::new(),
+        };
+
     let on_refresh = move |_| {
         let next = ctx.read().refresh_token.wrapping_add(1);
         ctx.write().refresh_token = next;
@@ -247,7 +271,7 @@ fn Shell() -> Element {
 
     rsx! {
         div { class: "shell",
-            Sidebar { active: section, tables_count, clients_count, online }
+            Sidebar { active: section, tables_count, clients_count, clients_by_namespace, online }
             div { class: "main",
                 Topbar {
                     crumbs,

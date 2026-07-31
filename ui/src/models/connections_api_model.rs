@@ -4,6 +4,8 @@ use serde::*;
 pub struct ConnectionReaderApiModel {
     pub id: String,
     pub name: String,
+    #[serde(default = "crate::models::default_namespace")]
+    pub namespace: String,
     pub ip: String,
     #[serde(rename = "incomingPerSecond", default)]
     pub incoming_per_second: usize,
@@ -20,6 +22,8 @@ pub struct ConnectionWriterApiModel {
     #[serde(default)]
     pub session: String,
     pub name: String,
+    #[serde(default = "crate::models::default_namespace")]
+    pub namespace: String,
     pub version: String,
     #[serde(default)]
     pub addr: String,

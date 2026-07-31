@@ -42,6 +42,10 @@ pub struct TableModel {
 pub struct ReaderModel {
     id: String,
     pub name: String,
+    /// Namespace the reader subscribed in. TCP readers fix it with SetNamespace,
+    /// HTTP readers on their subscribe request; a reader that names none is in
+    /// the default namespace.
+    pub namespace: String,
     pub ip: String,
     pub tables: Vec<String>,
     #[serde(rename = "lastIncomingTime")]
@@ -182,6 +186,7 @@ async fn get_readers(app: &AppContext) -> (Vec<ReaderModel>, usize, usize, usize
         let metrics = data_reader.get_metrics().await;
 
         result.push(ReaderModel {
+            namespace: data_reader.get_namespace().to_string(),
             connected_time: metrics.connected.to_rfc3339(),
             last_incoming_time: format!(
                 "{:?}",
@@ -204,6 +209,7 @@ async fn get_readers(app: &AppContext) -> (Vec<ReaderModel>, usize, usize, usize
 #[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
 pub struct WriterApiModel {
     pub name: String,
+    pub namespace: String,
     pub version: String,
     pub last_update: String,
     pub tables: Vec<String>,
@@ -214,6 +220,7 @@ impl WriterApiModel {
         app.http_writers
             .get(|name, itm| Self {
                 name: name.to_string(),
+                namespace: itm.namespace.clone(),
                 version: itm.version.to_string(),
                 last_update: itm.last_ping.to_rfc3339(),
                 tables: itm.tables.clone(),

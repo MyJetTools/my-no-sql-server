@@ -46,6 +46,8 @@ async fn handle_request(
         .http_writers
         .get_or_create(
             session,
+            crate::http_server::get_namespace_header(ctx)
+                .unwrap_or(my_no_sql_sdk::DEFAULT_NAMESPACE),
             &input_data.name,
             &input_data.version,
             input_data.tables.iter().map(|itm| itm.as_str()),

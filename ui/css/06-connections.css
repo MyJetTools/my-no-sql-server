@@ -120,3 +120,12 @@
     font-size: 11px;
     color: var(--text-muted);
 }
+
+/* Namespace of a connection. Same weight as the id column — it is an
+   identifier, not a metric. */
+.conn-table__ns {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text);
+    white-space: nowrap;
+}

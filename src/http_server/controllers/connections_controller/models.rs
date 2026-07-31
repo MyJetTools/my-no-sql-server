@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 pub struct ConnectionReaderModel {
     pub id: String,
     pub name: String,
+    pub namespace: String,
     pub ip: String,
     #[serde(rename = "incomingPerSecond")]
     pub incoming_per_second: usize,
@@ -22,6 +23,7 @@ pub struct ConnectionReaderModel {
 pub struct ConnectionWriterModel {
     pub session: String,
     pub name: String,
+    pub namespace: String,
     pub version: String,
     pub addr: String,
     pub tables: Vec<String>,
@@ -63,6 +65,7 @@ impl ConnectionsModel {
             readers.push(ConnectionReaderModel {
                 id: metrics.session_id,
                 name: metrics.name,
+                namespace: data_reader.get_namespace().to_string(),
                 ip: metrics.ip,
                 incoming_per_second: incoming,
                 outgoing_per_second: outgoing,
@@ -81,6 +84,7 @@ impl ConnectionsModel {
                 ConnectionWriterModel {
                     session: session_id.to_string(),
                     name: info.name.to_string(),
+                    namespace: info.namespace.to_string(),
                     version: info.version.to_string(),
                     addr: info.addr.to_string(),
                     tables: info.tables.clone(),

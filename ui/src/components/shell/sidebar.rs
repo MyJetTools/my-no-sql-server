@@ -8,6 +8,9 @@ pub fn Sidebar(
     active: SidebarSection,
     tables_count: usize,
     clients_count: usize,
+    /// Readers + writers per namespace, biggest first. Empty while the status
+    /// has not arrived yet.
+    clients_by_namespace: Vec<(String, usize)>,
     online: bool,
 ) -> Element {
     let dot_class = if online {
@@ -21,10 +24,35 @@ pub fn Sidebar(
         "Offline".to_string()
     };
 
+    // Only worth the line when there is something to disambiguate: a server
+    // running a single namespace says nothing new by naming it.
+    let ns_breakdown = if online && clients_by_namespace.len() > 1 {
+        let items = clients_by_namespace.into_iter().map(|(namespace, amount)| {
+            rsx! {
+                span { class: "sidebar__live-ns", key: "{namespace}",
+                    span { class: "sidebar__live-ns-name", "{namespace}" }
+                    span { class: "sidebar__live-ns-count", "{amount}" }
+                }
+            }
+        });
+
+        rsx! {
+            div { class: "sidebar__live-by-ns", {items} }
+        }
+    } else {
+        rsx! {}
+    };
+
     rsx! {
         aside { class: "sidebar",
             div { class: "sidebar__brand",
-                div { class: "sidebar__logo", "N" }
+                div { class: "sidebar__logo",
+                    img {
+                        class: "sidebar__logo-img",
+                        src: asset!("/public/favicon.svg"),
+                        alt: "MyNoSql",
+                    }
+                }
                 div {
                     div { class: "sidebar__brand-name", "MyNoSql" }
                     div { class: "sidebar__brand-sub", "v0.7.3 · prod" }
@@ -65,8 +93,15 @@ pub fn Sidebar(
                 }
             }
             div { class: "sidebar__foot",
-                span { class: dot_class }
-                span { "{live_text}" }
+                div { class: "sidebar__live",
+                    div { class: "sidebar__live-line",
+                        span { class: dot_class }
+                        span { "{live_text}" }
+                    }
+                    // Which namespaces those clients are in. Without it the
+                    // total is ambiguous the moment a second namespace exists.
+                    {ns_breakdown}
+                }
             }
         }
     }

@@ -209,6 +209,7 @@ fn render_readers_table(readers: &[ConnectionReaderApiModel]) -> Element {
             tr {
                 td { class: "conn-table__id", "{reader.id}" }
                 td { "{reader.name}" }
+                td { class: "conn-table__ns", "{reader.namespace}" }
                 td { "{reader.ip}" }
                 td { class: "conn-table__kind", "{kind}" }
                 td { class: "conn-table__num", "{format_bytes_per_sec(reader.incoming_per_second as f64)}" }
@@ -230,6 +231,7 @@ fn render_readers_table(readers: &[ConnectionReaderApiModel]) -> Element {
                         tr {
                             th { "ID" }
                             th { "Name" }
+                            th { "Namespace" }
                             th { "IP" }
                             th { "Kind" }
                             th { class: "conn-table__num", "Incoming" }
@@ -274,6 +276,7 @@ fn render_writers_table(writers: &[ConnectionWriterApiModel]) -> Element {
         rsx! {
             tr {
                 td { "{writer.name}" }
+                td { class: "conn-table__ns", "{writer.namespace}" }
                 td { class: "conn-table__id", "{writer.session}" }
                 td { class: "conn-table__id", "{writer.version}" }
                 td { class: "conn-table__id", "{writer.addr}" }
@@ -297,6 +300,7 @@ fn render_writers_table(writers: &[ConnectionWriterApiModel]) -> Element {
                     thead {
                         tr {
                             th { "Name" }
+                            th { "Namespace" }
                             th { "Session" }
                             th { "Version" }
                             th { "Addr" }

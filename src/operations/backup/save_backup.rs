@@ -37,6 +37,23 @@ async fn save_namespace_backup(
         }
     }
 
+    // A namespace with no tables produces an empty archive — 22 bytes, just the
+    // zip end-of-central-directory record. Written every interval it is
+    // indistinguishable from a real snapshot to the collector, so it occupies a
+    // MaxBackupsToKeep slot forever and pushes a genuine backup out. Nothing to
+    // back up means no file at all.
+    //
+    // The timestamp is still moved forward, so an empty namespace is
+    // re-checked once per interval rather than on every single tick.
+    if db_namespace.tables_amount() == 0 {
+        println!(
+            "Namespace '{}' holds no tables — skipping the backup",
+            db_namespace.name
+        );
+        save_last_backup_time(app, db_namespace, now).await;
+        return;
+    }
+
     let backup_content = super::super::build_db_snapshot_as_zip_archive(db_namespace).await;
 
     let file_name = now.to_rfc3339().replace(":", "").replace("-", "");

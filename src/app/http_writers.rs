@@ -7,6 +7,9 @@ use tokio::sync::Mutex;
 #[derive(Debug)]
 pub struct WriterInfo {
     pub name: String,
+    /// Namespace the writer works in, taken from the `ns` header of its ping.
+    /// A writer that names none works in the default namespace.
+    pub namespace: String,
     pub version: String,
     pub last_ping: DateTimeAsMicroseconds,
     pub tables: Vec<String>,
@@ -44,6 +47,7 @@ impl HttpWriters {
     pub async fn get_or_create(
         &self,
         session: Option<&str>,
+        namespace: &str,
         name: &str,
         version: &str,
         tables: impl Iterator<Item = &str>,
@@ -61,6 +65,7 @@ impl HttpWriters {
             .entry(session_id.clone())
             .or_insert_with(|| WriterInfo {
                 name: name.to_string(),
+                namespace: namespace.to_string(),
                 version: version.to_string(),
                 last_ping: now,
                 tables: Vec::new(),
@@ -69,6 +74,7 @@ impl HttpWriters {
 
         writer_info.last_ping = now;
         writer_info.name = name.to_string();
+        writer_info.namespace = namespace.to_string();
         writer_info.version = version.to_string();
         writer_info.tables = tables.map(|x| x.to_string()).collect();
         writer_info.addr = addr;
