@@ -65,8 +65,10 @@ pub fn TableHeader(
 
     rsx! {
         div { class: "table-header",
-            span { class: "table-header__title", "{name}" }
-            {compression}
+            div { class: "table-header__name",
+                span { class: "table-header__title", "{name}" }
+                {compression}
+            }
             div { class: "table-header__meta", {meta} }
             div { class: "table-header__actions",
                 button {
