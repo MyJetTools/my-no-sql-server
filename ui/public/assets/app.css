@@ -1379,10 +1379,25 @@ textarea {
     font-weight: 600;
 }
 
+.tables-pane__meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 1px;
+    flex-shrink: 0;
+}
+
 .tables-pane__count {
     font-family: var(--font-mono);
     font-size: 10.5px;
     color: var(--text-faint);
+}
+
+.tables-pane__size {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    color: var(--text-faint);
+    opacity: 0.8;
 }
 
 /* --- Partitions pane --- */
@@ -1479,6 +1494,21 @@ textarea {
     font-size: 18px;
     font-weight: 600;
     color: var(--text);
+}
+
+/* Bare button so the badge itself is the whole control — no second border or
+   background stacked around it. */
+.table-header__badge-btn {
+    border: none;
+    background: none;
+    padding: 0;
+    margin: 0;
+    line-height: 0;
+    cursor: pointer;
+}
+
+.table-header__badge-btn:hover .badge {
+    filter: brightness(1.06);
 }
 
 .table-header__meta {

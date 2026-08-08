@@ -4,6 +4,10 @@ use serde::*;
 pub struct TableApiModel {
     pub name: String,
     pub persist: bool,
+    /// Whether the rows of this table are kept compressed in memory. Defaulted
+    /// so the UI still parses a status from a server that predates the flag.
+    #[serde(default)]
+    pub compressed: bool,
     #[serde(rename = "maxPartitionsAmount")]
     pub max_partitions_amount: Option<usize>,
     #[serde(rename = "maxRowsPerPartition")]

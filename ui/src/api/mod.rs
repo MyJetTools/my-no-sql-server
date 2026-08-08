@@ -232,6 +232,36 @@ pub async fn delete_row(
     Ok(())
 }
 
+/// Turns in-memory compression on or off for a table via POST
+/// `/api/Tables/UpdateCompressed`.
+///
+/// `force_compress` decides how far the change reaches: without it the flag only
+/// governs rows written from now on, with it the server re-encodes everything
+/// already stored — which walks the whole table and is the slow path.
+pub async fn update_table_compressed(
+    table_name: &str,
+    compressed: bool,
+    force_compress: bool,
+) -> Result<(), RequestError> {
+    ensure_ui_writes_enabled().await?;
+    let url = format!(
+        "{}/api/Tables/UpdateCompressed?tableName={}&compressed={}&forceCompress={}",
+        get_base_url(),
+        url_escape(table_name),
+        compressed,
+        force_compress,
+    );
+    let response = request(reqwest::Method::POST, &url).send().await?;
+    if !response.status().is_success() {
+        let status = response.status();
+        let body = response.text().await.unwrap_or_default();
+        return Err(RequestError {
+            message: format!("Failed to update compression ({}): {}", status, body),
+        });
+    }
+    Ok(())
+}
+
 pub async fn get_ui_settings() -> Result<crate::settings::UiServerSettings, RequestError> {
     let url = format!("{}/api/Settings", get_base_url());
     let response = request(reqwest::Method::GET, &url).send().await?;

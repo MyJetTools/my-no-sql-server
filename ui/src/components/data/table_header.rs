@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 
-use crate::components::atoms::{Icon, IconKind};
+use crate::components::atoms::{Badge, BadgeTone, Icon, IconKind};
 use crate::models::TableApiModel;
 use crate::utils::{format_bytes, format_unix_microseconds};
 
@@ -9,7 +9,29 @@ pub fn TableHeader(
     name: String,
     stats: Option<TableApiModel>,
     on_refresh: EventHandler<()>,
+    on_compression: EventHandler<()>,
 ) -> Element {
+    // Only offered once the status poll has said which way the table is set —
+    // clicking a guessed state would open the dialog on the wrong action.
+    let compression = match stats.as_ref() {
+        Some(t) => {
+            let (text, tone) = if t.compressed {
+                ("compressed", BadgeTone::Warn)
+            } else {
+                ("non compressed", BadgeTone::Neutral)
+            };
+            rsx! {
+                button {
+                    class: "table-header__badge-btn",
+                    title: "Change in-memory compression",
+                    onclick: move |_| on_compression.call(()),
+                    Badge { text: text.to_string(), tone }
+                }
+            }
+        }
+        None => rsx! {},
+    };
+
     let meta = if let Some(t) = stats {
         let size = format_bytes(t.data_size as f64);
         let persist_period = t
@@ -44,6 +66,7 @@ pub fn TableHeader(
     rsx! {
         div { class: "table-header",
             span { class: "table-header__title", "{name}" }
+            {compression}
             div { class: "table-header__meta", {meta} }
             div { class: "table-header__actions",
                 button {

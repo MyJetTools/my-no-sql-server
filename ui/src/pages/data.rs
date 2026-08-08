@@ -13,7 +13,7 @@ use crate::api::{
 use crate::components::atoms::{Badge, BadgeTone, Icon, IconKind};
 use crate::components::data::{
     PARTITION_KEY, PartitionsPane, ROW_KEY, RowDrawer, RowsTable, TIME_STAMP, TableHeader,
-    TablePagination, TableToolbar, TablesPane,
+    TableListMetrics, TablePagination, TableToolbar, TablesPane,
 };
 use crate::models::{
     PartitionMetricApiModel, StatusApiModel, TableApiModel, TableListItemApiModel,
@@ -35,6 +35,18 @@ enum DialogState {
         total_rows: usize,
         partitions_touched: usize,
         error: Option<String>,
+    },
+    /// Turn in-memory compression on or off for the selected table.
+    /// `compressed` is the state the server reported when the dialog opened, so
+    /// the dialog always offers the opposite of it.
+    Compression {
+        table: String,
+        compressed: bool,
+        /// Also re-encode the rows already in memory, not just future writes.
+        force: bool,
+        /// Set while the request is in flight — re-encoding a big table is not
+        /// instant, and a second click would fire a second walk over it.
+        busy: bool,
     },
 }
 
@@ -409,7 +421,7 @@ pub fn DataLayout() -> Element {
     let (writer_apps_for_selected, reader_count_for_selected) =
         derive_table_connectivity(&status, &selected_table);
     let table_stats = derive_table_stats(&status, &selected_table);
-    let partition_counts_by_table = derive_table_partition_counts(&status);
+    let table_metrics = derive_table_metrics(&status);
 
     // Filter rows
     let filter_str = row_filter.read().to_lowercase();
@@ -558,6 +570,9 @@ pub fn DataLayout() -> Element {
                     });
                 }
                 Some(DialogState::PasteDelete { parsed: None, .. }) => {}
+                // Not a delete — the compression dialog confirms through its own
+                // handler, built where it is rendered.
+                Some(DialogState::Compression { .. }) => {}
                 None => {}
             }
         }
@@ -593,6 +608,18 @@ pub fn DataLayout() -> Element {
     } else {
         let on_refresh_table = move |_| {
             cs.write().clear_rows_scope();
+        };
+        let on_compression_click = {
+            let table = selected_table.clone();
+            let compressed = table_stats.as_ref().map(|t| t.compressed).unwrap_or(false);
+            move |_| {
+                cs.write().open_dialog(DialogState::Compression {
+                    table: table.clone(),
+                    compressed,
+                    force: false,
+                    busy: false,
+                });
+            }
         };
         let on_export_click = {
             let table = url_table.clone();
@@ -655,6 +682,7 @@ pub fn DataLayout() -> Element {
                     name: selected_table.clone(),
                     stats: table_stats.clone(),
                     on_refresh: on_refresh_table,
+                    on_compression: on_compression_click,
                 }
                 TableToolbar {
                     filter_value: row_filter,
@@ -1019,6 +1047,117 @@ pub fn DataLayout() -> Element {
                 }
             }
         }
+        Some(DialogState::Compression {
+            table,
+            compressed,
+            force,
+            busy,
+        }) => {
+            // The dialog always offers the opposite of what the server reported.
+            let target = !compressed;
+            let current_label = if compressed {
+                "compressed"
+            } else {
+                "not compressed"
+            };
+            let action_label = if target {
+                "Enable compression"
+            } else {
+                "Disable compression"
+            };
+            let force_label = if target {
+                "Compress the rows already in memory as well"
+            } else {
+                "Decompress the rows already in memory as well"
+            };
+            let apply_label = if busy { "Applying…" } else { action_label };
+            let table_for_submit = table.clone();
+
+            let on_force_toggle = move |evt: dioxus::events::FormEvent| {
+                let checked = evt.checked();
+                let mut w = cs.write();
+                if let Some(DialogState::Compression { force, .. }) = w.dialog.as_mut() {
+                    *force = checked;
+                }
+            };
+
+            let on_apply = move |_| {
+                let table = table_for_submit.clone();
+                let force = {
+                    let mut w = cs.write();
+                    match w.dialog.as_mut() {
+                        Some(DialogState::Compression { force, busy, .. }) => {
+                            if *busy {
+                                return;
+                            }
+                            *busy = true;
+                            *force
+                        }
+                        _ => return,
+                    }
+                };
+                spawn(async move {
+                    match crate::api::update_table_compressed(&table, target, force).await {
+                        Ok(()) => {
+                            // The 3s status poll brings the new flag back on its
+                            // own, so there is nothing to refresh here.
+                            cs.write().close_dialog();
+                        }
+                        Err(err) => {
+                            let mut w = cs.write();
+                            if let Some(DialogState::Compression { busy, .. }) = w.dialog.as_mut() {
+                                *busy = false;
+                            }
+                            w.set_write_error(err.to_string());
+                        }
+                    }
+                });
+            };
+
+            rsx! {
+                div { class: "dialog-overlay",
+                    div { class: "dialog",
+                        div { class: "dialog__header", "Table compression" }
+                        div { class: "dialog__body",
+                            div { style: "margin-bottom: 8px;",
+                                "Table "
+                                b { "{table}" }
+                                " is currently "
+                                b { "{current_label}" }
+                                "."
+                            }
+                            label { style: "display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 13px; cursor: pointer;",
+                                input {
+                                    r#type: "checkbox",
+                                    checked: force,
+                                    disabled: busy,
+                                    onchange: on_force_toggle,
+                                }
+                                "{force_label}"
+                            }
+                            div { style: "margin-top: 6px; font-size: 12px; color: var(--text-muted);",
+                                "Left unticked, the flag applies only to rows written from now on. Ticked, the whole table is re-encoded in place, which takes time proportional to its size."
+                            }
+                            {write_error_line.clone()}
+                        }
+                        div { class: "dialog__footer",
+                            button {
+                                class: "btn btn--ghost btn--sm",
+                                disabled: busy,
+                                onclick: move |_| { cs.write().close_dialog(); },
+                                "Cancel"
+                            }
+                            button {
+                                class: "btn btn--primary btn--sm",
+                                disabled: busy,
+                                onclick: on_apply,
+                                "{apply_label}"
+                            }
+                        }
+                    }
+                }
+            }
+        }
         None => rsx! {},
     };
 
@@ -1035,7 +1174,7 @@ pub fn DataLayout() -> Element {
                     tables: tables.clone(),
                     selected: selected_table.clone(),
                     writer_tables,
-                    partition_counts: partition_counts_by_table,
+                    metrics: table_metrics,
                     on_select: move |name| select_table(name),
                 }
                 {partitions_content}
@@ -1196,12 +1335,18 @@ fn derive_table_stats(status: &Option<StatusApiModel>, table: &str) -> Option<Ta
         .and_then(|init| init.tables.iter().find(|t| t.name == table).cloned())
 }
 
-fn derive_table_partition_counts(status: &Option<StatusApiModel>) -> HashMap<String, usize> {
+fn derive_table_metrics(status: &Option<StatusApiModel>) -> HashMap<String, TableListMetrics> {
     let mut map = HashMap::new();
     if let Some(s) = status {
         if let Some(init) = &s.initialized {
             for t in &init.tables {
-                map.insert(t.name.clone(), t.partitions_count);
+                map.insert(
+                    t.name.clone(),
+                    TableListMetrics {
+                        partitions_count: t.partitions_count,
+                        data_size: t.data_size,
+                    },
+                );
             }
         }
     }
