@@ -49,14 +49,15 @@ async fn handle_request(
     let now = JsonTimeStamp::now();
     let db_entity = parse_db_json_entity_to_validate(input_data.body.as_slice(), &now)?;
 
-    let db_row = crate::db_operations::write::replace::validate_before(
+    let candidate = crate::db_operations::write::replace::validate_before(
         action.app.as_ref(),
         &db_table,
         db_entity,
     )
     .await?;
 
-    let db_row = Arc::new(db_row);
+    let expected_time_stamp = candidate.expected_time_stamp;
+    let db_row = Arc::new(candidate.db_row);
 
     let event_src = EventSource::as_client_request(action.app.as_ref());
 
@@ -65,6 +66,7 @@ async fn handle_request(
         &db_namespace,
         &db_table,
         db_row,
+        expected_time_stamp,
         event_src,
         input_data.sync_period.get_sync_moment(),
         &now,
