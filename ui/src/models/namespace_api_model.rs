@@ -16,5 +16,5 @@ pub fn default_namespace() -> String {
 pub struct NamespaceApiModel {
     pub name: String,
     #[serde(rename = "tablesAmount")]
-    pub tables_amount: usize,
+    pub tables_amount: u64,
 }

@@ -10,14 +10,14 @@ pub fn StatsRow(
     tables: Vec<TableApiModel>,
     writers: Vec<WriterApiModel>,
     readers: Vec<ReaderApiModel>,
-    read_per_second: usize,
-    write_payloads_per_second: usize,
-    write_bytes_per_second: usize,
+    read_per_second: u64,
+    write_payloads_per_second: u64,
+    write_bytes_per_second: u64,
 ) -> Element {
     let thresholds = *use_context::<Signal<HealthThresholds>>().read();
     let table_count = tables.len();
-    let partitions: usize = tables.iter().map(|t| t.partitions_count).sum();
-    let total_rows: usize = tables.iter().map(|t| t.records_amount).sum();
+    let partitions: u64 = tables.iter().map(|t| t.partitions_count).sum();
+    let total_rows: u64 = tables.iter().map(|t| t.records_amount).sum();
     let writer_count = writers.len();
     let writer_bindings: usize = writers.iter().map(|w| w.tables.len()).sum();
 
@@ -104,7 +104,7 @@ fn tone_to_delta(tone: StatTone) -> DeltaTone {
     }
 }
 
-pub fn format_compact(n: usize) -> String {
+pub fn format_compact(n: u64) -> String {
     let v = n as f64;
     if v >= 1_000_000_000.0 {
         format!("{:.1}B", v / 1_000_000_000.0)

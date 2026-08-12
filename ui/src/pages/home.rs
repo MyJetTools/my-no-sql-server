@@ -84,9 +84,9 @@ fn render_loading_msg(msg: &str) -> Element {
 fn render_overview(
     init: InitializedApiModel,
     thresholds: HealthThresholds,
-    read_per_second: usize,
-    write_payloads_per_second: usize,
-    write_bytes_per_second: usize,
+    read_per_second: u64,
+    write_payloads_per_second: u64,
+    write_bytes_per_second: u64,
 ) -> Element {
     let readers_only: Vec<ReaderApiModel> = init
         .readers

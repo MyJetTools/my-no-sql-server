@@ -4,5 +4,5 @@ use serde::*;
 pub struct SnapshotTableApiModel {
     pub name: String,
     #[serde(rename = "partitionsCount")]
-    pub partitions_count: usize,
+    pub partitions_count: u64,
 }

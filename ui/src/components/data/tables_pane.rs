@@ -10,8 +10,8 @@ use crate::utils::format_bytes;
 /// always come from.
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub struct TableListMetrics {
-    pub partitions_count: usize,
-    pub data_size: usize,
+    pub partitions_count: u64,
+    pub data_size: u64,
 }
 
 #[component]
@@ -41,7 +41,7 @@ pub fn TablesPane(
     let header_count = if metrics.is_empty() {
         format!("{}", total)
     } else {
-        let total_size: usize = visible
+        let total_size: u64 = visible
             .iter()
             .filter_map(|t| metrics.get(&t.name))
             .map(|m| m.data_size)

@@ -14,9 +14,9 @@ pub struct ReaderApiModel {
     #[serde(rename = "connectedTime")]
     pub connected_time: String,
     #[serde(rename = "pendingToSend")]
-    pub pending_to_send: usize,
+    pub pending_to_send: u64,
     #[serde(rename = "sentPerSecond", default)]
-    pub sent_per_second: Vec<usize>,
+    pub sent_per_second: Vec<u64>,
     #[serde(rename = "isNode", default)]
     pub is_node: bool,
 }

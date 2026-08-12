@@ -27,7 +27,7 @@ pub fn TablePagination(
         "Showing {}–{} of {}",
         start,
         end,
-        format_compact_count(total)
+        format_compact_count(total as u64)
     );
     let page_label = format!("Page {} of {}", page + 1, total_pages);
 

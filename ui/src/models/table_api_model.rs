@@ -9,27 +9,27 @@ pub struct TableApiModel {
     #[serde(default)]
     pub compressed: bool,
     #[serde(rename = "maxPartitionsAmount")]
-    pub max_partitions_amount: Option<usize>,
+    pub max_partitions_amount: Option<u64>,
     #[serde(rename = "maxRowsPerPartition")]
-    pub max_rows_per_partition: Option<usize>,
+    pub max_rows_per_partition: Option<u64>,
     #[serde(rename = "partitionsCount")]
-    pub partitions_count: usize,
+    pub partitions_count: u64,
     #[serde(rename = "dataSize")]
-    pub data_size: usize,
+    pub data_size: u64,
     #[serde(rename = "recordsAmount")]
-    pub records_amount: usize,
+    pub records_amount: u64,
     #[serde(rename = "expirationIndex")]
-    pub expiration_index_records_amount: usize,
+    pub expiration_index_records_amount: u64,
     #[serde(rename = "lastUpdateTime")]
     pub last_update_time: i64,
     #[serde(rename = "lastPersistTime")]
     pub last_persist_time: Option<i64>,
     #[serde(rename = "lastPersistDuration", default)]
-    pub last_persist_duration: Vec<usize>,
+    pub last_persist_duration: Vec<u64>,
     #[serde(rename = "nextPersistTime")]
     pub next_persist_time: Option<i64>,
     #[serde(rename = "persistAmount")]
-    pub persist_amount: usize,
+    pub persist_amount: u64,
     #[serde(rename = "avgEntitySize")]
-    pub avg_entity_size: usize,
+    pub avg_entity_size: u64,
 }
