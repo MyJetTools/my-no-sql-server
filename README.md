@@ -121,6 +121,46 @@ Server-clock substitution (the default of every *other* write) and client-versio
 comparison (these `IfNew` operations) are two distinct request-parsing paths and
 must not be confused.
 
+#### `DeleteIf` — conditional delete by the `TimeStamp` the row was read at
+
+The delete counterpart of optimistic concurrency: the client sends back the
+`TimeStamp` it read the row at, and the row is deleted **only when that is still the
+`TimeStamp` stored in the table**. A row somebody rewrote in the meantime is left
+alone.
+
+| Endpoint | Shape |
+|----------|-------|
+| `DELETE /api/Row/DeleteIf` | single row, `tableName` / `partitionKey` / `rowKey` / `timeStamp` query parameters |
+| `POST /api/Bulk/DeleteIf` | array of `{PartitionKey, RowKey, TimeStamp}` in the body |
+
+Here `TimeStamp` is not a version the client owns (as it is for `InsertOrReplaceIfNew`)
+— it is the server-assigned write moment of the row, echoed back as an *expected*
+value. Comparison is between parsed moments, never between texts, so it does not
+matter how many fractional digits the value is spelled with: `...39.5404`,
+`...39.540400` and `...39.540400Z` are the same version.
+
+The two shapes differ in how they answer a row that does not match:
+
+- **single** — `200` with the deleted row; `404` when there is no such row; **`409`**
+  (`Record is changed`) when the row is there but at another version. Same answers as
+  `PUT /api/Row/Replace`.
+- **bulk** — always `200`, partial success. The matching rows are deleted, the rest are
+  left in place and listed in the response:
+
+```json
+{
+  "deleted": 2,
+  "skipped": [
+    { "PartitionKey": "pk1", "RowKey": "rk2", "Reason": "TimeStampMismatch" },
+    { "PartitionKey": "pk1", "RowKey": "rk9", "Reason": "NotFound" }
+  ]
+}
+```
+
+An unreadable `timeStamp` / `TimeStamp` fails the request with **HTTP 400** (the bulk
+one names the offending row) — a version that cannot be parsed can never match a
+stored one, so reporting it as a mere conflict would hide a client bug.
+
 #### `useTimestamp=true` — keep client timestamps on the plain bulk writes
 
 The **unconditional** bulk writes take an optional `useTimestamp` query flag:

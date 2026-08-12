@@ -145,6 +145,29 @@ impl GetRowInputModel {
 }
 
 #[derive(MyHttpInput)]
+pub struct DeleteRowIfInputModel {
+    #[http_header(name = "ns"; description = "Namespace to work in. Empty or absent means the default namespace")]
+    pub namespace: Option<String>,
+    #[http_query(name = "tableName"; description = "Name of a table")]
+    pub table_name: String,
+
+    #[http_query(name = "partitionKey"; description = "Partition Key")]
+    pub partition_key: String,
+
+    #[http_query(name = "rowKey"; description = "Row Key")]
+    pub row_key: String,
+
+    #[http_query(
+        name = "timeStamp";
+        description = "TimeStamp the row was read at. The row is deleted only when this is still the TimeStamp stored in the table"
+    )]
+    pub time_stamp: String,
+
+    #[http_query(name = "syncPeriod"; description = "Synchronization period"; default)]
+    pub sync_period: DataSynchronizationPeriod,
+}
+
+#[derive(MyHttpInput)]
 pub struct DeleteRowInputModel {
     #[http_header(name = "ns"; description = "Namespace to work in. Empty or absent means the default namespace")]
     pub namespace: Option<String>,

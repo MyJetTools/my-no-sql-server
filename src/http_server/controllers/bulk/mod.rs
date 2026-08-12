@@ -1,4 +1,5 @@
 mod bulk_delete_action;
+mod bulk_delete_if_action;
 mod bulk_insert_or_replace_if_new_action;
 mod clean_and_bulk_insert_action;
 mod clean_and_bulk_insert_by_chunks_action;
@@ -11,6 +12,7 @@ mod insert_or_replace_if_new_by_chunks_commit_action;
 mod models;
 
 pub use bulk_delete_action::BulkDeleteAction;
+pub use bulk_delete_if_action::BulkDeleteIfAction;
 pub use bulk_insert_or_replace_if_new_action::BulkInsertOrReplaceIfNewAction;
 pub use clean_and_bulk_insert_action::CleanAndBulkInsertAction;
 pub use clean_and_bulk_insert_by_chunks_action::CleanAndBulkInsertByChunksAction;

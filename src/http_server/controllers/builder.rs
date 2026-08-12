@@ -120,6 +120,8 @@ pub fn build(app: &Arc<AppContext>) -> ControllersMiddleware {
 
     result.register_post_action(Arc::new(super::bulk::BulkDeleteAction::new(app.clone())));
 
+    result.register_post_action(Arc::new(super::bulk::BulkDeleteIfAction::new(app.clone())));
+
     result.register_post_action(Arc::new(super::bulk::CleanAndBulkInsertAction::new(
         app.clone(),
     )));
@@ -193,6 +195,10 @@ pub fn build(app: &Arc<AppContext>) -> ControllersMiddleware {
     )));
 
     result.register_delete_action(Arc::new(super::row_controller::DeleteRowAction::new(
+        app.clone(),
+    )));
+
+    result.register_delete_action(Arc::new(super::row_controller::DeleteRowIfAction::new(
         app.clone(),
     )));
 

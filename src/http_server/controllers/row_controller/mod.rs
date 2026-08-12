@@ -1,5 +1,6 @@
 mod count_action;
 mod delete_row_action;
+mod delete_row_if_action;
 mod download_action;
 mod get_rows_action;
 mod insert_action;
@@ -10,6 +11,7 @@ mod replace_row_action;
 
 pub use count_action::RowCountAction;
 pub use delete_row_action::*;
+pub use delete_row_if_action::DeleteRowIfAction;
 pub use download_action::DownloadRowsAction;
 pub use get_rows_action::*;
 pub use insert_action::InsertRowAction;
