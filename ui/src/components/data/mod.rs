@@ -21,7 +21,7 @@ pub use row_drawer::*;
 mod pagination;
 pub use pagination::*;
 
-pub fn format_compact_count(n: usize) -> String {
+pub fn format_compact_count(n: u64) -> String {
     let v = n as f64;
     if v >= 1_000_000.0 {
         format!("{:.1}M", v / 1_000_000.0)

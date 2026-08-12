@@ -34,7 +34,7 @@ pub struct NotInitializedApiModel {
     #[serde(default)]
     pub message: Option<String>,
     #[serde(rename = "loadedFiles", default)]
-    pub loaded_files: Option<usize>,
+    pub loaded_files: Option<u64>,
     #[serde(rename = "filesToLoad", default)]
-    pub files_to_load: Option<usize>,
+    pub files_to_load: Option<u64>,
 }

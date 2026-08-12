@@ -12,10 +12,10 @@ const MAX_POINTS: usize = 120;
 
 #[derive(Clone, Copy)]
 struct Sample {
-    incoming: usize,
-    outgoing: usize,
-    payloads: usize,
-    write_bytes: usize,
+    incoming: u64,
+    outgoing: u64,
+    payloads: u64,
+    write_bytes: u64,
 }
 
 #[derive(Default)]

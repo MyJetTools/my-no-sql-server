@@ -3,7 +3,7 @@ use dioxus::prelude::*;
 use crate::utils::format_bytes_per_sec;
 
 #[component]
-pub fn Sparkline(values: Vec<usize>, #[props(default)] bytes_label: bool) -> Element {
+pub fn Sparkline(values: Vec<u64>, #[props(default)] bytes_label: bool) -> Element {
     let width: f64 = 200.0;
     let height: f64 = 36.0;
     let count = values.len().max(1) as f64;
