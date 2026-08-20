@@ -91,6 +91,8 @@ async fn save_namespace_backup(
 
     save_last_backup_time(app, db_namespace, now).await;
 
+    super::gc_namespace_backups(app, db_namespace).await;
+
     true
 }
 

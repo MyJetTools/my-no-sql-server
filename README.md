@@ -29,7 +29,7 @@ MaxBackupsToKeep: 5
 * TcpSendTimeoutSec - timeout for tcp send operation, otherwise connection will be closed;
 * BackupFolder - folder to store backups as ZIP Archives;
 * BackupIntervalHours - interval between backups;
-* MaxBackupsToKeep - max amount of backups to keep in BackupFolder;
+* MaxBackupsToKeep - max amount of backups to keep per namespace - every namespace has a folder of its own inside BackupFolder and is counted separately. The oldest ones above the limit are deleted by the GcBackups timer, which reports every deletion to the log;
 
 
 

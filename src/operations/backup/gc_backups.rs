@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use my_logger::LogEventCtx;
+
 use crate::app::{AppContext, DbNamespace};
 
 use super::utils::compile_backup_file;
@@ -11,15 +13,29 @@ use super::SnapshotFileModel;
 /// so this can not reach across namespaces.
 pub async fn gc_backups(app: &AppContext) {
     for db_namespace in app.namespaces.get_all() {
-        let files = super::get_list_of_files(app, &db_namespace).await;
+        gc_namespace_backups(app, &db_namespace).await;
+    }
+}
 
-        for file_name in select_backups_to_delete(&files, app.settings.max_backups_to_keep) {
-            println!(
-                "Deleting backup file of the namespace {}: {}",
-                db_namespace.name, file_name
-            );
-            delete_backup(app, &db_namespace, file_name.as_str()).await;
-        }
+/// Enforces `MaxBackupsToKeep` inside one namespace. Called right after a
+/// snapshot is written — the new snapshot is what pushes the folder over the
+/// limit, so collecting there keeps the limit true continuously instead of only
+/// between the collector's ticks.
+pub async fn gc_namespace_backups(app: &AppContext, db_namespace: &Arc<DbNamespace>) {
+    let files = super::get_list_of_files(app, db_namespace).await;
+
+    for file_name in select_backups_to_delete(&files, app.settings.max_backups_to_keep) {
+        // Logged, not printed: whether MaxBackupsToKeep is being enforced at all
+        // is the first question asked when a backup folder looks wrong, and the
+        // answer belongs where the rest of the server's log is.
+        my_logger::LOGGER.write_info(
+            "GcBackups",
+            format!("Deleting backup file {}", file_name),
+            LogEventCtx::new()
+                .add("namespace", db_namespace.name.to_string())
+                .add("keeping", app.settings.max_backups_to_keep.to_string()),
+        );
+        delete_backup(app, db_namespace, file_name.as_str()).await;
     }
 }
 
@@ -60,9 +76,10 @@ async fn delete_backup(app: &AppContext, db_namespace: &Arc<DbNamespace>, file_n
         // A snapshot that can not be deleted is not worth taking the server
         // down for: it is reported and stays in the folder, and the next tick
         // tries again.
-        println!(
-            "Can not delete backup file {}. Err: {}",
-            file_full_path, err
+        my_logger::LOGGER.write_error(
+            "GcBackups",
+            format!("Can not delete backup file. Err: {}", err),
+            LogEventCtx::new().add("fileName", file_full_path),
         );
     }
 }
