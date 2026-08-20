@@ -53,8 +53,7 @@ impl McpToolCall<GetBackupRowsInputData, GetBackupRowsResponse> for GetBackupRow
     ) -> Result<GetBackupRowsResponse, String> {
         let db_namespace = self
             .app
-            .get_or_create_namespace(model.namespace.as_deref())
-            .await
+            .get_existing_namespace(model.namespace.as_deref())
             .map_err(|err| format!("{:?}", err))?;
 
         let content = crate::operations::backup::read_snapshot_partition_rows(

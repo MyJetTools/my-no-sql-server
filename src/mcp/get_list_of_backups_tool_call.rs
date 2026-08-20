@@ -55,8 +55,7 @@ impl McpToolCall<GetListOfBackupsInputData, GetListOfBackupsResponse>
     ) -> Result<GetListOfBackupsResponse, String> {
         let db_namespace = self
             .app
-            .get_or_create_namespace(model.namespace.as_deref())
-            .await
+            .get_existing_namespace(model.namespace.as_deref())
             .map_err(|err| format!("{:?}", err))?;
 
         let files =

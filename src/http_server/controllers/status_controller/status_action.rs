@@ -28,7 +28,7 @@ async fn handle_request(
     action: &StatusAction,
     ctx: &mut HttpContext,
 ) -> Result<HttpOkResult, HttpFailResult> {
-    let db_namespace = crate::http_server::get_request_namespace(&action.app, ctx).await?;
+    let db_namespace = crate::http_server::get_request_namespace_existing(&action.app, ctx).await?;
 
     let model = StatusModel::new(action.app.as_ref(), &db_namespace).await;
     HttpOutput::as_json(model).into_ok_result(true).into()

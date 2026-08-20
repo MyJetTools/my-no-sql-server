@@ -29,7 +29,7 @@ async fn handle_request(
     action: &DownloadAction,
     ctx: &mut HttpContext,
 ) -> Result<HttpOkResult, HttpFailResult> {
-    let db_namespace = crate::http_server::get_request_namespace(&action.app, ctx).await?;
+    let db_namespace = crate::http_server::get_request_namespace_existing(&action.app, ctx).await?;
 
     let db_snapshot_as_zip =
         crate::operations::build_db_snapshot_as_zip_archive(&db_namespace).await;

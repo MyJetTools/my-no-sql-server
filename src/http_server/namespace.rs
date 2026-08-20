@@ -17,11 +17,12 @@ use crate::app::{AppContext, DbNamespace};
 /// fallback.
 pub const NAMESPACE_HEADER: &str = "ns";
 
-/// Namespace of an incoming HTTP request.
+/// Namespace of a request which WRITES.
 ///
 /// The namespace is created if this is the first time it is mentioned, the same
 /// way a table is: `ns` is a client-owned name, not something an admin has to
-/// register first.
+/// register first. Reads must use `get_request_namespace_existing` instead —
+/// see there.
 pub async fn get_request_namespace(
     app: &Arc<AppContext>,
     ctx: &HttpContext,
@@ -36,10 +37,16 @@ pub async fn get_request_namespace(
     Ok(result)
 }
 
-/// Namespace of a request which must not create one — the delete operations.
-/// An unknown namespace is answered with "namespace not found" straight away
-/// instead of being conjured into existence just so the delete can fail inside
-/// it.
+/// Namespace of a request which must not create one — every READ and every
+/// DELETE. An unknown namespace is answered with "namespace not found" straight
+/// away instead of being conjured into existence just so the operation can fail
+/// inside it.
+///
+/// A read creating a namespace is not merely untidy, it breaks the backups: the
+/// namespace gets a `db/<ns>` folder and lands in the list the backup timer
+/// walks, while nothing ever gives it a `backup/<ns>` counterpart. One GET with
+/// a mistyped `ns` — one negative test in swagger — was enough to leave that
+/// behind, and the folder survives restarts.
 pub async fn get_request_namespace_existing(
     app: &Arc<AppContext>,
     ctx: &HttpContext,
