@@ -159,6 +159,31 @@ impl AppContext {
         }
     }
 
+    /// Namespace a reader's `Subscribe` works in. `None` means it does not exist
+    /// — which is NOT an error here: a reader naming a namespace nobody has
+    /// written to yet is answered with an empty snapshot, see
+    /// `operations::data_readers::send_empty_snapshot`. A malformed name still
+    /// is one.
+    ///
+    /// A subscribe reads — unless `AutoCreateTableOnReaderSubscribe` is on, in
+    /// which case it is allowed to create the table it subscribes to, and then it
+    /// has to be allowed to create the namespace that table would live in as
+    /// well.
+    pub async fn get_namespace_of_subscribe(
+        &self,
+        name: Option<&str>,
+    ) -> Result<Option<Arc<DbNamespace>>, crate::db_operations::DbOperationError> {
+        if self.settings.auto_create_table_on_reader_subscribe {
+            return Ok(Some(self.get_or_create_namespace(name).await?));
+        }
+
+        match self.get_existing_namespace(name) {
+            Ok(db_namespace) => Ok(Some(db_namespace)),
+            Err(crate::db_operations::DbOperationError::NamespaceNotFound(_)) => Ok(None),
+            Err(err) => Err(err),
+        }
+    }
+
     /// Namespace of an operation which must not bring one into existence —
     /// everything which does not ADD data: reads, deletes, table cleanups.
     ///

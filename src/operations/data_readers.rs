@@ -50,30 +50,12 @@ pub async fn subscribe(
             .await?
             .into();
         } else {
-            println!(
-                "{:?} is subscribing to the table {} which does not exist. \
-                 Sending an empty snapshot so the reader gets initialized",
-                data_reader.get_name(),
-                table_name
-            );
-
-            // Table does not exist and auto-create is disabled. Build a throwaway,
-            // empty DbTable - it is NOT inserted into app.db and NO subscription is
-            // registered. It exists only to produce an empty InitTable snapshot so the
-            // reader initializes instead of receiving an Error contract (which makes
-            // the SDK reader panic).
-            let empty_table = DbTable::new(DbTableInner::new(
-                table_name.into(),
-                DbTableAttributes::new(false, None, None, false, DateTimeAsMicroseconds::now()),
-            ));
-
-            crate::operations::sync::dispatch(
+            // Table does not exist and auto-create is disabled.
+            send_empty_snapshot(
                 app,
-                db_namespace,
-                SyncEvent::TableFirstInit(TableFirstInitSyncData {
-                    db_table: empty_table,
-                    data_reader,
-                }),
+                db_namespace.name.clone(),
+                data_reader,
+                table_name,
             );
 
             return Ok(());
@@ -94,4 +76,47 @@ pub async fn subscribe(
     );
 
     Ok(())
+}
+
+/// Answers a reader which subscribed to something that is not there: a table
+/// which was never created, or a whole namespace nobody has written to yet.
+///
+/// It gets an empty `InitTable` snapshot and deliberately NOT an `Error`
+/// contract — the SDK reader panics on one, while starting before the first
+/// writer is a perfectly normal way for a reader to start. A throwaway, empty
+/// `DbTable` is built for it: nothing is inserted anywhere and NO subscription
+/// is registered, so the reader is initialized and picks the table up when it
+/// reconnects.
+///
+/// This is the whole reason a reader needs no namespace to exist: the namespace
+/// is carried for the envelope only, because a `TableFirstInit` is routed by the
+/// data reader in its payload.
+pub fn send_empty_snapshot(
+    app: &AppContext,
+    namespace: my_no_sql_sdk::core::db::DbNamespaceName,
+    data_reader: Arc<DataReader>,
+    table_name: &str,
+) {
+    my_logger::LOGGER.write_info(
+        "SubscribeToTable",
+        "Subscribed to something which does not exist - sending an empty snapshot so the reader gets initialized",
+        my_logger::LogEventCtx::new()
+            .add("name", format!("{:?}", data_reader.get_name()))
+            .add("namespace", namespace.to_string())
+            .add("tableName", table_name.to_string()),
+    );
+
+    let empty_table = DbTable::new(DbTableInner::new(
+        table_name.into(),
+        DbTableAttributes::new(false, None, None, false, DateTimeAsMicroseconds::now()),
+    ));
+
+    crate::operations::sync::dispatch_by_namespace_name(
+        app,
+        namespace,
+        SyncEvent::TableFirstInit(TableFirstInitSyncData {
+            db_table: empty_table,
+            data_reader,
+        }),
+    );
 }

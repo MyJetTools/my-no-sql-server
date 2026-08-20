@@ -13,6 +13,7 @@ use crate::app::AppContext;
     controller: "Backup",
     result:[
         {status_code: 200, description: "Snapshot of all tables"},
+        {status_code: 500, description: "The snapshot could not be built"},
     ]
 )]
 pub struct DownloadAction {
@@ -31,8 +32,9 @@ async fn handle_request(
 ) -> Result<HttpOkResult, HttpFailResult> {
     let db_namespace = crate::http_server::get_request_namespace_existing(&action.app, ctx).await?;
 
-    let db_snapshot_as_zip =
-        crate::operations::build_db_snapshot_as_zip_archive(&db_namespace).await;
+    let db_snapshot_as_zip = crate::operations::build_db_snapshot_as_zip_archive(&db_namespace)
+        .await
+        .map_err(HttpFailResult::as_fatal_error)?;
 
     let now = DateTimeAsMicroseconds::now();
 

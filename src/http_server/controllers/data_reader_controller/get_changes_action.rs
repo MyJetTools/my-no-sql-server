@@ -37,7 +37,7 @@ async fn handle_request(
     input_data: GetChangesInputModel,
     ctx: &mut HttpContext,
 ) -> Result<HttpOkResult, HttpFailResult> {
-    let db_namespace = crate::http_server::get_request_namespace(&action.app, ctx).await?;
+    let db_namespace = crate::http_server::get_request_namespace_existing(&action.app, ctx).await?;
 
     let data_reader = action
         .app

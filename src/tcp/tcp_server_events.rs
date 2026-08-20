@@ -22,13 +22,36 @@ impl TcpServerEvents {
         Self { app }
     }
 
-    /// Namespace the connection works in. A connection which never sent
-    /// `SetNamespace` stays in the default one.
-    async fn get_namespace(&self, data_reader: &Arc<DataReader>) -> Arc<DbNamespace> {
+    /// Namespace the connection works in, as long as it exists. A connection
+    /// which never sent `SetNamespace` stays in the default one, which always
+    /// does.
+    ///
+    /// Resolved WITHOUT creating: every packet a TCP connection can send reads,
+    /// and a mistyped `SetNamespace` must not leave a namespace — and a
+    /// `db/<ns>` folder — behind. `None` costs a reader nothing it was not
+    /// getting already: the namespace which used to be conjured up for it held
+    /// no tables either, so the answer was "table not found" either way.
+    fn get_existing_namespace(&self, data_reader: &Arc<DataReader>) -> Option<Arc<DbNamespace>> {
         self.app
             .namespaces
-            .get_or_create(data_reader.get_namespace().as_str())
-            .await
+            .get(data_reader.get_namespace().as_str())
+    }
+
+    /// Namespace a `Subscribe` works in. Unlike everything else on this
+    /// connection a subscribe MAY write — it creates the table it subscribes to
+    /// when `AutoCreateTableOnReaderSubscribe` is on — and a packet allowed to
+    /// create a table has to be allowed to create the namespace holding it.
+    async fn get_namespace_of_subscribe(
+        &self,
+        data_reader: &Arc<DataReader>,
+    ) -> Option<Arc<DbNamespace>> {
+        if self.app.settings.auto_create_table_on_reader_subscribe {
+            let namespace = data_reader.get_namespace();
+
+            return Some(self.app.namespaces.get_or_create(namespace.as_str()).await);
+        }
+
+        self.get_existing_namespace(data_reader)
     }
 
     async fn set_namespace(
@@ -42,34 +65,28 @@ impl TcpServerEvents {
 
         data_reader.set_namespace(namespace.into()).await?;
 
-        // Materialize it right away: the reader is going to subscribe to it
-        // next, and doing it here keeps the failure (if any) attached to the
-        // packet which asked for the namespace.
-        self.app.namespaces.get_or_create(namespace).await;
-
+        // Deliberately NOT materialized here: naming a namespace is not writing
+        // to it, and a reader which connects before the first writer must not be
+        // the one that brings the namespace into existence. Whatever the reader
+        // does next resolves it — by then it either exists or the reader is
+        // answered that it does not.
         Ok(())
     }
 
-    async fn get_namespace_of_connection(
-        &self,
-        connection: &Arc<MyNoSqlTcpConnection>,
-    ) -> Arc<DbNamespace> {
-        match self.app.data_readers.get_tcp(connection.as_ref()).await {
-            Some(data_reader) => self.get_namespace(&data_reader).await,
-            None => self.app.namespaces.get_default(),
-        }
-    }
-
-    /// Table addressed by one of the maintenance packets, resolved inside the
-    /// namespace of the connection which sent it.
+    /// Namespace and table addressed by one of the maintenance packets, resolved
+    /// inside the namespace of the connection which sent it. `None` as soon as
+    /// any of the three is not there — which is what the packets treat as
+    /// "nothing to update".
     async fn get_table_of_connection(
         &self,
         connection: &Arc<MyNoSqlTcpConnection>,
         table_name: &str,
-    ) -> Option<Arc<my_no_sql_sdk::server::DbTable>> {
+    ) -> Option<(Arc<DbNamespace>, Arc<my_no_sql_sdk::server::DbTable>)> {
         let data_reader = self.app.data_readers.get_tcp(connection.as_ref()).await?;
-        let db_namespace = self.get_namespace(&data_reader).await;
-        db_namespace.db.get_table(table_name)
+        let db_namespace = self.get_existing_namespace(&data_reader)?;
+        let db_table = db_namespace.db.get_table(table_name)?;
+
+        Some((db_namespace, db_table))
     }
 }
 
@@ -178,7 +195,24 @@ impl SocketEventCallback<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()> for
             MyNoSqlTcpContract::Subscribe { table_name } => {
                 if let Some(data_reader) = self.app.data_readers.get_tcp(connection.as_ref()).await
                 {
-                    let db_namespace = self.get_namespace(&data_reader).await;
+                    let db_namespace = match self.get_namespace_of_subscribe(&data_reader).await {
+                        Some(db_namespace) => db_namespace,
+                        None => {
+                            // No namespace means no table in it — answered with
+                            // the empty snapshot a missing table is answered
+                            // with, and NOT with an Error contract, which panics
+                            // the SDK reader. Subscribing before the first write
+                            // is how a reader which starts first behaves.
+                            crate::operations::data_readers::send_empty_snapshot(
+                                &self.app,
+                                data_reader.get_namespace(),
+                                data_reader,
+                                table_name.as_str(),
+                            );
+
+                            return;
+                        }
+                    };
 
                     let result = crate::operations::data_readers::subscribe(
                         &self.app,
@@ -216,7 +250,20 @@ impl SocketEventCallback<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()> for
             MyNoSqlTcpContract::SubscribeAsNode(table_name) => {
                 if let Some(data_reader) = self.app.data_readers.get_tcp(connection.as_ref()).await
                 {
-                    let db_namespace = self.get_namespace(&data_reader).await;
+                    // Resolved without creating even when
+                    // `AutoCreateTableOnReaderSubscribe` is on: this path refuses
+                    // a missing table below instead of creating it, so it has no
+                    // business creating the namespace either. A namespace which
+                    // does not exist holds no table, which is the very same
+                    // TableNotFound the node already knows how to handle.
+                    let db_namespace = match self.get_existing_namespace(&data_reader) {
+                        Some(db_namespace) => db_namespace,
+                        None => {
+                            connection.send(&MyNoSqlTcpContract::TableNotFound(table_name));
+
+                            return;
+                        }
+                    };
 
                     let table = db_namespace.db.get_table(table_name.as_str());
 
@@ -274,7 +321,7 @@ impl SocketEventCallback<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()> for
                     .get_table_of_connection(connection, table_name.as_str())
                     .await;
 
-                if let Some(db_table) = db_table {
+                if let Some((_, db_table)) = db_table {
                     crate::db_operations::update_partitions_last_read_time(
                         &db_table,
                         partitions.iter().map(|x| x.as_str()),
@@ -295,7 +342,7 @@ impl SocketEventCallback<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()> for
                     .get_table_of_connection(connection, table_name.as_str())
                     .await;
 
-                if let Some(db_table) = db_table {
+                if let Some((_, db_table)) = db_table {
                     crate::db_operations::update_row_keys_last_read_access_time(
                         &db_table,
                         &partition_key,
@@ -316,7 +363,7 @@ impl SocketEventCallback<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()> for
                     .get_table_of_connection(connection, table_name.as_str())
                     .await;
 
-                if let Some(db_table) = &db_table {
+                if let Some((_, db_table)) = &db_table {
                     for (partition_key, set_expiration_time) in partitions {
                         crate::db_operations::update_partition_expiration_time(
                             db_table,
@@ -339,9 +386,9 @@ impl SocketEventCallback<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer, ()> for
                     .get_table_of_connection(connection, table_name.as_str())
                     .await;
 
-                if let Some(db_table) = &db_table {
+                if let Some((db_namespace, db_table)) = &db_table {
                     crate::db_operations::update_rows_expiration_time(
-                        &self.get_namespace_of_connection(connection).await,
+                        db_namespace,
                         db_table,
                         &partition_key,
                         row_keys.iter().map(|x| x.as_str()),

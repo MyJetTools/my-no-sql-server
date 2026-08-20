@@ -9,10 +9,23 @@ use crate::{
 };
 
 pub fn dispatch(app: &AppContext, db_namespace: &Arc<DbNamespace>, sync_event: SyncEvent) {
-    app.sync.send(NamespaceSyncEvent::new(
-        db_namespace.name.clone(),
-        sync_event,
-    ));
+    dispatch_by_namespace_name(app, db_namespace.name.clone(), sync_event);
+}
+
+/// `dispatch` for an event whose namespace does not exist as an object.
+///
+/// A `TableFirstInit` is routed by the data reader carried in its payload (see
+/// `sync` below), so the namespace of the envelope is a label there and the name
+/// is all of it that is needed — which is what makes a reader of a namespace
+/// nobody has written to yet answerable at all. Do not reach for this with any
+/// other event: those ARE routed by (namespace, table).
+pub fn dispatch_by_namespace_name(
+    app: &AppContext,
+    namespace: my_no_sql_sdk::core::db::DbNamespaceName,
+    sync_event: SyncEvent,
+) {
+    app.sync
+        .send(NamespaceSyncEvent::new(namespace, sync_event));
 }
 
 pub async fn sync(app: &AppContext, model: &NamespaceSyncEvent) {

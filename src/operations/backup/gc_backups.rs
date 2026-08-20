@@ -73,6 +73,15 @@ async fn delete_backup(app: &AppContext, db_namespace: &Arc<DbNamespace>, file_n
     let file_full_path = compile_backup_file(app, &db_namespace.name, file_name);
 
     if let Err(err) = tokio::fs::remove_file(file_full_path.as_str()).await {
+        // Already gone is this function's own goal, not a failure: a namespace
+        // collects right after writing its snapshot while the GcBackups timer
+        // walks the same folder as a separate task, so the two do race — and
+        // whoever gets there second must not report an error over a file the
+        // other one has just deleted.
+        if err.kind() == std::io::ErrorKind::NotFound {
+            return;
+        }
+
         // A snapshot that can not be deleted is not worth taking the server
         // down for: it is reported and stays in the folder, and the next tick
         // tries again.

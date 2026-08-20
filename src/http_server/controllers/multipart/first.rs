@@ -74,7 +74,7 @@ async fn handle_request(
     input_data: NewMultipartInputContract,
     ctx: &mut HttpContext,
 ) -> Result<HttpOkResult, HttpFailResult> {
-    let db_namespace = crate::http_server::get_request_namespace(&action.app, ctx).await?;
+    let db_namespace = crate::http_server::get_request_namespace_existing(&action.app, ctx).await?;
 
     let result = crate::db_operations::read::multipart::start_read_all(
         action.app.as_ref(),

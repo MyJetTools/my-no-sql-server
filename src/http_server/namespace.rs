@@ -27,12 +27,9 @@ pub async fn get_request_namespace(
     app: &Arc<AppContext>,
     ctx: &HttpContext,
 ) -> Result<Arc<DbNamespace>, HttpFailResult> {
-    let namespace = match get_namespace_header(ctx) {
-        Some(namespace) => Some(namespace),
-        None => get_namespace_query_param(ctx),
-    };
-
-    let result = app.get_or_create_namespace(namespace).await?;
+    let result = app
+        .get_or_create_namespace(get_request_namespace_name(ctx))
+        .await?;
 
     Ok(result)
 }
@@ -51,14 +48,35 @@ pub async fn get_request_namespace_existing(
     app: &Arc<AppContext>,
     ctx: &HttpContext,
 ) -> Result<Arc<DbNamespace>, HttpFailResult> {
-    let namespace = match get_namespace_header(ctx) {
-        Some(namespace) => Some(namespace),
-        None => get_namespace_query_param(ctx),
-    };
-
-    let result = app.get_existing_namespace(namespace)?;
+    let result = app.get_existing_namespace(get_request_namespace_name(ctx))?;
 
     Ok(result)
+}
+
+/// Namespace of a reader's subscribe request — neither of the two above, because
+/// a subscribe is a read which is allowed to write under one setting, and one
+/// which is never refused for naming a namespace that does not exist. See
+/// `AppContext::get_namespace_of_subscribe`.
+pub async fn get_request_namespace_of_subscribe(
+    app: &Arc<AppContext>,
+    ctx: &HttpContext,
+) -> Result<Option<Arc<DbNamespace>>, HttpFailResult> {
+    let result = app
+        .get_namespace_of_subscribe(get_request_namespace_name(ctx))
+        .await?;
+
+    Ok(result)
+}
+
+/// Namespace the request names, if it names one at all. `None` means the default
+/// namespace to everything which has to work in exactly one — and "every
+/// namespace" to `MakeBackup`, which is the one endpoint that can address them
+/// all at once.
+pub fn get_request_namespace_name(ctx: &HttpContext) -> Option<&str> {
+    match get_namespace_header(ctx) {
+        Some(namespace) => Some(namespace),
+        None => get_namespace_query_param(ctx),
+    }
 }
 
 pub fn get_namespace_header(ctx: &HttpContext) -> Option<&str> {
