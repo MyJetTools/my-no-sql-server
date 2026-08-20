@@ -159,11 +159,13 @@ impl AppContext {
         }
     }
 
-    /// Namespace of an operation which must not bring one into existence.
+    /// Namespace of an operation which must not bring one into existence —
+    /// everything which does not ADD data: reads, deletes, table cleanups.
     ///
-    /// A delete has nothing to delete in a namespace nobody ever wrote to, and
-    /// resolving it the creating way would leave a folder on disk behind every
-    /// mistyped request. The default namespace always exists.
+    /// Such an operation has nothing to work on in a namespace nobody ever wrote
+    /// to, and resolving it the creating way leaves a folder on disk behind every
+    /// mistyped request — a folder the backup timer then expects a
+    /// `backup/<ns>` counterpart for. The default namespace always exists.
     pub fn get_existing_namespace(
         &self,
         name: Option<&str>,

@@ -47,8 +47,7 @@ impl McpToolCall<GetListOfTablesInputData, GetListOfTablesResponse>
     ) -> Result<GetListOfTablesResponse, String> {
         let db_namespace = self
             .app
-            .get_or_create_namespace(model.namespace.as_deref())
-            .await
+            .get_existing_namespace(model.namespace.as_deref())
             .map_err(|err| format!("{:?}", err))?;
 
         let tables = db_namespace.db.get_tables();

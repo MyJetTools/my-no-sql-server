@@ -34,7 +34,7 @@ async fn handle_request(
     input_data: GetTableSizeContract,
     ctx: &HttpContext,
 ) -> Result<HttpOkResult, HttpFailResult> {
-    let db_namespace = crate::http_server::get_request_namespace(&action.app, ctx).await?;
+    let db_namespace = crate::http_server::get_request_namespace_existing(&action.app, ctx).await?;
 
     crate::db_operations::check_app_states(action.app.as_ref())?;
 

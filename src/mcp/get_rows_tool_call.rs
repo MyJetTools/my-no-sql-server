@@ -49,8 +49,7 @@ impl McpToolCall<GetRowsInputData, GetRowsResponse> for GetRowsToolCallHandler {
     async fn execute_tool_call(&self, model: GetRowsInputData) -> Result<GetRowsResponse, String> {
         let db_namespace = self
             .app
-            .get_or_create_namespace(model.namespace.as_deref())
-            .await
+            .get_existing_namespace(model.namespace.as_deref())
             .map_err(|err| format!("{:?}", err))?;
 
         let table = crate::db_operations::read::table::get(

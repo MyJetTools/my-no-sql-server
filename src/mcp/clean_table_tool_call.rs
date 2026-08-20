@@ -55,8 +55,7 @@ impl McpToolCall<CleanTableInputData, CleanTableResponse> for CleanTableToolCall
     ) -> Result<CleanTableResponse, String> {
         let db_namespace = self
             .app
-            .get_or_create_namespace(model.namespace.as_deref())
-            .await
+            .get_existing_namespace(model.namespace.as_deref())
             .map_err(|err| format!("{:?}", err))?;
 
         super::write_gate::ensure_mcp_writes_enabled(self.app.as_ref())?;

@@ -33,7 +33,7 @@ async fn handle_request(
     input_data: UpdateCompressedTableContract,
     ctx: &mut HttpContext,
 ) -> Result<HttpOkResult, HttpFailResult> {
-    let db_namespace = crate::http_server::get_request_namespace(&action.app, ctx).await?;
+    let db_namespace = crate::http_server::get_request_namespace_existing(&action.app, ctx).await?;
 
     let db_table = crate::db_operations::read::table::get(
         action.app.as_ref(),

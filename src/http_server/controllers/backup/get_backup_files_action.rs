@@ -28,7 +28,7 @@ async fn handle_request(
     action: &GetListOfBackupFilesAction,
     ctx: &mut HttpContext,
 ) -> Result<HttpOkResult, HttpFailResult> {
-    let db_namespace = crate::http_server::get_request_namespace(&action.app, ctx).await?;
+    let db_namespace = crate::http_server::get_request_namespace_existing(&action.app, ctx).await?;
 
     let list_of_files =
         crate::operations::backup::get_list_of_files(&action.app, &db_namespace).await;

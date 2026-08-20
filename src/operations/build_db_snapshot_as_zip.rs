@@ -12,8 +12,10 @@ pub async fn build_db_snapshot_as_zip_archive(db_namespace: &Arc<DbNamespace>) -
 
         zip_builder
             .add_table(&db_table.name.as_str(), &table_snapshot)
-            .unwrap();
+            .expect("zip writer writes into an in-memory buffer, it has no io to fail at");
     }
 
-    zip_builder.get_payload().unwrap()
+    zip_builder
+        .get_payload()
+        .expect("zip writer writes into an in-memory buffer, it has no io to fail at")
 }

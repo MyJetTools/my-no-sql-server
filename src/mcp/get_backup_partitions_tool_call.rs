@@ -51,8 +51,7 @@ impl McpToolCall<GetBackupPartitionsInputData, GetBackupPartitionsResponse>
     ) -> Result<GetBackupPartitionsResponse, String> {
         let db_namespace = self
             .app
-            .get_or_create_namespace(model.namespace.as_deref())
-            .await
+            .get_existing_namespace(model.namespace.as_deref())
             .map_err(|err| format!("{:?}", err))?;
 
         let partitions = crate::operations::backup::list_snapshot_partitions(

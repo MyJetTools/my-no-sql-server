@@ -31,7 +31,7 @@ async fn handle_request(
     action: &GetListAction,
     ctx: &mut HttpContext,
 ) -> Result<HttpOkResult, HttpFailResult> {
-    let db_namespace = crate::http_server::get_request_namespace(&action.app, ctx).await?;
+    let db_namespace = crate::http_server::get_request_namespace_existing(&action.app, ctx).await?;
 
     crate::db_operations::check_app_states(action.app.as_ref())?;
     let tables = db_namespace.db.get_tables();
