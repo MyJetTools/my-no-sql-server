@@ -17,7 +17,10 @@ impl BackupTimer {
 #[async_trait::async_trait]
 impl MyTimerTick for BackupTimer {
     async fn tick(&self) -> RepeatTimerIteration {
-        crate::operations::backup::save_backup(&self.app, false).await;
+        // Failures are already reported by save_backup itself. They must not
+        // short-circuit the tick: the collector below runs for every namespace,
+        // including the ones which did get a snapshot.
+        let _ = crate::operations::backup::save_backup(&self.app, false).await;
         crate::operations::backup::gc_backups(&self.app).await;
 
         RepeatTimerIteration::WithInterval
