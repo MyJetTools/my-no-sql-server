@@ -169,4 +169,12 @@ mod tests {
         assert_eq!(false, if_filename_is_backup(".last_backup_time"));
         assert_eq!(true, if_filename_is_backup("20260731T185201.zip"));
     }
+
+    #[test]
+    fn test_a_snapshot_in_flight_is_not_a_snapshot() {
+        // A snapshot is written under a temporary name and renamed into place, so
+        // an archive being built must not be listed, downloaded, or picked by
+        // MaxBackupsToKeep — all three go through this predicate.
+        assert_eq!(false, if_filename_is_backup("20260731T185201.zip.tmp"));
+    }
 }

@@ -108,24 +108,6 @@ async fn save_namespace_backup(
         return save_last_backup_time(app, db_namespace, now).await;
     }
 
-    let backup_content = match super::super::build_db_snapshot_as_zip_archive(db_namespace).await {
-        Ok(backup_content) => backup_content,
-        Err(err) => {
-            // The archive is built in memory, so this is not expected to ever
-            // happen — which is exactly why it used to be an unwrap(). It is
-            // reported instead: a panic here takes the whole tick down, and with
-            // it the backup of every namespace after this one, which is the
-            // failure this module exists to not have.
-            my_logger::LOGGER.write_error(
-                "Backup",
-                format!("Can not build the snapshot. Err: {}", err),
-                LogEventCtx::new().add("namespace", db_namespace.name.to_string()),
-            );
-
-            return Some(SNAPSHOT_IS_MISSING);
-        }
-    };
-
     let file_name = now.to_rfc3339().replace(":", "").replace("-", "");
 
     let file_name = compile_backup_file(
@@ -134,7 +116,19 @@ async fn save_namespace_backup(
         format!("{}.zip", &file_name[..15]).as_str(),
     );
 
-    if !write_backup_file(file_name.as_str(), backup_content).await {
+    // Straight into the file: the archive of a namespace weighs what its tables
+    // weigh, and holding it in memory on top of them made the backup tick the
+    // moment the process was most likely to be killed for its size.
+    if let Err(err) = super::super::write_db_snapshot_as_zip_file(db_namespace, file_name).await {
+        // Reported rather than unwrapped, as everything else here: a panic takes
+        // the whole tick down, and with it the backup of every namespace after
+        // this one, which is the failure this module exists to not have.
+        my_logger::LOGGER.write_error(
+            "Backup",
+            format!("Can not write the snapshot. Err: {}", err),
+            LogEventCtx::new().add("namespace", db_namespace.name.to_string()),
+        );
+
         // The time stamp is deliberately left where it was: the next tick
         // retries instead of counting a snapshot which never reached the disk
         // as done and waiting out a whole interval.

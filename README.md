@@ -27,7 +27,7 @@ MaxBackupsToKeep: 5
 * SkipBrokenPartitions - skip broken partitions during initialization;
 * SaveThreadsAmount - amount of threads to save data to Storage;
 * TcpSendTimeoutSec - timeout for tcp send operation, otherwise connection will be closed;
-* BackupFolder - folder to store backups as ZIP Archives;
+* BackupFolder - folder to store backups as ZIP Archives. A snapshot is written into `<name>.zip.tmp` and renamed once it is complete, so a `.zip.tmp` file in the folder is either a backup in progress or the leftover of a process that died mid-archive - never a snapshot to restore from;
 * BackupIntervalHours - interval between backups;
 * MaxBackupsToKeep - max amount of backups to keep per namespace - every namespace has a folder of its own inside BackupFolder and is counted separately. The oldest ones above the limit are deleted by the GcBackups timer, which reports every deletion to the log;
 
