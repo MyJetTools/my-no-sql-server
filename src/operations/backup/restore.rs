@@ -1,5 +1,10 @@
 use core::str;
-use std::{collections::BTreeMap, sync::Arc, time::Duration};
+use std::{
+    collections::BTreeMap,
+    io::{Read, Seek},
+    sync::Arc,
+    time::Duration,
+};
 
 use my_no_sql_sdk::core::db_json_entity::DbJsonEntity;
 use my_no_sql_sdk::server::rust_extensions::date_time::DateTimeAsMicroseconds;
@@ -71,13 +76,20 @@ pub async fn restore_from_file(
     }
 
     let full_path = super::utils::compile_backup_file(app, &db_namespace.name, file_name);
-    let backup_content = tokio::fs::read(full_path.as_str()).await.map_err(|err| {
+
+    // Opened, not read: a snapshot weighs what the data it holds weighs, and
+    // holding it as well as what is being restored out of it is what made
+    // restoring, not the traffic, the peak of the process.
+    let mut zip_reader = ZipReader::open_file(full_path.as_str()).map_err(|err| {
         BackupError::FileReadError(format!("Error loading file '{}': {}", file_name, err))
     })?;
 
-    restore(app, db_namespace, backup_content, table_name, clean_table).await
+    restore_from_zip_reader(app, db_namespace, &mut zip_reader, table_name, clean_table).await
 }
 
+/// Restores an archive which is already in memory — the one uploaded to
+/// `RestoreFromZip`. A snapshot in the backup folder goes through
+/// `restore_from_file`, which does not read it whole.
 pub async fn restore(
     app: &Arc<AppContext>,
     db_namespace: &Arc<DbNamespace>,
@@ -85,8 +97,19 @@ pub async fn restore(
     table_name: Option<&str>,
     clean_table: bool,
 ) -> Result<(), BackupError> {
-    let mut zip_reader = ZipReader::new(backup_content);
+    let mut zip_reader = ZipReader::in_memory(backup_content)
+        .map_err(|err| BackupError::ZipArchiveError(err.to_string()))?;
 
+    restore_from_zip_reader(app, db_namespace, &mut zip_reader, table_name, clean_table).await
+}
+
+async fn restore_from_zip_reader<TReader: Read + Seek>(
+    app: &Arc<AppContext>,
+    db_namespace: &Arc<DbNamespace>,
+    zip_reader: &mut ZipReader<TReader>,
+    table_name: Option<&str>,
+    clean_table: bool,
+) -> Result<(), BackupError> {
     let mut partitions: BTreeMap<String, Vec<RestoreFileName>> = BTreeMap::new();
 
     for file_name_str in zip_reader.get_file_names() {
@@ -125,7 +148,7 @@ pub async fn restore(
                     db_namespace,
                     table_name,
                     files,
-                    &mut zip_reader,
+                    zip_reader,
                     clean_table,
                 )
                 .await?;
@@ -141,7 +164,7 @@ pub async fn restore(
                     db_namespace,
                     table_name.as_str(),
                     files,
-                    &mut zip_reader,
+                    zip_reader,
                     clean_table,
                 )
                 .await?;
@@ -207,12 +230,12 @@ pub async fn restore_partition(
     Ok(())
 }
 
-async fn restore_to_db(
+async fn restore_to_db<TReader: Read + Seek>(
     app: &Arc<AppContext>,
     db_namespace: &Arc<DbNamespace>,
     table_name: &str,
     mut files: Vec<RestoreFileName>,
-    zip: &mut ZipReader,
+    zip: &mut ZipReader<TReader>,
     clean_table: bool,
 ) -> Result<(), BackupError> {
     let persist_moment = DateTimeAsMicroseconds::now().add(Duration::from_secs(5));
@@ -221,7 +244,7 @@ async fn restore_to_db(
 
         let content = zip
             .get_content_as_vec(&metadata_file.file_name)
-            .map_err(|err| BackupError::ZipArchiveError(format!("{:?}", err)))?;
+            .map_err(|err| BackupError::ZipArchiveError(err.to_string()))?;
 
         let table = TableMetadataFileContract::parse(content.as_slice());
 
@@ -267,7 +290,7 @@ async fn restore_to_db(
 
         let content = zip
             .get_content_as_vec(&partition_file.file_name)
-            .map_err(|err| BackupError::ZipArchiveError(format!("{:?}", err)))?;
+            .map_err(|err| BackupError::ZipArchiveError(err.to_string()))?;
 
         let db_rows = DbJsonEntity::restore_as_vec(content.as_slice()).map_err(|itm| {
             BackupError::InvalidFileContent {

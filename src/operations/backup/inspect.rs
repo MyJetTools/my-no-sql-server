@@ -1,4 +1,6 @@
 use std::collections::BTreeMap;
+use std::fs::File;
+use std::io::BufReader;
 
 use my_no_sql_sdk::server::rust_extensions::base64::FromBase64;
 use serde_derive::Serialize;
@@ -41,20 +43,20 @@ fn validate_file_name(file_name: &str) -> Result<(), InspectError> {
     Ok(())
 }
 
+/// Opens the snapshot without reading it: listing what is inside it costs its
+/// central directory, and reading one partition out of it costs that partition.
 async fn load_zip(
     app: &AppContext,
     db_namespace: &Arc<DbNamespace>,
     file_name: &str,
-) -> Result<ZipReader, InspectError> {
+) -> Result<ZipReader<BufReader<File>>, InspectError> {
     validate_file_name(file_name)?;
     let full_path = super::utils::compile_backup_file(app, &db_namespace.name, file_name);
-    let content = tokio::fs::read(full_path.as_str())
-        .await
-        .map_err(|e| match e.kind() {
-            std::io::ErrorKind::NotFound => InspectError::FileNotFound,
-            _ => InspectError::IoError(e.to_string()),
-        })?;
-    Ok(ZipReader::new(content))
+
+    ZipReader::open_file(full_path.as_str()).map_err(|e| match e.kind() {
+        std::io::ErrorKind::NotFound => InspectError::FileNotFound,
+        _ => InspectError::IoError(e.to_string()),
+    })
 }
 
 #[derive(Serialize)]
@@ -145,6 +147,7 @@ pub async fn read_snapshot_partition_rows(
     let zip_path = format!("{}/{}", table_name, encoded);
 
     let mut zip = load_zip(app, db_namespace, file_name).await?;
+
     zip.get_content_as_vec(&zip_path)
         .map_err(|_| InspectError::PartitionNotFound)
 }

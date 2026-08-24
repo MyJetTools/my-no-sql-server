@@ -182,7 +182,8 @@ mod tests {
         let mut zip_builder = DbZipBuilder::in_memory();
         zip_builder.add_table(TABLE_NAME, table_snapshot).unwrap();
 
-        let mut zip_reader = crate::zip::ZipReader::new(zip_builder.get_payload().unwrap());
+        let mut zip_reader =
+            crate::zip::ZipReader::in_memory(zip_builder.get_payload().unwrap()).unwrap();
 
         use base64::Engine;
         let file_name = format!(
