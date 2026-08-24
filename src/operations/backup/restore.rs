@@ -12,6 +12,7 @@ use my_no_sql_sdk::server::rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
     app::{AppContext, DbNamespace},
+    db_operations::DbOperationError,
     db_sync::{states::InitTableEventSyncData, EventSource, SyncEvent},
     scripts::serializers::table_attrs::TableMetadataFileContract,
     zip::ZipReader,
@@ -36,6 +37,9 @@ pub enum BackupError {
         partition_key: String,
         err: String,
     },
+    /// The database refused a write of the restore — the server is not
+    /// initialized yet, the table is gone, and so on.
+    DbOperation(DbOperationError),
 }
 
 impl BackupError {
@@ -59,6 +63,7 @@ impl BackupError {
                 "Invalid content in '{}' (partition '{}'): {}",
                 file_name, partition_key, err
             ),
+            BackupError::DbOperation(err) => format!("{:?}", err),
         }
     }
 }
@@ -119,12 +124,11 @@ async fn restore_from_zip_reader<TReader: Read + Seek + Send + 'static>(
         let file_name =
             RestoreFileName::new(file_name_str).map_err(|err| BackupError::InvalidFileName(err))?;
 
-        if file_name.is_none() {
+        let Some(file_name) = file_name else {
             println!("Skipping  file [{}]", file_name_str);
             continue;
-        }
+        };
 
-        let file_name = file_name.unwrap();
         match partitions.get_mut(&file_name.table_name) {
             Some(by_table) => {
                 if file_name.file_type.is_metadata() {
@@ -259,7 +263,12 @@ async fn restore_to_db<TReader: Read + Seek + Send + 'static>(
     clean_table: bool,
 ) -> Result<ZipReader<TReader>, BackupError> {
     let persist_moment = DateTimeAsMicroseconds::now().add(Duration::from_secs(5));
-    let db_table = if files.get(0).unwrap().file_type.is_metadata() {
+    let starts_with_metadata = files
+        .first()
+        .map(|file| file.file_type.is_metadata())
+        .unwrap_or(false);
+
+    let db_table = if starts_with_metadata {
         let metadata_file = files.remove(0);
 
         let content;
@@ -270,7 +279,7 @@ async fn restore_to_db<TReader: Read + Seek + Send + 'static>(
 
         let table = TableMetadataFileContract::parse(content.as_slice());
 
-        let db_table = crate::db_operations::write::table::create_if_not_exist(
+        crate::db_operations::write::table::create_if_not_exist(
             app,
             db_namespace,
             table_name,
@@ -281,18 +290,15 @@ async fn restore_to_db<TReader: Read + Seek + Send + 'static>(
             persist_moment,
         )
         .await
-        .unwrap();
-        db_table
+        .map_err(BackupError::DbOperation)?
     } else {
-        let db_table = db_namespace.db.get_table(table_name);
-
-        if db_table.is_none() {
+        let Some(db_table) = db_namespace.db.get_table(table_name) else {
             return Err(BackupError::TableNotFoundToRestoreBackupAndNoMetadataFound(
                 table_name.to_string(),
             ));
-        }
+        };
 
-        db_table.unwrap()
+        db_table
     };
 
     if clean_table {
@@ -304,7 +310,7 @@ async fn restore_to_db<TReader: Read + Seek + Send + 'static>(
             persist_moment,
         )
         .await
-        .unwrap();
+        .map_err(BackupError::DbOperation)?;
     }
 
     for partition_file in files {
@@ -317,13 +323,14 @@ async fn restore_to_db<TReader: Read + Seek + Send + 'static>(
             .await
             .map_err(|err| BackupError::ZipArchiveError(err.to_string()))?;
 
-        let db_rows = parse_partition_rows(content).await.map_err(|err| {
-            BackupError::InvalidFileContent {
-                file_name,
-                partition_key: partition_key.to_string(),
-                err,
-            }
-        })?;
+        let db_rows =
+            parse_partition_rows(content)
+                .await
+                .map_err(|err| BackupError::InvalidFileContent {
+                    file_name,
+                    partition_key: partition_key.to_string(),
+                    err,
+                })?;
 
         crate::db_operations::write::clean_partition_and_bulk_insert(
             app,
@@ -336,7 +343,7 @@ async fn restore_to_db<TReader: Read + Seek + Send + 'static>(
             DateTimeAsMicroseconds::now(),
         )
         .await
-        .unwrap();
+        .map_err(BackupError::DbOperation)?;
     }
 
     // The per-partition writes above only emit InitPartitions events, so a

@@ -4,6 +4,7 @@ use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
 use std::sync::Arc;
 
 use crate::app::AppContext;
+use crate::operations::backup::BackupError;
 
 #[http_route(
     method: "POST",
@@ -46,7 +47,11 @@ async fn handle_request(
 
     match restore_result {
         Ok(_) => HttpOutput::Empty.into_ok_result(true).into(),
-        Err(err) => Err(HttpFailResult::as_fatal_error(format!("{:?}", err))),
+        // A write the database refused answers as itself: a restore which lands
+        // before the server has loaded its tables is a 503, and it used to be a
+        // panic in the handler.
+        Err(BackupError::DbOperation(err)) => Err(err.into()),
+        Err(err) => Err(HttpFailResult::as_fatal_error(err.into_message())),
     }
 }
 
