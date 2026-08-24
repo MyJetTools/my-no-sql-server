@@ -8,11 +8,11 @@ use crate::app::AppContext;
     method: "POST",
     route: "/api/Persist/Force",
     deprecated_routes: ["/Persist/Force"],
-    summary: "Execute persist loop",
-    description: "Executes persist loop",
+    summary: "Persist everything queued",
+    description: "Writes every queued change to the disk and answers when it is written",
     controller: "Persist",
     result:[
-        {status_code: 202, description: "Executed successfully"},
+        {status_code: 204, description: "Everything queued is on the disk"},
     ]
 )]
 pub struct ForcePersistAction {
@@ -29,6 +29,8 @@ async fn handle_request(
     action: &ForcePersistAction,
     _ctx: &HttpContext,
 ) -> Result<HttpOkResult, HttpFailResult> {
-    crate::operations::persist(&action.app).await;
+    // Drains the queue instead of writing one task off it: the caller restarts
+    // the process on this answer, and one task off a queue of fifty is data lost.
+    crate::operations::persist_all(&action.app).await;
     HttpOutput::Empty.into_ok_result(true)
 }
