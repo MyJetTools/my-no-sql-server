@@ -12,6 +12,7 @@ pub struct LocationModel {
 #[derive(Serialize, Deserialize, Debug, MyHttpObjectStructure)]
 pub struct StatusBarModel {
     pub location: LocationModel,
+    /// Writes the server still owes the disk. Zero means everything is written.
     #[serde(rename = "persistAmount")]
     persist_amount: usize,
     #[serde(rename = "tcpConnections")]
@@ -40,6 +41,7 @@ impl StatusBarModel {
         tables_amount: usize,
         used_http_connections: i64,
         read_per_second: usize,
+        persist_amount: usize,
     ) -> Self {
         Self {
             master_node: None,
@@ -47,7 +49,7 @@ impl StatusBarModel {
                 id: app.settings.location.to_string(),
                 compress: app.settings.compress_data,
             },
-            persist_amount: app.get_persist_amount(),
+            persist_amount,
             tcp_connections,
             http_connections,
             tables_amount,

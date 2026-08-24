@@ -124,6 +124,13 @@ impl PersistMarkersInner {
         item.metrics.update(moment, duration);
     }
 
+    pub fn get_amount_to_persist(&self) -> usize {
+        self.items
+            .iter()
+            .map(|item| item.get_amount_to_persist())
+            .sum()
+    }
+
     pub fn has_something_to_persist(&self) -> bool {
         self.items
             .iter()

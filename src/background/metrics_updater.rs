@@ -32,8 +32,6 @@ impl MetricsUpdater {
 #[async_trait::async_trait]
 impl MyTimerTick for MetricsUpdater {
     async fn tick(&self) -> RepeatTimerIteration {
-        let mut persist_amount = 0;
-
         self.app
             .metrics
             .update_tcp_threads(&self.tcp_threads_statistics);
@@ -49,8 +47,6 @@ impl MyTimerTick for MetricsUpdater {
             for db_table in tables.iter() {
                 let table_metrics =
                     crate::operations::get_table_metrics(&db_namespace, db_table.as_ref()).await;
-
-                persist_amount += table_metrics.persist_amount;
 
                 let persist_delay = if let Some(last_persist_time) = table_metrics.last_persist_time
                 {
@@ -86,8 +82,6 @@ impl MyTimerTick for MetricsUpdater {
                 );
             }
         }
-
-        self.app.update_persist_amount(persist_amount);
 
         self.app.write_payloads_per_second.one_second_tick();
         self.app.write_bytes_per_second.one_second_tick();

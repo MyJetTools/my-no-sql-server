@@ -114,6 +114,8 @@ impl StatusModel {
 
         let used_http_connections = app.metrics.get_http_connections_amount();
 
+        let amount_to_persist = crate::operations::get_amount_to_persist(app).await;
+
         let writers = WriterApiModel::new(app).await;
 
         if app.states.is_initialized() {
@@ -127,6 +129,7 @@ impl StatusModel {
                     tables.len(),
                     used_http_connections,
                     read_per_second,
+                    amount_to_persist,
                 ),
             };
         }
@@ -141,6 +144,7 @@ impl StatusModel {
                 tables.len(),
                 used_http_connections,
                 read_per_second,
+                amount_to_persist,
             ),
         };
     }

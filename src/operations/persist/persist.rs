@@ -36,6 +36,20 @@ pub async fn persist_all(app: &Arc<AppContext>) -> usize {
     persisted
 }
 
+/// How many writes the server still owes the disk, across every namespace.
+///
+/// Read live: an operator asks it to find out whether a restart is safe, and an
+/// answer a second old is an answer about the wrong moment.
+pub async fn get_amount_to_persist(app: &AppContext) -> usize {
+    let mut result = 0;
+
+    for db_namespace in app.namespaces.get_all() {
+        result += db_namespace.persist_markers.get_amount_to_persist().await;
+    }
+
+    result
+}
+
 async fn persist_task(app: &Arc<AppContext>, now: Option<DateTimeAsMicroseconds>) -> bool {
     // Single-flight: the timer, the Force-Persist HTTP action and the shutdown
     // drain may call this concurrently; overlapping tasks would break the

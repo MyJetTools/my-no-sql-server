@@ -133,6 +133,11 @@ impl PersistMarkers {
         let inner = self.inner.lock().await;
         inner.has_something_to_persist()
     }
+
+    pub async fn get_amount_to_persist(&self) -> usize {
+        let inner = self.inner.lock().await;
+        inner.get_amount_to_persist()
+    }
 }
 
 #[cfg(test)]
@@ -176,5 +181,32 @@ mod tests {
         assert!(markers.get_persist_task(None).await.is_some());
         assert!(markers.get_persist_task(None).await.is_none());
         assert_eq!(false, markers.has_something_to_persist().await);
+    }
+
+    #[tokio::test]
+    async fn test_the_amount_to_persist_counts_the_queue_and_falls_back_to_zero() {
+        let markers = PersistMarkers::new();
+        let table_name: DbTableName = TABLE_NAME.into();
+        let partition_key = PartitionKey::new(PARTITION_KEY.to_string());
+
+        let now = DateTimeAsMicroseconds::now();
+        let rows = vec![db_row("row-0"), db_row("row-1"), db_row("row-2")];
+
+        markers
+            .persist_rows(&table_name, &partition_key, now, rows.iter())
+            .await;
+        markers.persist_table_attributes(&table_name, now).await;
+
+        assert_eq!(
+            rows.len() + 1,
+            markers.get_persist_metrics(TABLE_NAME).await.persist_amount
+        );
+
+        while markers.get_persist_task(None).await.is_some() {}
+
+        assert_eq!(
+            0,
+            markers.get_persist_metrics(TABLE_NAME).await.persist_amount
+        );
     }
 }

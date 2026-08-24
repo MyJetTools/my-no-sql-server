@@ -1,8 +1,5 @@
 use std::{
-    sync::{
-        atomic::{AtomicI64, AtomicUsize},
-        Arc,
-    },
+    sync::{atomic::AtomicI64, Arc},
     time::Duration,
 };
 
@@ -69,7 +66,6 @@ pub struct AppContext {
     /// held across repo I/O awaits.
     pub persist_call_lock: tokio::sync::Mutex<()>,
     pub http_writers: HttpWriters,
-    persist_amount: AtomicUsize,
 
     pub write_payloads_per_second: OneSecondCounter,
     pub write_bytes_per_second: OneSecondCounter,
@@ -103,7 +99,6 @@ impl AppContext {
             multipart_list: MultipartList::new(),
             persist_call_lock: tokio::sync::Mutex::new(()),
             settings,
-            persist_amount: AtomicUsize::new(0),
             sync: EventsLoop::new("Sync"),
             http_writers: HttpWriters::new(),
             write_payloads_per_second: OneSecondCounter::new(),
@@ -336,15 +331,5 @@ impl AppContext {
         let now = DateTimeAsMicroseconds::now();
         let micros_left = until.unix_microseconds - now.unix_microseconds;
         Some((micros_left.max(0) / 1_000_000) as u64)
-    }
-
-    pub fn update_persist_amount(&self, value: usize) {
-        self.persist_amount
-            .store(value, std::sync::atomic::Ordering::SeqCst);
-    }
-
-    pub fn get_persist_amount(&self) -> usize {
-        self.persist_amount
-            .load(std::sync::atomic::Ordering::Relaxed)
     }
 }

@@ -165,6 +165,10 @@ impl PersistByTableItem {
     pub fn get_metrics(&self) -> PersistMetrics {
         let mut result = self.metrics.clone();
 
+        // Counted on read rather than tracked: the queue is the only thing that
+        // knows what is still owed.
+        result.persist_amount = self.get_amount_to_persist();
+
         if let Some(value) = self.persist_whole_table_content {
             result.next_persist_time = Some(value);
             return result;
@@ -193,6 +197,30 @@ impl PersistByTableItem {
                     }
                 }
             }
+        }
+
+        result
+    }
+
+    /// How many writes the table is still waiting for: its content or its
+    /// attributes, every partition queued whole, and every row queued on its own.
+    pub fn get_amount_to_persist(&self) -> usize {
+        let mut result = 0;
+
+        if self.persist_whole_table_content.is_some() {
+            result += 1;
+        }
+
+        if self.persist_table_attributes.is_some() {
+            result += 1;
+        }
+
+        for partition in self.persist_partitions.iter() {
+            if partition.persist_whole_partition.is_some() {
+                result += 1;
+            }
+
+            result += partition.rows_to_persist.len();
         }
 
         result
