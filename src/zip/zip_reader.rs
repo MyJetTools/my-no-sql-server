@@ -20,6 +20,12 @@ impl ZipReader<BufReader<std::fs::File>> {
 
         Self::new(BufReader::with_capacity(FILE_READ_BUFFER_SIZE, file))
     }
+
+    /// Opening is a file to open and a central directory to parse, both of them
+    /// blocking, so it happens off the runtime worker.
+    pub async fn open_file_on_blocking_thread(file_name: String) -> Result<Self, std::io::Error> {
+        run_blocking(move || Self::open_file(file_name.as_str())).await
+    }
 }
 
 impl ZipReader<Cursor<Vec<u8>>> {
@@ -65,6 +71,31 @@ impl<TReader: Read + Seek> ZipReader<TReader> {
 
         Ok(content)
     }
+}
+
+impl<TReader: Read + Seek + Send + 'static> ZipReader<TReader> {
+    /// Inflates one entry on a blocking thread and hands the reader back.
+    ///
+    /// The reader has to cross the thread boundary because the caller writes
+    /// each entry into the database — an await — before asking for the next one.
+    pub async fn read_entry(
+        mut self,
+        file_name: String,
+    ) -> Result<(Self, Vec<u8>), std::io::Error> {
+        run_blocking(move || {
+            let content = self.get_content_as_vec(file_name.as_str())?;
+            Ok((self, content))
+        })
+        .await
+    }
+}
+
+async fn run_blocking<TResult: Send + 'static>(
+    action: impl FnOnce() -> Result<TResult, std::io::Error> + Send + 'static,
+) -> Result<TResult, std::io::Error> {
+    tokio::task::spawn_blocking(action).await.map_err(|err| {
+        std::io::Error::other(format!("The archive task did not finish. Err: {}", err))
+    })?
 }
 
 #[cfg(test)]

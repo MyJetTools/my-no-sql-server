@@ -6,6 +6,7 @@ use std::{
     time::Duration,
 };
 
+use my_no_sql_sdk::core::db::DbRow;
 use my_no_sql_sdk::core::db_json_entity::DbJsonEntity;
 use my_no_sql_sdk::server::rust_extensions::date_time::DateTimeAsMicroseconds;
 
@@ -80,11 +81,13 @@ pub async fn restore_from_file(
     // Opened, not read: a snapshot weighs what the data it holds weighs, and
     // holding it as well as what is being restored out of it is what made
     // restoring, not the traffic, the peak of the process.
-    let mut zip_reader = ZipReader::open_file(full_path.as_str()).map_err(|err| {
-        BackupError::FileReadError(format!("Error loading file '{}': {}", file_name, err))
-    })?;
+    let zip_reader = ZipReader::open_file_on_blocking_thread(full_path)
+        .await
+        .map_err(|err| {
+            BackupError::FileReadError(format!("Error loading file '{}': {}", file_name, err))
+        })?;
 
-    restore_from_zip_reader(app, db_namespace, &mut zip_reader, table_name, clean_table).await
+    restore_from_zip_reader(app, db_namespace, zip_reader, table_name, clean_table).await
 }
 
 /// Restores an archive which is already in memory — the one uploaded to
@@ -97,16 +100,16 @@ pub async fn restore(
     table_name: Option<&str>,
     clean_table: bool,
 ) -> Result<(), BackupError> {
-    let mut zip_reader = ZipReader::in_memory(backup_content)
+    let zip_reader = ZipReader::in_memory(backup_content)
         .map_err(|err| BackupError::ZipArchiveError(err.to_string()))?;
 
-    restore_from_zip_reader(app, db_namespace, &mut zip_reader, table_name, clean_table).await
+    restore_from_zip_reader(app, db_namespace, zip_reader, table_name, clean_table).await
 }
 
-async fn restore_from_zip_reader<TReader: Read + Seek>(
+async fn restore_from_zip_reader<TReader: Read + Seek + Send + 'static>(
     app: &Arc<AppContext>,
     db_namespace: &Arc<DbNamespace>,
-    zip_reader: &mut ZipReader<TReader>,
+    mut zip_reader: ZipReader<TReader>,
     table_name: Option<&str>,
     clean_table: bool,
 ) -> Result<(), BackupError> {
@@ -159,7 +162,9 @@ async fn restore_from_zip_reader<TReader: Read + Seek>(
         },
         None => {
             for (table_name, files) in partitions {
-                restore_to_db(
+                // The reader is passed along and handed back: reading an entry
+                // happens on a blocking thread, which it has to be moved into.
+                zip_reader = restore_to_db(
                     &app,
                     db_namespace,
                     table_name.as_str(),
@@ -194,8 +199,9 @@ pub async fn restore_partition(
     .await
     .map_err(|err| err.into_message())?;
 
-    let db_rows = DbJsonEntity::restore_as_vec(content.as_slice())
-        .map_err(|err| format!("Invalid partition content: {:?}", err))?;
+    let db_rows = parse_partition_rows(content)
+        .await
+        .map_err(|err| format!("Invalid partition content: {}", err))?;
 
     let db_table = db_namespace.db.get_table(table_name).ok_or_else(|| {
         format!(
@@ -230,20 +236,36 @@ pub async fn restore_partition(
     Ok(())
 }
 
-async fn restore_to_db<TReader: Read + Seek>(
+/// Parses the rows of a partition as they are stored in an archive.
+///
+/// CPU and allocation on the size of the partition, and a row of it is copied
+/// into a buffer of its own, so it happens off the runtime worker.
+async fn parse_partition_rows(content: Vec<u8>) -> Result<Vec<Arc<DbRow>>, String> {
+    tokio::task::spawn_blocking(move || {
+        DbJsonEntity::restore_as_vec(content.as_slice()).map_err(|err| format!("{:?}", err))
+    })
+    .await
+    .map_err(|err| format!("The parse task did not finish. Err: {}", err))?
+}
+
+/// Restores every file of one table out of the archive, handing the reader back
+/// for the next table.
+async fn restore_to_db<TReader: Read + Seek + Send + 'static>(
     app: &Arc<AppContext>,
     db_namespace: &Arc<DbNamespace>,
     table_name: &str,
     mut files: Vec<RestoreFileName>,
-    zip: &mut ZipReader<TReader>,
+    mut zip: ZipReader<TReader>,
     clean_table: bool,
-) -> Result<(), BackupError> {
+) -> Result<ZipReader<TReader>, BackupError> {
     let persist_moment = DateTimeAsMicroseconds::now().add(Duration::from_secs(5));
     let db_table = if files.get(0).unwrap().file_type.is_metadata() {
         let metadata_file = files.remove(0);
 
-        let content = zip
-            .get_content_as_vec(&metadata_file.file_name)
+        let content;
+        (zip, content) = zip
+            .read_entry(metadata_file.file_name)
+            .await
             .map_err(|err| BackupError::ZipArchiveError(err.to_string()))?;
 
         let table = TableMetadataFileContract::parse(content.as_slice());
@@ -287,16 +309,19 @@ async fn restore_to_db<TReader: Read + Seek>(
 
     for partition_file in files {
         let partition_key = partition_file.file_type.unwrap_as_partition_key();
+        let file_name = partition_file.file_name;
 
-        let content = zip
-            .get_content_as_vec(&partition_file.file_name)
+        let content;
+        (zip, content) = zip
+            .read_entry(file_name.clone())
+            .await
             .map_err(|err| BackupError::ZipArchiveError(err.to_string()))?;
 
-        let db_rows = DbJsonEntity::restore_as_vec(content.as_slice()).map_err(|itm| {
+        let db_rows = parse_partition_rows(content).await.map_err(|err| {
             BackupError::InvalidFileContent {
-                file_name: partition_file.file_name,
+                file_name,
                 partition_key: partition_key.to_string(),
-                err: format!("{:?}", itm),
+                err,
             }
         })?;
 
@@ -324,5 +349,5 @@ async fn restore_to_db<TReader: Read + Seek>(
         crate::operations::sync::dispatch(app, db_namespace, SyncEvent::InitTable(sync_data));
     }
 
-    Ok(())
+    Ok(zip)
 }

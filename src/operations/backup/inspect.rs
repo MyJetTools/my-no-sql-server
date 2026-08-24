@@ -53,10 +53,12 @@ async fn load_zip(
     validate_file_name(file_name)?;
     let full_path = super::utils::compile_backup_file(app, &db_namespace.name, file_name);
 
-    ZipReader::open_file(full_path.as_str()).map_err(|e| match e.kind() {
-        std::io::ErrorKind::NotFound => InspectError::FileNotFound,
-        _ => InspectError::IoError(e.to_string()),
-    })
+    ZipReader::open_file_on_blocking_thread(full_path)
+        .await
+        .map_err(|e| match e.kind() {
+            std::io::ErrorKind::NotFound => InspectError::FileNotFound,
+            _ => InspectError::IoError(e.to_string()),
+        })
 }
 
 #[derive(Serialize)]
@@ -146,8 +148,12 @@ pub async fn read_snapshot_partition_rows(
     let encoded = base64::engine::general_purpose::STANDARD.encode(partition_key.as_bytes());
     let zip_path = format!("{}/{}", table_name, encoded);
 
-    let mut zip = load_zip(app, db_namespace, file_name).await?;
+    let zip = load_zip(app, db_namespace, file_name).await?;
 
-    zip.get_content_as_vec(&zip_path)
-        .map_err(|_| InspectError::PartitionNotFound)
+    let (_, content) = zip
+        .read_entry(zip_path)
+        .await
+        .map_err(|_| InspectError::PartitionNotFound)?;
+
+    Ok(content)
 }
