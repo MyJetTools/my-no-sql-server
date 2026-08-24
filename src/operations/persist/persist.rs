@@ -7,7 +7,50 @@ use crate::{
     persist_markers::PersistTask,
 };
 
+/// Writes one queued task and returns whether it wrote anything.
+///
+/// A task which is not due yet is left alone, unless the server is shutting
+/// down and everything has to go out now.
 pub async fn persist(app: &Arc<AppContext>) -> bool {
+    let now = if app.states.is_shutting_down() {
+        None
+    } else {
+        Some(DateTimeAsMicroseconds::now())
+    };
+
+    persist_task(app, now).await
+}
+
+/// Writes everything queued and returns how many tasks that took.
+///
+/// Answers only when the data is on the disk — this is what a caller uses as a
+/// barrier before it restarts the process. Tasks scheduled for later are written
+/// too: the point of asking is that the data is safe now, not that it is due.
+pub async fn persist_all(app: &Arc<AppContext>) -> usize {
+    let mut persisted = 0;
+
+    while persist_task(app, None).await {
+        persisted += 1;
+    }
+
+    persisted
+}
+
+/// How many writes the server still owes the disk, across every namespace.
+///
+/// Read live: an operator asks it to find out whether a restart is safe, and an
+/// answer a second old is an answer about the wrong moment.
+pub async fn get_amount_to_persist(app: &AppContext) -> usize {
+    let mut result = 0;
+
+    for db_namespace in app.namespaces.get_all() {
+        result += db_namespace.persist_markers.get_amount_to_persist().await;
+    }
+
+    result
+}
+
+async fn persist_task(app: &Arc<AppContext>, now: Option<DateTimeAsMicroseconds>) -> bool {
     // Single-flight: the timer, the Force-Persist HTTP action and the shutdown
     // drain may call this concurrently; overlapping tasks would break the
     // in-flight-write-then-cleanup ordering that table deletion relies on.
@@ -17,12 +60,6 @@ pub async fn persist(app: &Arc<AppContext>) -> bool {
     let _single_flight = app.persist_call_lock.lock().await;
 
     let start_time = DateTimeAsMicroseconds::now();
-
-    let now = if app.states.is_shutting_down() {
-        None
-    } else {
-        Some(start_time)
-    };
 
     // Each namespace keeps a persist queue of its own. Take the first task we
     // find and let the caller come back for more — one task per call keeps every

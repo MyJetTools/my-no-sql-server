@@ -9,7 +9,9 @@ pub async fn shutdown(app: &Arc<AppContext>) {
 
     while has_something_to_persist(app).await {
         println!("Has something to persist. Persisting and checking again...");
-        crate::operations::persist::persist(app).await;
+        // The whole queue per round, not one task per second: fifty tables used
+        // to take a hundred seconds of a shutdown nobody waits that long for.
+        crate::operations::persist::persist_all(app).await;
         tokio::time::sleep(duration).await;
     }
 
