@@ -88,8 +88,7 @@ fn build_archive_file(db_namespace: &Arc<DbNamespace>, file_name: &str) -> Resul
     let file = std::fs::File::create(file_name)
         .map_err(|err| format!("Can not create {}. Err: {}", file_name, err))?;
 
-    let mut zip_builder =
-        DbZipBuilder::new(BufWriter::with_capacity(FILE_WRITE_BUFFER_SIZE, file));
+    let mut zip_builder = DbZipBuilder::new(BufWriter::with_capacity(FILE_WRITE_BUFFER_SIZE, file));
 
     for db_table in db_namespace.db.get_tables().iter() {
         // One table at a time: the snapshot is a vector of row handles, so it
@@ -122,34 +121,6 @@ fn build_archive_file(db_namespace: &Arc<DbNamespace>, file_name: &str) -> Resul
         .map_err(|err| format!("Can not flush the archive to the disk. Err: {}", err))
 }
 
-/// Zips a snapshot of every table of the namespace into memory.
-///
-/// Only for the caller that has to answer with the archive as a body. Anything
-/// writing to disk goes through `write_db_snapshot_as_zip_file` instead — the
-/// whole point of which is not to hold this `Vec`.
-pub async fn build_db_snapshot_as_zip_archive(
-    db_namespace: &Arc<DbNamespace>,
-) -> Result<Vec<u8>, String> {
-    let tables = db_namespace.db.get_tables();
-
-    let mut zip_builder = DbZipBuilder::in_memory();
-
-    for db_table in tables.iter() {
-        let table_snapshot = db_table.get_table_snapshot();
-
-        if let Err(err) = zip_builder.add_table(db_table.name.as_str(), &table_snapshot) {
-            return Err(format!(
-                "Can not add the table {} to the archive. Err: {}",
-                db_table.name, err
-            ));
-        }
-    }
-
-    zip_builder
-        .get_payload()
-        .map_err(|err| format!("Can not compile the archive. Err: {}", err))
-}
-
 #[cfg(test)]
 mod tests {
     fn temp_folder() -> String {
@@ -172,7 +143,10 @@ mod tests {
         });
 
         assert_eq!(Ok(()), result);
-        assert_eq!(b"archive".to_vec(), std::fs::read(file_name.as_str()).unwrap());
+        assert_eq!(
+            b"archive".to_vec(),
+            std::fs::read(file_name.as_str()).unwrap()
+        );
         assert_eq!(
             false,
             std::path::Path::new(format!("{}{}", file_name, super::TEMP_FILE_SUFFIX).as_str())

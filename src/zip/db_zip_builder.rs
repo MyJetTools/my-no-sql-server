@@ -2,8 +2,6 @@ use std::io::{Seek, Write};
 
 use my_no_sql_sdk::server::db_snapshots::{DbRowsSnapshot, DbTableSnapshot};
 
-use super::VecWriter;
-
 /// How much serialized JSON is allowed to pile up before it is handed to the
 /// archive.
 ///
@@ -22,17 +20,6 @@ pub struct DbZipBuilder<TWriter: Write + Seek> {
     /// buffer of `JSON_FLUSH_THRESHOLD` plus the largest single row, not one
     /// buffer per partition.
     json_buffer: String,
-}
-
-impl DbZipBuilder<VecWriter> {
-    pub fn in_memory() -> Self {
-        Self::new(VecWriter::new())
-    }
-
-    pub fn get_payload(self) -> Result<Vec<u8>, zip::result::ZipError> {
-        let result = self.zip_writer.finish()?;
-        Ok(result.buf)
-    }
 }
 
 impl<TWriter: Write + Seek> DbZipBuilder<TWriter> {
@@ -179,19 +166,30 @@ mod tests {
 
     /// The partition as it lands in the archive.
     fn partition_content_of_the_archive(table_snapshot: &DbTableSnapshot) -> String {
-        let mut zip_builder = DbZipBuilder::in_memory();
-        zip_builder.add_table(TABLE_NAME, table_snapshot).unwrap();
+        let file_name = format!(
+            "{}/db_zip_builder_{}.zip",
+            std::env::temp_dir().display(),
+            uuid::Uuid::new_v4()
+        );
 
-        let mut zip_reader = crate::zip::ZipReader::new(zip_builder.get_payload().unwrap());
+        let file = std::fs::File::create(file_name.as_str()).unwrap();
+
+        let mut zip_builder = DbZipBuilder::new(std::io::BufWriter::new(file));
+        zip_builder.add_table(TABLE_NAME, table_snapshot).unwrap();
+        zip_builder.finish().unwrap().into_inner().unwrap();
+
+        let mut zip_reader = crate::zip::ZipReader::open_file(file_name.as_str()).unwrap();
 
         use base64::Engine;
-        let file_name = format!(
+        let entry_name = format!(
             "{}/{}",
             TABLE_NAME,
             base64::engine::general_purpose::STANDARD.encode(PARTITION_KEY.as_bytes())
         );
 
-        let content = zip_reader.get_content_as_vec(file_name.as_str()).unwrap();
+        let content = zip_reader.get_content_as_vec(entry_name.as_str()).unwrap();
+
+        std::fs::remove_file(file_name).ok();
 
         String::from_utf8(content).unwrap()
     }

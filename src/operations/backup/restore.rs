@@ -1,11 +1,18 @@
 use core::str;
-use std::{collections::BTreeMap, sync::Arc, time::Duration};
+use std::{
+    collections::BTreeMap,
+    io::{Read, Seek},
+    sync::Arc,
+    time::Duration,
+};
 
+use my_no_sql_sdk::core::db::DbRow;
 use my_no_sql_sdk::core::db_json_entity::DbJsonEntity;
 use my_no_sql_sdk::server::rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::{
     app::{AppContext, DbNamespace},
+    db_operations::DbOperationError,
     db_sync::{states::InitTableEventSyncData, EventSource, SyncEvent},
     scripts::serializers::table_attrs::TableMetadataFileContract,
     zip::ZipReader,
@@ -30,6 +37,9 @@ pub enum BackupError {
         partition_key: String,
         err: String,
     },
+    /// The database refused a write of the restore — the server is not
+    /// initialized yet, the table is gone, and so on.
+    DbOperation(DbOperationError),
 }
 
 impl BackupError {
@@ -53,6 +63,7 @@ impl BackupError {
                 "Invalid content in '{}' (partition '{}'): {}",
                 file_name, partition_key, err
             ),
+            BackupError::DbOperation(err) => format!("{:?}", err),
         }
     }
 }
@@ -71,13 +82,22 @@ pub async fn restore_from_file(
     }
 
     let full_path = super::utils::compile_backup_file(app, &db_namespace.name, file_name);
-    let backup_content = tokio::fs::read(full_path.as_str()).await.map_err(|err| {
-        BackupError::FileReadError(format!("Error loading file '{}': {}", file_name, err))
-    })?;
 
-    restore(app, db_namespace, backup_content, table_name, clean_table).await
+    // Opened, not read: a snapshot weighs what the data it holds weighs, and
+    // holding it as well as what is being restored out of it is what made
+    // restoring, not the traffic, the peak of the process.
+    let zip_reader = ZipReader::open_file_on_blocking_thread(full_path)
+        .await
+        .map_err(|err| {
+            BackupError::FileReadError(format!("Error loading file '{}': {}", file_name, err))
+        })?;
+
+    restore_from_zip_reader(app, db_namespace, zip_reader, table_name, clean_table).await
 }
 
+/// Restores an archive which is already in memory — the one uploaded to
+/// `RestoreFromZip`. A snapshot in the backup folder goes through
+/// `restore_from_file`, which does not read it whole.
 pub async fn restore(
     app: &Arc<AppContext>,
     db_namespace: &Arc<DbNamespace>,
@@ -85,20 +105,30 @@ pub async fn restore(
     table_name: Option<&str>,
     clean_table: bool,
 ) -> Result<(), BackupError> {
-    let mut zip_reader = ZipReader::new(backup_content);
+    let zip_reader = ZipReader::in_memory(backup_content)
+        .map_err(|err| BackupError::ZipArchiveError(err.to_string()))?;
 
+    restore_from_zip_reader(app, db_namespace, zip_reader, table_name, clean_table).await
+}
+
+async fn restore_from_zip_reader<TReader: Read + Seek + Send + 'static>(
+    app: &Arc<AppContext>,
+    db_namespace: &Arc<DbNamespace>,
+    mut zip_reader: ZipReader<TReader>,
+    table_name: Option<&str>,
+    clean_table: bool,
+) -> Result<(), BackupError> {
     let mut partitions: BTreeMap<String, Vec<RestoreFileName>> = BTreeMap::new();
 
     for file_name_str in zip_reader.get_file_names() {
         let file_name =
             RestoreFileName::new(file_name_str).map_err(|err| BackupError::InvalidFileName(err))?;
 
-        if file_name.is_none() {
+        let Some(file_name) = file_name else {
             println!("Skipping  file [{}]", file_name_str);
             continue;
-        }
+        };
 
-        let file_name = file_name.unwrap();
         match partitions.get_mut(&file_name.table_name) {
             Some(by_table) => {
                 if file_name.file_type.is_metadata() {
@@ -125,7 +155,7 @@ pub async fn restore(
                     db_namespace,
                     table_name,
                     files,
-                    &mut zip_reader,
+                    zip_reader,
                     clean_table,
                 )
                 .await?;
@@ -136,12 +166,14 @@ pub async fn restore(
         },
         None => {
             for (table_name, files) in partitions {
-                restore_to_db(
+                // The reader is passed along and handed back: reading an entry
+                // happens on a blocking thread, which it has to be moved into.
+                zip_reader = restore_to_db(
                     &app,
                     db_namespace,
                     table_name.as_str(),
                     files,
-                    &mut zip_reader,
+                    zip_reader,
                     clean_table,
                 )
                 .await?;
@@ -171,8 +203,9 @@ pub async fn restore_partition(
     .await
     .map_err(|err| err.into_message())?;
 
-    let db_rows = DbJsonEntity::restore_as_vec(content.as_slice())
-        .map_err(|err| format!("Invalid partition content: {:?}", err))?;
+    let db_rows = parse_partition_rows(content)
+        .await
+        .map_err(|err| format!("Invalid partition content: {}", err))?;
 
     let db_table = db_namespace.db.get_table(table_name).ok_or_else(|| {
         format!(
@@ -207,25 +240,46 @@ pub async fn restore_partition(
     Ok(())
 }
 
-async fn restore_to_db(
+/// Parses the rows of a partition as they are stored in an archive.
+///
+/// CPU and allocation on the size of the partition, and a row of it is copied
+/// into a buffer of its own, so it happens off the runtime worker.
+async fn parse_partition_rows(content: Vec<u8>) -> Result<Vec<Arc<DbRow>>, String> {
+    tokio::task::spawn_blocking(move || {
+        DbJsonEntity::restore_as_vec(content.as_slice()).map_err(|err| format!("{:?}", err))
+    })
+    .await
+    .map_err(|err| format!("The parse task did not finish. Err: {}", err))?
+}
+
+/// Restores every file of one table out of the archive, handing the reader back
+/// for the next table.
+async fn restore_to_db<TReader: Read + Seek + Send + 'static>(
     app: &Arc<AppContext>,
     db_namespace: &Arc<DbNamespace>,
     table_name: &str,
     mut files: Vec<RestoreFileName>,
-    zip: &mut ZipReader,
+    mut zip: ZipReader<TReader>,
     clean_table: bool,
-) -> Result<(), BackupError> {
+) -> Result<ZipReader<TReader>, BackupError> {
     let persist_moment = DateTimeAsMicroseconds::now().add(Duration::from_secs(5));
-    let db_table = if files.get(0).unwrap().file_type.is_metadata() {
+    let starts_with_metadata = files
+        .first()
+        .map(|file| file.file_type.is_metadata())
+        .unwrap_or(false);
+
+    let db_table = if starts_with_metadata {
         let metadata_file = files.remove(0);
 
-        let content = zip
-            .get_content_as_vec(&metadata_file.file_name)
-            .map_err(|err| BackupError::ZipArchiveError(format!("{:?}", err)))?;
+        let content;
+        (zip, content) = zip
+            .read_entry(metadata_file.file_name)
+            .await
+            .map_err(|err| BackupError::ZipArchiveError(err.to_string()))?;
 
         let table = TableMetadataFileContract::parse(content.as_slice());
 
-        let db_table = crate::db_operations::write::table::create_if_not_exist(
+        crate::db_operations::write::table::create_if_not_exist(
             app,
             db_namespace,
             table_name,
@@ -236,18 +290,15 @@ async fn restore_to_db(
             persist_moment,
         )
         .await
-        .unwrap();
-        db_table
+        .map_err(BackupError::DbOperation)?
     } else {
-        let db_table = db_namespace.db.get_table(table_name);
-
-        if db_table.is_none() {
+        let Some(db_table) = db_namespace.db.get_table(table_name) else {
             return Err(BackupError::TableNotFoundToRestoreBackupAndNoMetadataFound(
                 table_name.to_string(),
             ));
-        }
+        };
 
-        db_table.unwrap()
+        db_table
     };
 
     if clean_table {
@@ -259,23 +310,27 @@ async fn restore_to_db(
             persist_moment,
         )
         .await
-        .unwrap();
+        .map_err(BackupError::DbOperation)?;
     }
 
     for partition_file in files {
         let partition_key = partition_file.file_type.unwrap_as_partition_key();
+        let file_name = partition_file.file_name;
 
-        let content = zip
-            .get_content_as_vec(&partition_file.file_name)
-            .map_err(|err| BackupError::ZipArchiveError(format!("{:?}", err)))?;
+        let content;
+        (zip, content) = zip
+            .read_entry(file_name.clone())
+            .await
+            .map_err(|err| BackupError::ZipArchiveError(err.to_string()))?;
 
-        let db_rows = DbJsonEntity::restore_as_vec(content.as_slice()).map_err(|itm| {
-            BackupError::InvalidFileContent {
-                file_name: partition_file.file_name,
-                partition_key: partition_key.to_string(),
-                err: format!("{:?}", itm),
-            }
-        })?;
+        let db_rows =
+            parse_partition_rows(content)
+                .await
+                .map_err(|err| BackupError::InvalidFileContent {
+                    file_name,
+                    partition_key: partition_key.to_string(),
+                    err,
+                })?;
 
         crate::db_operations::write::clean_partition_and_bulk_insert(
             app,
@@ -288,7 +343,7 @@ async fn restore_to_db(
             DateTimeAsMicroseconds::now(),
         )
         .await
-        .unwrap();
+        .map_err(BackupError::DbOperation)?;
     }
 
     // The per-partition writes above only emit InitPartitions events, so a
@@ -301,5 +356,5 @@ async fn restore_to_db(
         crate::operations::sync::dispatch(app, db_namespace, SyncEvent::InitTable(sync_data));
     }
 
-    Ok(())
+    Ok(zip)
 }
